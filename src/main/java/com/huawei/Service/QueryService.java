@@ -18,7 +18,7 @@ public class QueryService {
     @Autowired
     QueryDao queryDao;
 
-    public String queryContributors(String community) throws InterruptedException, ExecutionException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
+    public String queryContributors(String community) throws KeyManagementException, NoSuchAlgorithmException {
         return queryDao.queryContributors(community);
     }
 
@@ -32,13 +32,17 @@ public class QueryService {
     }
 
 
-    public String queryNoticusers( String community) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
-        return queryDao.queryNoticusers(community);
+    public String queryNoticeusers( String community) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
+        return queryDao.queryNoticeusers(community);
     }
 
 
     public String queryModulenums(String community) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
         return queryDao.queryModulenums(community);
+    }
+
+    public String queryBusinessOsv(String community) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
+        return queryDao.queryBusinessOsv(community);
     }
 
     public String queryAll( String community) throws InterruptedException, ExecutionException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {

@@ -16,22 +16,26 @@ import java.util.Base64;
 
 @Service
 public class AsyncHttpUtil {
+    static AsyncHttpClient asyncHttpClient=null;
 
-    public   AsyncHttpClient getClient() throws KeyManagementException, NoSuchAlgorithmException {
-        AsyncHttpClient asyncHttpClient = new DefaultAsyncHttpClient(new DefaultAsyncHttpClientConfig.Builder()
-                .setConnectTimeout(100000)
-                .setRequestTimeout(100000).setSslContext(new JdkSslContext(skipSsl(),true, ClientAuth.NONE))
-                .build());
+    public static synchronized   AsyncHttpClient getClient() throws KeyManagementException, NoSuchAlgorithmException {
+        if (asyncHttpClient==null){
+            asyncHttpClient = new DefaultAsyncHttpClient(new DefaultAsyncHttpClientConfig.Builder()
+                    .setConnectTimeout(100000)
+                    .setRequestTimeout(100000).setSslContext(new JdkSslContext(skipSsl(),true, ClientAuth.NONE))
+                    .build());
+        }
+
         return asyncHttpClient;
     }
-public RequestBuilder getBuilder(){
+public static RequestBuilder getBuilder(){
     RequestBuilder builder=new RequestBuilder();
     builder.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-    builder.addHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString(("").getBytes()))
+    builder.addHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString(("user:password").getBytes()))
     .setMethod("POST");
     return builder;
 }
-    public  SSLContext skipSsl() throws NoSuchAlgorithmException, KeyManagementException {
+    public static SSLContext skipSsl() throws NoSuchAlgorithmException, KeyManagementException {
         SSLContext sc = SSLContext.getInstance("SSL");
 
         // 实现一个X509TrustManager接口，用于绕过验证，不用修改里面的方法
@@ -58,18 +62,18 @@ public RequestBuilder getBuilder(){
 
             @Override
             public void checkClientTrusted(
-                    java.security.cert.X509Certificate[] paramArrayOfX509Certificate,
+                    X509Certificate[] paramArrayOfX509Certificate,
                     String paramString) throws CertificateException {
             }
 
             @Override
             public void checkServerTrusted(
-                    java.security.cert.X509Certificate[] paramArrayOfX509Certificate,
+                    X509Certificate[] paramArrayOfX509Certificate,
                     String paramString) throws CertificateException {
             }
 
             @Override
-            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+            public X509Certificate[] getAcceptedIssuers() {
                 return null;
             }
         };
