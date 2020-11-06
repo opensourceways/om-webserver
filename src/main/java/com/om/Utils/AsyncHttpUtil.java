@@ -1,4 +1,4 @@
-package com.huawei.Utils;
+package com.om.Utils;
 
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.JdkSslContext;

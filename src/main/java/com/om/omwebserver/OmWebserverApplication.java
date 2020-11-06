@@ -1,11 +1,11 @@
-package com.huawei.omwebserver;
+package com.om.omwebserver;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
-@ComponentScan(basePackages = { "com.huawei.*" })
+@ComponentScan(basePackages = { "com.om.*" })
 public class OmWebserverApplication {
 
 	public static void main(String[] args) {

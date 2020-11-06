@@ -1,13 +1,13 @@
-package com.huawei.Dao;
+package com.om.Dao;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.huawei.Modules.openEuler;
-import com.huawei.Modules.openGauss;
-import com.huawei.Modules.openLookeng;
-import com.huawei.Utils.AsyncHttpUtil;
+import com.om.Modules.openEuler;
+import com.om.Modules.openGauss;
+import com.om.Modules.openLookeng;
+import com.om.Utils.AsyncHttpUtil;
 import org.asynchttpclient.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;

@@ -1,7 +1,7 @@
-package com.huawei.Service;
+package com.om.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.huawei.Dao.QueryDao;
+import com.om.Dao.QueryDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

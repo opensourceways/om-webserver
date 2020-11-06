@@ -1,4 +1,4 @@
-package com.huawei.Modules;
+package com.om.Modules;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
@@ -8,7 +8,11 @@ import org.springframework.stereotype.Repository;
  * @date 2020/11/5 15:43
  */
 @Repository
-public class openEuler extends openComObject {
+public class openLookeng extends openComObject {
+
+
+    @Value("${openLookeng.access.token}")
+    String access_token;
     public String getAccess_token() {
         return access_token;
     }
@@ -16,8 +20,4 @@ public class openEuler extends openComObject {
     public void setAccess_token(String access_token) {
         this.access_token = access_token;
     }
-
-    @Value("${openEuler.access.token}")
-    String access_token;
-
 }

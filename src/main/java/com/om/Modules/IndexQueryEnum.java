@@ -1,4 +1,4 @@
-package com.huawei.Modules;
+package com.om.Modules;
 
 /**
  * @author zhxia
