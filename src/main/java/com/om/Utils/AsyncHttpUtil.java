@@ -16,7 +16,7 @@ import java.util.Base64;
 
 @Service
 public class AsyncHttpUtil {
-    static AsyncHttpClient asyncHttpClient=null;
+    static volatile AsyncHttpClient asyncHttpClient=null;
 
     public static synchronized   AsyncHttpClient getClient() throws KeyManagementException, NoSuchAlgorithmException {
         if (asyncHttpClient==null){

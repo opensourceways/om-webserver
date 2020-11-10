@@ -97,6 +97,7 @@ public class propertiesObj {
         InputStream in = new FileInputStream(path);
         // 使用properties对象加载输入流
         properties.load(in);
+        in.close();
         return properties;
     }
 
