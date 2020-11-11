@@ -90,6 +90,8 @@ public class propertiesObj {
         bean.setContributors_queryStr(openconf.get(IndexQueryEnum.CONTRIUTORS.getQueryString()).toString());
         bean.setNoticeusers_index(openconf.get(IndexQueryEnum.NOTICEUSERS.getIndex()).toString());
         bean.setNoticeusers_queryStr(openconf.get(IndexQueryEnum.NOTICEUSERS.getQueryString()).toString());
+        bean.setCommunitymembers_index(openconf.get(IndexQueryEnum.COMMUNITYMEMBERS.getIndex()).toString());
+        bean.setCommunitymembers_queryStr(openconf.get(IndexQueryEnum.COMMUNITYMEMBERS.getQueryString()).toString());
     }
 
     private static Properties readProperties(String path) throws IOException {

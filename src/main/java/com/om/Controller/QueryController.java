@@ -63,6 +63,12 @@ public class QueryController {
         return modulenums;
     }
 
+    @RequestMapping("/communitymembers")
+    public String querycommunitymembers(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
+        String modulenums = queryService.querycommunitymembers(community);
+        return modulenums;
+    }
+
     @RequestMapping("/all")
     public String queryAll(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
         String all = queryService.queryAll(community);

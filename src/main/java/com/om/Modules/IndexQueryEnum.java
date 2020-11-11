@@ -6,7 +6,7 @@ package com.om.Modules;
  */
 
     public enum IndexQueryEnum {
-    EXTOS("extOs_index", "extOs_queryStr"), BUSINESSOSV("businessOsv_index", "businessOsv_queryStr"), SIGS("sigs_index", "sigs_queryStr"), USERS("users_index", "users_queryStr"),CONTRIUTORS("contributors_index","contributors_queryStr"),NOTICEUSERS("noticeusers_index","noticeusres_queryStr");
+    EXTOS("extOs_index", "extOs_queryStr"), BUSINESSOSV("businessOsv_index", "businessOsv_queryStr"), SIGS("sigs_index", "sigs_queryStr"), USERS("users_index", "users_queryStr"),CONTRIUTORS("contributors_index","contributors_queryStr"),NOTICEUSERS("noticeusers_index","noticeusres_queryStr"),COMMUNITYMEMBERS("communitymembers_index","communitymembers_queryStr");
         // 成员变量
         private String index;
         private String queryString;

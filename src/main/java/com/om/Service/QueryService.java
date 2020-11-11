@@ -45,6 +45,9 @@ public class QueryService {
         return queryDao.queryBusinessOsv(community);
     }
 
+    public String querycommunitymembers(String community) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
+        return queryDao.querycommunitymembers(community);
+    }
     public String queryAll( String community) throws InterruptedException, ExecutionException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
         return queryDao.queryAll(community);
     }

@@ -20,6 +20,8 @@ public class openComObject {
     protected   String contributors_queryStr;
     protected  String noticeusers_index;
     protected String noticeusers_queryStr;
+    protected String communitymembers_index;
+    protected String communitymembers_queryStr;
 
     public String getExtOs_index() {
         return extOs_index;
@@ -115,6 +117,22 @@ public class openComObject {
 
     public void setBusinessOsv_queryStr(String businessOsv_queryStr) {
         this.businessOsv_queryStr = businessOsv_queryStr;
+    }
+
+    public String getCommunitymembers_index() {
+        return communitymembers_index;
+    }
+
+    public void setCommunitymembers_index(String communitymembers_index) {
+        this.communitymembers_index = communitymembers_index;
+    }
+
+    public String getCommunitymembers_queryStr() {
+        return communitymembers_queryStr;
+    }
+
+    public void setCommunitymembers_queryStr(String communitymembers_queryStr) {
+        this.communitymembers_queryStr = communitymembers_queryStr;
     }
 }
 

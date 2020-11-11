@@ -25,7 +25,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 @Repository
 public class QueryDao {
-    static final String url="eshost:port";
+    static final String url="https://host:port";
     @Autowired
     static ObjectMapper objectMapper=new ObjectMapper();
     @Autowired
@@ -88,6 +88,7 @@ public class QueryDao {
         builder.setBody(queryjson);
         //获取执行结果
         ListenableFuture<Response> f = client.executeRequest(builder.build());
+
         Response response = f.get();
        int statusCode = response.getStatusCode();
        String statusText= response.getStatusText();
@@ -220,6 +221,37 @@ public class QueryDao {
         //获取执行结果
         return index;
     }
+        public String querycommunitymembers( String community) throws NoSuchAlgorithmException, KeyManagementException {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = AsyncHttpUtil.getBuilder();
+            String index="";
+            String queryjson="";
+            switch (community){
+                case "openEuler":
+                    index=openEuler.getCommunitymembers_index();
+                    queryjson=openEuler.getCommunitymembers_queryStr();
+                    break;
+                case "openGauss":
+                    index=openGauss.getCommunitymembers_index();
+                    queryjson=openGauss.getCommunitymembers_queryStr();
+                    break;
+                case "openLookeng":
+                    index=openLookeng.getCommunitymembers_index();
+                    queryjson=openLookeng.getCommunitymembers_queryStr();
+                    break;
+                case "mindSpore":
+                    return "{\"code\":"+404+",\"data\":{\"users\":"+0+"},\"msg\":\"not Found!\"}";
+                default:
+                    return "";
+            }
+            builder.setUrl(QueryDao.url+index+"/_search");
+            builder.setBody(queryjson);
+            //获取执行结果
+            ListenableFuture<Response> f = client.executeRequest(builder.build() );
+            String communitymembers = getResult(f, "communitymembers");
+            return communitymembers;
+        }
+
 
     public String queryAll( String community) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
         JsonNode contributorsNode = objectMapper.readTree(this.queryContributors(community)).get("data").get("contributors");
@@ -234,8 +266,9 @@ public class QueryDao {
         Object modulenums=modulenumsNode==null?null:modulenumsNode.intValue();
         JsonNode businessOsvNode = objectMapper.readTree(this.queryBusinessOsv(community)).get("data").get("businessOsv");
         Object businessOsv=businessOsvNode==null?null:businessOsvNode.intValue();
-
-        String result="{\"code\":"+200+",\"data\":{\"contributors\":"+contributors+",\"users\":"+users+",\"noticeusers\":"+noticeusers+",\"sigs\":"+sigs+",\"modulenums\":"+modulenums+",\"businessosv\":"+businessOsv+"},\"msg\":\""+"OK"+"\"}";
+        JsonNode communityMembersNode = objectMapper.readTree(this.querycommunitymembers(community)).get("data").get("communitymembers");
+        Object communityMembers=businessOsvNode==null?null:communityMembersNode.intValue();
+        String result="{\"code\":"+200+",\"data\":{\"contributors\":"+contributors+",\"users\":"+users+",\"noticeusers\":"+noticeusers+",\"sigs\":"+sigs+",\"modulenums\":"+modulenums+",\"businessosv\":"+businessOsv+",\"communitymembers\":"+communityMembers+"},\"msg\":\""+"OK"+"\"}";
         return result;
     }
     public String getResult(ListenableFuture<Response> f,String dataflage) {
