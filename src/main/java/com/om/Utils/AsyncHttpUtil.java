@@ -3,6 +3,7 @@ package com.om.Utils;
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.JdkSslContext;
 import org.asynchttpclient.*;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,8 @@ import java.util.Base64;
 
 @Service
 public class AsyncHttpUtil {
+    @Value("${userpass}")
+    String user_pass;
     static volatile AsyncHttpClient asyncHttpClient=null;
 
     public static synchronized   AsyncHttpClient getClient() throws KeyManagementException, NoSuchAlgorithmException {
@@ -28,10 +31,10 @@ public class AsyncHttpUtil {
 
         return asyncHttpClient;
     }
-public static RequestBuilder getBuilder(){
+public  RequestBuilder getBuilder(){
     RequestBuilder builder=new RequestBuilder();
     builder.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-    builder.addHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString(("user:password").getBytes()))
+    builder.addHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString((user_pass).getBytes()))
     .setMethod("POST");
     return builder;
 }

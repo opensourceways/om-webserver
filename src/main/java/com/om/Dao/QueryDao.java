@@ -10,6 +10,7 @@ import com.om.Modules.openLookeng;
 import com.om.Utils.AsyncHttpUtil;
 import org.asynchttpclient.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
 import java.security.KeyManagementException;
@@ -25,7 +26,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  */
 @Repository
 public class QueryDao {
-    static final String url="https://host:port";
+    @Autowired
+    AsyncHttpUtil asyncHttpUtil;
+    
+    @Value("${esurl}")
+    String url;
     @Autowired
     static ObjectMapper objectMapper=new ObjectMapper();
     @Autowired
@@ -37,7 +42,7 @@ public class QueryDao {
     //openeuler openlookeng opengauss 测试通过
     public String queryContributors(String community) throws NoSuchAlgorithmException, KeyManagementException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = AsyncHttpUtil.getBuilder();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
         String index="";
         String queryjson="";
         switch (community){
@@ -58,7 +63,7 @@ public class QueryDao {
             default:
                 return "";
         }
-        builder.setUrl(QueryDao.url+index+"/_search");
+        builder.setUrl(this.url+index+"/_search");
         builder.setBody(queryjson);
         //获取执行结果
         ListenableFuture<Response> f = client.executeRequest(builder.build() );
@@ -69,7 +74,7 @@ public class QueryDao {
 //测试通过
     public String querySigs(String community) throws ExecutionException, InterruptedException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = AsyncHttpUtil.getBuilder();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
         String index="";
         String queryjson="";
         switch (community){
@@ -84,7 +89,7 @@ public class QueryDao {
             default:
                 return "";
         }
-        builder.setUrl(QueryDao.url+index+"/_search");
+        builder.setUrl(this.url+index+"/_search");
         builder.setBody(queryjson);
         //获取执行结果
         ListenableFuture<Response> f = client.executeRequest(builder.build());
@@ -100,7 +105,7 @@ public class QueryDao {
 //测试通过
     public String queryUsers( String community) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = AsyncHttpUtil.getBuilder();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
         String index="";
         String queryjson="";
         switch (community){
@@ -121,7 +126,7 @@ public class QueryDao {
             default:
                 return "";
         }
-        builder.setUrl(QueryDao.url+index+"/_search");
+        builder.setUrl(this.url+index+"/_search");
         builder.setBody(queryjson);
         //获取执行结果
         ListenableFuture<Response> f = client.executeRequest(builder.build() );
@@ -131,7 +136,7 @@ public class QueryDao {
 
     public String queryNoticeusers( String community) throws JsonProcessingException, ExecutionException, InterruptedException, NoSuchAlgorithmException, KeyManagementException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = AsyncHttpUtil.getBuilder();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
         String index="";
         switch (community){
             case "openEuler":
@@ -153,7 +158,7 @@ public class QueryDao {
 
     public String queryModulenums(String community) throws ExecutionException, InterruptedException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = AsyncHttpUtil.getBuilder();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
         String index="";
         String queryjson="{\"size\":0,\"aggs\":{\"data\":{\"cardinality\":{\"field\":\"gitee_repo.keyword\"}}}}";
         switch (community){
@@ -175,7 +180,7 @@ public class QueryDao {
     }
     public String getGiteeResNum(String access_token) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = AsyncHttpUtil.getBuilder();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
         Param access_tokenParam = new Param("access_token", access_token);
         Param visibility= new Param("visibility", "public");
         Param affiliation = new Param("affiliation", "admin");
@@ -201,7 +206,7 @@ public class QueryDao {
     }
     public String queryBusinessOsv(String community) throws ExecutionException, InterruptedException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = AsyncHttpUtil.getBuilder();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
         String index="";
         String queryjson="";
         switch (community){
@@ -223,7 +228,7 @@ public class QueryDao {
     }
         public String querycommunitymembers( String community) throws NoSuchAlgorithmException, KeyManagementException {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = AsyncHttpUtil.getBuilder();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
             String index="";
             String queryjson="";
             switch (community){
@@ -244,7 +249,7 @@ public class QueryDao {
                 default:
                     return "";
             }
-            builder.setUrl(QueryDao.url+index+"/_search");
+            builder.setUrl(this.url+index+"/_search");
             builder.setBody(queryjson);
             //获取执行结果
             ListenableFuture<Response> f = client.executeRequest(builder.build() );
