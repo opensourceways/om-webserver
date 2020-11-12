@@ -39,38 +39,69 @@ public class propertiesObj {
         service.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                try {
                     updateCycle();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+
             }
         }, 5, 15, TimeUnit.SECONDS);
     }
 
-    private void updateCycle() throws IOException {
+    private void updateCycle()  {
+        FileInputStream openEneulerfilein=null;
+        FileInputStream openGaussfileIn=null;
+        FileInputStream openLookengfileIn =null;
+        try {
 
-        String openEneuler_conf_path = System.getProperty("user.dir") + "/openEuler.properties";
-        String eumd5 = DigestUtils.md5DigestAsHex(new FileInputStream(openEneuler_conf_path));
-        if(!eumd5.equals(this.openEulerConfMd5)){
-            this.openEulerConfMd5=eumd5;
-            Properties openEneulerConf = readProperties(openEneuler_conf_path);
-            setPropertiesValue(openEneulerConf, "openEuler");
-        }
+            String openEneuler_conf_path = System.getProperty("user.dir") + "/openEuler.properties";
+             openEneulerfilein = new FileInputStream(openEneuler_conf_path);
+            String eumd5 = DigestUtils.md5DigestAsHex(openEneulerfilein);
+            if (!eumd5.equals(this.openEulerConfMd5)) {
+                this.openEulerConfMd5 = eumd5;
+                Properties openEneulerConf = readProperties(openEneuler_conf_path);
+                setPropertiesValue(openEneulerConf, "openEuler");
+            }
 
-        String openGauss_conf_path = System.getProperty("user.dir") + "/openGauss.properties";
-        String gaussmd5 = DigestUtils.md5DigestAsHex(new FileInputStream(openGauss_conf_path));
-        if(!gaussmd5.equals(this.openGaussConfMd5)) {
-            this.openGaussConfMd5 = gaussmd5;
-            Properties openGaussConf = readProperties(openGauss_conf_path);
-            setPropertiesValue(openGaussConf, "openGauss");
-        }
 
-        String openLookeng_conf_path = System.getProperty("user.dir") + "/openLookeng.properties";
-        String lookengmd5 = DigestUtils.md5DigestAsHex(new FileInputStream(openLookeng_conf_path));
-        if(!lookengmd5.equals(this.openLookengConfMd5)) {
-            Properties openLookengConf = readProperties(openLookeng_conf_path);
-            setPropertiesValue(openLookengConf, "openLookeng");
+            String openGauss_conf_path = System.getProperty("user.dir") + "/openGauss.properties";
+             openGaussfileIn = new FileInputStream(openGauss_conf_path);
+            String gaussmd5 = DigestUtils.md5DigestAsHex(openGaussfileIn);
+            if (!gaussmd5.equals(this.openGaussConfMd5)) {
+                this.openGaussConfMd5 = gaussmd5;
+                Properties openGaussConf = readProperties(openGauss_conf_path);
+                setPropertiesValue(openGaussConf, "openGauss");
+            }
+
+            String openLookeng_conf_path = System.getProperty("user.dir") + "/openLookeng.properties";
+             openLookengfileIn = new FileInputStream(openLookeng_conf_path);
+            String lookengmd5 = DigestUtils.md5DigestAsHex(openLookengfileIn);
+            if (!lookengmd5.equals(this.openLookengConfMd5)) {
+                Properties openLookengConf = readProperties(openLookeng_conf_path);
+                setPropertiesValue(openLookengConf, "openLookeng");
+            }
+        }catch (IOException e){
+            e.printStackTrace();
+        }finally {
+            if(openEneulerfilein!=null){
+                try {
+                    openEneulerfilein.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if(openGaussfileIn!=null){
+                try {
+                    openGaussfileIn.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if(openLookengfileIn!=null){
+                try {
+                    openLookengfileIn.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
         }
 
 
@@ -97,9 +128,13 @@ public class propertiesObj {
     private static Properties readProperties(String path) throws IOException {
         // 使用ClassLoader加载properties配置文件生成对应的输入流
         InputStream in = new FileInputStream(path);
+        try {
         // 使用properties对象加载输入流
         properties.load(in);
-        in.close();
+        }finally {
+            in.close();
+        }
+
         return properties;
     }
 
