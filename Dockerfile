@@ -12,7 +12,7 @@ ENV PATH=$MAVEN_HOEM/bin:$PATH
 
 COPY application.properties /var/lib/om-webserver/BOOT-INF/classes/
 
-RUN git clone https://gitee.com/bigseacoming/om-webserver.git && \
+RUN git clone https://gitee.com/opensourceway/om-webserver.git && \
 	cd om-webserver && \
 	mvn clean install package -Dmaven.test.skip && \
 	mv ./target/om-webserver-0.0.1-SNAPSHOT.jar ../om-webserver.jar
