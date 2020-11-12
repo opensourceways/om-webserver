@@ -50,7 +50,7 @@ public class propertiesObj {
 
     private void updateCycle() throws IOException {
 
-        String openEneuler_conf_path = System.getProperty("user.dir") + "openEuler.properties";
+        String openEneuler_conf_path = System.getProperty("user.dir") + "/openEuler.properties";
         String eumd5 = DigestUtils.md5DigestAsHex(new FileInputStream(openEneuler_conf_path));
         if(!eumd5.equals(this.openEulerConfMd5)){
             this.openEulerConfMd5=eumd5;
@@ -58,7 +58,7 @@ public class propertiesObj {
             setPropertiesValue(openEneulerConf, "openEuler");
         }
 
-        String openGauss_conf_path = System.getProperty("user.dir") + "openGauss.properties";
+        String openGauss_conf_path = System.getProperty("user.dir") + "/openGauss.properties";
         String gaussmd5 = DigestUtils.md5DigestAsHex(new FileInputStream(openGauss_conf_path));
         if(!gaussmd5.equals(this.openGaussConfMd5)) {
             this.openGaussConfMd5 = gaussmd5;
@@ -66,7 +66,7 @@ public class propertiesObj {
             setPropertiesValue(openGaussConf, "openGauss");
         }
 
-        String openLookeng_conf_path = System.getProperty("user.dir") + "openLookeng.properties";
+        String openLookeng_conf_path = System.getProperty("user.dir") + "/openLookeng.properties";
         String lookengmd5 = DigestUtils.md5DigestAsHex(new FileInputStream(openLookeng_conf_path));
         if(!lookengmd5.equals(this.openLookengConfMd5)) {
             Properties openLookengConf = readProperties(openLookeng_conf_path);
