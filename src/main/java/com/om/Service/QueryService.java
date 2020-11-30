@@ -1,8 +1,12 @@
 package com.om.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.QueryDao;
+import com.om.Dao.RedisDao;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 import java.security.KeyManagementException;
@@ -18,38 +22,235 @@ public class QueryService {
     @Autowired
     QueryDao queryDao;
 
-    public String queryContributors(String community) throws KeyManagementException, NoSuchAlgorithmException {
-        return queryDao.queryContributors(community);
+    @Autowired
+    static ObjectMapper objectMapper=new ObjectMapper();
+
+    @Autowired
+    RedisDao redisDao;
+
+    
+
+    @Autowired
+    private Environment env;
+
+    public String queryContributors(String community) {
+        String key=community + "contributors";
+        String result;
+        result = (String) redisDao.get(key);
+        if(result==null){
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryContributors(community);
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (KeyManagementException e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            if(set){
+                System.out.println("update "+key+" success!");
+
+            }
+        }
+        return result;
     }
 
 
-    public String querySigs(String community) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
-        return queryDao.querySigs(community);
+    public String querySigs(String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String key=community + "sigs";
+        String result;
+        result = (String) redisDao.get(key);
+        if(result==null){
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.querySigs(community);
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (KeyManagementException e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            if(set){
+                System.out.println("update "+key+" success!");
+            }
+        }
+        return result;
     }
 
-    public String queryUsers( String community) throws InterruptedException, ExecutionException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
-        return queryDao.queryUsers(community);
+    public String queryUsers( String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String key=community + "users";
+        String result;
+        result = (String) redisDao.get(key);
+        if(result==null){
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryUsers(community);
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (KeyManagementException e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            if(set){
+                System.out.println("update "+key+" success!");
+            }
+        }
+        return result;
     }
 
 
-    public String queryNoticeusers( String community) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
-        return queryDao.queryNoticeusers(community);
+
+    public String queryNoticeusers( String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String key=community + "noticeusers";
+        String result;
+        result = (String) redisDao.get(key);
+        if(result==null){
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryNoticeusers(community);
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (KeyManagementException e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            if(set){
+                System.out.println("update "+key+" success!");
+            }
+        }
+        return result;
     }
 
 
-    public String queryModulenums(String community) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
-        return queryDao.queryModulenums(community);
+    public String queryModulenums(String community) throws InterruptedException, ExecutionException , JsonProcessingException {
+        String key=community + "modulenums";
+        String result;
+        result = (String) redisDao.get(key);
+        if(result==null){
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryModulenums(community);
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (KeyManagementException e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            if(set){
+                System.out.println("update "+key+" success!");
+            }
+        }
+        return result;
     }
 
-    public String queryBusinessOsv(String community) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
-        return queryDao.queryBusinessOsv(community);
+    public String queryBusinessOsv(String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String key=community + "businessosv";
+        String result;
+        result = (String) redisDao.get(key);
+        if(result==null){
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryBusinessOsv(community);
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (KeyManagementException e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            if(set){
+                System.out.println("update "+key+" success!");
+            }
+        }
+        return result;
     }
 
-    public String querycommunitymembers(String community) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
-        return queryDao.querycommunitymembers(community);
+    public String querycommunitymembers(String community)  {
+        String key=community + "communitymembers";
+        String result;
+        result = (String) redisDao.get(key);
+        if(result==null){
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.querycommunitymembers(community);
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (KeyManagementException e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            if(set){
+                System.out.println("update "+key+" success!");
+            }
+        }
+        return result;
     }
-    public String queryAll( String community) throws InterruptedException, ExecutionException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
-        return queryDao.queryAll(community);
+    public String queryAll( String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String key=community + "all";
+        String result;
+        result = (String) redisDao.get(key);
+        if(result==null){
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryAll(community);
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (KeyManagementException e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            if(set){
+                System.out.println("update "+key+" success!");
+            }
+        }
+        return result;
+    }
+    /**
+     * 功能描述:返回多个社区仓库数总和。
+     * @param communitys: 社区名称，用逗号分隔
+     * @return: java.lang.String
+     * @Author: xiazhonghai
+     * @Date: 2020/11/30 11:07
+     */
+    public String countMultiRepo(String communitys,String tokens){
+        String[] community = communitys.split(",");
+        String[] token = tokens.split(",");
+        if(community.length!=token.length){
+            return "{\"code\":"+500+",\"data\":{\"users\":"+0+"},\"msg\":\"社区数目和token数据不匹配!\"}";
+        }
+        String key=communitys;
+        String result;
+        result = (String) redisDao.get(key);
+        if(result==null){
+            //查询数据库，更新redis 缓存。
+            try {
+                int temp=0;
+                for (int i = 0; i < community.length; i++) {
+                    if(i==community.length-1){
+                        temp = temp+objectMapper.readTree(queryDao.getGiteeResNum(token[i],community[i])).get("data").get("modulenums").intValue();
+                        result = "{\"code\":200,\"data\":{\"modulenums\":"+temp+"},\"msg\":\"OK\"}";
+                    }else {
+                        temp = temp+objectMapper.readTree(queryDao.getGiteeResNum(token[i],community[i])).get("data").get("modulenums").intValue();
+                    }
+                }
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            } catch (KeyManagementException e) {
+                e.printStackTrace();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } catch (ExecutionException e) {
+                e.printStackTrace();
+            } catch (JsonMappingException e) {
+                e.printStackTrace();
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            if(set){
+                System.out.println("update "+key+" success!");
+            }
+        }
+        return result;
     }
 
 }
