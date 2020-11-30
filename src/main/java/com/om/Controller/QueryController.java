@@ -9,8 +9,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ExecutionException;
 
 
@@ -73,6 +71,20 @@ public class QueryController {
     @RequestMapping("/all")
     public String queryAll(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String all = queryService.queryAll(community);
+        return all;
+
+    }
+    /**
+     * 功能描述:获取多个社区的仓库总和
+     * @param communitys: 	社区名称 用逗号分割
+     * @param tokens: 各个社区对应的token ，用逗号分割
+     * @return: java.lang.String
+     * @Author: xiazhonghai
+     * @Date: 2020/11/30 11:12
+     */
+    @RequestMapping("/countMultiRepo")
+    public String queryService(@RequestParam(value = "community") String communitys,@RequestParam(value="token") String tokens)  {
+        String all = queryService.countMultiRepo(communitys,tokens);
         return all;
 
     }
