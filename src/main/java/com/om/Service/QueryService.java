@@ -204,54 +204,7 @@ public class QueryService {
         }
         return result;
     }
-    /**
-     * 功能描述:返回多个社区仓库数总和。
-     * @param communitys: 社区名称，用逗号分隔
-     * @return: java.lang.String
-     * @Author: xiazhonghai
-     * @Date: 2020/11/30 11:07
-     */
-    public String countMultiRepo(String communitys,String tokens){
-        String[] community = communitys.split(",");
-        String[] token = tokens.split(",");
-        if(community.length!=token.length){
-            return "{\"code\":"+500+",\"data\":{\"users\":"+0+"},\"msg\":\"社区数目和token数据不匹配!\"}";
-        }
-        String key=communitys;
-        String result;
-        result = (String) redisDao.get(key);
-        if(result==null){
-            //查询数据库，更新redis 缓存。
-            try {
-                int temp=0;
-                for (int i = 0; i < community.length; i++) {
-                    if(i==community.length-1){
-                        temp = temp+objectMapper.readTree(queryDao.getGiteeResNum(token[i],community[i])).get("data").get("modulenums").intValue();
-                        result = "{\"code\":200,\"data\":{\"modulenums\":"+temp+"},\"msg\":\"OK\"}";
-                    }else {
-                        temp = temp+objectMapper.readTree(queryDao.getGiteeResNum(token[i],community[i])).get("data").get("modulenums").intValue();
-                    }
-                }
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            } catch (KeyManagementException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-            } catch (JsonMappingException e) {
-                e.printStackTrace();
-            } catch (JsonProcessingException e) {
-                e.printStackTrace();
-            }
-            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
-            if(set){
-                System.out.println("update "+key+" success!");
-            }
-        }
-        return result;
-    }
+
 
 }
 

@@ -74,20 +74,7 @@ public class QueryController {
         return all;
 
     }
-    /**
-     * 功能描述:获取多个社区的仓库总和
-     * @param communitys: 	社区名称 用逗号分割
-     * @param tokens: 各个社区对应的token ，用逗号分割
-     * @return: java.lang.String
-     * @Author: xiazhonghai
-     * @Date: 2020/11/30 11:12
-     */
-    @RequestMapping("/countMultiRepo")
-    public String queryService(@RequestParam(value = "community") String communitys,@RequestParam(value="token") String tokens)  {
-        String all = queryService.countMultiRepo(communitys,tokens);
-        return all;
 
-    }
 
 }
 

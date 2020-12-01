@@ -20,4 +20,14 @@ public class openEuler extends openComObject {
     @Value("${openEuler.access.token}")
     String access_token;
 
+    @Value("${openEuler.Multicommunity}")
+    String Multicommunity;
+
+    public String getMulticommunity() {
+        return Multicommunity;
+    }
+
+    public void setMulticommunity(String multicommunity) {
+        Multicommunity = multicommunity;
+    }
 }

@@ -161,7 +161,18 @@ public class QueryDao {
         String queryjson="{\"size\":0,\"aggs\":{\"data\":{\"cardinality\":{\"field\":\"gitee_repo.keyword\"}}}}";
         switch (community){
             case "openEuler":
-                return getGiteeResNum(openEuler.getAccess_token(),"src-openEuler");
+                String result="";
+                String[] communitys = openEuler.getMulticommunity().split(",");
+                    int temp=0;
+                    for (int i = 0; i < communitys.length; i++) {
+                        if(i==communitys.length-1){
+                            temp = temp+objectMapper.readTree(getGiteeResNum(openEuler.getAccess_token(),communitys[i])).get("data").get("modulenums").intValue();
+                            result = "{\"code\":200,\"data\":{\"modulenums\":"+temp+"},\"msg\":\"OK\"}";
+                        }else {
+                            temp = temp+objectMapper.readTree(getGiteeResNum(openEuler.getAccess_token(),communitys[i])).get("data").get("modulenums").intValue();
+                        }
+                    }
+                return result;
             case "openGauss":
             case "openLookeng":
             case "mindSpore":
