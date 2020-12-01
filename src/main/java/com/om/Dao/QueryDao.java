@@ -37,6 +37,7 @@ public class QueryDao {
     openGauss openGauss;
     @Autowired
     openLookeng openLookeng;
+
     //openeuler openlookeng opengauss 测试通过
     public String queryContributors(String community) throws NoSuchAlgorithmException, KeyManagementException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
@@ -220,8 +221,11 @@ public class QueryDao {
         String queryjson="";
         switch (community){
             case "openEuler":
+                index="{\"code\":"+200+",\"data\":{\"businessOsv\":"+openEuler.getBusinessOsv_index()+"},\"msg\":\"OK\"}";
+                break;
             case "mindSpore":
-                return "{\"code\":"+404+",\"data\":{\"businessOsv\":"+0+"},\"msg\":\"not Found!\"}";
+                index= "{\"code\":"+404+",\"data\":{\"businessOsv\":"+0+"},\"msg\":\"not Found!\"}";
+                break;
             case "openGauss":
                 index="{\"code\":"+200+",\"data\":{\"businessOsv\":"+openGauss.getBusinessOsv_index()+"},\"msg\":\"OK\"}";
                 break;
