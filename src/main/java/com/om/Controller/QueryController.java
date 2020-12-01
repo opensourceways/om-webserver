@@ -9,8 +9,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ExecutionException;
 
 
@@ -27,54 +25,56 @@ public class QueryController {
     QueryService queryService;
 
     @RequestMapping("/contributors")
-    public String queryContributors(@RequestParam(value = "community") String community) throws  NoSuchAlgorithmException, KeyManagementException {
-            String contributors = queryService.queryContributors(community);
-            return contributors;
+    public String queryContributors(@RequestParam(value = "community") String community) {
+        String contributors = queryService.queryContributors(community);
+        return contributors;
     }
 
 
     @RequestMapping("/sigs")
-    public String querySigs(@RequestParam(value = "community") String community) throws NoSuchAlgorithmException, KeyManagementException, InterruptedException, ExecutionException, JsonProcessingException {
+    public String querySigs(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String sigs = queryService.querySigs(community);
         return sigs;
     }
 
     @RequestMapping("/users")
-    public String queryUsers(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
+    public String queryUsers(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String users = queryService.queryUsers(community);
         return users;
     }
 
     @RequestMapping("/noticeusers")
-    public String queryNoticeusers(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
+    public String queryNoticeusers(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String noticusers = queryService.queryNoticeusers(community);
         return noticusers;
     }
 
     @RequestMapping("/modulenums")
-    public String queryModulenums(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
+    public String queryModulenums(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String modulenums = queryService.queryModulenums(community);
         return modulenums;
 
     }
+
     @RequestMapping("/businessosv")
-    public String queryBusinessOsv(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
+    public String queryBusinessOsv(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String modulenums = queryService.queryBusinessOsv(community);
         return modulenums;
     }
 
     @RequestMapping("/communitymembers")
-    public String querycommunitymembers(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
+    public String querycommunitymembers(@RequestParam(value = "community") String community) {
         String modulenums = queryService.querycommunitymembers(community);
         return modulenums;
     }
 
     @RequestMapping("/all")
-    public String queryAll(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
+    public String queryAll(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String all = queryService.queryAll(community);
         return all;
 
     }
+
 
 }
 
