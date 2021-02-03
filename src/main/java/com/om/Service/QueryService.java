@@ -22,7 +22,6 @@ public class QueryService {
     @Autowired
     QueryDao queryDao;
 
-    @Autowired
     static ObjectMapper objectMapper=new ObjectMapper();
 
     @Autowired

@@ -26,10 +26,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class QueryDao {
     @Autowired
     AsyncHttpUtil asyncHttpUtil;
-    
+
     @Value("${esurl}")
     String url;
-    @Autowired
+
     static ObjectMapper objectMapper=new ObjectMapper();
     @Autowired
     openEuler openEuler;
@@ -320,6 +320,25 @@ public class QueryDao {
             e.printStackTrace();
         }
         return "{\"code\":"+statusCode+",\"data\":{\""+dataflage+"\":"+count+"},\"msg\":\""+statusText+"\"}";
+    }
+    public String query(String index,String querystr) throws NoSuchAlgorithmException, KeyManagementException {
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+        builder.setUrl(this.url+index+"/_search");
+        builder.setBody(String.format(querystr));
+        //获取执行结果
+        ListenableFuture<Response> f = client.executeRequest(builder.build() );
+        Response response = null;
+        try {
+            response = f.get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+        String responseBody = response.getResponseBody(UTF_8);
+        return responseBody;
+
     }
 
 }
