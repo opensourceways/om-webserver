@@ -22,6 +22,33 @@ public class openComObject {
     protected String noticeusers_queryStr;
     protected String communitymembers_index;
     protected String communitymembers_queryStr;
+    protected String GiteeAllIndex;
+    protected String GiteeAllQuerystr;
+    protected String GiteeAllQueryAllstr;
+
+    public String getGiteeAllQueryAllstr() {
+        return GiteeAllQueryAllstr;
+    }
+
+    public void setGiteeAllQueryAllstr(String giteeAllQueryAllstr) {
+        GiteeAllQueryAllstr = giteeAllQueryAllstr;
+    }
+
+    public String getGiteeAllQuerystr() {
+        return GiteeAllQuerystr;
+    }
+
+    public void setGiteeAllQuerystr(String giteeAllQuerystr) {
+        GiteeAllQuerystr = giteeAllQuerystr;
+    }
+
+    public String getGiteeAllIndex() {
+        return GiteeAllIndex;
+    }
+
+    public void setGiteeAllIndex(String giteeAllIndex) {
+        GiteeAllIndex = giteeAllIndex;
+    }
 
     public String getExtOs_index() {
         return extOs_index;
