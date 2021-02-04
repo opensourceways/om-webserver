@@ -8,26 +8,15 @@ import org.springframework.stereotype.Repository;
  * @date 2020/11/5 15:43
  */
 @Repository
-public class openEuler extends openComObject {
+public class mindSpore extends openComObject {
+    @Value("${mindSpore.access.token}")
+    String access_token;
+
     public String getAccess_token() {
         return access_token;
     }
 
     public void setAccess_token(String access_token) {
         this.access_token = access_token;
-    }
-
-    @Value("${openEuler.access.token}")
-    String access_token;
-
-    @Value("${openEuler.Multicommunity}")
-    String Multicommunity;
-
-    public String getMulticommunity() {
-        return Multicommunity;
-    }
-
-    public void setMulticommunity(String multicommunity) {
-        Multicommunity = multicommunity;
     }
 }

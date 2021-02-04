@@ -9,9 +9,6 @@ RUN wget https://mirror-hk.koddos.net/apache/maven/maven-3/3.6.3/binaries/apache
 	tar -xzvf apache-maven-3.6.3-bin.tar.gz
 ENV MAVEN_HOEM=/var/lib/om-webserver/apache-maven-3.6.3
 ENV PATH=$MAVEN_HOEM/bin:$PATH
-
-COPY application.properties /var/lib/om-webserver/BOOT-INF/classes/
-
 RUN git clone https://gitee.com/opensourceway/om-webserver.git && \
 	cd om-webserver && \
 	mvn clean install package -Dmaven.test.skip && \

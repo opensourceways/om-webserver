@@ -4,9 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.om.Modules.openEuler;
-import com.om.Modules.openGauss;
-import com.om.Modules.openLookeng;
+import com.om.Modules.*;
 import com.om.Utils.AsyncHttpUtil;
 import org.asynchttpclient.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,10 +26,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 public class QueryDao {
     @Autowired
     AsyncHttpUtil asyncHttpUtil;
-    
+
     @Value("${esurl}")
     String url;
-    @Autowired
+
     static ObjectMapper objectMapper=new ObjectMapper();
     @Autowired
     openEuler openEuler;
@@ -39,6 +37,7 @@ public class QueryDao {
     openGauss openGauss;
     @Autowired
     openLookeng openLookeng;
+
     //openeuler openlookeng opengauss 测试通过
     public String queryContributors(String community) throws NoSuchAlgorithmException, KeyManagementException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
@@ -163,7 +162,18 @@ public class QueryDao {
         String queryjson="{\"size\":0,\"aggs\":{\"data\":{\"cardinality\":{\"field\":\"gitee_repo.keyword\"}}}}";
         switch (community){
             case "openEuler":
-                return getGiteeResNum(openEuler.getAccess_token());
+                String result="";
+                String[] communitys = openEuler.getMulticommunity().split(",");
+                    int temp=0;
+                    for (int i = 0; i < communitys.length; i++) {
+                        if(i==communitys.length-1){
+                            temp = temp+objectMapper.readTree(getGiteeResNum(openEuler.getAccess_token(),communitys[i])).get("data").get("modulenums").intValue();
+                            result = "{\"code\":200,\"data\":{\"modulenums\":"+temp+"},\"msg\":\"OK\"}";
+                        }else {
+                            temp = temp+objectMapper.readTree(getGiteeResNum(openEuler.getAccess_token(),communitys[i])).get("data").get("modulenums").intValue();
+                        }
+                    }
+                return result;
             case "openGauss":
             case "openLookeng":
             case "mindSpore":
@@ -178,7 +188,7 @@ public class QueryDao {
 //        String modulenums = getResult(f, "modulenums");
 //        return modulenums;
     }
-    public String getGiteeResNum(String access_token) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException {
+    public String getGiteeResNum(String access_token,String community) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
         RequestBuilder builder = asyncHttpUtil.getBuilder();
         Param access_tokenParam = new Param("access_token", access_token);
@@ -186,7 +196,7 @@ public class QueryDao {
         Param affiliation = new Param("affiliation", "admin");
         Param sort = new Param("sort", "full_name");
         Param direction = new Param("direction", "asc");
-        Param q = new Param("q", "src-openEuler");
+        Param q = new Param("q", community);
         Param page = new Param("page", "1");
         Param per_page = new Param("per_page", "1");
         ArrayList<Param> params = new ArrayList<>();
@@ -211,8 +221,11 @@ public class QueryDao {
         String queryjson="";
         switch (community){
             case "openEuler":
+                index="{\"code\":"+200+",\"data\":{\"businessOsv\":"+openEuler.getBusinessOsv_index()+"},\"msg\":\"OK\"}";
+                break;
             case "mindSpore":
-                return "{\"code\":"+404+",\"data\":{\"businessOsv\":"+0+"},\"msg\":\"not Found!\"}";
+                index= "{\"code\":"+404+",\"data\":{\"businessOsv\":"+0+"},\"msg\":\"not Found!\"}";
+                break;
             case "openGauss":
                 index="{\"code\":"+200+",\"data\":{\"businessOsv\":"+openGauss.getBusinessOsv_index()+"},\"msg\":\"OK\"}";
                 break;
@@ -307,6 +320,25 @@ public class QueryDao {
             e.printStackTrace();
         }
         return "{\"code\":"+statusCode+",\"data\":{\""+dataflage+"\":"+count+"},\"msg\":\""+statusText+"\"}";
+    }
+    public String query(String index,String querystr) throws NoSuchAlgorithmException, KeyManagementException {
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+        builder.setUrl(this.url+index+"/_search");
+        builder.setBody(String.format(querystr));
+        //获取执行结果
+        ListenableFuture<Response> f = client.executeRequest(builder.build() );
+        Response response = null;
+        try {
+            response = f.get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+        String responseBody = response.getResponseBody(UTF_8);
+        return responseBody;
+
     }
 
 }

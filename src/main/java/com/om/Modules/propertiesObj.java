@@ -26,6 +26,7 @@ public class propertiesObj {
     String openEulerConfMd5;
     String openGaussConfMd5;
     String openLookengConfMd5;
+    String mindSporeConfMd5;
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -49,6 +50,7 @@ public class propertiesObj {
         FileInputStream openEneulerfilein=null;
         FileInputStream openGaussfileIn=null;
         FileInputStream openLookengfileIn =null;
+        FileInputStream mindSporefileIn =null;
         try {
 
             String openEneuler_conf_path = System.getProperty("user.dir") + "/openEuler.properties";
@@ -77,6 +79,14 @@ public class propertiesObj {
                 Properties openLookengConf = readProperties(openLookeng_conf_path);
                 setPropertiesValue(openLookengConf, "openLookeng");
             }
+
+            String mindSpore_conf_path = System.getProperty("user.dir") + "/mindSpore.properties";
+            mindSporefileIn = new FileInputStream(mindSpore_conf_path);
+            String mindSporemd5 = DigestUtils.md5DigestAsHex(mindSporefileIn);
+            if (!mindSporemd5.equals(this.mindSporeConfMd5)) {
+                Properties mindSporeConf = readProperties(mindSpore_conf_path);
+                setPropertiesValue(mindSporeConf, "mindSpore");
+            }
         }catch (IOException e){
             e.printStackTrace();
         }finally {
@@ -97,6 +107,13 @@ public class propertiesObj {
             if(openLookengfileIn!=null){
                 try {
                     openLookengfileIn.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if(mindSporefileIn!=null){
+                try {
+                    mindSporefileIn.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -123,6 +140,9 @@ public class propertiesObj {
         bean.setNoticeusers_queryStr(openconf.get(IndexQueryEnum.NOTICEUSERS.getQueryString()).toString());
         bean.setCommunitymembers_index(openconf.get(IndexQueryEnum.COMMUNITYMEMBERS.getIndex()).toString());
         bean.setCommunitymembers_queryStr(openconf.get(IndexQueryEnum.COMMUNITYMEMBERS.getQueryString()).toString());
+        bean.setGiteeAllIndex(openconf.getProperty("giteeall_index"));
+        bean.setGiteeAllQuerystr(openconf.getProperty("giteeall_querystr"));
+        bean.setGiteeAllQueryAllstr(openconf.getProperty("giteeall_queryallddpirstr"));
     }
 
     private static Properties readProperties(String path) throws IOException {
