@@ -13,6 +13,7 @@ public class ContributionResultVo {
     Double issue;
     Double comments;
 
+
     public Double getRanking() {
         return ranking;
     }

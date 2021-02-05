@@ -23,7 +23,7 @@ public class openComObject {
     protected String communitymembers_index;
     protected String communitymembers_queryStr;
     protected String GiteeAllIndex;
-    protected String GiteeAllQuerystr;
+    protected String GiteeAll_qIssueStrBymil;
     protected String GiteeAllQueryAllstr;
 
     public String getGiteeAllQueryAllstr() {
@@ -34,12 +34,12 @@ public class openComObject {
         GiteeAllQueryAllstr = giteeAllQueryAllstr;
     }
 
-    public String getGiteeAllQuerystr() {
-        return GiteeAllQuerystr;
+    public String getGiteeAll_qIssueStrBymil() {
+        return GiteeAll_qIssueStrBymil;
     }
 
-    public void setGiteeAllQuerystr(String giteeAllQuerystr) {
-        GiteeAllQuerystr = giteeAllQuerystr;
+    public void setGiteeAll_qIssueStrBymil(String giteeAll_qIssueStrBymil) {
+        GiteeAll_qIssueStrBymil = giteeAll_qIssueStrBymil;
     }
 
     public String getGiteeAllIndex() {
