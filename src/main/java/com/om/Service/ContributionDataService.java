@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author xiazhonghai
@@ -66,10 +67,10 @@ public class ContributionDataService {
     @Autowired
     private Environment env;
 
-    Map<String, List<ContributionResultVo>> allCondata = new HashMap();
-    Map<String, List<ContributionResultVo>> allCondatasortbypr = new HashMap();
-    Map<String, List<ContributionResultVo>> allCondatasortbyissue = new HashMap();
-    Map<String, List<ContributionResultVo>> allCondatasorybycomments = new HashMap();
+    public Map<String, List<ContributionResultVo>> allCondata = new HashMap();
+    public Map<String, List<ContributionResultVo>> allCondatasortbypr = new HashMap();
+    public Map<String, List<ContributionResultVo>> allCondatasortbyissue = new HashMap();
+    public Map<String, List<ContributionResultVo>> allCondatasorybycomments = new HashMap();
 
     private void refreCacheData(String community) {
         String index = "";
@@ -155,171 +156,126 @@ public class ContributionDataService {
     public List getContributionData(String community, String type, String individualSearchKey, String organizationSearchKey, int currentPage, int pageSize, String sortKey, String sortValue) {
         refreCacheData(community);
         ArrayList<Object> resultdata = new ArrayList<>();
+        List<ContributionResultVo> datacache = null;
         switch (sortKey) {
             case "pr":
-                List<ContributionResultVo> prdatacache = this.allCondatasortbypr.get(community);
-                if (Constant.individual.equals(type) && individualSearchKey != null) {
-                    ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
-                    for (ContributionResultVo prvo : prdatacache) {
-                        if (prvo.getName().equals(individualSearchKey)) {
-                            indivilist.add(prvo);
-                        }
-                    }
-                    prdatacache = indivilist;
-                } else if (Constant.organization.equals(type) && organizationSearchKey != null) {
-                    ArrayList<ContributionResultVo> orglist = new ArrayList<>();
-                    for (ContributionResultVo prvo : prdatacache) {
-                        if (prvo.getOriganization().equals(organizationSearchKey)) {
-                            orglist.add(prvo);
-                        }
-                    }
-                    prdatacache = orglist;
-                }
-                if ("ascending".equals(sortValue)) {
-                    int size = this.allCondatasortbypr.size();
-                    //索引越界，返回最后一页数据
-                    int lastpage = size % pageSize;
-                    int startindex = (currentPage - 1) * pageSize;
-                    int endindex = currentPage * pageSize - 1;
-                    if (endindex > prdatacache.size()) {
-                        endindex = startindex + lastpage - 1;
-                    }
-                    for (int i = startindex; i <= endindex; i++) {
-                        ContributionResultVo contributionResultVo = prdatacache.get(i);
-                        contributionResultVo.setRanking(i + 1 + 0d);
-                        resultdata.add(contributionResultVo);
-                    }
-                } else {
-                    ArrayList<ContributionResultVo> resverse = new ArrayList<>();
-                    resverse.addAll(prdatacache);
-                    Collections.reverse(resverse);
-                    int size = resverse.size();
-                    //索引越界，返回最后一页数据
-                    int lastpage = size % pageSize;
-                    int startindex = (currentPage - 1) * pageSize;
-                    int endindex = currentPage * pageSize - 1;
-                    if (endindex > resverse.size()) {
-                        endindex = startindex + lastpage - 1;
-                    }
-                    for (int i = startindex; i <= endindex; i++) {
-                        ContributionResultVo contributionResultVo = resverse.get(i);
-                        contributionResultVo.setRanking(i + 1 + 0d);
-                        resultdata.add(resverse.get(i));
-                    }
-                }
+                datacache = this.allCondatasortbypr.get(community);
                 break;
             case "issue":
-                List<ContributionResultVo> issuedatacache = this.allCondatasortbyissue.get(community);
-                if (Constant.individual.equals(type) && individualSearchKey != null) {
-                    ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
-                    for (ContributionResultVo prvo : issuedatacache) {
-                        if (prvo.getName().equals(individualSearchKey)) {
-                            indivilist.add(prvo);
-                        }
-                    }
-                    issuedatacache = indivilist;
-                } else if (Constant.organization.equals(type) && organizationSearchKey != null) {
-                    ArrayList<ContributionResultVo> orglist = new ArrayList<>();
-                    for (ContributionResultVo prvo : issuedatacache) {
-                        if (prvo.getOriganization().equals(organizationSearchKey)) {
-                            orglist.add(prvo);
-                        }
-                    }
-                    issuedatacache = orglist;
-                }
-                if ("ascending".equals(sortValue)) {
-                    int size = this.allCondatasortbyissue.size();
-                    //索引越界，返回最后一页数据
-                    int lastpage = size % pageSize;
-                    int startindex = (currentPage - 1) * pageSize;
-                    int endindex = currentPage * pageSize - 1;
-                    if (endindex > issuedatacache.size()) {
-                        endindex = startindex + lastpage - 1;
-                    }
-                    for (int i = startindex; i <= endindex; i++) {
-                        ContributionResultVo contributionResultVo = issuedatacache.get(i);
-                        contributionResultVo.setRanking(i + 1 + 0d);
-                        resultdata.add(contributionResultVo);
-                    }
-                } else {
-                    ArrayList<ContributionResultVo> resverse = new ArrayList<>();
-                    resverse.addAll(issuedatacache);
-                    Collections.reverse(resverse);
-                    int size = resverse.size();
-                    //索引越界，返回最后一页数据
-                    int lastpage = size % pageSize;
-                    int startindex = (currentPage - 1) * pageSize;
-                    int endindex = currentPage * pageSize - 1;
-                    if (endindex > resverse.size()) {
-                        endindex = startindex + lastpage - 1;
-                    }
-                    for (int i = startindex; i <= endindex; i++) {
-                        ContributionResultVo contributionResultVo = resverse.get(i);
-                        contributionResultVo.setRanking(i + 1 + 0d);
-                        resultdata.add(resverse.get(i));
-                    }
-                }
+                datacache = this.allCondatasortbyissue.get(community);
                 break;
             case "comments":
-                List<ContributionResultVo> commentsatacache = this.allCondatasorybycomments.get(community);
-                if (Constant.individual.equals(type) && individualSearchKey != null) {
-                    ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
-                    for (ContributionResultVo prvo : commentsatacache) {
-                        if (prvo.getName().equals(individualSearchKey)) {
-                            indivilist.add(prvo);
-                        }
-                    }
-                    commentsatacache = indivilist;
-                } else if (Constant.organization.equals(type) && organizationSearchKey != null) {
-                    ArrayList<ContributionResultVo> orglist = new ArrayList<>();
-                    for (ContributionResultVo prvo : commentsatacache) {
-                        if (prvo.getOriganization().equals(organizationSearchKey)) {
-                            orglist.add(prvo);
-                        }
-                    }
-                    commentsatacache = orglist;
-                }
-                if ("ascending".equals(sortValue)) {
-                    int size = this.allCondatasortbyissue.size();
-                    //索引越界，返回最后一页数据
-                    int lastpage = size % pageSize;
-                    int startindex = (currentPage - 1) * pageSize;
-                    int endindex = currentPage * pageSize - 1;
-                    if (endindex > commentsatacache.size()) {
-                        endindex = startindex + lastpage - 1;
-                    }
-                    for (int i = startindex; i <= endindex; i++) {
-                        ContributionResultVo contributionResultVo = commentsatacache.get(i);
-                        contributionResultVo.setRanking(i + 1 + 0d);
-                        resultdata.add(contributionResultVo);
-                    }
-                } else {
-                    ArrayList<ContributionResultVo> resverse = new ArrayList<>();
-                    resverse.addAll(commentsatacache);
-                    Collections.reverse(resverse);
-                    int size = resverse.size();
-                    //索引越界，返回最后一页数据
-                    int lastpage = size % pageSize;
-                    int startindex = (currentPage - 1) * pageSize;
-                    int endindex = currentPage * pageSize - 1;
-                    if (endindex > resverse.size()) {
-                        endindex = startindex + lastpage - 1;
-                    }
-                    for (int i = startindex; i <= endindex; i++) {
-                        ContributionResultVo contributionResultVo = resverse.get(i);
-                        contributionResultVo.setRanking(i + 1 + 0d);
-                        resultdata.add(resverse.get(i));
-                    }
-                }
+                datacache = this.allCondatasorybycomments.get(community);
                 break;
         }
 
+        if (Constant.individual.equals(type)&&individualSearchKey != null && organizationSearchKey != null) {
+            ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
+            for (ContributionResultVo prvo : datacache) {
+                if (prvo.getName().equals(individualSearchKey) && prvo.getOriganization().equals(organizationSearchKey)) {
+                    indivilist.add(prvo);
+                }
+            }
+            datacache = indivilist;
+        } else if (Constant.individual.equals(type) && organizationSearchKey != null) {
+            ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
+            for (ContributionResultVo prvo : datacache) {
+                if (prvo.getOriganization().equals(organizationSearchKey)) {
+                    indivilist.add(prvo);
+                }
+            }
+            datacache = indivilist;
+        }else if (Constant.individual.equals(type) && individualSearchKey != null) {
+            ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
+            for (ContributionResultVo prvo : datacache) {
+                if (prvo.getName().equals(individualSearchKey)) {
+                    indivilist.add(prvo);
+                }
+            }
+            datacache = indivilist;
+        }
+        else if (Constant.organization.equals(type)) {
+            ArrayList<ContributionResultVo> orglist = new ArrayList<>();
+            if( organizationSearchKey != null){
+                for (ContributionResultVo prvo : datacache) {
+                    if (prvo.getOriganization().equals(organizationSearchKey)) {
+                        orglist.add(prvo);
+                    }
+                }
+            }else{
+                orglist.addAll(datacache);
+            }
+                Map<String, List<ContributionResultVo>> collect = orglist.stream().collect(Collectors.groupingBy(ContributionResultVo::getOriganization));
+                ArrayList<ContributionResultVo> result = new ArrayList<>();
+                for (Map.Entry<String, List<ContributionResultVo>> stringListEntry : collect.entrySet()) {
+                    int issuenumber=0;
+                    int prnumber=0;
+                    int commentnumber=0;
+                    for (ContributionResultVo contributionResultVo : stringListEntry.getValue()) {
+                        issuenumber += contributionResultVo.getIssue();
+                        prnumber += contributionResultVo.getPr();
+                        commentnumber += contributionResultVo.getComments();
+                    }
+                        ContributionResultVo vo = new ContributionResultVo();
+                        vo.setName(stringListEntry.getKey());
+                        vo.setOriganization(stringListEntry.getKey());
+                        vo.setPr(prnumber+0.0);
+                        vo.setIssue(issuenumber+0.0);
+                        vo.setComments(commentnumber+0.0);
+                        result.add(vo);
+                    }
+                datacache = result;
+                switch (sortKey){
+                    case "issue":
+                        Collections.sort(datacache,(a,b)-> ((Double)(a.getIssue()-b.getIssue())).intValue());
+                        break;
+                    case "pr":
+                        Collections.sort(datacache,(a,b)-> ((Double)(a.getPr()-b.getPr())).intValue());
 
+                        break;
+                    case "comments":
+                        Collections.sort(datacache,(a,b)-> ((Double)(a.getComments()-b.getComments())).intValue());
+                        break;
+                }
+            }
+
+        if ("ascending".equals(sortValue)) {
+            int size =datacache.size();
+            //索引越界，返回最后一页数据
+            int lastpage = size % pageSize;
+            int startindex = (currentPage - 1) * pageSize;
+            int endindex = currentPage * pageSize - 1;
+            if (endindex > datacache.size()) {
+                endindex = startindex + lastpage - 1;
+            }
+            for (int i = startindex; i <= endindex; i++) {
+                ContributionResultVo contributionResultVo = datacache.get(i);
+                contributionResultVo.setRanking(i + 1 + 0d);
+                resultdata.add(contributionResultVo);
+            }
+        } else {
+            ArrayList<ContributionResultVo> resverse = new ArrayList<>();
+            resverse.addAll(datacache);
+            Collections.reverse(resverse);
+            int size = resverse.size();
+            //索引越界，返回最后一页数据
+            int lastpage = size % pageSize;
+            int startindex = (currentPage - 1) * pageSize;
+            int endindex = currentPage * pageSize - 1;
+            if (endindex > resverse.size()) {
+                endindex = startindex + lastpage - 1;
+            }
+            for (int i = startindex; i <= endindex; i++) {
+                ContributionResultVo contributionResultVo = resverse.get(i);
+                contributionResultVo.setRanking(i + 1 + 0d);
+                resultdata.add(resverse.get(i));
+            }
+        }
         return resultdata;
-
     }
 
-    public List getContributionDataPie(String community, String type) {
+
+    public List<ContributionResultVoPie> getContributionDataPie(String community, String type) {
         refreCacheData(community);
         ArrayList<ContributionResultVoPie> resultlist = new ArrayList<>();
         switch (type) {
@@ -327,7 +283,7 @@ public class ContributionDataService {
                 List<ContributionResultVo> prlist = this.allCondatasortbypr.get(community);
                 for (ContributionResultVo vo : prlist) {
                     ContributionResultVoPie prpie = new ContributionResultVoPie();
-                    prpie.setName(vo.getName());
+                    prpie.setName(vo.getOriganization());
                     prpie.setNumber(vo.getPr());
                     resultlist.add(prpie);
                 }
@@ -336,7 +292,7 @@ public class ContributionDataService {
                 List<ContributionResultVo> issuelist = this.allCondatasortbyissue.get(community);
                 for (ContributionResultVo vo : issuelist) {
                     ContributionResultVoPie prpie = new ContributionResultVoPie();
-                    prpie.setName(vo.getName());
+                    prpie.setName(vo.getOriganization());
                     prpie.setNumber(vo.getIssue());
                     resultlist.add(prpie);
                 }
@@ -345,13 +301,28 @@ public class ContributionDataService {
                 List<ContributionResultVo> commentsuelist = this.allCondatasorybycomments.get(community);
                 for (ContributionResultVo vo : commentsuelist) {
                     ContributionResultVoPie compie = new ContributionResultVoPie();
-                    compie.setName(vo.getName());
+                    compie.setName(vo.getOriganization());
                     compie.setNumber(vo.getComments());
                     resultlist.add(compie);
                 }
                 break;
         }
-        return resultlist;
+        Map<String, List<ContributionResultVoPie>> collect = resultlist.stream().collect(Collectors.groupingBy(ContributionResultVoPie::getName));
+        ArrayList<ContributionResultVoPie> result = new ArrayList<>();
+        for (Map.Entry<String, List<ContributionResultVoPie>> stringListEntry : collect.entrySet()) {
+            int number=0;
+
+            for (ContributionResultVoPie contributionResultVo : stringListEntry.getValue()) {
+                number+=contributionResultVo.getNumber();
+            }
+            ContributionResultVoPie vo = new ContributionResultVoPie();
+            vo.setName(stringListEntry.getKey());
+            vo.setNumber(number+0.0);
+
+            result.add(vo);
+        }
+        Collections.sort(result,(a,b)->((Double)(a.getNumber()-b.getNumber())).intValue());
+        return result;
     }
 
 }

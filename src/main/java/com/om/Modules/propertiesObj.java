@@ -1,5 +1,6 @@
 package com.om.Modules;
 
+import com.om.Service.ContributionDataService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.DependsOn;
@@ -31,6 +32,9 @@ public class propertiesObj {
     @Autowired
     private ApplicationContext applicationContext;
 
+    @Autowired
+    ContributionDataService conservice;
+
     static ScheduledExecutorService service = Executors
             .newSingleThreadScheduledExecutor();
 
@@ -41,6 +45,10 @@ public class propertiesObj {
             @Override
             public void run() {
                     updateCycle();
+                conservice.allCondata.clear();
+                conservice.allCondatasortbypr.clear();
+                conservice.allCondatasortbyissue.clear();
+                conservice.allCondatasorybycomments.clear();
 
             }
         }, 5, 15, TimeUnit.SECONDS);
@@ -141,7 +149,7 @@ public class propertiesObj {
         bean.setCommunitymembers_index(openconf.get(IndexQueryEnum.COMMUNITYMEMBERS.getIndex()).toString());
         bean.setCommunitymembers_queryStr(openconf.get(IndexQueryEnum.COMMUNITYMEMBERS.getQueryString()).toString());
         bean.setGiteeAllIndex(openconf.getProperty("giteeall_index"));
-        bean.setGiteeAllQuerystr(openconf.getProperty("giteeall_querystr"));
+        bean.setGiteeAll_qIssueStrBymil(openconf.getProperty("giteeall_qIssueStrBymil"));
         bean.setGiteeAllQueryAllstr(openconf.getProperty("giteeall_queryallddpirstr"));
     }
 

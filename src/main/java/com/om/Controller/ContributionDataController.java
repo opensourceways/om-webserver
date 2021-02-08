@@ -3,6 +3,7 @@ package com.om.Controller;
 import com.om.Result.Result;
 import com.om.Result.Success;
 import com.om.Service.ContributionDataService;
+import com.om.Vo.ContributionResultVoPie;
 import com.om.Vo.ContributionVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,10 +33,15 @@ public class ContributionDataController {
     }
     @RequestMapping("/ContributionDataPie")
     public Map<Object, Object> getDataPie(@RequestBody ContributionVo co){
-        List dataPie = contributionDataService.getContributionDataPie(co.getCommunity(), co.getType());
+        List<ContributionResultVoPie> dataPie = contributionDataService.getContributionDataPie(co.getCommunity(), co.getType());
         HashMap<Object, Object> resultmap = new HashMap<>();
         resultmap.put("data",dataPie);
+        int total=0;
+        for (ContributionResultVoPie contributionResultVoPie : dataPie) {
+            total+=contributionResultVoPie.getNumber();
+        }
         resultmap.put("code",200);
+        resultmap.put("total",total);
         resultmap.put("type",co.getType());
         return resultmap;
     }
