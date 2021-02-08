@@ -153,7 +153,7 @@ public class ContributionDataService {
         }
     }
 
-    public List getContributionData(String community, String type, String individualSearchKey, String organizationSearchKey, int currentPage, int pageSize, String sortKey, String sortValue) {
+    public Map getContributionData(String community, String type, String individualSearchKey, String organizationSearchKey, int currentPage, int pageSize, String sortKey, String sortValue) {
         refreCacheData(community);
         ArrayList<Object> resultdata = new ArrayList<>();
         List<ContributionResultVo> datacache = null;
@@ -177,14 +177,14 @@ public class ContributionDataService {
                 }
             }
             datacache = indivilist;
-        } else if (Constant.individual.equals(type) && organizationSearchKey != null) {
-            ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
-            for (ContributionResultVo prvo : datacache) {
-                if (prvo.getOriganization().equals(organizationSearchKey)) {
-                    indivilist.add(prvo);
-                }
-            }
-            datacache = indivilist;
+//        } else if (Constant.individual.equals(type) && organizationSearchKey != null) {
+//            ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
+//            for (ContributionResultVo prvo : datacache) {
+//                if (prvo.getOriganization().equals(organizationSearchKey)) {
+//                    indivilist.add(prvo);
+//                }
+//            }
+//            datacache = indivilist;
         }else if (Constant.individual.equals(type) && individualSearchKey != null) {
             ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
             for (ContributionResultVo prvo : datacache) {
@@ -239,8 +239,8 @@ public class ContributionDataService {
                 }
             }
 
+        int size =datacache.size();
         if ("ascending".equals(sortValue)) {
-            int size =datacache.size();
             //索引越界，返回最后一页数据
             int lastpage = size % pageSize;
             int startindex = (currentPage - 1) * pageSize;
@@ -257,7 +257,6 @@ public class ContributionDataService {
             ArrayList<ContributionResultVo> resverse = new ArrayList<>();
             resverse.addAll(datacache);
             Collections.reverse(resverse);
-            int size = resverse.size();
             //索引越界，返回最后一页数据
             int lastpage = size % pageSize;
             int startindex = (currentPage - 1) * pageSize;
@@ -271,7 +270,11 @@ public class ContributionDataService {
                 resultdata.add(resverse.get(i));
             }
         }
-        return resultdata;
+        HashMap<Object, Object> resultMap = new HashMap<>();
+        resultMap.put("data",resultdata);
+        resultMap.put("total",size);
+
+        return resultMap;
     }
 
 
