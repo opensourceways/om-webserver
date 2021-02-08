@@ -177,14 +177,14 @@ public class ContributionDataService {
                 }
             }
             datacache = indivilist;
-//        } else if (Constant.individual.equals(type) && organizationSearchKey != null) {
-//            ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
-//            for (ContributionResultVo prvo : datacache) {
-//                if (prvo.getOriganization().equals(organizationSearchKey)) {
-//                    indivilist.add(prvo);
-//                }
-//            }
-//            datacache = indivilist;
+        } else if (Constant.individual.equals(type) && organizationSearchKey != null) {
+            ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
+            for (ContributionResultVo prvo : datacache) {
+                if (prvo.getOriganization().equals(organizationSearchKey)) {
+                    indivilist.add(prvo);
+                }
+            }
+            datacache = indivilist;
         }else if (Constant.individual.equals(type) && individualSearchKey != null) {
             ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
             for (ContributionResultVo prvo : datacache) {
