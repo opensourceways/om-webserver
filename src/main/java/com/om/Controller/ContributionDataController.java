@@ -26,9 +26,9 @@ public class ContributionDataController {
 
     @RequestMapping("/ContributionData")
     public Result getContributionData(@RequestBody ContributionVo co){
-        List<Map> allPrIssueComment = contributionDataService.getContributionData(co.getCommunity(),co.getType() , co.getIndividualSearchKey(), co.getOrganizationSearchKey(),
+        Map<String,Object> allPrIssueComment = contributionDataService.getContributionData(co.getCommunity(),co.getType() , co.getIndividualSearchKey(), co.getOrganizationSearchKey(),
                 Integer.parseInt(co.getCurrentPage()), Integer.parseInt(co.getPageSize()), co.getSortKey(), co.getSortValue());
-        return new Success().setData(allPrIssueComment).setCode(200).setTotal(allPrIssueComment.size()).setMessage("SUCCESS");
+        return new Success().setData((List) allPrIssueComment.get("data")).setCode(200).setTotal((Integer)allPrIssueComment.get("total")).setMessage("SUCCESS");
 
     }
     @RequestMapping("/ContributionDataPie")
