@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -168,11 +169,18 @@ public class ContributionDataService {
                 datacache = this.allCondatasorybycomments.get(community);
                 break;
         }
-
+        Pattern orgcompile=null;
+        Pattern indicompile=null;
+        if(individualSearchKey != null){
+            indicompile = Pattern.compile(individualSearchKey, Pattern.CASE_INSENSITIVE);
+        }
+        if(organizationSearchKey != null){
+            orgcompile= Pattern.compile(organizationSearchKey, Pattern.CASE_INSENSITIVE);
+        }
         if (Constant.individual.equals(type)&&individualSearchKey != null && organizationSearchKey != null) {
             ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
             for (ContributionResultVo prvo : datacache) {
-                if (prvo.getName().equalsIgnoreCase(individualSearchKey) && prvo.getOriganization().equalsIgnoreCase(organizationSearchKey)) {
+                    if(indicompile.matcher(prvo.getName()).find()&&orgcompile.matcher(prvo.getOriganization()).find()){
                     indivilist.add(prvo);
                 }
             }
@@ -180,7 +188,7 @@ public class ContributionDataService {
         } else if (Constant.individual.equals(type) && organizationSearchKey != null) {
             ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
             for (ContributionResultVo prvo : datacache) {
-                if (prvo.getOriganization().equalsIgnoreCase(organizationSearchKey)) {
+                if (orgcompile.matcher(prvo.getOriganization()).find()) {
                     indivilist.add(prvo);
                 }
             }
@@ -188,7 +196,7 @@ public class ContributionDataService {
         }else if (Constant.individual.equals(type) && individualSearchKey != null) {
             ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
             for (ContributionResultVo prvo : datacache) {
-                if (prvo.getName().equalsIgnoreCase(individualSearchKey)) {
+                if (indicompile.matcher(prvo.getName()).find()) {
                     indivilist.add(prvo);
                 }
             }
@@ -198,7 +206,7 @@ public class ContributionDataService {
             ArrayList<ContributionResultVo> orglist = new ArrayList<>();
             if( organizationSearchKey != null){
                 for (ContributionResultVo prvo : datacache) {
-                    if (prvo.getOriganization().equalsIgnoreCase(organizationSearchKey)) {
+                    if (orgcompile.matcher(prvo.getOriganization()).find()) {
                         orglist.add(prvo);
                     }
                 }
