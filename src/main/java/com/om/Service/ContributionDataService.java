@@ -172,7 +172,7 @@ public class ContributionDataService {
         if (Constant.individual.equals(type)&&individualSearchKey != null && organizationSearchKey != null) {
             ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
             for (ContributionResultVo prvo : datacache) {
-                if (prvo.getName().equals(individualSearchKey) && prvo.getOriganization().equals(organizationSearchKey)) {
+                if (prvo.getName().equalsIgnoreCase(individualSearchKey) && prvo.getOriganization().equalsIgnoreCase(organizationSearchKey)) {
                     indivilist.add(prvo);
                 }
             }
@@ -180,7 +180,7 @@ public class ContributionDataService {
         } else if (Constant.individual.equals(type) && organizationSearchKey != null) {
             ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
             for (ContributionResultVo prvo : datacache) {
-                if (prvo.getOriganization().equals(organizationSearchKey)) {
+                if (prvo.getOriganization().equalsIgnoreCase(organizationSearchKey)) {
                     indivilist.add(prvo);
                 }
             }
@@ -188,7 +188,7 @@ public class ContributionDataService {
         }else if (Constant.individual.equals(type) && individualSearchKey != null) {
             ArrayList<ContributionResultVo> indivilist = new ArrayList<>();
             for (ContributionResultVo prvo : datacache) {
-                if (prvo.getName().equals(individualSearchKey)) {
+                if (prvo.getName().equalsIgnoreCase(individualSearchKey)) {
                     indivilist.add(prvo);
                 }
             }
@@ -198,7 +198,7 @@ public class ContributionDataService {
             ArrayList<ContributionResultVo> orglist = new ArrayList<>();
             if( organizationSearchKey != null){
                 for (ContributionResultVo prvo : datacache) {
-                    if (prvo.getOriganization().equals(organizationSearchKey)) {
+                    if (prvo.getOriganization().equalsIgnoreCase(organizationSearchKey)) {
                         orglist.add(prvo);
                     }
                 }
