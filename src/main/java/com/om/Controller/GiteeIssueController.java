@@ -1,5 +1,6 @@
 package com.om.Controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.om.Result.Result;
 import com.om.Result.Success;
 import com.om.Service.GiteeIssueService;
@@ -10,7 +11,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 
 /**
@@ -33,10 +39,14 @@ public class GiteeIssueController {
             vo.setCurrentPage("0");
             vo.setPageSize("0");
         }
-        ArrayList issueData = (ArrayList) giteeAllService.getIssueData(vo.getCommunity(), vo.getMilestone(), vo.getState(), Integer.parseInt(vo.getCurrentPage()),
+        Map issueData =giteeAllService.getIssueData(vo.getCommunity(), vo.getMilestone(), vo.getState(), Integer.parseInt(vo.getCurrentPage()),
                 Integer.parseInt(vo.getPageSize()), vo.getSortKey(), vo.getSortValue());
-        return new Success().setData(issueData).setCode(200).setTotal(issueData.size()).setMessage("SUCCESS");
 
+        return new Success().setData((List) issueData.get("data")).setCode(200).setTotal((int)issueData.get("total")).setMessage("SUCCESS");
     }
-
+    @RequestMapping("/CVEData")
+    public Result getCveData(@RequestBody MilestoneForIssueVo vo) throws InterruptedException, ExecutionException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
+            Map cveData = giteeAllService.getCveData(vo);
+            return new Success().setData((List) cveData.get("data")).setCode(200).setTotal((int)cveData.get("total")).setMessage("SUCCESS");
+    }
 }

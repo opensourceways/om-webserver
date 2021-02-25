@@ -12,4 +12,6 @@ public class Constant {
     public static final String mindspore="mindspore";
     public static final String individual="individual";
     public static final String organization="organization";
+    public static final String allIssueCveStr="allIssueCveStr";
+    public static final String allIssueResult="allIssueResult";
 }
