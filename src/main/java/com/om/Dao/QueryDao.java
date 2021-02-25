@@ -336,8 +336,15 @@ public class QueryDao {
         } catch (ExecutionException e) {
             e.printStackTrace();
         }
-        String responseBody = response.getResponseBody(UTF_8);
-        return responseBody;
+        if(response.getStatusCode()==404){
+            return "";
+        }else if(response.getStatusCode()!=200){
+            return null;
+        }else {
+            String responseBody = response.getResponseBody(UTF_8);
+            return responseBody;
+        }
+
 
     }
 
