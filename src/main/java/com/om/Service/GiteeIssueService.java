@@ -112,9 +112,10 @@ public class GiteeIssueService {
                     String description = bucket.get("body")==null?"":bucket.get("body").toString();
                     String assignee_name = bucket.get("assignee_name")==null?"":bucket.get("assignee_name").toString();
                     String issue_state = bucket.get("issue_state")==null?"":bucket.get("issue_state").toString();
-                    String plan_start_at = bucket.get("plan_started_at")==null?"":bucket.get("plan_started_at").toString();;
-                    String plan_deadline_at = bucket.get("deadline")==null?"":bucket.get("deadline").toString();;
+                    String plan_start_at = bucket.get("plan_started_at")==null?"":bucket.get("plan_started_at").toString();
+                    String plan_deadline_at = bucket.get("deadline")==null?"":bucket.get("deadline").toString();
                     String closed_at = bucket.get("closed_at") == null ? "" : bucket.get("closed_at").toString();
+
                     String milestone_title = bucket.get("milestone_title").toString();
 
                     Issue issue = new Issue(issue_id, issue_title, issue_type, issue_state, description, assignee_name, plan_start_at, plan_deadline_at, closed_at, milestone_title);
@@ -160,6 +161,7 @@ public class GiteeIssueService {
                 obj.put("description", issue.getDescription());
                 obj.put("plan_start_at", issue.getPlanStartAt());
                 obj.put("plan_deadline_at", issue.getPlanDeadlineAt());
+                obj.put("assignee_name", issue.getAssigeee());
                 obj.put("closed_at", issue.getClosedAt());
                 resultdata.add(obj);
             }else {
@@ -175,6 +177,7 @@ public class GiteeIssueService {
                     obj.put("description", issue.getDescription());
                     obj.put("plan_start_at", issue.getPlanStartAt());
                     obj.put("plan_deadline_at", issue.getPlanDeadlineAt());
+                    obj.put("assignee_name", issue.getAssigeee());
                     obj.put("closed_at", issue.getClosedAt());
                     resultdata.add(obj);
                 }
