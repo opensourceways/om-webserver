@@ -108,12 +108,12 @@ public class GiteeIssueService {
                     bucket = (Map) bucket.get("_source");
                     String issue_id = bucket.get("issue_id").toString();
                     String issue_title = bucket.get("issue_title").toString();
-                    String issue_type = "缺陷";
-                    String description = "这是一个缺陷";
-                    String assignee_name = "unknow";
-                    String issue_state = bucket.get("issue_state").toString();
-                    String plan_start_at = new Date().toString();
-                    String plan_deadline_at = new Date().toString();
+                    String issue_type =  bucket.get("issue_type")==null?"":bucket.get("issue_type").toString();
+                    String description = bucket.get("body")==null?"":bucket.get("body").toString();
+                    String assignee_name = bucket.get("assignee_name")==null?"":bucket.get("assignee_name").toString();
+                    String issue_state = bucket.get("issue_state")==null?"":bucket.get("issue_state").toString();
+                    String plan_start_at = bucket.get("plan_started_at")==null?"":bucket.get("plan_started_at").toString();;
+                    String plan_deadline_at = bucket.get("deadline")==null?"":bucket.get("deadline").toString();;
                     String closed_at = bucket.get("closed_at") == null ? "" : bucket.get("closed_at").toString();
                     String milestone_title = bucket.get("milestone_title").toString();
 
@@ -146,8 +146,9 @@ public class GiteeIssueService {
             sortValue = "descending";
         }
         ArrayList<Map> resultdata = new ArrayList<>();
+
         for (Issue issue : this.allissue.get(community)) {
-            if (milestone.equals(issue.getMileStone())) {
+            if(milestone==null){
                 if (!state.equals("all") && !state.equals(issue.getState())) {
                     continue;
                 }
@@ -161,6 +162,22 @@ public class GiteeIssueService {
                 obj.put("plan_deadline_at", issue.getPlanDeadlineAt());
                 obj.put("closed_at", issue.getClosedAt());
                 resultdata.add(obj);
+            }else {
+                if (milestone.equals(issue.getMileStone())) {
+                    if (!state.equals("all") && !state.equals(issue.getState())) {
+                        continue;
+                    }
+                    HashMap<Object, Object> obj = new HashMap<>();
+                    obj.put("issue_id", issue.getId());
+                    obj.put("type", issue.getType());
+                    obj.put("state", issue.getState());
+                    obj.put("issue_title", issue.getTitle());
+                    obj.put("description", issue.getDescription());
+                    obj.put("plan_start_at", issue.getPlanStartAt());
+                    obj.put("plan_deadline_at", issue.getPlanDeadlineAt());
+                    obj.put("closed_at", issue.getClosedAt());
+                    resultdata.add(obj);
+                }
             }
         }
 
@@ -311,7 +328,6 @@ public class GiteeIssueService {
         });
         resultList = resutstream.collect(Collectors.toList());
         sortDataByType(resultList, vo.getSortKey(), vo.getSortValue());
-        //todo 分页
         Map dataByPage = PageUtils.getDataByPage(Integer.parseInt(vo.getCurrentPage()), Integer.parseInt(vo.getPageSize()), resultList);
         return dataByPage;
 
