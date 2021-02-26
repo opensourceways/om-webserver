@@ -108,12 +108,12 @@ public class GiteeIssueService {
                     bucket = (Map) bucket.get("_source");
                     String issue_id = bucket.get("issue_id").toString();
                     String issue_title = bucket.get("issue_title").toString();
-                    String issue_type =  bucket.get("issue_type")==null?"":bucket.get("issue_type").toString();
-                    String description = bucket.get("body")==null?"":bucket.get("body").toString();
-                    String assignee_name = bucket.get("assignee_name")==null?"":bucket.get("assignee_name").toString();
-                    String issue_state = bucket.get("issue_state")==null?"":bucket.get("issue_state").toString();
-                    String plan_start_at = bucket.get("plan_started_at")==null?"":bucket.get("plan_started_at").toString();
-                    String plan_deadline_at = bucket.get("deadline")==null?"":bucket.get("deadline").toString();
+                    String issue_type = bucket.get("issue_type") == null ? "" : bucket.get("issue_type").toString();
+                    String description = bucket.get("body") == null ? "" : bucket.get("body").toString();
+                    String assignee_name = bucket.get("assignee_name") == null ? "" : bucket.get("assignee_name").toString();
+                    String issue_state = bucket.get("issue_state") == null ? "" : bucket.get("issue_state").toString();
+                    String plan_start_at = bucket.get("plan_started_at") == null ? "" : bucket.get("plan_started_at").toString();
+                    String plan_deadline_at = bucket.get("deadline") == null ? "" : bucket.get("deadline").toString();
                     String closed_at = bucket.get("closed_at") == null ? "" : bucket.get("closed_at").toString();
 
                     String milestone_title = bucket.get("milestone_title").toString();
@@ -149,7 +149,7 @@ public class GiteeIssueService {
         ArrayList<Map> resultdata = new ArrayList<>();
 
         for (Issue issue : this.allissue.get(community)) {
-            if(milestone==null){
+            if (milestone == null) {
                 if (!state.equals("all") && !state.equals(issue.getState())) {
                     continue;
                 }
@@ -164,7 +164,7 @@ public class GiteeIssueService {
                 obj.put("assignee_name", issue.getAssigeee());
                 obj.put("closed_at", issue.getClosedAt());
                 resultdata.add(obj);
-            }else {
+            } else {
                 if (milestone.equals(issue.getMileStone())) {
                     if (!state.equals("all") && !state.equals(issue.getState())) {
                         continue;
@@ -195,33 +195,33 @@ public class GiteeIssueService {
         switch (type) {
             case "closed_at":
                 if (sortValue.equals("ascending")) {
-                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("closed_at")==null? "" :a.get("closed_at").toString()));
+                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("closed_at") == null ? "" : a.get("closed_at").toString()));
                 } else {
-                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("closed_at")==null? "" :a.get("closed_at").toString()));
+                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("closed_at") == null ? "" : a.get("closed_at").toString()));
                     Collections.reverse(resultdata);
                 }
                 break;
             case "issue_type":
                 if (sortValue.equals("ascending")) {
-                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("type")==null? "" :a.get("type").toString()));
+                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("type") == null ? "" : a.get("type").toString()));
                 } else {
-                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("type")==null? "":a.get("type").toString()));
+                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("type") == null ? "" : a.get("type").toString()));
                     Collections.reverse(resultdata);
                 }
                 break;
             case "issue_state":
                 if (sortValue.equals("ascending")) {
-                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("state")==null? "":a.get("state").toString()));
+                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("state") == null ? "" : a.get("state").toString()));
                 } else {
-                    Collections.sort(resultdata, Comparator.comparing(a ->a.get("state")==null? "" :a.get("state").toString()));
+                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("state") == null ? "" : a.get("state").toString()));
                     Collections.reverse(resultdata);
                 }
                 break;
             case "plan_start_at":
                 if (sortValue.equals("ascending")) {
-                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("plan_start_at")==null? "" :a.get("plan_start_at").toString()));
+                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("plan_start_at") == null ? "" : a.get("plan_start_at").toString()));
                 } else {
-                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("plan_start_at")==null? "" :a.get("plan_start_at").toString()));
+                    Collections.sort(resultdata, Comparator.comparing(a -> a.get("plan_start_at") == null ? "" : a.get("plan_start_at").toString()));
                     Collections.reverse(resultdata);
                 }
                 break;
@@ -305,10 +305,10 @@ public class GiteeIssueService {
         String result = (String) redisDao.get(Constant.allIssueResult + vo.getCommunity());
         if (result == null || result.equals("")) {
             //从缓存中获取数据
-            String resCveStr = (String) redisDao.get(Constant.allIssueCveStr+vo.getCommunity());
+            String resCveStr = (String) redisDao.get(Constant.allIssueCveStr + vo.getCommunity());
             if (resCveStr == null || resCveStr.equals("")) {
                 resCveStr = getAllCveStr();
-                redisDao.set(Constant.allIssueCveStr+vo.getCommunity(), resCveStr, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+                redisDao.set(Constant.allIssueCveStr + vo.getCommunity(), resCveStr, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
             }
             Map cvemap = objectMapper.readValue(resCveStr, Map.class);
             List resultList = assIssCve(getIndexByCommunity(vo.getCommunity()), cvemap);
@@ -318,15 +318,38 @@ public class GiteeIssueService {
         List<Map> resultList = objectMapper.readValue(result, List.class);
         Stream<Map> resutstream = resultList.stream().filter(o -> {
             Object state = o.get("state");
+            Object milestone = o.get("milestone");
+            String milestonein = vo.getMilestone();
+            int milestoneresult = 0;
+            int stateresult = 0;
 
-            if("all".equals(vo.getState())||StringUtils.isEmpty(vo.getState())){
-                return true;
+            if ("all".equals(vo.getState()) || StringUtils.isEmpty(vo.getState())) {
+                stateresult = 1;
+            } else {
+                if (vo.getState().equals(state)) {
+                    stateresult = 1;
+                } else {
+                    stateresult = 0;
+
+                }
             }
-            if (vo.getState().equals(state)) {
+            if (milestonein == null) {
+                milestoneresult = 1;
+            } else {
+                if (vo.getMilestone() != null) {
+                    if (milestone.toString().contains(milestonein)) {
+                        milestoneresult = 1;
+                    } else {
+                        milestoneresult = 0;
+                    }
+                } else {
+                    milestoneresult = 0;
+                }
+            }
+            if (milestoneresult == 1 && stateresult == 1) {
                 return true;
             } else {
                 return false;
-
             }
         });
         resultList = resutstream.collect(Collectors.toList());
