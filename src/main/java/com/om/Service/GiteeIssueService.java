@@ -187,7 +187,7 @@ public class GiteeIssueService {
         sortDataByType(resultdata, sortKey, sortValue);
         if ("true".equals(returnalldata)) {
         }
-	if(currentPage==null||currentPage==""||pageSize==null||pageSize==""){
+	if(currentPage==null||pageSize==null){
 		HashMap resultmap=new HashMap();
 		resultmap.put("data",resultdata);
 		resultmap.put("total",resultdata.size());
