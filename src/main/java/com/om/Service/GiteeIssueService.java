@@ -359,6 +359,13 @@ public class GiteeIssueService {
         });
         resultList = resutstream.collect(Collectors.toList());
         sortDataByType(resultList, vo.getSortKey(), vo.getSortValue());
+        if(vo.getCurrentPage()==null||vo.getPageSize()==null){
+            HashMap<Object, Object> resultmap = new HashMap<>();
+            resultmap.put("data",resultList);
+            resultmap.put("total",resultList.size());
+                    return resultmap;
+
+        }
         Map dataByPage = PageUtils.getDataByPage(Integer.parseInt(vo.getCurrentPage()), Integer.parseInt(vo.getPageSize()), resultList);
         return dataByPage;
 
