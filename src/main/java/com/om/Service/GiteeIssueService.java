@@ -163,6 +163,7 @@ public class GiteeIssueService {
                 obj.put("plan_deadline_at", issue.getPlanDeadlineAt());
                 obj.put("assignee_name", issue.getAssigeee());
                 obj.put("closed_at", issue.getClosedAt());
+                obj.put("milestone", issue.getMileStone());
                 resultdata.add(obj);
             } else {
                 if (milestone.equals(issue.getMileStone())) {
@@ -179,6 +180,7 @@ public class GiteeIssueService {
                     obj.put("plan_deadline_at", issue.getPlanDeadlineAt());
                     obj.put("assignee_name", issue.getAssigeee());
                     obj.put("closed_at", issue.getClosedAt());
+                    obj.put("milestone", issue.getMileStone());
                     resultdata.add(obj);
                 }
             }
@@ -187,12 +189,12 @@ public class GiteeIssueService {
         sortDataByType(resultdata, sortKey, sortValue);
         if ("true".equals(returnalldata)) {
         }
-	if(currentPage==0||pageSize==0){
-		HashMap resultmap=new HashMap();
-		resultmap.put("data",resultdata);
-		resultmap.put("total",resultdata.size());
-		return resultmap;
-	}
+        if (currentPage == 0 || pageSize == 0) {
+            HashMap resultmap = new HashMap();
+            resultmap.put("data", resultdata);
+            resultmap.put("total", resultdata.size());
+            return resultmap;
+        }
         return PageUtils.getDataByPage(currentPage, pageSize, resultdata);
     }
 
@@ -341,14 +343,14 @@ public class GiteeIssueService {
             if (milestonein == null) {
                 milestoneresult = 1;
             } else {
-                if(milestone==null){
-                    milestoneresult=0;
-                }else{
+                if (milestone == null) {
+                    milestoneresult = 0;
+                } else {
                     String[] milestoneItem = milestone.toString().split(",");
                     for (String s : milestoneItem) {
-                        String[] milestoneAffect= s.split(":");
-                        if(milestoneAffect.length==2&&milestoneAffect[0].equals(milestonein)&&milestoneAffect[1].equals("受影响")){
-                            milestoneresult=1;
+                        String[] milestoneAffect = s.split(":");
+                        if (milestoneAffect.length == 2 && milestoneAffect[0].equals(milestonein) && milestoneAffect[1].equals("受影响")) {
+                            milestoneresult = 1;
                         }
                     }
                 }
@@ -360,13 +362,18 @@ public class GiteeIssueService {
             }
         });
         resultList = resutstream.collect(Collectors.toList());
+        //todo 待后续去掉for循环，张建军cve接口错误
+        for (Map map : resultList) {
+            Object openeuler_socre = map.get("openeuler_socre");
+            map.remove("openeuler_socre");
+            map.put("openeuler_score", openeuler_socre);
+        }
         sortDataByType(resultList, vo.getSortKey(), vo.getSortValue());
-        if(vo.getCurrentPage()==null||vo.getPageSize()==null){
+        if (vo.getCurrentPage() == null || vo.getPageSize() == null) {
             HashMap<Object, Object> resultmap = new HashMap<>();
-            resultmap.put("data",resultList);
-            resultmap.put("total",resultList.size());
-                    return resultmap;
-
+            resultmap.put("data", resultList);
+            resultmap.put("total", resultList.size());
+            return resultmap;
         }
         Map dataByPage = PageUtils.getDataByPage(Integer.parseInt(vo.getCurrentPage()), Integer.parseInt(vo.getPageSize()), resultList);
         return dataByPage;
