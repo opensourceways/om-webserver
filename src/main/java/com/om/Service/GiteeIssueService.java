@@ -341,14 +341,16 @@ public class GiteeIssueService {
             if (milestonein == null) {
                 milestoneresult = 1;
             } else {
-                if (vo.getMilestone() != null) {
-                    if (milestone.toString().contains(milestonein)) {
-                        milestoneresult = 1;
-                    } else {
-                        milestoneresult = 0;
+                if(milestone==null){
+                    milestoneresult=0;
+                }else{
+                    String[] milestoneItem = milestone.toString().split(",");
+                    for (String s : milestoneItem) {
+                        String[] milestoneAffect= s.split(":");
+                        if(milestoneAffect.length==2&&milestoneAffect[0].equals(milestonein)&&milestoneAffect[1].equals("受影响")){
+                            milestoneresult=1;
+                        }
                     }
-                } else {
-                    milestoneresult = 0;
                 }
             }
             if (milestoneresult == 1 && stateresult == 1) {
