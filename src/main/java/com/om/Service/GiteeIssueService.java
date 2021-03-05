@@ -362,12 +362,7 @@ public class GiteeIssueService {
             }
         });
         resultList = resutstream.collect(Collectors.toList());
-        //todo 待后续去掉for循环，张建军cve接口错误
-        for (Map map : resultList) {
-            Object openeuler_socre = map.get("openeuler_socre");
-            map.remove("openeuler_socre");
-            map.put("openeuler_score", openeuler_socre);
-        }
+
         sortDataByType(resultList, vo.getSortKey(), vo.getSortValue());
         if (vo.getCurrentPage() == null || vo.getPageSize() == null) {
             HashMap<Object, Object> resultmap = new HashMap<>();
