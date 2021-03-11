@@ -106,7 +106,7 @@ public class GiteeIssueService {
                 ArrayList<Issue> issvolist = new ArrayList<>();
                 for (Map bucket : buckets) {
                     bucket = (Map) bucket.get("_source");
-                    String issue_id = bucket.get("issue_id").toString();
+                    String issue_id = bucket.get("issue_number").toString();
                     String issue_title = bucket.get("issue_title").toString();
                     String issue_type = bucket.get("issue_type") == null ? "" : bucket.get("issue_type").toString();
                     String description = bucket.get("body") == null ? "" : bucket.get("body").toString();

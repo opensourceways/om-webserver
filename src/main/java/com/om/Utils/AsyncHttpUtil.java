@@ -14,6 +14,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 @Service
 public class AsyncHttpUtil {
@@ -37,6 +39,13 @@ public class AsyncHttpUtil {
     builder.addHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString((user_pass).getBytes()))
     .setMethod("POST");
     return builder;
+
+}
+public  static Response getHTML(String url, String method, Map header) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException {
+    Request build = new RequestBuilder().setMethod(method).setUrl(url).setHeaders(header).build();
+    ListenableFuture<Response> responseListenableFuture = getClient().executeRequest(build);
+    Response response = responseListenableFuture.get();
+    return response;
 }
     public static SSLContext skipSsl() throws NoSuchAlgorithmException, KeyManagementException {
         SSLContext sc = SSLContext.getInstance("SSL");
