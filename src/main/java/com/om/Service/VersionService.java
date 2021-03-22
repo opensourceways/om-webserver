@@ -103,7 +103,7 @@ public class VersionService {
             Response response = future.get();
             String responseBody = response.getResponseBody(StandardCharsets.UTF_8);
             redisDao.set(community + redisKey, responseBody, expire);
-            Map map = assemblyData(repo, data, currentPage, pageSize);
+            Map map = assemblyData(repo, responseBody, currentPage, pageSize);
             return map;
         } else {
             Map map = assemblyData(repo, data, currentPage, pageSize);
