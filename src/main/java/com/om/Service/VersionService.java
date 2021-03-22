@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -166,8 +167,15 @@ public class VersionService {
                 }
             }
         }
-        Map dataByPage = PageUtils.getDataByPage(page, pageSize, collect);
-        return dataByPage;
+        if(pageSize==0||page==0){
+            Map map = new HashMap();
+            map.put("data",collect);
+            map.put("total",collect.size());
+            return map;
+        }else {
+            Map dataByPage = PageUtils.getDataByPage(page, pageSize, collect);
+            return dataByPage;
+        }
     }
 //   /***
 //    * 功能描述:get all repos according to community name

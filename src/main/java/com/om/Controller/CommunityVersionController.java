@@ -37,7 +37,7 @@ public class CommunityVersionController {
      * @Date: 2021/3/22 10:00
      */
     @GetMapping("/v1/versions")
-    public Result getVersionByRepo(@RequestParam(required = true) String community, @RequestParam(required = false) String repo, @RequestParam(required = false) String branch, @RequestParam(required = false) int pageSize, @RequestParam(required = false) int currentPage) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
+    public Result getVersionByRepo(@RequestParam() String community, @RequestParam(required = false) String repo, @RequestParam(required = false) String branch, @RequestParam(required = false,defaultValue = "0") int pageSize, @RequestParam(required = false,defaultValue = "0") int currentPage) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
         Map versionByRepoBranch = versionService.getVersionByRepoBranch(community, repo, pageSize, currentPage);
         return new Success().setData((List) versionByRepoBranch.get("data")).setCode(200).setTotal((int) versionByRepoBranch.get("total")).setMessage("SUCCESS");
     }
