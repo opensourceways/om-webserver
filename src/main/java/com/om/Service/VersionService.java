@@ -136,6 +136,9 @@ public class VersionService {
         if (StringUtils.isNotBlank(repo)) {
             source = source.filter(map -> {
                 String id = map.get("_id").toString();
+                if (!id.contains("src-openeuler")){
+                 return false;
+                }
                 String repoName = id.substring(id.lastIndexOf("/") + 1);
                 if (repo.equals(repoName)) {
                     return true;
