@@ -8,23 +8,77 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class openComObject {
-    protected   String extOs_index;
-    protected   String extOs_queryStr;
-    protected   String businessOsv_index;
-    protected   String businessOsv_queryStr;
-    protected   String sigs_index;
-    protected   String sigs_queryStr;
-    protected   String users_index;
-    protected   String users_queryStr;
-    protected   String contributors_index;
-    protected   String contributors_queryStr;
-    protected  String noticeusers_index;
+    protected String extOs_index;
+    protected String extOs_queryStr;
+    protected String businessOsv_index;
+    protected String businessOsv_queryStr;
+    protected String sigs_index;
+    protected String sigs_queryStr;
+    protected String users_index;
+    protected String users_queryStr;
+    protected String contributors_index;
+    protected String contributors_queryStr;
+    protected String noticeusers_index;
     protected String noticeusers_queryStr;
     protected String communitymembers_index;
     protected String communitymembers_queryStr;
     protected String GiteeAllIndex;
     protected String GiteeAll_qIssueStrBymil;
     protected String GiteeAllQueryAllstr;
+    protected String GiteeStarCountQueryStr;
+    protected String GiteeIssueCountQueryStr;
+    protected String GiteePrCountQueryStr;
+    protected String DownloadQueryIndex;
+    protected String DownloadQueryStr;
+    protected String DownloadDockerHubQueryStr;
+
+    public String getDownloadDockerHubQueryStr() {
+        return DownloadDockerHubQueryStr;
+    }
+
+    public void setDownloadDockerHubQueryStr(String downloadDockerHubQueryStr) {
+        DownloadDockerHubQueryStr = downloadDockerHubQueryStr;
+    }
+
+    public String getDownloadQueryIndex() {
+        return DownloadQueryIndex;
+    }
+
+    public void setDownloadQueryIndex(String downloadQueryIndex) {
+        DownloadQueryIndex = downloadQueryIndex;
+    }
+
+    public String getDownloadQueryStr() {
+        return DownloadQueryStr;
+    }
+
+    public void setDownloadQueryStr(String downloadQueryStr) {
+        DownloadQueryStr = downloadQueryStr;
+    }
+
+    public String getGiteeStarCountQueryStr() {
+        return GiteeStarCountQueryStr;
+    }
+
+    public void setGiteeStarCountQueryStr(String giteeStarCountQueryStr) {
+        GiteeStarCountQueryStr = giteeStarCountQueryStr;
+    }
+
+    public String getGiteeIssueCountQueryStr() {
+        return GiteeIssueCountQueryStr;
+    }
+
+    public void setGiteeIssueCountQueryStr(String giteeIssueCountQueryStr) {
+        GiteeIssueCountQueryStr = giteeIssueCountQueryStr;
+    }
+
+    public String getGiteePrCountQueryStr() {
+        return GiteePrCountQueryStr;
+    }
+
+    public void setGiteePrCountQueryStr(String giteePrCountQueryStr) {
+        GiteePrCountQueryStr = giteePrCountQueryStr;
+    }
 
     public String getGiteeAllQueryAllstr() {
         return GiteeAllQueryAllstr;
@@ -160,6 +214,25 @@ public class openComObject {
 
     public void setCommunitymembers_queryStr(String communitymembers_queryStr) {
         this.communitymembers_queryStr = communitymembers_queryStr;
+    }
+
+    public String getCountQueryStr(String item) {
+        String queryStr = "";
+        switch (item) {
+            case "stars":
+                queryStr = getGiteeStarCountQueryStr();
+                break;
+            case "issues":
+                queryStr = getGiteeIssueCountQueryStr();
+                break;
+            case "prs":
+                queryStr = getGiteePrCountQueryStr();
+                break;
+            default:
+                return "";
+        }
+
+        return queryStr;
     }
 }
 
