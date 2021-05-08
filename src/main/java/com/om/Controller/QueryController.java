@@ -30,7 +30,6 @@ public class QueryController {
         return contributors;
     }
 
-
     @RequestMapping("/sigs")
     public String querySigs(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String sigs = queryService.querySigs(community);
@@ -75,6 +74,29 @@ public class QueryController {
 
     }
 
+    //TODO 以下四个接口，仅测试过MindSpore
+    @RequestMapping("/stars")
+    public String queryStars(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String starts = queryService.queryCount(community, "stars");
+        return starts;
+    }
 
+    @RequestMapping("/issues")
+    public String queryIssues(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String issues = queryService.queryCount(community, "issues");
+        return issues;
+    }
+
+    @RequestMapping("/prs")
+    public String queryPrs(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String prs = queryService.queryCount(community, "prs");
+        return prs;
+    }
+
+    @RequestMapping("/downloads")
+    public String queryDownloads(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String prs = queryService.queryDownload(community, "download");
+        return prs;
+    }
 }
 
