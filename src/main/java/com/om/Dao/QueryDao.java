@@ -102,8 +102,14 @@ public class QueryDao {
         String statusText = response.getStatusText();
         String responseBody = response.getResponseBody(UTF_8);
         JsonNode dataNode = objectMapper.readTree(responseBody);
-        String result = dataNode.get("aggregations").get("data").get("value").toString();
-        return "{\"code\":" + statusCode + ",\"data\":{\"sigs\":" + Integer.parseInt(result) + "},\"msg\":\"" + statusText + "\"}";
+        Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+        long count = 0;
+        while (buckets.hasNext()){
+            JsonNode bucket = buckets.next();
+            count += bucket.get("1").get("value").asLong();
+        }
+
+        return "{\"code\":" + statusCode + ",\"data\":{\"sigs\":" + count + "},\"msg\":\"" + statusText + "\"}";
     }
 
     //测试通过
