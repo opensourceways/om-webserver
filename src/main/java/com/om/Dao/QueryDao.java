@@ -472,6 +472,10 @@ public class QueryDao {
             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets").elements();
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
+                if (StringUtils.isBlank(valueField)) {
+                    count = bucket.get("doc_count").asLong();
+                    break;
+                }
                 Iterator<JsonNode> hits = bucket.get("last").get("hits").get("hits").elements();
                 while (hits.hasNext()) {
                     JsonNode hit = hits.next();
