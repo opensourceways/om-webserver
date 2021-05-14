@@ -299,7 +299,9 @@ public class QueryDao {
         Object businessOsv = businessOsvNode == null ? null : businessOsvNode.intValue();
         JsonNode communityMembersNode = objectMapper.readTree(this.querycommunitymembers(community)).get("data").get("communitymembers");
         Object communityMembers = businessOsvNode == null ? null : communityMembersNode.intValue();
-        String result = "{\"code\":" + 200 + ",\"data\":{\"contributors\":" + contributors + ",\"users\":" + users + ",\"noticeusers\":" + noticeusers + ",\"sigs\":" + sigs + ",\"modulenums\":" + modulenums + ",\"businessosv\":" + businessOsv + ",\"communitymembers\":" + communityMembers + "},\"msg\":\"" + "OK" + "\"}";
+        JsonNode downloadNode = objectMapper.readTree(this.queryDownload(community, "download")).get("data").get("download");
+        Object downloads = downloadNode == null ? null : downloadNode.intValue();
+        String result = "{\"code\":" + 200 + ",\"data\":{\"downloads\":" + downloads + ",\"contributors\":" + contributors + ",\"users\":" + users + ",\"noticeusers\":" + noticeusers + ",\"sigs\":" + sigs + ",\"modulenums\":" + modulenums + ",\"businessosv\":" + businessOsv + ",\"communitymembers\":" + communityMembers + "},\"msg\":\"" + "OK" + "\"}";
         return result;
     }
 
@@ -426,16 +428,11 @@ public class QueryDao {
 
         switch (community) {
             case "openEuler":
-                index = openEuler.getDownloadQueryIndex();
-                queryjson = openEuler.getDownloadQueryStr();
-                break;
+            case "openLookeng":
+                return "{\"code\":" + 404 + ",\"data\":{\"" + item + "\":" + 0 + "},\"msg\":\"Not Found!\"}";
             case "openGauss":
                 index = openGauss.getDownloadQueryIndex();
                 queryjson = openGauss.getDownloadQueryStr();
-                break;
-            case "openLookeng":
-                index = openLookeng.getDownloadQueryIndex();
-                queryjson = openLookeng.getDownloadQueryStr();
                 break;
             case "mindSpore":
                 index = mindSpore.getDownloadQueryIndex();
