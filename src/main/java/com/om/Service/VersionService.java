@@ -22,6 +22,7 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -160,7 +161,14 @@ public class VersionService {
             List branches = (List) ((Map) sourceItem).get("branches");
             if (branches != null && branches.size() > 0) {
                 for (Map branch : (List<Map>) branches) {
-                    List description = (List) branch.remove("description");
+                    Object de = branch.remove("description");
+                    List description = null;
+                    if (de instanceof List){
+                        description = (List) de;
+                    } else if (de instanceof  String){
+                        description = new ArrayList();
+                        description.add(de);
+                    }
                     if (description == null) {
                         branch.put("description", "");
                     } else {
