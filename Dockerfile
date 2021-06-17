@@ -1,4 +1,4 @@
-FROM java:latest
+FROM java:8
 
 MAINTAINER zhongjun <jun.zhongjun2@gmail.com>
 
