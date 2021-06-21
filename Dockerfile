@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM python:3.7
 
 MAINTAINER zhongjun <jun.zhongjun2@gmail.com>
 
