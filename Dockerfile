@@ -1,9 +1,22 @@
-FROM java:8
+FROM ubuntu:latest
 
 MAINTAINER zhongjun <jun.zhongjun2@gmail.com>
 
 RUN mkdir -p /var/lib/om-webserver
 WORKDIR /var/lib/om-webserver
+
+# Install basic software support
+RUN apt-get update && \
+    apt-get install --yes software-properties-common
+
+# Add the JDK 8 and accept licenses (mandatory)
+RUN add-apt-repository ppa:webupd8team/java && \
+    echo debconf shared/accepted-oracle-license-v1-1 select true | debconf-set-selections && \
+    echo debconf shared/accepted-oracle-license-v1-1 seen true | debconf-set-selections
+
+# Install Java 8
+RUN apt-get update && \
+    apt-get --yes --no-install-recommends install oracle-java8-installer
 
 RUN wget https://mirror-hk.koddos.net/apache/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz && \
 	tar -xzvf apache-maven-3.6.3-bin.tar.gz
