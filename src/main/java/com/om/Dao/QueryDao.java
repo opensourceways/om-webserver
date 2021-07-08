@@ -122,7 +122,27 @@ public class QueryDao {
             case "openEuler":
                 index = openEuler.getUsers_index();
                 queryjson = openEuler.getUsers_queryStr();
-                break;
+
+                String[] indexs = index.split(";");
+                String[] queryjsons = queryjson.split(";");
+                double user_count = 0d;
+                int statusCode = 500;
+                String statusText = "请求内部错误";
+                for (int i = 0; i < indexs.length; i++) {
+                    index = indexs[i];
+                    queryjson = queryjsons[i];
+
+                    builder.setUrl(this.url + index + "/_search");
+                    builder.setBody(queryjson);
+                    //获取执行结果
+                    ListenableFuture<Response> f = client.executeRequest(builder.build());
+                    String users = getResult(f, "users");
+                    JsonNode dataNode = objectMapper.readTree(users);
+                    statusCode = dataNode.get("code").intValue();
+                    user_count += dataNode.get("data").get("users").intValue();
+                    statusText = dataNode.get("msg").textValue();
+                }
+                return "{\"code\":" + statusCode + ",\"data\":{\"users\":" + Math.round(user_count) + "},\"msg\":\"" + statusText + "\"}";
             case "openGauss":
                 index = openGauss.getUsers_index();
                 queryjson = openGauss.getUsers_queryStr();
