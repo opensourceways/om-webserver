@@ -150,7 +150,10 @@ public class QueryDao {
             case "openLookeng":
                 index = openLookeng.getUsers_index();
                 queryjson = openLookeng.getUsers_queryStr();
-                break;
+                builder.setUrl(this.url + index + "/_count");
+                builder.setBody(queryjson);
+                ListenableFuture<Response> f = client.executeRequest(builder.build());
+                return getCountResult(f, "users");
             case "mindSpore":
                 return "{\"code\":" + 404 + ",\"data\":{\"users\":" + 0 + "},\"msg\":\"not Found!\"}";
             default:
@@ -323,6 +326,26 @@ public class QueryDao {
         Object downloads = downloadNode == null ? null : downloadNode.intValue();
         String result = "{\"code\":" + 200 + ",\"data\":{\"downloads\":" + downloads + ",\"contributors\":" + contributors + ",\"users\":" + users + ",\"noticeusers\":" + noticeusers + ",\"sigs\":" + sigs + ",\"modulenums\":" + modulenums + ",\"businessosv\":" + businessOsv + ",\"communitymembers\":" + communityMembers + "},\"msg\":\"" + "OK" + "\"}";
         return result;
+    }
+
+    public String getCountResult(ListenableFuture<Response> f, String dataflage) {
+        Response response = null;
+        String statusText = "请求内部错误";
+        double count = 0d;
+        int statusCode = 500;
+        try {
+            response = f.get();
+            statusCode = response.getStatusCode();
+            statusText = response.getStatusText();
+            String responseBody = response.getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            count = dataNode.get("count").asLong();
+            String result = "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + Math.round(count) + "},\"msg\":\"" + statusText + "\"}";
+            return result;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
     }
 
     public String getResult(ListenableFuture<Response> f, String dataflage) {
