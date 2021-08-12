@@ -3,6 +3,9 @@ package com.om.Service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
+import com.om.Vo.BlueZoneContributeVo;
+import com.om.Vo.BlueZoneUserVo;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
@@ -231,6 +234,38 @@ public class QueryService {
                 System.out.println("update " + key + " success!");
             }
         }
+        return result;
+    }
+
+    public String queryBlueZoneContributes(BlueZoneContributeVo body, String item) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String token = env.getProperty("blueZone.api.token");
+        if (StringUtils.isBlank(body.getToken()) || !body.getToken().equals(token)) {
+            return "{\"code\":401,\"data\":{\"" + item + "\":\"token error\"},\"msg\":\"token error\"}";
+        }
+        String result = "{\"code\":500,\"data\":{\"" + item + "\":\"bad request\"},\"msg\":\"bad request\"}";
+        //查询数据库，更新redis 缓存。
+        try {
+            result = queryDao.queryBlueZoneContributes(body, item);
+        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+            e.printStackTrace();
+        }
+
+        return result;
+    }
+
+    public String putBlueZoneUser(BlueZoneUserVo userVo, String item) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String token = env.getProperty("blueZone.api.token");
+        if (StringUtils.isBlank(userVo.getToken()) || !userVo.getToken().equals(token)) {
+            return "{\"code\":401,\"data\":{\"" + item + "\":\"token error\"},\"msg\":\"token error\"}";
+        }
+        String result = "{\"code\":500,\"data\":{\"" + item + "\":\"bad request\"},\"msg\":\"bad request\"}";
+        //查询数据库，更新redis 缓存。
+        try {
+            result = queryDao.putBlueZoneUser(userVo, item, env);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         return result;
     }
 }

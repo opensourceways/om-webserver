@@ -6,16 +6,26 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Modules.*;
 import com.om.Utils.AsyncHttpUtil;
+import com.om.Utils.HttpClientUtils;
+import com.om.Vo.BlueZoneContributeVo;
+import com.om.Vo.BlueZoneUserVo;
 import org.apache.commons.lang3.StringUtils;
 import org.asynchttpclient.*;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Repository;
 
+import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -41,6 +51,8 @@ public class QueryDao {
     openLookeng openLookeng;
     @Autowired
     mindSpore mindSpore;
+    @Autowired
+    BlueZone blueZone;
 
     //openeuler openlookeng opengauss 测试通过
     public String queryContributors(String community) throws NoSuchAlgorithmException, KeyManagementException {
@@ -104,7 +116,7 @@ public class QueryDao {
         JsonNode dataNode = objectMapper.readTree(responseBody);
         Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
         long count = 0;
-        while (buckets.hasNext()){
+        while (buckets.hasNext()) {
             JsonNode bucket = buckets.next();
             count += bucket.get("1").get("value").asLong();
         }
@@ -553,5 +565,160 @@ public class QueryDao {
         }
 
         return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
+    }
+
+    public String queryBlueZoneContributes(BlueZoneContributeVo body, String item) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+        String index = blueZone.getBlueZoneContributesIndex();
+        String queryjson = getBlueZoneContributesQuery(body);
+
+        builder.setUrl(this.url + index + "/_search");
+        builder.setBody(queryjson);
+        ListenableFuture<Response> f = client.executeRequest(builder.build());
+
+        return getBlueZoneContributesRes(f, item);
+    }
+
+    private String getBlueZoneContributesQuery(BlueZoneContributeVo body) {
+        List<String> giteeIds = body.getGitee_id();
+        List<String> githubIds = body.getGithub_id();
+        String startTime = body.getStartTime();
+        String endTime = body.getEndTime();
+        String query;
+
+        //请求参数是否有gitee_id和github_id
+        StringBuilder queryString = new StringBuilder();
+        if (giteeIds != null && !giteeIds.isEmpty()) {
+            for (String giteeId : giteeIds) {
+                queryString.append("gitee_id.keyword:").append(giteeId).append(" or ");
+            }
+        }
+        if (githubIds != null && !githubIds.isEmpty()) {
+            for (String githubId : githubIds) {
+                queryString.append("github_id.keyword:").append(githubId).append(" or ");
+            }
+        }
+        String qStr = queryString.toString();
+        if (StringUtils.isBlank(qStr)) qStr = "*";
+        else qStr = qStr.substring(0, qStr.length() - 4);
+
+        //请求参数是否有时间范围
+        if (StringUtils.isNotBlank(startTime) && StringUtils.isNotBlank(endTime)) {
+            String queryStr = "{\"size\": 10000,\"query\": {\"bool\": {\"filter\": [" +
+                    "{\"range\": {\"created_at\": {\"gte\": \"%s\",\"lte\": \"%s\"}}}," +
+                    "{\"query_string\": {\"analyze_wildcard\": true,\"query\": \"%s\"}}]}}}";
+            query = String.format(queryStr, startTime, endTime, qStr);
+        } else {
+            String queryStr = "{\"size\": 10000,\"query\": {\"bool\": {\"filter\": [" +
+                    "{\"query_string\": {\"analyze_wildcard\": true,\"query\": \"%s\"}}]}}}";
+            query = String.format(queryStr, qStr);
+        }
+
+        return query;
+    }
+
+    public String getBlueZoneContributesRes(ListenableFuture<Response> f, String dataflage) {
+        Response response = null;
+        String statusText = "请求内部错误";
+        String badReq = "参数有误";
+        int statusCode = 500;
+        try {
+            response = f.get();
+            statusCode = response.getStatusCode();
+            statusText = response.getStatusText();
+            String responseBody = response.getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            JsonNode hits = dataNode.get("hits").get("hits");
+            Iterator<JsonNode> it = hits.elements();
+            ArrayList<Object> prList = new ArrayList<>();
+            ArrayList<Object> issueList = new ArrayList<>();
+            ArrayList<Object> commentList = new ArrayList<>();
+            ArrayList<Object> commitList = new ArrayList<>();
+            while (it.hasNext()) {
+                JsonNode hit = it.next();
+                String id = hit.get("_id").asText();
+                JsonNode source = hit.get("_source");
+                if (source.has("is_pr")) {
+                    Map sourceMap = objectMapper.convertValue(source, Map.class);
+                    sourceMap.put("id", id);
+                    JsonNode pr = objectMapper.valueToTree(sourceMap);
+                    prList.add(pr);
+                }
+                if (source.has("is_issue")) {
+                    Map sourceMap = objectMapper.convertValue(source, Map.class);
+                    sourceMap.put("id", id);
+                    JsonNode pr = objectMapper.valueToTree(sourceMap);
+                    issueList.add(sourceMap);
+                }
+                if (source.has("is_comment")) {
+                    Map sourceMap = objectMapper.convertValue(source, Map.class);
+                    sourceMap.put("id", id);
+                    JsonNode pr = objectMapper.valueToTree(sourceMap);
+                    commentList.add(sourceMap);
+                }
+                if (source.has("is_commit")) {
+                    Map sourceMap = objectMapper.convertValue(source, Map.class);
+                    sourceMap.put("id", id);
+                    JsonNode pr = objectMapper.valueToTree(sourceMap);
+                    commitList.add(sourceMap);
+                }
+            }
+            HashMap dataMap = new HashMap();
+            dataMap.put("prs", prList);
+            dataMap.put("issues", issueList);
+            dataMap.put("comments", commentList);
+            dataMap.put("commits", commitList);
+            JsonNode jsonNode1 = objectMapper.valueToTree(dataMap);
+
+            HashMap resMap = new HashMap();
+            resMap.put("code", statusCode);
+            resMap.put("data", jsonNode1);
+            resMap.put("msg", statusText);
+            String s = objectMapper.valueToTree(resMap).toString();
+
+            return s;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + badReq + "},\"msg\":\"" + statusText + "\"}";
+    }
+
+    public String putBlueZoneUser(BlueZoneUserVo userVo, String item, Environment env) throws NoSuchAlgorithmException, KeyManagementException, IOException {
+        String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
+        String host = env.getProperty("es.host");
+        int port = Integer.parseInt(env.getProperty("es.port", "9200"));
+        String scheme = env.getProperty("es.scheme");
+        String esUser = userpass[0];
+        String password = userpass[1];
+        RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
+        BulkRequest request = new BulkRequest();
+
+        LocalDateTime now = LocalDateTime.now();
+        String nowStr = now.toString().split("\\.")[0] + "+08:00";
+
+        String index = blueZone.getBlueZoneUsersIndex();
+        List<BlueZoneUser> users = userVo.getUsers();
+        for (BlueZoneUser user : users) {
+            String id;
+            if (StringUtils.isNotBlank(user.getGitee_id())) id = user.getGitee_id();
+            else if (StringUtils.isNotBlank(user.getGithub_id())) id = user.getGithub_id();
+            else continue;
+
+            Map resMap = objectMapper.convertValue(user, Map.class);
+            resMap.put("created_at", nowStr);
+            request.add(new IndexRequest(index, "_doc", id).source(resMap));
+        }
+
+        if (request.requests().size() != 0)
+            restHighLevelClient.bulk(request, RequestOptions.DEFAULT);
+        restHighLevelClient.close();
+
+        String res = "{\"code\":200,\"data\":{\"users_count\":\"0\"},\"msg\":\"there`s no user\"}";
+        if (users.size() > 0) {
+            res = String.format("{\"code\":200,\"data\":{\"%s_count\":\"%s\"},\"msg\":\"update success\"}", item, users.size());
+        }
+        return res;
     }
 }
