@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
+import java.net.SocketTimeoutException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
@@ -262,6 +263,9 @@ public class QueryService {
         //查询数据库，更新redis 缓存。
         try {
             result = queryDao.putBlueZoneUser(userVo, item, env);
+        } catch (SocketTimeoutException ex) {
+            ex.printStackTrace();
+            return "{\"code\":504,\"data\":{\"" + item + "\":\"Socket Timeout\"},\"msg\":\"60 seconds timeout on connection\"}";
         } catch (Exception e) {
             e.printStackTrace();
         }

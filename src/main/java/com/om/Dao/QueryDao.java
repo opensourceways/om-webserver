@@ -708,6 +708,8 @@ public class QueryDao {
 
             Map resMap = objectMapper.convertValue(user, Map.class);
             resMap.put("created_at", nowStr);
+            resMap.put("emails", user.getEmail());
+            resMap.remove("email");
             request.add(new IndexRequest(index, "_doc", id).source(resMap));
         }
 
