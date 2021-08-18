@@ -31,6 +31,24 @@ public class openComObject {
     protected String DownloadQueryIndex;
     protected String DownloadQueryStr;
     protected String DownloadDockerHubQueryStr;
+    protected String BlueZoneContributesIndex;
+    protected String BlueZoneUsersIndex;
+
+    public String getBlueZoneUsersIndex() {
+        return BlueZoneUsersIndex;
+    }
+
+    public void setBlueZoneUsersIndex(String blueZoneUsersIndex) {
+        BlueZoneUsersIndex = blueZoneUsersIndex;
+    }
+
+    public String getBlueZoneContributesIndex() {
+        return BlueZoneContributesIndex;
+    }
+
+    public void setBlueZoneContributesIndex(String blueZoneContributesIndex) {
+        BlueZoneContributesIndex = blueZoneContributesIndex;
+    }
 
     public String getDownloadDockerHubQueryStr() {
         return DownloadDockerHubQueryStr;
