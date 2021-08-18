@@ -2,12 +2,12 @@ package com.om.Controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.om.Service.QueryService;
+import com.om.Vo.BlueZoneContributeVo;
+import com.om.Vo.BlueZoneUserVo;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.concurrent.ExecutionException;
 
@@ -96,6 +96,18 @@ public class QueryController {
     @RequestMapping("/downloads")
     public String queryDownloads(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String prs = queryService.queryDownload(community, "download");
+        return prs;
+    }
+
+    @RequestMapping(value="/blueZone/contributes", method=RequestMethod.POST)
+    public String queryBlueZoneContributes(@RequestBody BlueZoneContributeVo body) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String prs = queryService.queryBlueZoneContributes(body, "contributes");
+        return prs;
+    }
+
+    @RequestMapping(value="/blueZone/users", method=RequestMethod.POST)
+    public String putBlueZoneUser(@RequestBody BlueZoneUserVo userVo) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String prs = queryService.putBlueZoneUser(userVo, "users");
         return prs;
     }
 }

@@ -28,6 +28,7 @@ public class propertiesObj {
     String openGaussConfMd5;
     String openLookengConfMd5;
     String mindSporeConfMd5;
+    String blueZoneConfMd5;
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -59,6 +60,7 @@ public class propertiesObj {
         FileInputStream openGaussfileIn=null;
         FileInputStream openLookengfileIn =null;
         FileInputStream mindSporefileIn =null;
+        FileInputStream blueZonefileIn = null;
         try {
 
             String openEneuler_conf_path = System.getProperty("user.dir") + "/openEuler.properties";
@@ -95,6 +97,14 @@ public class propertiesObj {
                 Properties mindSporeConf = readProperties(mindSpore_conf_path);
                 setPropertiesValue(mindSporeConf, "mindSpore");
             }
+
+            String blueZone_conf_path = System.getProperty("user.dir") + "/blueZone.properties";
+            blueZonefileIn = new FileInputStream(blueZone_conf_path);
+            String blueZonemd5 = DigestUtils.md5DigestAsHex(blueZonefileIn);
+            if (!blueZonemd5.equals(this.blueZoneConfMd5)) {
+                Properties blueZoneConf = readProperties(blueZone_conf_path);
+                setPropertiesValue(blueZoneConf, "blueZone");
+            }
         }catch (IOException e){
             e.printStackTrace();
         }finally {
@@ -122,6 +132,13 @@ public class propertiesObj {
             if(mindSporefileIn!=null){
                 try {
                     mindSporefileIn.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if(blueZonefileIn!=null){
+                try {
+                    blueZonefileIn.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -157,6 +174,8 @@ public class propertiesObj {
         bean.setDownloadQueryIndex(openconf.getProperty("download_query_index"));
         bean.setDownloadQueryStr(openconf.getProperty("download_queryStr"));
         bean.setDownloadDockerHubQueryStr(openconf.getProperty("download_docker_hub_queryStr"));
+        bean.setBlueZoneContributesIndex(openconf.getProperty("blue_zone_user_contributes_index"));
+        bean.setBlueZoneUsersIndex(openconf.getProperty("blue_zone_user_index"));
     }
 
     private static Properties readProperties(String path) throws IOException {
