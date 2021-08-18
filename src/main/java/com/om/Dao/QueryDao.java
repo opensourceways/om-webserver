@@ -643,24 +643,28 @@ public class QueryDao {
                 if (source.has("is_pr")) {
                     Map sourceMap = objectMapper.convertValue(source, Map.class);
                     sourceMap.put("id", id);
+                    sourceMap.remove("url");
                     JsonNode pr = objectMapper.valueToTree(sourceMap);
                     prList.add(pr);
                 }
                 if (source.has("is_issue")) {
                     Map sourceMap = objectMapper.convertValue(source, Map.class);
                     sourceMap.put("id", id);
+                    sourceMap.remove("url");
                     JsonNode pr = objectMapper.valueToTree(sourceMap);
                     issueList.add(sourceMap);
                 }
                 if (source.has("is_comment")) {
                     Map sourceMap = objectMapper.convertValue(source, Map.class);
                     sourceMap.put("id", id);
+                    sourceMap.remove("url");
                     JsonNode pr = objectMapper.valueToTree(sourceMap);
                     commentList.add(sourceMap);
                 }
                 if (source.has("is_commit")) {
                     Map sourceMap = objectMapper.convertValue(source, Map.class);
                     sourceMap.put("id", id);
+                    sourceMap.remove("url");
                     JsonNode pr = objectMapper.valueToTree(sourceMap);
                     commitList.add(sourceMap);
                 }
