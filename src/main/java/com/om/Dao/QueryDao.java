@@ -592,12 +592,12 @@ public class QueryDao {
         StringBuilder queryString = new StringBuilder();
         if (giteeIds != null && !giteeIds.isEmpty()) {
             for (String giteeId : giteeIds) {
-                queryString.append("gitee_id.keyword:").append(giteeId).append(" or ");
+                queryString.append("gitee_id.keyword:\\\"").append(giteeId).append("\\\" OR ");
             }
         }
         if (githubIds != null && !githubIds.isEmpty()) {
             for (String githubId : githubIds) {
-                queryString.append("github_id.keyword:").append(githubId).append(" or ");
+                queryString.append("github_id.keyword:\\\"").append(githubId).append("\\\" OR ");
             }
         }
         String qStr = queryString.toString();
