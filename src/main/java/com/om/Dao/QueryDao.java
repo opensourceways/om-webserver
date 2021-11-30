@@ -27,6 +27,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -53,6 +54,8 @@ public class QueryDao {
     mindSpore mindSpore;
     @Autowired
     BlueZone blueZone;
+    @Autowired
+    StarFork starFork;
 
     //openeuler openlookeng opengauss 测试通过
     public String queryContributors(String community) throws NoSuchAlgorithmException, KeyManagementException {
@@ -726,5 +729,64 @@ public class QueryDao {
             res = String.format("{\"code\":200,\"data\":{\"%s_count\":\"%s\"},\"msg\":\"update success\"}", item, users.size());
         }
         return res;
+    }
+
+    public String queryOrgStarAndFork(String community, String item) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+        String index = starFork.getStar_fork_index();
+        String queryjson = starFork.getStar_fork_queryStr();
+
+        builder.setUrl(this.url + index + "/_search");
+        builder.setBody(queryjson);
+        //获取执行结果
+        ListenableFuture<Response> f = client.executeRequest(builder.build());
+        return getOrgStarAndForkRes(f, item, community);
+    }
+
+    public String getOrgStarAndForkRes(ListenableFuture<Response> f, String dataflage, String community) {
+        Response response;
+        String statusText;
+        String badReq;
+        int statusCode;
+        List<String> communities = Arrays.stream(community.split(",")).map(String::toLowerCase).collect(Collectors.toList());
+        try {
+            response = f.get();
+            statusCode = response.getStatusCode();
+            statusText = response.getStatusText();
+            String responseBody = response.getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            JsonNode buckets = dataNode.get("aggregations").get("owner").get("buckets");
+            Iterator<JsonNode> it = buckets.elements();
+
+            ArrayList<Object> res = new ArrayList<>();
+            while (it.hasNext()) {
+                JsonNode bucket = it.next();
+                String com = bucket.get("key").asText();
+                if (!communities.get(0).equals("allproject") && !communities.contains(com)) {
+                    continue;
+                }
+                HashMap dataMap = new HashMap();
+                dataMap.put("community", com);
+                dataMap.put("stars", bucket.get("stars").get("value").asInt());
+                dataMap.put("forks", bucket.get("forks").get("value").asInt());
+                res.add(objectMapper.valueToTree(dataMap));
+            }
+
+            HashMap resMap = new HashMap();
+            resMap.put("code", statusCode);
+            resMap.put("data", res);
+            resMap.put("msg", statusText);
+            String s = objectMapper.valueToTree(resMap).toString();
+
+            return s;
+        } catch (Exception e) {
+            statusText = "fail";
+            badReq = "query error";
+            statusCode = 500;
+            e.printStackTrace();
+        }
+        return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":\"" + badReq + "\"},\"msg\":\"" + statusText + "\"}";
     }
 }
