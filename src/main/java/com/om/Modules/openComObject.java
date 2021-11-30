@@ -33,6 +33,24 @@ public class openComObject {
     protected String DownloadDockerHubQueryStr;
     protected String BlueZoneContributesIndex;
     protected String BlueZoneUsersIndex;
+    protected String star_fork_index;
+    protected String star_fork_queryStr;
+
+    public String getStar_fork_index() {
+        return star_fork_index;
+    }
+
+    public void setStar_fork_index(String star_fork_index) {
+        this.star_fork_index = star_fork_index;
+    }
+
+    public String getStar_fork_queryStr() {
+        return star_fork_queryStr;
+    }
+
+    public void setStar_fork_queryStr(String star_fork_queryStr) {
+        this.star_fork_queryStr = star_fork_queryStr;
+    }
 
     public String getBlueZoneUsersIndex() {
         return BlueZoneUsersIndex;
