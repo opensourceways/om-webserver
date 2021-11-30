@@ -29,6 +29,7 @@ public class propertiesObj {
     String openLookengConfMd5;
     String mindSporeConfMd5;
     String blueZoneConfMd5;
+    String starForkConfMd5;
 
     @Autowired
     private ApplicationContext applicationContext;
@@ -61,6 +62,7 @@ public class propertiesObj {
         FileInputStream openLookengfileIn =null;
         FileInputStream mindSporefileIn =null;
         FileInputStream blueZonefileIn = null;
+        FileInputStream starForkfileIn = null;
         try {
 
             String openEneuler_conf_path = System.getProperty("user.dir") + "/openEuler.properties";
@@ -104,6 +106,14 @@ public class propertiesObj {
             if (!blueZonemd5.equals(this.blueZoneConfMd5)) {
                 Properties blueZoneConf = readProperties(blueZone_conf_path);
                 setPropertiesValue(blueZoneConf, "blueZone");
+            }
+
+            String star_fork_conf_path = System.getProperty("user.dir") + "/starFork.properties";
+            starForkfileIn = new FileInputStream(star_fork_conf_path);
+            String starForkmd5 = DigestUtils.md5DigestAsHex(starForkfileIn);
+            if (!starForkmd5.equals(this.starForkConfMd5)) {
+                Properties starForkConf = readProperties(star_fork_conf_path);
+                setPropertiesValue(starForkConf, "starFork");
             }
         }catch (IOException e){
             e.printStackTrace();
@@ -176,6 +186,8 @@ public class propertiesObj {
         bean.setDownloadDockerHubQueryStr(openconf.getProperty("download_docker_hub_queryStr"));
         bean.setBlueZoneContributesIndex(openconf.getProperty("blue_zone_user_contributes_index"));
         bean.setBlueZoneUsersIndex(openconf.getProperty("blue_zone_user_index"));
+        bean.setStar_fork_index(openconf.getProperty("star_fork_index"));
+        bean.setStar_fork_queryStr(openconf.getProperty("star_fork_queryStr"));
     }
 
     private static Properties readProperties(String path) throws IOException {

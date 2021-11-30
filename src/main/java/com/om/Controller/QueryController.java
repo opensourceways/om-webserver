@@ -110,5 +110,11 @@ public class QueryController {
         String prs = queryService.putBlueZoneUser(userVo, "users");
         return prs;
     }
+
+    @RequestMapping(value="/starFork", method=RequestMethod.GET)
+    public String queryOrgStarAndFork(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String prs = queryService.queryOrgStarAndFork(community, "starFork");
+        return prs;
+    }
 }
 
