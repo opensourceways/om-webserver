@@ -4,11 +4,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.om.Service.QueryService;
 import com.om.Vo.BlueZoneContributeVo;
 import com.om.Vo.BlueZoneUserVo;
+import com.om.token.UserLoginToken;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ExecutionException;
 
 
@@ -95,26 +98,35 @@ public class QueryController {
 
     @RequestMapping("/downloads")
     public String queryDownloads(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String prs = queryService.queryDownload(community, "download");
-        return prs;
+        String res = queryService.queryDownload(community, "download");
+        return res;
     }
 
-    @RequestMapping(value="/blueZone/contributes", method=RequestMethod.POST)
+    @RequestMapping(value = "/blueZone/contributes", method = RequestMethod.POST)
     public String queryBlueZoneContributes(@RequestBody BlueZoneContributeVo body) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String prs = queryService.queryBlueZoneContributes(body, "contributes");
-        return prs;
+        String res = queryService.queryBlueZoneContributes(body, "contributes");
+        return res;
     }
 
-    @RequestMapping(value="/blueZone/users", method=RequestMethod.POST)
+    @RequestMapping(value = "/blueZone/users", method = RequestMethod.POST)
     public String putBlueZoneUser(@RequestBody BlueZoneUserVo userVo) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String prs = queryService.putBlueZoneUser(userVo, "users");
-        return prs;
+        String res = queryService.putBlueZoneUser(userVo, "users");
+        return res;
     }
 
-    @RequestMapping(value="/starFork", method=RequestMethod.GET)
+    @RequestMapping(value = "/starFork", method = RequestMethod.GET)
     public String queryOrgStarAndFork(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String prs = queryService.queryOrgStarAndFork(community, "starFork");
-        return prs;
+        String res = queryService.queryOrgStarAndFork(community, "starFork");
+        return res;
+    }
+
+    @UserLoginToken
+    @RequestMapping(value = "/cveDetails", method = RequestMethod.GET)
+    public String queryOrgStarAndFork(@RequestParam(value = "community") String community,
+                                      @RequestParam(value = "lastCursor", required = false) String lastCursor,
+                                      @RequestParam(value = "pageSize", required = false) String pageSize) {
+
+        String res = queryService.queryCveDetails(community, "cveDetails", lastCursor, pageSize);
+        return res;
     }
 }
-
