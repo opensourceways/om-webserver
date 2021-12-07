@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Modules.*;
 import com.om.Utils.AsyncHttpUtil;
+import com.om.Utils.EsQueryUtils;
 import com.om.Utils.HttpClientUtils;
 import com.om.Vo.BlueZoneContributeVo;
 import com.om.Vo.BlueZoneUserVo;
@@ -788,5 +789,38 @@ public class QueryDao {
             e.printStackTrace();
         }
         return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":\"" + badReq + "\"},\"msg\":\"" + statusText + "\"}";
+    }
+
+    public String queryCveDetails(String community, String item, String lastCursor, String pageSize, Environment env) {
+        String indexName;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                indexName = openEuler.getCveDetailsQueryIndex();
+                break;
+            case "opengauss":
+                indexName = openGauss.getCveDetailsQueryIndex();
+                break;
+            case "openlookeng":
+                indexName = openLookeng.getCveDetailsQueryIndex();
+                break;
+            case "mindspore":
+                indexName = mindSpore.getCveDetailsQueryIndex();
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+
+        String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
+        String host = env.getProperty("es.host");
+        int port = Integer.parseInt(env.getProperty("es.port", "9200"));
+        String scheme = env.getProperty("es.scheme");
+        String esUser = userpass[0];
+        String password = userpass[1];
+        RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
+        EsQueryUtils esQueryUtils = new EsQueryUtils();
+        if (pageSize == null) {
+            return esQueryUtils.esScroll(restHighLevelClient, item, indexName);
+        }
+        return esQueryUtils.esFromId(restHighLevelClient, item, lastCursor, Integer.parseInt(pageSize), indexName);
     }
 }
