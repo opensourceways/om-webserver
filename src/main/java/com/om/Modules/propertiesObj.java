@@ -175,6 +175,10 @@ public class propertiesObj {
         bean.setNoticeusers_queryStr(openconf.get(IndexQueryEnum.NOTICEUSERS.getQueryString()).toString());
         bean.setCommunitymembers_index(openconf.get(IndexQueryEnum.COMMUNITYMEMBERS.getIndex()).toString());
         bean.setCommunitymembers_queryStr(openconf.get(IndexQueryEnum.COMMUNITYMEMBERS.getQueryString()).toString());
+        bean.setTokenUserName(openconf.getProperty("token.user.name"));
+        bean.setTokenUserPassword(openconf.getProperty("token.user.password"));
+        bean.setTokenBasePassword(openconf.getProperty("token.base.password"));
+        bean.setTokenExpireSeconds(openconf.getProperty("token.expire.seconds"));
         bean.setGiteeAllIndex(openconf.getProperty("giteeall_index"));
         bean.setGiteeAll_qIssueStrBymil(openconf.getProperty("giteeall_qIssueStrBymil"));
         bean.setGiteeAllQueryAllstr(openconf.getProperty("giteeall_queryallddpirstr"));
@@ -188,6 +192,7 @@ public class propertiesObj {
         bean.setBlueZoneUsersIndex(openconf.getProperty("blue_zone_user_index"));
         bean.setStar_fork_index(openconf.getProperty("star_fork_index"));
         bean.setStar_fork_queryStr(openconf.getProperty("star_fork_queryStr"));
+        bean.setCveDetailsQueryIndex(openconf.getProperty("cve_details_index"));
     }
 
     private static Properties readProperties(String path) throws IOException {

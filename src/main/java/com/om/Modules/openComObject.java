@@ -35,6 +35,51 @@ public class openComObject {
     protected String BlueZoneUsersIndex;
     protected String star_fork_index;
     protected String star_fork_queryStr;
+    protected String tokenUserName;
+    protected String tokenUserPassword;
+    protected String tokenBasePassword;
+    protected String tokenExpireSeconds;
+    protected String cveDetailsQueryIndex;
+
+    public String getCveDetailsQueryIndex() {
+        return cveDetailsQueryIndex;
+    }
+
+    public void setCveDetailsQueryIndex(String cveDetailsQueryIndex) {
+        this.cveDetailsQueryIndex = cveDetailsQueryIndex;
+    }
+
+    public String getTokenUserName() {
+        return tokenUserName;
+    }
+
+    public void setTokenUserName(String tokenUserName) {
+        this.tokenUserName = tokenUserName;
+    }
+
+    public String getTokenUserPassword() {
+        return tokenUserPassword;
+    }
+
+    public void setTokenUserPassword(String tokenUserPassword) {
+        this.tokenUserPassword = tokenUserPassword;
+    }
+
+    public String getTokenBasePassword() {
+        return tokenBasePassword;
+    }
+
+    public void setTokenBasePassword(String tokenBasePassword) {
+        this.tokenBasePassword = tokenBasePassword;
+    }
+
+    public String getTokenExpireSeconds() {
+        return tokenExpireSeconds;
+    }
+
+    public void setTokenExpireSeconds(String tokenExpireSeconds) {
+        this.tokenExpireSeconds = tokenExpireSeconds;
+    }
 
     public String getStar_fork_index() {
         return star_fork_index;
