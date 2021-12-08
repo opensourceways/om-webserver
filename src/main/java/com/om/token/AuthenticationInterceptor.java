@@ -41,7 +41,7 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         ServletOutputStream sos = httpServletResponse.getOutputStream();
 
         String community = httpServletRequest.getParameter("community");
-        openComObject communityObj;
+        openComObject communityObj = null;
         switch (community.toLowerCase()) {
             case "openeuler":
                 communityObj = openeuler;
@@ -55,9 +55,6 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
             case "mindspore":
                 communityObj = mindspore;
                 break;
-            default:
-                sos.write(errorToken(401, "token error"));
-                return false;
         }
 
         //从http请求头中取出 token
@@ -104,7 +101,10 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
                     sos.write(errorToken(401, "token error")); // token 签名接受者有误
                     return false;
                 }
-
+                if (communityObj == null){
+                    sos.write(errorToken(401, "token error"));
+                    return false;
+                }
                 String password = user.getPassword() + communityObj.getTokenBasePassword();
                 //验证token
                 JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(password)).build();

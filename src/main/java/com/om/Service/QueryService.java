@@ -296,7 +296,11 @@ public class QueryService {
     public String queryCveDetails(String community, String item, String lastCursor, String pageSize) {
         String key = community + item;
         String result;
-        result = (String) redisDao.get(key);
+        if (pageSize != null) {
+            result = null;
+        } else {
+            result = (String) redisDao.get(key);
+        }
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
@@ -304,7 +308,13 @@ public class QueryService {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+            boolean set;
+            if (pageSize != null){
+                set = false;
+            } else {
+                set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+            }
+//            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
