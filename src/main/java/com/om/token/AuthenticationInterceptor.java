@@ -41,6 +41,9 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         ServletOutputStream sos = httpServletResponse.getOutputStream();
 
         String community = httpServletRequest.getParameter("community");
+        if (community == null){
+            return true;
+        }
         openComObject communityObj = null;
         switch (community.toLowerCase()) {
             case "openeuler":
