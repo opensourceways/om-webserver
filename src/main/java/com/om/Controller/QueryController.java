@@ -5,13 +5,9 @@ import com.om.Service.QueryService;
 import com.om.Vo.BlueZoneContributeVo;
 import com.om.Vo.BlueZoneUserVo;
 import com.om.token.UserLoginToken;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.ExecutionException;
 
 
@@ -22,7 +18,6 @@ import java.util.concurrent.ExecutionException;
 @RequestMapping(value = "/query")
 @RestController
 public class QueryController {
-    private static Logger logger = LogManager.getLogger(QueryController.class);
 
     @Autowired
     QueryService queryService;
