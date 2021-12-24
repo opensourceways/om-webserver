@@ -124,4 +124,10 @@ public class QueryController {
         String res = queryService.queryCveDetails(community, "cveDetails", lastCursor, pageSize);
         return res;
     }
+
+    @RequestMapping("/newYear/2022")
+    public String queryNewYear(@RequestParam(value = "community") String community, @RequestParam(value = "user", required = false) String user) {
+        String res = queryService.queryNewYear(community, user, "2022");
+        return res;
+    }
 }
