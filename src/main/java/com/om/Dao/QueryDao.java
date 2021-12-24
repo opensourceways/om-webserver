@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Modules.*;
 import com.om.Utils.AsyncHttpUtil;
+import com.om.Utils.CsvFileUtil;
 import com.om.Utils.EsQueryUtils;
 import com.om.Utils.HttpClientUtils;
 import com.om.Vo.BlueZoneContributeVo;
@@ -822,5 +823,26 @@ public class QueryDao {
             return esQueryUtils.esScroll(restHighLevelClient, item, indexName);
         }
         return esQueryUtils.esFromId(restHighLevelClient, item, lastCursor, Integer.parseInt(pageSize), indexName);
+    }
+
+    public String queryNewYear(String community, String user, String item) {
+        String csvName = community.toLowerCase() + "_" + item + ".csv";
+        List<HashMap<String, Object>> datas = CsvFileUtil.readFile(csvName);
+
+        HashMap resMap = new HashMap();
+        resMap.put("code", 200);
+        resMap.put("msg", "OK");
+        if (datas == null) {
+            resMap.put("data", new ArrayList<>());
+        } else if (user == null){
+            resMap.put("data", datas);
+        } else {
+            List<HashMap<String, Object>> user_login = datas.stream().filter(m -> m.getOrDefault("user_login", "").equals(user)).collect(Collectors.toList());
+            resMap.put("data", user_login);
+        }
+
+        String s = objectMapper.valueToTree(resMap).toString();
+
+        return s;
     }
 }

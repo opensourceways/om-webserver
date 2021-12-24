@@ -3,6 +3,7 @@ package com.om.Service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
+import com.om.Utils.CsvFileUtil;
 import com.om.Vo.BlueZoneContributeVo;
 import com.om.Vo.BlueZoneUserVo;
 import org.apache.commons.lang3.StringUtils;
@@ -14,6 +15,8 @@ import org.springframework.stereotype.Service;
 import java.net.SocketTimeoutException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
@@ -309,12 +312,31 @@ public class QueryService {
                 e.printStackTrace();
             }
             boolean set;
-            if (pageSize != null){
+            if (pageSize != null) {
                 set = false;
             } else {
                 set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             }
 //            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryNewYear(String community, String user, String item) {
+        String key = community + item;
+        String result;
+        result = null; //(String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryNewYear(community, user, item);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = false; //redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
