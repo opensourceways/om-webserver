@@ -126,7 +126,7 @@ public class QueryController {
     }
 
     @RequestMapping("/newYear/2022")
-    public String queryNewYear(@RequestParam(value = "community") String community, @RequestParam(value = "user", required = false) String user) {
+    public String queryNewYear(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user) {
         String res = queryService.queryNewYear(community, user, "2022");
         return res;
     }
