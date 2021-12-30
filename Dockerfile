@@ -1,5 +1,7 @@
 FROM openjdk:8-jdk
 
+ARG NEW_YEAR_USER
+
 MAINTAINER zhongjun <jun.zhongjun2@gmail.com>
 
 RUN mkdir -p /var/lib/om-webserver
@@ -18,5 +20,7 @@ RUN git clone https://gitee.com/opensourceway/om-webserver.git && \
         cd om-webserver && \
         mvn clean install package -Dmaven.test.skip && \
         mv ./target/om-webserver-0.0.1-SNAPSHOT.jar ../om-webserver.jar
+
+RUN git clone https://${NEW_YEAR_USER}@gitee.com/lixianlin01/new-year.git
 
 CMD java -jar om-webserver.jar
