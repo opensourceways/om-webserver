@@ -825,8 +825,40 @@ public class QueryDao {
         return esQueryUtils.esFromId(restHighLevelClient, item, lastCursor, Integer.parseInt(pageSize), indexName);
     }
 
-    public String queryNewYear(String community, String user, String item) {
-        String csvName = community.toLowerCase() + "_" + item + ".csv";
+    public String queryNewYear(String community, String user, String item, Environment env) {
+        String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
+        String host = env.getProperty("es.host");
+        int port = Integer.parseInt(env.getProperty("es.port", "9200"));
+        String scheme = env.getProperty("es.scheme");
+        String esUser = userpass[0];
+        String password = userpass[1];
+        RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
+        BulkRequest request = new BulkRequest();
+
+        LocalDateTime now = LocalDateTime.now();
+        String nowStr = now.toString().split("\\.")[0] + "+08:00";
+        HashMap<String, String> indexMap = new HashMap<>();
+        indexMap.put("created_at", nowStr);
+        indexMap.put("community", community);
+        indexMap.put("user_login", user);
+        String id = nowStr + "_" + community + "user";
+        request.add(new IndexRequest("new_year_2022", "_doc", id).source(indexMap));
+        if (request.requests().size() != 0) {
+            try {
+                restHighLevelClient.bulk(request, RequestOptions.DEFAULT);
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                try {
+                    restHighLevelClient.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+
+        String csvName = "new-year/" + community.toLowerCase() + "_" + item + ".csv";
         List<HashMap<String, Object>> datas = CsvFileUtil.readFile(csvName);
 
         HashMap resMap = new HashMap();

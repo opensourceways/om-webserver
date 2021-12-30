@@ -332,7 +332,7 @@ public class QueryService {
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryNewYear(community, user, item);
+                result = queryDao.queryNewYear(community, user, item, env);
             } catch (Exception e) {
                 e.printStackTrace();
             }
