@@ -841,8 +841,8 @@ public class QueryDao {
         indexMap.put("created_at", nowStr);
         indexMap.put("community", community);
         indexMap.put("user_login", user);
-        String id = nowStr + "_" + community + "user";
-        request.add(new IndexRequest("new_year_2022", "_doc", id).source(indexMap));
+        String id = nowStr + "_" + community + "_" + user;
+        request.add(new IndexRequest("new_year_" + item, "_doc", id).source(indexMap));
         if (request.requests().size() != 0) {
             try {
                 restHighLevelClient.bulk(request, RequestOptions.DEFAULT);
@@ -856,7 +856,6 @@ public class QueryDao {
                 }
             }
         }
-
 
         String csvName = "new-year/" + community.toLowerCase() + "_" + item + ".csv";
         List<HashMap<String, Object>> datas = CsvFileUtil.readFile(csvName);
