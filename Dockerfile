@@ -9,7 +9,7 @@ WORKDIR /var/lib/om-webserver
 RUN apt-get update && \
     apt-get install --yes software-properties-common
 
-RUN wget https://mirror-hk.koddos.net/apache/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz && \
+RUN wget https://dlcdn.apache.org/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz && \
         tar -xzvf apache-maven-3.6.3-bin.tar.gz
 ENV MAVEN_HOEM=/var/lib/om-webserver/apache-maven-3.6.3
 ENV PATH=$MAVEN_HOEM/bin:$PATH
