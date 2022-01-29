@@ -40,7 +40,24 @@ public class openComObject {
     protected String tokenBasePassword;
     protected String tokenExpireSeconds;
     protected String cveDetailsQueryIndex;
+    protected String openEulerDurationAggIndex;
+    protected String openEulerDurationAggQueryStr;
 
+    public String getOpenEulerDurationAggIndex() {
+        return openEulerDurationAggIndex;
+    }
+
+    public void setOpenEulerDurationAggIndex(String openEulerDurationAggIndex) {
+        this.openEulerDurationAggIndex = openEulerDurationAggIndex;
+    }
+
+    public String getOpenEulerDurationAggQueryStr() {
+        return openEulerDurationAggQueryStr;
+    }
+
+    public void setOpenEulerDurationAggQueryStr(String openEulerDurationAggQueryStr) {
+        this.openEulerDurationAggQueryStr = openEulerDurationAggQueryStr;
+    }
     public String getCveDetailsQueryIndex() {
         return cveDetailsQueryIndex;
     }
