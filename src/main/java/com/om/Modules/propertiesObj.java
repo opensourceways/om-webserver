@@ -46,7 +46,7 @@ public class propertiesObj {
         service.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {
-                    updateCycle();
+                updateCycle();
                 conservice.allCondata.clear();
                 conservice.allCondatasortbypr.clear();
                 conservice.allCondatasortbyissue.clear();
@@ -56,17 +56,17 @@ public class propertiesObj {
         }, 5, 15, TimeUnit.SECONDS);
     }
 
-    private void updateCycle()  {
-        FileInputStream openEneulerfilein=null;
-        FileInputStream openGaussfileIn=null;
-        FileInputStream openLookengfileIn =null;
-        FileInputStream mindSporefileIn =null;
+    private void updateCycle() {
+        FileInputStream openEneulerfilein = null;
+        FileInputStream openGaussfileIn = null;
+        FileInputStream openLookengfileIn = null;
+        FileInputStream mindSporefileIn = null;
         FileInputStream blueZonefileIn = null;
         FileInputStream starForkfileIn = null;
         try {
 
             String openEneuler_conf_path = System.getProperty("user.dir") + "/openEuler.properties";
-             openEneulerfilein = new FileInputStream(openEneuler_conf_path);
+            openEneulerfilein = new FileInputStream(openEneuler_conf_path);
             String eumd5 = DigestUtils.md5DigestAsHex(openEneulerfilein);
             if (!eumd5.equals(this.openEulerConfMd5)) {
                 this.openEulerConfMd5 = eumd5;
@@ -76,7 +76,7 @@ public class propertiesObj {
 
 
             String openGauss_conf_path = System.getProperty("user.dir") + "/openGauss.properties";
-             openGaussfileIn = new FileInputStream(openGauss_conf_path);
+            openGaussfileIn = new FileInputStream(openGauss_conf_path);
             String gaussmd5 = DigestUtils.md5DigestAsHex(openGaussfileIn);
             if (!gaussmd5.equals(this.openGaussConfMd5)) {
                 this.openGaussConfMd5 = gaussmd5;
@@ -85,7 +85,7 @@ public class propertiesObj {
             }
 
             String openLookeng_conf_path = System.getProperty("user.dir") + "/openLookeng.properties";
-             openLookengfileIn = new FileInputStream(openLookeng_conf_path);
+            openLookengfileIn = new FileInputStream(openLookeng_conf_path);
             String lookengmd5 = DigestUtils.md5DigestAsHex(openLookengfileIn);
             if (!lookengmd5.equals(this.openLookengConfMd5)) {
                 Properties openLookengConf = readProperties(openLookeng_conf_path);
@@ -115,38 +115,38 @@ public class propertiesObj {
                 Properties starForkConf = readProperties(star_fork_conf_path);
                 setPropertiesValue(starForkConf, "starFork");
             }
-        }catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
-        }finally {
-            if(openEneulerfilein!=null){
+        } finally {
+            if (openEneulerfilein != null) {
                 try {
                     openEneulerfilein.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-            if(openGaussfileIn!=null){
+            if (openGaussfileIn != null) {
                 try {
                     openGaussfileIn.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-            if(openLookengfileIn!=null){
+            if (openLookengfileIn != null) {
                 try {
                     openLookengfileIn.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-            if(mindSporefileIn!=null){
+            if (mindSporefileIn != null) {
                 try {
                     mindSporefileIn.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-            if(blueZonefileIn!=null){
+            if (blueZonefileIn != null) {
                 try {
                     blueZonefileIn.close();
                 } catch (IOException e) {
@@ -193,15 +193,17 @@ public class propertiesObj {
         bean.setStar_fork_index(openconf.getProperty("star_fork_index"));
         bean.setStar_fork_queryStr(openconf.getProperty("star_fork_queryStr"));
         bean.setCveDetailsQueryIndex(openconf.getProperty("cve_details_index"));
+        bean.setDurationAggIndex(openconf.getProperty("durationAggIndex"));
+        bean.setDurationAggQueryStr(openconf.getProperty("durationAggQueryStr"));
     }
 
     private static Properties readProperties(String path) throws IOException {
         // 使用ClassLoader加载properties配置文件生成对应的输入流
         InputStream in = new FileInputStream(path);
         try {
-        // 使用properties对象加载输入流
-        properties.load(in);
-        }finally {
+            // 使用properties对象加载输入流
+            properties.load(in);
+        } finally {
             in.close();
         }
 
