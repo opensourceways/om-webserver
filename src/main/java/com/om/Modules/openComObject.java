@@ -1,5 +1,6 @@
 package com.om.Modules;
 
+import lombok.Data;
 import org.springframework.stereotype.Repository;
 
 /**
@@ -40,24 +41,25 @@ public class openComObject {
     protected String tokenBasePassword;
     protected String tokenExpireSeconds;
     protected String cveDetailsQueryIndex;
-    protected String openEulerDurationAggIndex;
-    protected String openEulerDurationAggQueryStr;
+    protected String durationAggIndex;
+    protected String durationAggQueryStr;
 
-    public String getOpenEulerDurationAggIndex() {
-        return openEulerDurationAggIndex;
+    public String getDurationAggIndex() {
+        return durationAggIndex;
     }
 
-    public void setOpenEulerDurationAggIndex(String openEulerDurationAggIndex) {
-        this.openEulerDurationAggIndex = openEulerDurationAggIndex;
+    public void setDurationAggIndex(String durationAggIndex) {
+        this.durationAggIndex = durationAggIndex;
     }
 
-    public String getOpenEulerDurationAggQueryStr() {
-        return openEulerDurationAggQueryStr;
+    public String getDurationAggQueryStr() {
+        return durationAggQueryStr;
     }
 
-    public void setOpenEulerDurationAggQueryStr(String openEulerDurationAggQueryStr) {
-        this.openEulerDurationAggQueryStr = openEulerDurationAggQueryStr;
+    public void setDurationAggQueryStr(String durationAggQueryStr) {
+        this.durationAggQueryStr = durationAggQueryStr;
     }
+
     public String getCveDetailsQueryIndex() {
         return cveDetailsQueryIndex;
     }

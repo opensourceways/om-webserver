@@ -29,7 +29,6 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -99,12 +98,19 @@ public class QueryDao {
         RequestBuilder builder = asyncHttpUtil.getBuilder();
         String index = "";
         String queryjson = "";
-        if ("openEuler".equals(community)) {
-            index = openEuler.getOpenEulerDurationAggIndex();
-            queryjson = openEuler.getOpenEulerDurationAggQueryStr();
-        } else {
-            return "";
+        switch (community) {
+            case "openEuler":
+                index = openEuler.getDurationAggIndex();
+                queryjson = openEuler.getDurationAggQueryStr();
+                break;
+            case "openGauss":
+            case "mindSpore":
+            case "openLookeng":
+                return "{\"code\":" + 404 + ",\"data\":{\"DurationSecs\":" + 0 + "},\"msg\":\"not Found!\"}";
+            default:
+                return "";
         }
+
         builder.setUrl(this.url + index + "/_search");
         builder.setBody(queryjson);
         //获取执行结果

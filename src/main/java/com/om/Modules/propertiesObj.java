@@ -193,8 +193,8 @@ public class propertiesObj {
         bean.setStar_fork_index(openconf.getProperty("star_fork_index"));
         bean.setStar_fork_queryStr(openconf.getProperty("star_fork_queryStr"));
         bean.setCveDetailsQueryIndex(openconf.getProperty("cve_details_index"));
-        bean.setOpenEulerDurationAggIndex(openconf.getProperty("openEulerDurationAggIndex"));
-        bean.setOpenEulerDurationAggQueryStr(openconf.getProperty("openEulerDurationAggQueryStr"));
+        bean.setDurationAggIndex(openconf.getProperty("durationAggIndex"));
+        bean.setDurationAggQueryStr(openconf.getProperty("durationAggQueryStr"));
     }
 
     private static Properties readProperties(String path) throws IOException {
