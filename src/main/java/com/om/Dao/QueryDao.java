@@ -17,6 +17,8 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -25,8 +27,8 @@ import org.springframework.stereotype.Repository;
 import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.text.DecimalFormat;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
@@ -89,6 +91,32 @@ public class QueryDao {
         ListenableFuture<Response> f = client.executeRequest(builder.build());
         String contributors = getResult(f, "contributors");
         return contributors;
+    }
+
+    public String queryDurationAggFromProjectHostarchPackage(String community) throws NoSuchAlgorithmException, KeyManagementException {
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+        String index = "";
+        String queryjson = "";
+        switch (community) {
+            case "openEuler":
+                index = openEuler.getDurationAggIndex();
+                queryjson = openEuler.getDurationAggQueryStr();
+                break;
+            case "openGauss":
+            case "mindSpore":
+            case "openLookeng":
+                return "{\"code\":" + 404 + ",\"data\":{\"DurationSecs\":" + 0 + "},\"msg\":\"not Found!\"}";
+            default:
+                return "";
+        }
+
+        builder.setUrl(this.url + index + "/_search");
+        builder.setBody(queryjson);
+        //获取执行结果
+        ListenableFuture<Response> f = client.executeRequest(builder.build());
+        String avgDuration = parseDurationAggFromProjectHostarchPackageResult(f, "avgDuration");
+        return avgDuration;
     }
 
     //测试通过
@@ -393,6 +421,61 @@ public class QueryDao {
         } catch (JsonProcessingException e) {
             e.printStackTrace();
         } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+        return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
+    }
+
+    public String parseDurationAggFromProjectHostarchPackageResult(ListenableFuture<Response> f, String dataflage) {
+        Response response = null;
+        String statusText = "请求内部错误";
+        double count = 0d;
+        int statusCode = 500;
+        try {
+            response = f.get();
+            statusCode = response.getStatusCode();
+            statusText = response.getStatusText();
+            String responseBody = response.getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+
+            JsonNode dataMap = dataNode.get("aggregations").get("datamap");
+            if (dataMap == null) {
+                return null;
+            }
+
+            JSONObject projectObj = new JSONObject();
+            for (JsonNode project_bucket : dataMap.get("buckets")) {
+                String projectName = project_bucket.get("key").asText();
+                JsonNode hostarchNode = project_bucket.get("group_by_hostarch");
+
+                JSONObject archObj = new JSONObject();
+                for (JsonNode arch_bucket : hostarchNode.get("buckets")) {
+                    String archName = arch_bucket.get("key").asText();
+                    JsonNode archNode = arch_bucket.get("group_by_package");
+
+                    JSONObject packageObj = new JSONObject();
+                    for (JsonNode package_bucket : archNode.get("buckets")) {
+                        String packageName = package_bucket.get("key").asText();
+                        JsonNode value = package_bucket.get("avg_of_duration").get("value");
+                        Double avgDurationSecs = Double.valueOf((new DecimalFormat("0.000")).format(value.asDouble()));
+                        packageObj.put(packageName, avgDurationSecs);
+                    }
+                    archObj.put(archName, packageObj);
+                }
+                projectObj.put(projectName, archObj);
+            }
+            String str_data = projectObj.toString();
+            String result = "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + str_data + "},\"msg\":\"" + statusText + "\"}";
+            return result;
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (JsonMappingException e) {
+            e.printStackTrace();
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
             e.printStackTrace();
         }
         return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
@@ -865,7 +948,7 @@ public class QueryDao {
         resMap.put("msg", "OK");
         if (datas == null) {
             resMap.put("data", new ArrayList<>());
-        } else if (user == null){
+        } else if (user == null) {
             resMap.put("data", datas);
         } else {
             List<HashMap<String, Object>> user_login = datas.stream().filter(m -> m.getOrDefault("user_login", "").equals(user)).collect(Collectors.toList());
