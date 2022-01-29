@@ -40,6 +40,24 @@ public class openComObject {
     protected String tokenBasePassword;
     protected String tokenExpireSeconds;
     protected String cveDetailsQueryIndex;
+    protected String durationAggIndex;
+    protected String durationAggQueryStr;
+
+    public String getDurationAggIndex() {
+        return durationAggIndex;
+    }
+
+    public void setDurationAggIndex(String durationAggIndex) {
+        this.durationAggIndex = durationAggIndex;
+    }
+
+    public String getDurationAggQueryStr() {
+        return durationAggQueryStr;
+    }
+
+    public void setDurationAggQueryStr(String durationAggQueryStr) {
+        this.durationAggQueryStr = durationAggQueryStr;
+    }
 
     public String getCveDetailsQueryIndex() {
         return cveDetailsQueryIndex;
