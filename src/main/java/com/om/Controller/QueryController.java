@@ -28,6 +28,12 @@ public class QueryController {
         return contributors;
     }
 
+    @RequestMapping("/avgduration")
+    public String queryDurationAggFromProjectHostarchPackage(@RequestParam(value = "community") String community) {
+        String avgDuration = queryService.queryDurationAggFromProjectHostarchPackage(community);
+        return avgDuration;
+    }
+
     @RequestMapping("/sigs")
     public String querySigs(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String sigs = queryService.querySigs(community);
