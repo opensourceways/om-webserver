@@ -42,6 +42,17 @@ public class openComObject {
     protected String cveDetailsQueryIndex;
     protected String durationAggIndex;
     protected String durationAggQueryStr;
+    protected String bug_questionnaire_index;
+    protected String bug_questionnaire_queryAllStr;
+
+    public String getBug_questionnaire_index() {
+        return bug_questionnaire_index;
+    }
+
+    public void setBug_questionnaire_index(String bug_questionnaire_index) {
+        this.bug_questionnaire_index = bug_questionnaire_index;
+    }
+
 
     public String getDurationAggIndex() {
         return durationAggIndex;
@@ -332,6 +343,14 @@ public class openComObject {
         }
 
         return queryStr;
+    }
+
+    public String getBug_questionnaire_queryAllStr() {
+        return bug_questionnaire_queryAllStr;
+    }
+
+    public void setBug_questionnaire_queryAllStr(String bug_questionnaire_queryAllStr) {
+        this.bug_questionnaire_queryAllStr = bug_questionnaire_queryAllStr;
     }
 }
 
