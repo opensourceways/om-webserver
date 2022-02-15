@@ -65,6 +65,8 @@ public class propertiesObj {
         FileInputStream starForkfileIn = null;
         try {
 
+//            System.getProperty("user.dir") value: D:\Work\Projects\IdeaProjects\om-webserver
+//            System.getProperty("user.dir"): 获取得到当前工程目录下的绝对路径名
             String openEneuler_conf_path = System.getProperty("user.dir") + "/openEuler.properties";
             openEneulerfilein = new FileInputStream(openEneuler_conf_path);
             String eumd5 = DigestUtils.md5DigestAsHex(openEneulerfilein);
@@ -195,6 +197,8 @@ public class propertiesObj {
         bean.setCveDetailsQueryIndex(openconf.getProperty("cve_details_index"));
         bean.setDurationAggIndex(openconf.getProperty("durationAggIndex"));
         bean.setDurationAggQueryStr(openconf.getProperty("durationAggQueryStr"));
+        bean.setBug_questionnaire_index(openconf.getProperty("bug_questionnaire_index"));
+        bean.setBug_questionnaire_queryAllStr(openconf.getProperty("bug_questionnaire_queryAllStr"));
     }
 
     private static Properties readProperties(String path) throws IOException {
