@@ -6,10 +6,19 @@ public class BugQuestionnaireVo {
 
     private String bugDocFragment;
     private ArrayList<String> existProblem = new ArrayList<>();
+    private String problemDetail;
     private Integer comprehensiveSatisfication;
     private String participateReason;
     private String email;
-    private String fillTime;
+    private String created_at;
+
+    public String getBugDocFragment() {
+        return bugDocFragment;
+    }
+
+    public void setBugDocFragment(String bugDocFragment) {
+        this.bugDocFragment = bugDocFragment;
+    }
 
     public ArrayList<String> getExistProblem() {
         return existProblem;
@@ -19,12 +28,12 @@ public class BugQuestionnaireVo {
         this.existProblem = existProblem;
     }
 
-    public String getBugDocFragment() {
-        return bugDocFragment;
+    public String getProblemDetail() {
+        return problemDetail;
     }
 
-    public void setBugDocFragment(String bugDocFragment) {
-        this.bugDocFragment = bugDocFragment;
+    public void setProblemDetail(String problemDetail) {
+        this.problemDetail = problemDetail;
     }
 
     public Integer getComprehensiveSatisfication() {
@@ -51,13 +60,11 @@ public class BugQuestionnaireVo {
         this.email = email;
     }
 
-    public String getFillTime() {
-        return fillTime;
+    public String getCreated_at() {
+        return created_at;
     }
 
-    public void setFillTime(String fillTime) {
-        this.fillTime = fillTime;
+    public void setCreated_at(String created_at) {
+        this.created_at = created_at;
     }
-
-
 }
