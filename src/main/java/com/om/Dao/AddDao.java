@@ -3,6 +3,7 @@ package com.om.Dao;
 
 import com.om.Modules.openEuler;
 import com.om.Utils.AsyncHttpUtil;
+import com.om.Utils.EmailUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Vo.BugQuestionnaireVo;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -17,8 +18,7 @@ import org.springframework.stereotype.Repository;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 import static com.om.Dao.QueryDao.objectMapper;
 
@@ -45,8 +45,8 @@ public class AddDao {
         String scheme = env.getProperty("es.scheme");
         String esUser = userpass[0];
         String password = userpass[1];
-        String res = null;
         String indexName = null;
+        String res = null;
 
         switch (community.toLowerCase()) {
             case "openeuler":
@@ -57,25 +57,29 @@ public class AddDao {
             case "openlookeng":
             case "mindspore":
             default:
-                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+                return "{\"code\":400,\"data\":{\"" + item + "\":\"write error\"},\"msg\":\"community error\"}";
         }
 
         LocalDateTime now = LocalDateTime.now();
         String nowStr = now.toString().split("\\.")[0] + "+08:00";
-        bugQuestionnaireVo.setFillTime(nowStr);
+        bugQuestionnaireVo.setCreated_at(nowStr);
 
+        ArrayList<String> validationMesseages = checkoutFieldValidate(bugQuestionnaireVo);
+        if (validationMesseages.size() != 0) {
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"write error\"},\"msg:" + validationMesseages + "\"}";
+        }
 
         RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
         BulkRequest request = new BulkRequest();
-        Map resMap = objectMapper.convertValue(bugQuestionnaireVo, Map.class);
-        request.add(new IndexRequest(indexName, "_doc").source(resMap));
+        Map bugQuestionnaireMap = objectMapper.convertValue(bugQuestionnaireVo, Map.class);
+        request.add(new IndexRequest(indexName, "_doc").source(bugQuestionnaireMap));
 
-        if (request.requests().size() != 0)
+        if (request.requests().size() != 0) {
             try {
                 BulkResponse bulk = restHighLevelClient.bulk(request, RequestOptions.DEFAULT);
                 int status_code = bulk.status().getStatus();
                 if (status_code == 200) {
-                    res = "{\"code\":200,\"data\":{\"questionnaire_count\":\"1\"},\"msg\":\"update success\"}";
+                    res = "{\"code\":200,\"data\":{\"questionnaire_count\":\"1\"},\"msg\":\"add success\"}";
                 } else {
                     res = String.format("{\"code\":%i,\"data\":{\"questionnaire_count\":\"0\"},\"msg\":\"add bug questionnaire failed\"}", status_code);
                 }
@@ -88,6 +92,55 @@ public class AddDao {
                     e.printStackTrace();
                 }
             }
+        }
+
         return res;
     }
+
+    private ArrayList<String> checkoutFieldValidate(BugQuestionnaireVo bugQuestionnaireVo) {
+
+        List<String> existProblemTemplate = Arrays.asList("文档存在风险与错误", "内容描述不清晰", "内容获取有困难", "示例代码错误", "内容有缺失");
+        List<String> participateReasonTemplate = Arrays.asList("本职工作", "求职", "技术兴趣", "学习");
+        List<Integer> comprehensiveSatisficationTemplate = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+
+        String bugDocFragment = bugQuestionnaireVo.getBugDocFragment();
+        ArrayList<String> existProblem = bugQuestionnaireVo.getExistProblem();
+        String problemDetail = bugQuestionnaireVo.getProblemDetail();
+        Integer comprehensiveSatisfication = bugQuestionnaireVo.getComprehensiveSatisfication();
+        String participateReason = bugQuestionnaireVo.getParticipateReason();
+        String email = bugQuestionnaireVo.getEmail();
+
+        boolean existProblemValidation = existProblemTemplate.containsAll(existProblem);
+        boolean participateReasonValidation = participateReasonTemplate.contains(participateReason);
+        boolean comprehensiveSatisficationValidation = comprehensiveSatisficationTemplate.contains(comprehensiveSatisfication);
+        boolean emailValidation = EmailUtil.isEmail(email);
+
+        if (bugDocFragment.contains("\\")) {
+            String cleanBugDocFragment = bugDocFragment.replace("\\", "/");
+            bugQuestionnaireVo.setBugDocFragment(cleanBugDocFragment);
+        }
+        if (problemDetail.contains("\\")) {
+            String cleanProblemDetail = problemDetail.replace("\\", "/");
+            bugQuestionnaireVo.setBugDocFragment(cleanProblemDetail);
+        }
+
+        ArrayList<String> errorMesseges = new ArrayList<>();
+
+        if (!existProblemValidation) {
+            errorMesseges.add("existProblem validate failure");
+        }
+        if (!participateReasonValidation) {
+            errorMesseges.add("participateReason validate failure");
+        }
+        if (!comprehensiveSatisficationValidation) {
+            errorMesseges.add("comprehensiveSatisfication validate failure");
+        }
+        if (!emailValidation) {
+            errorMesseges.add("email validate failure");
+        }
+
+        return errorMesseges;
+    }
+
+
 }
