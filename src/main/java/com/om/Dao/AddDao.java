@@ -3,7 +3,7 @@ package com.om.Dao;
 
 import com.om.Modules.openEuler;
 import com.om.Utils.AsyncHttpUtil;
-import com.om.Utils.EmailUtil;
+import com.om.Utils.StringValidationUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Vo.BugQuestionnaireVo;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -39,8 +39,8 @@ public class AddDao {
 
 
     public String putBugQuestionnaire(String community, String item, BugQuestionnaireVo bugQuestionnaireVo) {
-        String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
-        String host = env.getProperty("es.host");
+        String[] userpass = Objects.requireNonNull(env.getProperty("secure.userpass")).split(":");
+        String host = env.getProperty("es.secure.host");
         int port = Integer.parseInt(env.getProperty("es.port", "9200"));
         String scheme = env.getProperty("es.scheme");
         String esUser = userpass[0];
@@ -113,7 +113,7 @@ public class AddDao {
         boolean existProblemValidation = existProblemTemplate.containsAll(existProblem);
         boolean participateReasonValidation = participateReasonTemplate.contains(participateReason);
         boolean comprehensiveSatisficationValidation = comprehensiveSatisficationTemplate.contains(comprehensiveSatisfication);
-        boolean emailValidation = EmailUtil.isEmail(email);
+        boolean emailValidation = StringValidationUtil.isEmail(email);
 
         if (bugDocFragment.contains("\\")) {
             String cleanBugDocFragment = bugDocFragment.replace("\\", "/");
