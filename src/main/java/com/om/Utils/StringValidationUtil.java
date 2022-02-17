@@ -3,7 +3,7 @@ package com.om.Utils;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class EmailUtil {
+public class StringValidationUtil {
 
     public static boolean isEmail(String string) {
         if (string == null)
