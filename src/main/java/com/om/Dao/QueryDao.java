@@ -39,6 +39,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * @author zhxia
  * @date 2020/10/22 12:00
  */
+
 @Repository
 public class QueryDao {
     @Autowired
@@ -98,14 +99,14 @@ public class QueryDao {
         RequestBuilder builder = asyncHttpUtil.getBuilder();
         String index = "";
         String queryjson = "";
-        switch (community) {
-            case "openEuler":
+        switch (community.toLowerCase()) {
+            case "openeuler":
                 index = openEuler.getDurationAggIndex();
                 queryjson = openEuler.getDurationAggQueryStr();
                 break;
-            case "openGauss":
-            case "mindSpore":
-            case "openLookeng":
+            case "opengauss":
+            case "openlookeng":
+            case "mindspore":
                 return "{\"code\":" + 404 + ",\"data\":{\"DurationSecs\":" + 0 + "},\"msg\":\"not Found!\"}";
             default:
                 return "";
@@ -232,7 +233,6 @@ public class QueryDao {
 //        String noticsusers = getResult(f, "noticusers");
 //        return noticsusers;
     }
-
 
     public String queryModulenums(String community) throws ExecutionException, InterruptedException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
@@ -442,7 +442,6 @@ public class QueryDao {
             if (dataMap == null) {
                 return null;
             }
-
             JSONObject projectObj = new JSONObject();
             for (JsonNode project_bucket : dataMap.get("buckets")) {
                 String projectName = project_bucket.get("key").asText();
@@ -959,4 +958,34 @@ public class QueryDao {
 
         return s;
     }
+
+    public String queryBugQuestionnaire(String community, String item, String lastCursor, String pageSize, Environment env) {
+        String indexName;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                indexName = openEuler.getBug_questionnaire_index();
+                indexName = indexName.substring(1);
+                break;
+            case "opengauss":
+            case "openlookeng":
+            case "mindspore":
+            default:
+                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+        String[] userpass = Objects.requireNonNull(env.getProperty("secure.userpass")).split(":");
+        String host = env.getProperty("es.secure.host");
+        int port = Integer.parseInt(env.getProperty("es.port", "9200"));
+        String scheme = env.getProperty("es.scheme");
+        String esUser = userpass[0];
+        String password = userpass[1];
+        RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
+        EsQueryUtils esQueryUtils = new EsQueryUtils();
+
+        if (pageSize == null) {
+            return esQueryUtils.esScroll(restHighLevelClient, item, indexName);
+        }
+        return esQueryUtils.esFromId(restHighLevelClient, item, lastCursor, Integer.parseInt(pageSize), indexName);
+    }
+
+
 }

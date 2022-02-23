@@ -1,7 +1,6 @@
 package com.om.Utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.om.Modules.openComObject;
 import org.elasticsearch.action.search.*;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
@@ -33,8 +32,10 @@ public class EsQueryUtils {
         request.source(builder);
 
         ArrayList<Object> list = new ArrayList<>();
+        long totalCount = 0;
         try {
             SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            totalCount = response.getHits().getTotalHits().value;
             String scrollId = response.getScrollId();
             System.out.println(scrollId);
 
@@ -67,7 +68,8 @@ public class EsQueryUtils {
         }
 
         String s = objectMapper.valueToTree(list).toString();
-        return "{\"code\":200,\"data\":" + s + ",\"msg\":\"ok\"}";
+        return "{\"code\":200,\"data\":" + s + ",\"totalCount\":" + totalCount + ",\"msg\":\"ok\"}";
+
     }
 
     public String esFromId(RestHighLevelClient client, String item, String lastCursor, int pageSize, String indexname) {
@@ -94,8 +96,11 @@ public class EsQueryUtils {
 
         ArrayList<Object> list = new ArrayList<>();
         String endCursor = "";
+
+        long totalCount = 0;
         try {
             SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            totalCount = response.getHits().getTotalHits().value;
             for (SearchHit hit : response.getHits().getHits()) {
                 String s = Arrays.toString(hit.getSortValues()).replace("[", "").replace("]", "");
                 endCursor = Base64.getEncoder().encodeToString(s.getBytes());
@@ -115,6 +120,8 @@ public class EsQueryUtils {
             list.remove(0);
         }
         String s = objectMapper.valueToTree(list).toString();
-        return "{\"code\":200,\"data\":" + s + ",\"cursor\":\"" + endCursor + "\",\"msg\":\"ok\"}";
+        return "{\"code\":200,\"data\":" + s + ",\"cursor\":\"" + endCursor + "\",\"totalCount\":" + totalCount + ",\"msg\":\"ok\"}";
     }
 }
+
+
