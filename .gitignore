@@ -44,3 +44,4 @@ secrets.yml
 
 # config files
 *.properties
+src/test

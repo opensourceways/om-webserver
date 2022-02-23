@@ -56,7 +56,6 @@ public class QueryController {
     public String queryModulenums(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String modulenums = queryService.queryModulenums(community);
         return modulenums;
-
     }
 
     @RequestMapping("/businessosv")
@@ -75,7 +74,6 @@ public class QueryController {
     public String queryAll(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String all = queryService.queryAll(community);
         return all;
-
     }
 
     //TODO 以下四个接口，仅测试过MindSpore
@@ -136,4 +134,14 @@ public class QueryController {
         String res = queryService.queryNewYear(community, user, "2022");
         return res;
     }
+
+    @UserLoginToken
+    @RequestMapping("/bugQuestionnaires")
+    public String queryBugQuestionnaires(@RequestParam(value = "community") String community,
+                                         @RequestParam(value = "lastCursor", required = false) String lastCursor,
+                                         @RequestParam(value = "pageSize", required = false) String pageSize) {
+        String res = queryService.queryBugQuestionnaire(community, "bugQuestionnaire", lastCursor, pageSize);
+        return res;
+    }
+
 }

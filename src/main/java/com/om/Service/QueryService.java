@@ -1,8 +1,13 @@
 package com.om.Service;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.parser.Feature;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
+import com.om.Utils.StringDesensitizationUtils;
 import com.om.Vo.BlueZoneContributeVo;
 import com.om.Vo.BlueZoneUserVo;
 import org.apache.commons.lang3.StringUtils;
@@ -13,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.net.SocketTimeoutException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.LinkedHashMap;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
@@ -362,5 +368,53 @@ public class QueryService {
         }
         return result;
     }
+
+    public String queryBugQuestionnaire(String community, String item, String lastCursor, String pageSize) {
+
+        String key = community + item;
+        String result = null;
+
+        if (pageSize == null) {
+            result = (String) redisDao.get(key);
+        }
+
+        if (result != null) {
+            return result;
+        } else {
+            result = queryDao.queryBugQuestionnaire(community, item, lastCursor, pageSize, env);
+            result = dataDesensitizationProcessing(result);
+        }
+
+        boolean set;
+        if (pageSize != null) {
+            set = false;
+        } else {
+            set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+        }
+
+        if (set) {
+            System.out.println("update " + key + " success!");
+        }
+
+        return result;
+    }
+
+    private String dataDesensitizationProcessing(String jsonRes) {
+        LinkedHashMap<String, Object> jsonMap = JSON.parseObject(jsonRes, LinkedHashMap.class, Feature.OrderedField);
+        JSONObject dataMap = new JSONObject(jsonMap);
+        JSONArray dataList = (JSONArray) dataMap.get("data");
+
+        for (int i = 0; i < dataList.size(); i++) {
+            JSONObject eachQuestionnaire = dataList.getJSONObject(i);
+            String email = (String) eachQuestionnaire.get("email");
+            String desensitizedEmail = StringDesensitizationUtils.maskEmail(email);
+            eachQuestionnaire.put("email", desensitizedEmail);
+        }
+        dataMap.put("data", dataList);
+
+        return dataMap.toJSONString();
+    }
+
+
 }
 
