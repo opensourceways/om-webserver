@@ -3,8 +3,8 @@ package com.om.Dao;
 
 import com.om.Modules.openEuler;
 import com.om.Utils.AsyncHttpUtil;
-import com.om.Utils.StringValidationUtil;
 import com.om.Utils.HttpClientUtils;
+import com.om.Utils.StringValidationUtil;
 import com.om.Vo.BugQuestionnaireVo;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.bulk.BulkResponse;
@@ -17,7 +17,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Repository;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.*;
 
 import static com.om.Dao.QueryDao.objectMapper;
@@ -60,8 +60,9 @@ public class AddDao {
                 return "{\"code\":400,\"data\":{\"" + item + "\":\"write error\"},\"msg\":\"community error\"}";
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        String nowStr = now.toString().split("\\.")[0] + "+08:00";
+        String nowStr = ZonedDateTime.now().toOffsetDateTime().toString();
+        nowStr = nowStr.replaceAll("\\.\\d{3}", "");
+
         bugQuestionnaireVo.setCreated_at(nowStr);
 
         ArrayList<String> validationMesseages = checkoutFieldValidate(bugQuestionnaireVo);
