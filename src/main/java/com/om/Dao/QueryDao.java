@@ -855,6 +855,7 @@ public class QueryDao {
                 dataMap.put("community", com);
                 dataMap.put("stars", bucket.get("stars").get("value").asInt());
                 dataMap.put("forks", bucket.get("forks").get("value").asInt());
+                dataMap.put("commits", bucket.get("commits").get("value").asInt());
                 res.add(objectMapper.valueToTree(dataMap));
             }
 
