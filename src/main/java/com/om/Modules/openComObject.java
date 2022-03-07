@@ -44,6 +44,69 @@ public class openComObject {
     protected String durationAggQueryStr;
     protected String bug_questionnaire_index;
     protected String bug_questionnaire_queryAllStr;
+    protected String obsDetailsIndex;
+    protected String obsDetailsIndexQueryStr;
+    protected String obsPackageQueryStr;
+    protected String isoBuildIndex;
+    protected String isoBuildIndexQueryStr;
+    protected String sigDetailsIndex;
+    protected String sigDetailsIndexQueryStr;
+
+    public String getObsPackageQueryStr() {
+        return obsPackageQueryStr;
+    }
+
+    public void setObsPackageQueryStr(String obsPackageQueryStr) {
+        this.obsPackageQueryStr = obsPackageQueryStr;
+    }
+
+    public String getObsDetailsIndex() {
+        return obsDetailsIndex;
+    }
+
+    public void setObsDetailsIndex(String obsDetailsIndex) {
+        this.obsDetailsIndex = obsDetailsIndex;
+    }
+
+    public String getObsDetailsIndexQueryStr() {
+        return obsDetailsIndexQueryStr;
+    }
+
+    public void setObsDetailsIndexQueryStr(String obsDetailsIndexQueryStr) {
+        this.obsDetailsIndexQueryStr = obsDetailsIndexQueryStr;
+    }
+
+    public String getIsoBuildIndex() {
+        return isoBuildIndex;
+    }
+
+    public void setIsoBuildIndex(String isoBuildIndex) {
+        this.isoBuildIndex = isoBuildIndex;
+    }
+
+    public String getIsoBuildIndexQueryStr() {
+        return isoBuildIndexQueryStr;
+    }
+
+    public void setIsoBuildIndexQueryStr(String isoBuildIndexQueryStr) {
+        this.isoBuildIndexQueryStr = isoBuildIndexQueryStr;
+    }
+
+    public String getSigDetailsIndex() {
+        return sigDetailsIndex;
+    }
+
+    public void setSigDetailsIndex(String sigDetailsIndex) {
+        this.sigDetailsIndex = sigDetailsIndex;
+    }
+
+    public String getSigDetailsIndexQueryStr() {
+        return sigDetailsIndexQueryStr;
+    }
+
+    public void setSigDetailsIndexQueryStr(String sigDetailsIndexQueryStr) {
+        this.sigDetailsIndexQueryStr = sigDetailsIndexQueryStr;
+    }
 
     public String getBug_questionnaire_index() {
         return bug_questionnaire_index;

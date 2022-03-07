@@ -988,5 +988,83 @@ public class QueryDao {
         return esQueryUtils.esFromId(restHighLevelClient, item, lastCursor, Integer.parseInt(pageSize), indexName);
     }
 
+    public String queryObsDetails(String community, String item, String branch, String limit) {
+        String indexName;
+        String queryjson;
+        String packageQueryjson;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                indexName = openEuler.getObsDetailsIndex();
+                queryjson = openEuler.getObsDetailsIndexQueryStr();
+                packageQueryjson = openEuler.getObsPackageQueryStr();
+                break;
+            case "opengauss":
+            case "openlookeng":
+            case "mindspore":
+            default:
+                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+        try {
+            ArrayList<JsonNode> dataList = getObsDetails(indexName, packageQueryjson, queryjson, branch, limit);
+            HashMap resMap = new HashMap();
+            resMap.put("code", 200);
+            resMap.put("data", dataList);
+            resMap.put("msg", "success");
+            String s = objectMapper.valueToTree(resMap).toString();
+            return s;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
 
+    public ArrayList<JsonNode> getObsDetails(String index, String packageQueryStr, String obsDetailsQueryStr, String branch, String limit) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+        int size = (limit == null) ? 5 : Integer.parseInt(limit);
+        // 1、获取某个工程下的所有包
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+        builder.setUrl(this.url + index + "/_search");
+        builder.setBody(String.format(packageQueryStr, branch));
+        ListenableFuture<Response> f = client.executeRequest(builder.build());
+        String responseBody = f.get().getResponseBody(UTF_8);
+        JsonNode dataNode = objectMapper.readTree(responseBody);
+        JsonNode jsonNode = dataNode.get("aggregations").get("package").get("buckets");
+        Iterator<JsonNode> packages = jsonNode.elements();
+
+        ArrayList<JsonNode> dataList = new ArrayList<>();
+        while (packages.hasNext()) {
+            String packageName = packages.next().get("key").asText();
+            builder.setBody(String.format(obsDetailsQueryStr, branch, packageName, size));
+            f = client.executeRequest(builder.build());
+            responseBody = f.get().getResponseBody(UTF_8);
+            dataNode = objectMapper.readTree(responseBody);
+            JsonNode hits = dataNode.get("hits").get("hits");
+            Iterator<JsonNode> it = hits.elements();
+
+            HashMap<String, Object> packageMap = new HashMap<>();
+            ArrayList<Integer> buildTimes = new ArrayList<>();
+            boolean is_head = true;
+            // 2、获取某个工程每个包最近的数据
+            while (it.hasNext()) {
+                JsonNode hit = it.next();
+                JsonNode source = hit.get("_source");
+                if (is_head) {
+                    packageMap.put("repo_name", source.get("package").asText());
+                    packageMap.put("obs_version", source.get("versrel").asText());
+                    packageMap.put("architecture", source.get("hostarch").asText());
+                    packageMap.put("obs_branch", source.get("project").asText());
+                    packageMap.put("build_state", source.get("code").asText());
+                }
+                buildTimes.add(source.get("duration").asInt());
+                is_head = false;
+
+            }
+            packageMap.put("history_build_times", buildTimes);
+            JsonNode resNode = objectMapper.valueToTree(packageMap);
+            dataList.add(resNode);
+        }
+
+        return dataList;
+    }
 }
