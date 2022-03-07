@@ -144,4 +144,12 @@ public class QueryController {
         return res;
     }
 
+    @RequestMapping("/obsDetails")
+    public String queryObsDetails(@RequestParam(value = "community") String community,
+                                  @RequestParam(value = "branch") String branch,
+                                  @RequestParam(value = "limit", required = false) String limit) {
+        String res = queryService.queryObsDetails(community, "obsDetails", branch, limit);
+        return res;
+    }
+
 }

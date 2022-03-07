@@ -199,6 +199,13 @@ public class propertiesObj {
         bean.setDurationAggQueryStr(openconf.getProperty("durationAggQueryStr"));
         bean.setBug_questionnaire_index(openconf.getProperty("bug_questionnaire_index"));
         bean.setBug_questionnaire_queryAllStr(openconf.getProperty("bug_questionnaire_queryAllStr"));
+        bean.setObsDetailsIndex(openconf.getProperty("obs_details_index"));
+        bean.setObsDetailsIndexQueryStr(openconf.getProperty("obs_details_index_queryStr"));
+        bean.setObsPackageQueryStr(openconf.getProperty("obs_package_queryStr"));
+        bean.setIsoBuildIndex(openconf.getProperty("iso_build_index"));
+        bean.setIsoBuildIndexQueryStr(openconf.getProperty("iso_build_index_queryStr"));
+        bean.setSigDetailsIndex(openconf.getProperty("sig_details_index"));
+        bean.setSigDetailsIndexQueryStr(openconf.getProperty("sig_details_index_queryStr"));
     }
 
     private static Properties readProperties(String path) throws IOException {
