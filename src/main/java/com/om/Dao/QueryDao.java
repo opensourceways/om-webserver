@@ -11,6 +11,8 @@ import com.om.Utils.EsQueryUtils;
 import com.om.Utils.HttpClientUtils;
 import com.om.Vo.BlueZoneContributeVo;
 import com.om.Vo.BlueZoneUserVo;
+import com.om.Vo.IsoBuildTimesVo;
+import com.om.Vo.SigDetailsVo;
 import org.apache.commons.lang3.StringUtils;
 import org.asynchttpclient.*;
 import org.elasticsearch.action.bulk.BulkRequest;
@@ -1043,7 +1045,7 @@ public class QueryDao {
             Iterator<JsonNode> it = hits.elements();
 
             HashMap<String, Object> packageMap = new HashMap<>();
-            ArrayList<Integer> buildTimes = new ArrayList<>();
+            ArrayList<Long> buildTimes = new ArrayList<>();
             boolean is_head = true;
             // 2、获取某个工程每个包最近的数据
             while (it.hasNext()) {
@@ -1056,13 +1058,173 @@ public class QueryDao {
                     packageMap.put("obs_branch", source.get("project").asText());
                     packageMap.put("build_state", source.get("code").asText());
                 }
-                buildTimes.add(source.get("duration").asInt());
+                buildTimes.add(source.get("duration").asLong());
                 is_head = false;
 
             }
             packageMap.put("history_build_times", buildTimes);
             JsonNode resNode = objectMapper.valueToTree(packageMap);
             dataList.add(resNode);
+        }
+
+        return dataList;
+    }
+
+    public String queryIsoBuildTimes(IsoBuildTimesVo body, String item) {
+        String indexName;
+        String queryjson;
+        String community = body.getCommunity();
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                indexName = openEuler.getIsoBuildIndex();
+                queryjson = openEuler.getIsoBuildIndexQueryStr();
+                break;
+            case "opengauss":
+            case "openlookeng":
+            case "mindspore":
+            default:
+                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+        try {
+            ArrayList<JsonNode> dataList = getIsoBuildTimes(indexName, queryjson, body);
+            HashMap resMap = new HashMap();
+            resMap.put("code", 200);
+            resMap.put("data", dataList);
+            resMap.put("msg", "success");
+            String s = objectMapper.valueToTree(resMap).toString();
+            return s;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
+
+    public ArrayList<JsonNode> getIsoBuildTimes(String index, String query, IsoBuildTimesVo body) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+        List<String> branchs = new ArrayList<>();
+        Integer limit = body.getLimit();
+        int size = (limit == null) ? 10 : limit;
+
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+        builder.setUrl(this.url + index + "/_search");
+
+        // 获取所有的工程
+        if (body.getBranchs() == null) {
+            builder.setBody("{\"size\": 0,\"aggs\": {\"obs_project\": {\"terms\": {\"field\": \"obs_project.keyword\",\"size\": 10000,\"min_doc_count\": 1}}}}");
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            JsonNode jsonNode = dataNode.get("aggregations").get("obs_project").get("buckets");
+            Iterator<JsonNode> it = jsonNode.elements();
+            while (it.hasNext()) {
+                JsonNode next = it.next();
+                branchs.add(next.get("key").asText());
+            }
+        } else {
+            branchs = body.getBranchs();
+        }
+
+        ArrayList<JsonNode> dataList = new ArrayList<>();
+        HashMap<String, Object> dataMap = new HashMap<>();
+        for (String branch : branchs) {
+            builder.setBody(String.format(query, branch, size));
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+
+            JsonNode jsonNode = dataNode.get("hits").get("hits");
+            Iterator<JsonNode> it = jsonNode.elements();
+            while (it.hasNext()) {
+                JsonNode hit = it.next();
+                JsonNode source = hit.get("_source");
+                dataMap.put("branch", source.get("obs_project").asText());
+                dataMap.put("date", source.get("archive_start").asText());
+                dataMap.put("build_result", "");
+                dataMap.put("build_time", source.get("build_version_time").asLong());
+                dataMap.put("iso_time", source.get("make_ios_time").asLong());
+                JsonNode resNode = objectMapper.valueToTree(dataMap);
+                dataList.add(resNode);
+            }
+
+        }
+
+        return dataList;
+    }
+
+    public String querySigDetails(SigDetailsVo body, String item) {
+        String indexName;
+        String queryjson;
+        String community = body.getCommunity();
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                indexName = openEuler.getSigDetailsIndex();
+                queryjson = openEuler.getSigDetailsIndexQueryStr();
+                break;
+            case "opengauss":
+            case "openlookeng":
+            case "mindspore":
+            default:
+                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+        try {
+            ArrayList<JsonNode> dataList = getSigDetails(indexName, queryjson, body);
+            HashMap resMap = new HashMap();
+            resMap.put("code", 200);
+            resMap.put("data", dataList);
+            resMap.put("msg", "success");
+            String s = objectMapper.valueToTree(resMap).toString();
+            return s;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
+
+    public ArrayList<JsonNode> getSigDetails(String index, String query, SigDetailsVo body) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+        List<String> sig_names = body.getSigs();
+
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+        builder.setUrl(this.url + index + "/_search");
+
+        builder.setBody(query);
+        ListenableFuture<Response> f = client.executeRequest(builder.build());
+        String responseBody = f.get().getResponseBody(UTF_8);
+        JsonNode dataNode = objectMapper.readTree(responseBody);
+
+        ArrayList<JsonNode> dataList = new ArrayList<>();
+        JsonNode jsonNode = dataNode.get("hits").get("hits");
+        Iterator<JsonNode> it = jsonNode.elements();
+        while (it.hasNext()) {
+            SigDetails sig = new SigDetails();
+            JsonNode hit = it.next();
+            JsonNode source = hit.get("_source");
+
+            ArrayList<SigDetailsMaintainer> maintainers = new ArrayList<>();
+            Iterator<JsonNode> jsonNodes = source.get("maintainers").elements();
+            while (jsonNodes.hasNext()) {
+                JsonNode maintainer = jsonNodes.next();
+                maintainers.add(new SigDetailsMaintainer(maintainer.textValue(), ""));  //TODO
+            }
+
+            ArrayList<String> repos = new ArrayList<>();
+            Iterator<JsonNode> repoNodes = source.get("repos").elements();
+            while (repoNodes.hasNext()) {
+                JsonNode repo = repoNodes.next();
+                repos.add(repo.textValue());
+            }
+
+            sig.setName(source.get("sig_name").asText());
+            sig.setDescription(""/*source.get("description").asText()*/);  //TODO
+            sig.setMaintainer(maintainers);
+            sig.setRepositories(repos);
+            JsonNode resNode = objectMapper.convertValue(sig, JsonNode.class);
+
+            if (sig_names == null) {
+                dataList.add(resNode);
+            } else if (sig_names.contains(sig.getName())) {
+                dataList.add(resNode);
+            }
         }
 
         return dataList;

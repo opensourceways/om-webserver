@@ -10,6 +10,8 @@ import com.om.Dao.RedisDao;
 import com.om.Utils.StringDesensitizationUtils;
 import com.om.Vo.BlueZoneContributeVo;
 import com.om.Vo.BlueZoneUserVo;
+import com.om.Vo.IsoBuildTimesVo;
+import com.om.Vo.SigDetailsVo;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -434,5 +436,43 @@ public class QueryService {
         return result;
     }
 
+    public String queryIsoBuildTimes(IsoBuildTimesVo body, String item) {
+        String key = body.getCommunity() + item;
+        String result;
+        result = null; //(String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryIsoBuildTimes(body, item);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = true; //redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String querySigDetails(String community, SigDetailsVo body, String item) {
+        String key = community + item;
+        body.setCommunity(community);
+        String result;
+        result = null; //(String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.querySigDetails(body, item);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = true; //redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
 }
 
