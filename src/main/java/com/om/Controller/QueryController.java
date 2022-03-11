@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.om.Service.QueryService;
 import com.om.Vo.BlueZoneContributeVo;
 import com.om.Vo.BlueZoneUserVo;
+import com.om.Vo.IsoBuildTimesVo;
 import com.om.token.UserLoginToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -149,6 +150,12 @@ public class QueryController {
                                   @RequestParam(value = "branch") String branch,
                                   @RequestParam(value = "limit", required = false) String limit) {
         String res = queryService.queryObsDetails(community, "obsDetails", branch, limit);
+        return res;
+    }
+
+    @RequestMapping(value = "/isoBuildTimes", method = RequestMethod.POST)
+    public String queryIsoBuildTimes(@RequestBody IsoBuildTimesVo body) {
+        String res = queryService.queryIsoBuildTimes(body, "isoBuildTimes");
         return res;
     }
 
