@@ -160,10 +160,27 @@ public class QueryController {
         return res;
     }
 
-    @UserLoginToken
     @RequestMapping(value = "/sigDetails", method = RequestMethod.POST)
-    public String querySigDetails(@RequestParam(value = "community") String community, @RequestBody SigDetailsVo body) {
-        String res = queryService.querySigDetails(community, body, "sigDetails");
+    public String querySigDetails(@RequestBody SigDetailsVo body) {
+        String res = queryService.querySigDetails(body, "sigDetails");
+        return res;
+    }
+
+    //todo
+    @RequestMapping("/company/contribute")
+    public String queryCompanyContributors(@RequestParam(value = "community") String community,
+                                           @RequestParam(value = "contributeType") String contributeType,
+                                           @RequestParam(value = "version") String version) {
+        String res = queryService.queryCompanyContributors(community, "companyContribute", contributeType, version);
+        return res;
+    }
+
+    //todo
+    @RequestMapping("/user/contribute")
+    public String queryUserContributors(@RequestParam(value = "community") String community,
+                                        @RequestParam(value = "contributeType") String contributeType,
+                                        @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.queryUserContributors(community, "userContribute", contributeType, timeRange);
         return res;
     }
 }

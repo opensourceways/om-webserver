@@ -1229,4 +1229,117 @@ public class QueryDao {
 
         return dataList;
     }
+
+    // TODO
+    public String queryCompanyContributors(String community, String item, String contributeType, String version) {
+        String indexName;
+        String queryjson;
+        String packageQueryjson;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                switch (contributeType.toLowerCase()) {
+                    case "pr":
+                        switch (version.toLowerCase()) {
+                            case "20.03 lts sp3":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"company\": \"华为技术有限公司\",\"contribute\": 381000},{\"company\": \"麒麟软件有限公司\",\"contribute\": 19500},{\"company\": \"中国科学院软件研究所\",\"contribute\": 10700},{\"company\": \"统信软件技术有限公司\",\"contribute\": 8000}]}";
+                            case "21.09":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"company\": \"华为技术有限公司\",\"contribute\": 4956},{\"company\": \"麒麟软件有限公司\",\"contribute\": 9625},{\"company\": \"中国科学院软件研究所\",\"contribute\": 7534},{\"company\": \"中国联通软件研究所\",\"contribute\": 6452}]}";
+                            case "all":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"company\": \"华为技术有限公司\",\"contribute\": 481000},{\"company\": \"麒麟软件有限公司\",\"contribute\": 29500},{\"company\": \"中国科学院软件研究所\",\"contribute\": 20700},{\"company\": \"统信软件技术有限公司\",\"contribute\": 8000},{\"company\": \"中国联通软件研究所\",\"contribute\": 6452}]}";
+                            default:
+                                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+                        }
+                    case "issue":
+                        switch (version.toLowerCase()) {
+                            case "20.03 lts sp3":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"company\": \"华为技术有限公司\",\"contribute\": 38100},{\"company\": \"麒麟软件有限公司\",\"contribute\": 1950},{\"company\": \"中国科学院软件研究所\",\"contribute\": 1070},{\"company\": \"统信软件技术有限公司\",\"contribute\": 800}]}";
+                            case "21.09":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"company\": \"华为技术有限公司\",\"contribute\": 495},{\"company\": \"麒麟软件有限公司\",\"contribute\": 965},{\"company\": \"中国科学院软件研究所\",\"contribute\": 754},{\"company\": \"中国联通软件研究所\",\"contribute\": 652}]}";
+                            case "all":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"company\": \"华为技术有限公司\",\"contribute\": 48100},{\"company\": \"麒麟软件有限公司\",\"contribute\": 2950},{\"company\": \"中国科学院软件研究所\",\"contribute\": 2070},{\"company\": \"统信软件技术有限公司\",\"contribute\": 800},{\"company\": \"中国联通软件研究所\",\"contribute\": 642}]}";
+                            default:
+                                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+                        }
+                    case "comment":
+                        switch (version.toLowerCase()) {
+                            case "20.03 lts sp3":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"company\": \"华为技术有限公司\",\"contribute\": 81000},{\"company\": \"麒麟软件有限公司\",\"contribute\": 9500},{\"company\": \"中国科学院软件研究所\",\"contribute\": 0700},{\"company\": \"统信软件技术有限公司\",\"contribute\": 000}]}";
+                            case "21.09":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"company\": \"华为技术有限公司\",\"contribute\": 956},{\"company\": \"麒麟软件有限公司\",\"contribute\": 625},{\"company\": \"中国科学院软件研究所\",\"contribute\": 534},{\"company\": \"中国联通软件研究所\",\"contribute\": 452}]}";
+                            case "all":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"company\": \"华为技术有限公司\",\"contribute\": 81000},{\"company\": \"麒麟软件有限公司\",\"contribute\": 9500},{\"company\": \"中国科学院软件研究所\",\"contribute\": 0700},{\"company\": \"统信软件技术有限公司\",\"contribute\": 800},{\"company\": \"中国联通软件研究所\",\"contribute\": 452}]}";
+                            default:
+                                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+                        }
+                    default:
+                        return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+                }
+            case "opengauss":
+            case "openlookeng":
+            case "mindspore":
+            default:
+                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+
+    }
+
+    // TODO
+    public String queryUserContributors(String community, String item, String contributeType, String timeRange) {
+        String indexName;
+        String queryjson;
+        String packageQueryjson;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                switch (contributeType.toLowerCase()){
+                    case "pr":
+                        switch (timeRange.toLowerCase()) {
+                            case "lastonemonth":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"gitee_id\": \"aaaa\",\"contribute\": 111},{\"gitee_id\": \"bbbb\",\"contribute\": 222},{\"gitee_id\": \"cccc\",\"contribute\": 333},{\"gitee_id\": \"dddd\",\"contribute\": 444}]}";
+                            case "lasthalfyear":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"gitee_id\": \"aaaa\",\"contribute\": 1111},{\"gitee_id\": \"bbbb\",\"contribute\": 2222},{\"gitee_id\": \"cccc\",\"contribute\": 3333},{\"gitee_id\": \"dddd\",\"contribute\": 4444}]}";
+                            case "lastoneyear":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"gitee_id\": \"aaaa\",\"contribute\": 2222},{\"gitee_id\": \"bbbb\",\"contribute\": 3333},{\"gitee_id\": \"cccc\",\"contribute\": 4444},{\"gitee_id\": \"dddd\",\"contribute\": 5555}]}";
+                            case "all":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"gitee_id\": \"aaaa\",\"contribute\": 12345},{\"gitee_id\": \"bbbb\",\"contribute\": 23456},{\"gitee_id\": \"cccc\",\"contribute\": 34567},{\"gitee_id\": \"dddd\",\"contribute\": 45678}]}";
+                            default:
+                                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+                        }
+
+                    case "issue":
+                        switch (timeRange.toLowerCase()) {
+                            case "lastonemonth":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"gitee_id\": \"aaaa\",\"contribute\": 1110},{\"gitee_id\": \"bbbb\",\"contribute\": 2220},{\"gitee_id\": \"cccc\",\"contribute\": 3330},{\"gitee_id\": \"dddd\",\"contribute\": 4440}]}";
+                            case "lasthalfyear":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"gitee_id\": \"aaaa\",\"contribute\": 11110},{\"gitee_id\": \"bbbb\",\"contribute\": 22220},{\"gitee_id\": \"cccc\",\"contribute\": 33330},{\"gitee_id\": \"dddd\",\"contribute\": 44440}]}";
+                            case "lastoneyear":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"gitee_id\": \"aaaa\",\"contribute\": 22220},{\"gitee_id\": \"bbbb\",\"contribute\": 33330},{\"gitee_id\": \"cccc\",\"contribute\": 44440},{\"gitee_id\": \"dddd\",\"contribute\": 55550}]}";
+                            case "all":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"gitee_id\": \"aaaa\",\"contribute\": 123450},{\"gitee_id\": \"bbbb\",\"contribute\": 234560},{\"gitee_id\": \"cccc\",\"contribute\": 345670},{\"gitee_id\": \"dddd\",\"contribute\": 456780}]}";
+                            default:
+                                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+                        }
+                    case "comment":
+                        switch (timeRange.toLowerCase()) {
+                            case "lastonemonth":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"gitee_id\": \"aaaa\",\"contribute\": 11},{\"gitee_id\": \"bbbb\",\"contribute\": 22},{\"gitee_id\": \"cccc\",\"contribute\": 33},{\"gitee_id\": \"dddd\",\"contribute\": 44}]}";
+                            case "lasthalfyear":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"gitee_id\": \"aaaa\",\"contribute\": 111},{\"gitee_id\": \"bbbb\",\"contribute\": 222},{\"gitee_id\": \"cccc\",\"contribute\": 333},{\"gitee_id\": \"dddd\",\"contribute\": 444}]}";
+                            case "lastoneyear":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"gitee_id\": \"aaaa\",\"contribute\": 222},{\"gitee_id\": \"bbbb\",\"contribute\": 333},{\"gitee_id\": \"cccc\",\"contribute\": 444},{\"gitee_id\": \"dddd\",\"contribute\": 555}]}";
+                            case "all":
+                                return "{\"msg\": \"success\",\"code\": 200,\"data\": [{\"gitee_id\": \"aaaa\",\"contribute\": 2345},{\"gitee_id\": \"bbbb\",\"contribute\": 3456},{\"gitee_id\": \"cccc\",\"contribute\": 3567},{\"gitee_id\": \"dddd\",\"contribute\": 5678}]}";
+                            default:
+                                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+                        }
+                    default:
+                        return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+                }
+            case "opengauss":
+            case "openlookeng":
+            case "mindspore":
+            default:
+                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+
+    }
 }
