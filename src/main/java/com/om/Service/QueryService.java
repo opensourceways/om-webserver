@@ -436,7 +436,7 @@ public class QueryService {
     }
 
     public String queryIsoBuildTimes(IsoBuildTimesVo body, String item) {
-        String key = body.getCommunity() + item + body.getLimit();
+        String key = body.getCommunity() + item;
         String result;
         result = null; //(String) redisDao.get(key);
         if (result == null) {

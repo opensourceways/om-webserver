@@ -1099,13 +1099,29 @@ public class QueryDao {
     }
 
     public ArrayList<JsonNode> getIsoBuildTimes(String index, String query, IsoBuildTimesVo body) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
-        List<String> branchs = body.getBranchs();
+        List<String> branchs = new ArrayList<>();
         Integer limit = body.getLimit();
         int size = (limit == null) ? 10 : limit;
 
         AsyncHttpClient client = AsyncHttpUtil.getClient();
         RequestBuilder builder = asyncHttpUtil.getBuilder();
         builder.setUrl(this.url + index + "/_search");
+
+        // 获取所有的工程
+        if (body.getBranchs() == null) {
+            builder.setBody("{\"size\": 0,\"aggs\": {\"obs_project\": {\"terms\": {\"field\": \"obs_project.keyword\",\"size\": 10000,\"min_doc_count\": 1}}}}");
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            JsonNode jsonNode = dataNode.get("aggregations").get("obs_project").get("buckets");
+            Iterator<JsonNode> it = jsonNode.elements();
+            while (it.hasNext()) {
+                JsonNode next = it.next();
+                branchs.add(next.get("key").asText());
+            }
+        } else {
+            branchs = body.getBranchs();
+        }
 
         ArrayList<JsonNode> dataList = new ArrayList<>();
         HashMap<String, Object> dataMap = new HashMap<>();
