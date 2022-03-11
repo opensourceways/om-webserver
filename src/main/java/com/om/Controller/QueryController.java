@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.om.Service.QueryService;
 import com.om.Vo.BlueZoneContributeVo;
 import com.om.Vo.BlueZoneUserVo;
+import com.om.Vo.IsoBuildTimesVo;
+import com.om.Vo.SigDetailsVo;
 import com.om.token.UserLoginToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -152,4 +154,16 @@ public class QueryController {
         return res;
     }
 
+    @RequestMapping(value = "/isoBuildTimes", method = RequestMethod.POST)
+    public String queryIsoBuildTimes(@RequestBody IsoBuildTimesVo body) {
+        String res = queryService.queryIsoBuildTimes(body, "isoBuildTimes");
+        return res;
+    }
+
+    @UserLoginToken
+    @RequestMapping(value = "/sigDetails", method = RequestMethod.POST)
+    public String querySigDetails(@RequestParam(value = "community") String community, @RequestBody SigDetailsVo body) {
+        String res = queryService.querySigDetails(community, body, "sigDetails");
+        return res;
+    }
 }
