@@ -2,6 +2,9 @@ package com.om.Modules;
 
 import org.springframework.stereotype.Repository;
 
+import java.util.Calendar;
+import java.util.Date;
+
 /**
  * @author zhxia
  * @date 2020/11/5 16:36
@@ -28,6 +31,8 @@ public class openComObject {
     protected String GiteeStarCountQueryStr;
     protected String GiteeIssueCountQueryStr;
     protected String GiteePrCountQueryStr;
+    protected String GiteeAggCompanyQueryStr;
+    protected String GiteeAggUserQueryStr;
     protected String DownloadQueryIndex;
     protected String DownloadQueryStr;
     protected String DownloadDockerHubQueryStr;
@@ -51,6 +56,22 @@ public class openComObject {
     protected String isoBuildIndexQueryStr;
     protected String sigDetailsIndex;
     protected String sigDetailsIndexQueryStr;
+
+    public String getGiteeAggCompanyQueryStr() {
+        return GiteeAggCompanyQueryStr;
+    }
+
+    public void setGiteeAggCompanyQueryStr(String giteeAggCompanyQueryStr) {
+        GiteeAggCompanyQueryStr = giteeAggCompanyQueryStr;
+    }
+
+    public String getGiteeAggUserQueryStr() {
+        return GiteeAggUserQueryStr;
+    }
+
+    public void setGiteeAggUserQueryStr(String giteeAggUserQueryStr) {
+        GiteeAggUserQueryStr = giteeAggUserQueryStr;
+    }
 
     public String getObsPackageQueryStr() {
         return obsPackageQueryStr;
@@ -389,6 +410,14 @@ public class openComObject {
         this.communitymembers_queryStr = communitymembers_queryStr;
     }
 
+    public String getBug_questionnaire_queryAllStr() {
+        return bug_questionnaire_queryAllStr;
+    }
+
+    public void setBug_questionnaire_queryAllStr(String bug_questionnaire_queryAllStr) {
+        this.bug_questionnaire_queryAllStr = bug_questionnaire_queryAllStr;
+    }
+
     public String getCountQueryStr(String item) {
         String queryStr = "";
         switch (item) {
@@ -408,12 +437,52 @@ public class openComObject {
         return queryStr;
     }
 
-    public String getBug_questionnaire_queryAllStr() {
-        return bug_questionnaire_queryAllStr;
+    public String getAggCountQueryStr(String groupField, String contributeType, String timeRange) {
+        String queryStr;
+        String queryJson;
+        long currentTimeMillis = System.currentTimeMillis();
+        long lastTimeMillis = getPastTime(timeRange);
+
+        if (groupField.equals("company")) {
+            queryJson = getGiteeAggCompanyQueryStr();
+        } else {
+            queryJson = getGiteeAggUserQueryStr();
+        }
+
+        switch (contributeType.toLowerCase()) {
+            case "pr":
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_pull_request");
+                break;
+            case "issue":
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_issue");
+                break;
+            case "comment":
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_comment");
+                break;
+            default:
+                return "";
+        }
+
+        return queryStr;
     }
 
-    public void setBug_questionnaire_queryAllStr(String bug_questionnaire_queryAllStr) {
-        this.bug_questionnaire_queryAllStr = bug_questionnaire_queryAllStr;
+    private long getPastTime(String timeRange) {
+        Calendar c = Calendar.getInstance();
+        c.setTime(new Date());
+        switch (timeRange.toLowerCase()) {
+            case "lastonemonth":
+                c.add(Calendar.MONTH, -1);
+                break;
+            case "lasthalfyear":
+                c.add(Calendar.MONTH, -6);
+                break;
+            case "lastoneyear":
+                c.add(Calendar.YEAR, -1);
+                break;
+            default:
+                c.setTimeInMillis(0);
+        }
+        return c.getTimeInMillis();
     }
 }
 

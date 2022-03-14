@@ -166,16 +166,15 @@ public class QueryController {
         return res;
     }
 
-    //todo
     @RequestMapping("/company/contribute")
     public String queryCompanyContributors(@RequestParam(value = "community") String community,
                                            @RequestParam(value = "contributeType") String contributeType,
-                                           @RequestParam(value = "version") String version) {
-        String res = queryService.queryCompanyContributors(community, "companyContribute", contributeType, version);
+                                           @RequestParam(value = "timeRange") String timeRange,
+                                           @RequestParam(value = "version", required = false) String version) {
+        String res = queryService.queryCompanyContributors(community, "companyContribute", contributeType, timeRange, version);
         return res;
     }
 
-    //todo
     @RequestMapping("/user/contribute")
     public String queryUserContributors(@RequestParam(value = "community") String community,
                                         @RequestParam(value = "contributeType") String contributeType,
