@@ -474,15 +474,14 @@ public class QueryService {
         return result;
     }
 
-    //todo
-    public String queryCompanyContributors(String community, String item, String contributeType, String version) {
-        String key = community + item + contributeType + version;
+    public String queryCompanyContributors(String community, String item, String contributeType, String timeRange, String version) {
+        String key = community + item + contributeType + timeRange;
         String result;
         result = null; //(String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryCompanyContributors(community, item, contributeType, version);
+                result = queryDao.queryCompanyContributors(community, item, contributeType, timeRange, version);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -494,7 +493,6 @@ public class QueryService {
         return result;
     }
 
-    //todo
     public String queryUserContributors(String community, String item, String contributeType, String timeRange) {
         String key = community + item + contributeType + timeRange;
         String result;
