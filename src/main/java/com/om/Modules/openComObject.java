@@ -56,6 +56,15 @@ public class openComObject {
     protected String isoBuildIndexQueryStr;
     protected String sigDetailsIndex;
     protected String sigDetailsIndexQueryStr;
+    protected String claCorporationIndex;
+
+    public String getClaCorporationIndex() {
+        return claCorporationIndex;
+    }
+
+    public void setClaCorporationIndex(String claCorporationIndex) {
+        this.claCorporationIndex = claCorporationIndex;
+    }
 
     public String getGiteeAggCompanyQueryStr() {
         return GiteeAggCompanyQueryStr;
