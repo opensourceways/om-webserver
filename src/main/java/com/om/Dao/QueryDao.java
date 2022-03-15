@@ -1233,29 +1233,36 @@ public class QueryDao {
     public String queryCompanyContributors(String community, String item, String contributeType, String timeRange, String version) {
         String index;
         String queryStr;
+        String claIndex;
         String groupField = "company";
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getGiteeAllIndex();
                 queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange);
+                claIndex = openEuler.getClaCorporationIndex();
                 break;
             case "opengauss":
                 index = openGauss.getGiteeAllIndex();
                 queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange);
+                claIndex = openGauss.getClaCorporationIndex();
                 break;
             case "openlookeng":
                 index = openLookeng.getGiteeAllIndex();
                 queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange);
+                claIndex = openLookeng.getClaCorporationIndex();
                 break;
             case "mindspore":
                 index = mindSpore.getGiteeAllIndex();
                 queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange);
+                claIndex = mindSpore.getClaCorporationIndex();
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
         }
 
         try {
+            List<String> claCompanys = queryClaCompany(claIndex);
+
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
 
@@ -1271,7 +1278,11 @@ public class QueryDao {
             HashMap<String, Object> dataMap = new HashMap<>();
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
-                dataMap.put("company", bucket.get("key").asText());
+                String company = bucket.get("key").asText();
+                if (!claCompanys.contains(company)) {
+                    continue;
+                }
+                dataMap.put("company", company);
                 dataMap.put("contribute", bucket.get("sum_field").get("value").asLong());
                 JsonNode resNode = objectMapper.valueToTree(dataMap);
                 dataList.add(resNode);
@@ -1346,4 +1357,28 @@ public class QueryDao {
         }
 
     }
+
+    private List<String> queryClaCompany(String index) {
+        ArrayList<String> companys = new ArrayList<>();
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody("{\"size\": 10000}");
+
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> hits = dataNode.get("hits").get("hits").elements();
+            while (hits.hasNext()) {
+                JsonNode source = hits.next().get("_source");
+                companys.add(source.get("corporation_name").asText());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return companys;
+    }
+
 }
