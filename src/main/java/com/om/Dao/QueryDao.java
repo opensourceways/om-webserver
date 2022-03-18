@@ -168,7 +168,7 @@ public class QueryDao {
             case "mindspore":
                 index = mindSpore.getSigs_index();
                 queryjson = mindSpore.getSigs_queryStr();
-                break;
+                return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + queryjson + "},\"msg\":\"not Found!\"}";
             case "openlookeng":
                 return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
             default:
