@@ -189,6 +189,7 @@ public class propertiesObj {
         bean.setGiteePrCountQueryStr(openconf.getProperty("gitee_pr_count_queryStr"));
         bean.setGiteeAggCompanyQueryStr(openconf.getProperty("gitee_agg_company_queryStr"));
         bean.setGiteeAggUserQueryStr(openconf.getProperty("gitee_agg_user_queryStr"));
+        bean.setGiteeContributesQueryStr(openconf.getProperty("gitee_contributes_queryStr"));
         bean.setDownloadQueryIndex(openconf.getProperty("download_query_index"));
         bean.setDownloadQueryStr(openconf.getProperty("download_queryStr"));
         bean.setDownloadDockerHubQueryStr(openconf.getProperty("download_docker_hub_queryStr"));
@@ -208,6 +209,7 @@ public class propertiesObj {
         bean.setIsoBuildIndexQueryStr(openconf.getProperty("iso_build_index_queryStr"));
         bean.setSigDetailsIndex(openconf.getProperty("sig_details_index"));
         bean.setSigDetailsIndexQueryStr(openconf.getProperty("sig_details_index_queryStr"));
+        bean.setClaCorporationIndex(openconf.getProperty("cla_corporation_index"));
     }
 
     private static Properties readProperties(String path) throws IOException {
