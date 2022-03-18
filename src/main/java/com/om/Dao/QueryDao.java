@@ -1314,7 +1314,7 @@ public class QueryDao {
         }
 
         try {
-            List<String> claCompanys = queryClaCompany(claIndex);
+//            List<String> claCompanys = queryClaCompany(claIndex);
             Map<String, String> companyNameCnEn = getCompanyNameCnEn(companyNameYaml);
 
             AsyncHttpClient client = AsyncHttpUtil.getClient();
@@ -1335,7 +1335,7 @@ public class QueryDao {
                 JsonNode bucket = buckets.next();
                 String company = bucket.get("key").asText();
                 long contribute = bucket.get("sum_field").get("value").asLong();
-                if (!claCompanys.contains(company) || contribute == 0) {
+                if (/*!claCompanys.contains(company) || */contribute == 0) {
                     independent += contribute;
                     continue;
                 }
