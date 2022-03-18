@@ -406,7 +406,9 @@ public class QueryDao {
         Object communityMembers = businessOsvNode == null ? null : communityMembersNode.intValue();
         JsonNode downloadNode = objectMapper.readTree(this.queryDownload(community, "download")).get("data").get("download");
         Object downloads = downloadNode == null ? null : downloadNode.intValue();
+        Object downloadUser = 0;
         if (community.toLowerCase().equals("mindspore") || community.toLowerCase().equals("opengauss")) {
+            downloadUser = users;
             users = downloads;
         }
         contributes.put("downloads", downloads);
@@ -417,6 +419,7 @@ public class QueryDao {
         contributes.put("modulenums", modulenums);
         contributes.put("businessosv", businessOsv);
         contributes.put("communitymembers", communityMembers);
+        contributes.put("downloaduser", downloadUser);
 
         HashMap<String, Object> resMap = new HashMap<>();
         resMap.put("code", 200);
