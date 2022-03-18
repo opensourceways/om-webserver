@@ -33,6 +33,7 @@ public class openComObject {
     protected String GiteePrCountQueryStr;
     protected String GiteeAggCompanyQueryStr;
     protected String GiteeAggUserQueryStr;
+    protected String GiteeContributesQueryStr;
     protected String DownloadQueryIndex;
     protected String DownloadQueryStr;
     protected String DownloadDockerHubQueryStr;
@@ -57,6 +58,14 @@ public class openComObject {
     protected String sigDetailsIndex;
     protected String sigDetailsIndexQueryStr;
     protected String claCorporationIndex;
+
+    public String getGiteeContributesQueryStr() {
+        return GiteeContributesQueryStr;
+    }
+
+    public void setGiteeContributesQueryStr(String giteeContributesQueryStr) {
+        GiteeContributesQueryStr = giteeContributesQueryStr;
+    }
 
     public String getClaCorporationIndex() {
         return claCorporationIndex;

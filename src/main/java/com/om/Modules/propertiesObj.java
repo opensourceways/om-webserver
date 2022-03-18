@@ -189,6 +189,7 @@ public class propertiesObj {
         bean.setGiteePrCountQueryStr(openconf.getProperty("gitee_pr_count_queryStr"));
         bean.setGiteeAggCompanyQueryStr(openconf.getProperty("gitee_agg_company_queryStr"));
         bean.setGiteeAggUserQueryStr(openconf.getProperty("gitee_agg_user_queryStr"));
+        bean.setGiteeContributesQueryStr(openconf.getProperty("gitee_contributes_queryStr"));
         bean.setDownloadQueryIndex(openconf.getProperty("download_query_index"));
         bean.setDownloadQueryStr(openconf.getProperty("download_queryStr"));
         bean.setDownloadDockerHubQueryStr(openconf.getProperty("download_docker_hub_queryStr"));
