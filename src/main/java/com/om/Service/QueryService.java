@@ -51,6 +51,8 @@ public class QueryService {
                 e.printStackTrace();
             } catch (KeyManagementException e) {
                 e.printStackTrace();
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
             }
             boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
             if (set) {
@@ -477,7 +479,7 @@ public class QueryService {
     public String queryCompanyContributors(String community, String item, String contributeType, String timeRange, String version) {
         String key = community + item + contributeType + timeRange;
         String result;
-        result = null; //(String) redisDao.get(key);
+        result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
@@ -485,7 +487,7 @@ public class QueryService {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set = true;//redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -496,7 +498,7 @@ public class QueryService {
     public String queryUserContributors(String community, String item, String contributeType, String timeRange) {
         String key = community + item + contributeType + timeRange;
         String result;
-        result = null; //(String) redisDao.get(key);
+        result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
@@ -504,7 +506,7 @@ public class QueryService {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set = true;//redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
