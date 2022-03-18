@@ -57,6 +57,9 @@ public class QueryDao {
     @Value("${community.partners.yaml}")
     String communityPartnersYaml;
 
+    @Value("${skip.robot.user}")
+    String robotUser;
+
     static ObjectMapper objectMapper = new ObjectMapper();
     @Autowired
     openEuler openEuler;
@@ -163,7 +166,9 @@ public class QueryDao {
                 queryjson = openGauss.getSigs_queryStr();
                 break;
             case "mindspore":
-                return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
+                index = mindSpore.getSigs_index();
+                queryjson = mindSpore.getSigs_queryStr();
+                break;
             case "openlookeng":
                 return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
             default:
@@ -1384,6 +1389,8 @@ public class QueryDao {
         }
 
         try {
+            List<String> robotUsers = Arrays.asList(robotUser.split(","));
+
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
 
@@ -1399,11 +1406,12 @@ public class QueryDao {
             HashMap<String, Object> dataMap = new HashMap<>();
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
+                String giteeId = bucket.get("key").asText();
                 long contribute = bucket.get("sum_field").get("value").asLong();
-                if (contribute == 0) {
+                if (contribute == 0 || robotUsers.contains(giteeId)) {
                     continue;
                 }
-                dataMap.put("gitee_id", bucket.get("key").asText());
+                dataMap.put("gitee_id", giteeId);
                 dataMap.put("contribute", contribute);
                 JsonNode resNode = objectMapper.valueToTree(dataMap);
                 dataList.add(resNode);
