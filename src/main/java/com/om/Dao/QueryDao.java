@@ -1318,7 +1318,9 @@ public class QueryDao {
 
         try {
 //            List<String> claCompanys = queryClaCompany(claIndex);
-            Map<String, String> companyNameCnEn = getCompanyNameCnEn(companyNameYaml);
+            List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml);
+            Map<String, String> companyNameCnEn = companys.get(0);
+            Map<String, String> companyNameAlCn = companys.get(1);
 
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
@@ -1342,8 +1344,9 @@ public class QueryDao {
                     independent += contribute;
                     continue;
                 }
-                String companyEn = companyNameCnEn.getOrDefault(company.trim(), "");
-                dataMap.put("company_cn", company);
+                String companyCn = companyNameAlCn.getOrDefault(company.trim(), company.trim());
+                String companyEn = companyNameCnEn.getOrDefault(company.trim(), companyCn);
+                dataMap.put("company_cn", companyCn);
                 dataMap.put("company_en", companyEn);
                 dataMap.put("contribute", contribute);
                 JsonNode resNode = objectMapper.valueToTree(dataMap);
@@ -1528,23 +1531,29 @@ public class QueryDao {
         return companys;
     }
 
-    private Map<String, String> getCompanyNameCnEn(String yamlFile) {
+    private List<Map<String, String>> getCompanyNameCnEn(String yamlFile) {
         YamlUtil yamlUtil = new YamlUtil();
         CompanyYaml companies = yamlUtil.readUrlYaml(yamlFile, CompanyYaml.class);
         System.out.println(companies);
 
-        HashMap<String, String> resMap = new HashMap<>();
+        HashMap<String, String> company_enMap = new HashMap<>();
+        HashMap<String, String> company_cnMap = new HashMap<>();
+        ArrayList<Map<String, String>> res = new ArrayList<>();
         for (CompanyYamlInfo company : companies.getCompanies()) {
             List<String> aliases = company.getAliases();
             String company_en = company.getCompany_en().trim();
+            String company_cn = company.getCompany_cn().trim();
             if (aliases != null) {
                 for (String alias : aliases) {
-                    resMap.put(alias, company_en);
+                    company_enMap.put(alias, company_en);
+                    company_cnMap.put(alias, company_cn);
                 }
             }
-            resMap.put(company.getCompany_cn().trim(), company_en);
+            company_enMap.put(company.getCompany_cn().trim(), company_en);
         }
-        return resMap;
+        res.add(company_enMap);
+        res.add(company_cnMap);
+        return res;
     }
 
     private Map<String, Integer> getCommunityPartners(String yamlFile) {
