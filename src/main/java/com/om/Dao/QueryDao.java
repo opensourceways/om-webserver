@@ -1257,10 +1257,23 @@ public class QueryDao {
             JsonNode source = hit.get("_source");
 
             ArrayList<SigDetailsMaintainer> maintainers = new ArrayList<>();
-            Iterator<JsonNode> jsonNodes = source.get("maintainers").elements();
-            while (jsonNodes.hasNext()) {
-                JsonNode maintainer = jsonNodes.next();
-                maintainers.add(new SigDetailsMaintainer(maintainer.textValue(), ""));  //TODO
+            JsonNode maintainerInfo = source.get("maintainer_info");
+            if (maintainerInfo != null) {
+                Iterator<JsonNode> jsonNodes = maintainerInfo.elements();
+                while (jsonNodes.hasNext()) {
+                    JsonNode maintainer = jsonNodes.next();
+                    JsonNode giteeId = maintainer.get("gitee_id");
+                    String giteeIdStr = giteeId == null ? "" : giteeId.asText();
+                    JsonNode email = maintainer.get("email");
+                    String emailStr = email == null ? "" : email.asText();
+                    maintainers.add(new SigDetailsMaintainer(giteeIdStr, emailStr));  //TODO
+                }
+            } else {
+                Iterator<JsonNode> jsonNodes = source.get("maintainers").elements();
+                while (jsonNodes.hasNext()) {
+                    JsonNode maintainer = jsonNodes.next();
+                    maintainers.add(new SigDetailsMaintainer(maintainer.textValue(), ""));  //TODO
+                }
             }
 
             ArrayList<String> repos = new ArrayList<>();
