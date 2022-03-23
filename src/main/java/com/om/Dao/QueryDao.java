@@ -1330,7 +1330,7 @@ public class QueryDao {
         }
 
         try {
-//            List<String> claCompanys = queryClaCompany(claIndex);
+            List<String> claCompanys = queryClaCompany(claIndex);
             List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml);
             Map<String, String> companyNameCnEn = companys.get(0);
             Map<String, String> companyNameAlCn = companys.get(1);
@@ -1353,8 +1353,8 @@ public class QueryDao {
                 JsonNode bucket = buckets.next();
                 String company = bucket.get("key").asText();
                 long contribute = bucket.get("sum_field").get("value").asLong();
-                if (/*!claCompanys.contains(company) || */contribute == 0) {
-//                    independent += contribute;
+                if (!claCompanys.contains(company) || contribute == 0) {
+                    independent += contribute;
                     continue;
                 }
                 String companyCn = companyNameAlCn.getOrDefault(company.trim(), company.trim());
@@ -1365,9 +1365,9 @@ public class QueryDao {
                 JsonNode resNode = objectMapper.valueToTree(dataMap);
                 dataList.add(resNode);
             }
-//            dataMap.put("company_cn", "independent");
-//            dataMap.put("company_en", "independent");
-//            dataMap.put("contribute", independent);
+            dataMap.put("company_cn", "个人贡献者");
+            dataMap.put("company_en", "independent");
+            dataMap.put("contribute", independent);
             JsonNode resNode = objectMapper.valueToTree(dataMap);
             dataList.add(resNode);
 
