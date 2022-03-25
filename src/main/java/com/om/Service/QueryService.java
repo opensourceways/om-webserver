@@ -225,7 +225,7 @@ public class QueryService {
             } catch (KeyManagementException e) {
                 e.printStackTrace();
             }
-            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.key.expire")));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
