@@ -1584,11 +1584,11 @@ public class QueryDao {
         System.out.println(communities);
 
         HashMap<String, Integer> resMap = new HashMap<>();
-        for (CommunityPartnersYamlInfo community: communities.getCommunity()) {
+        for (CommunityPartnersYamlInfo community : communities.getCommunity()) {
             int sum = community.getPartners().stream().mapToInt(Integer::intValue).sum();
             resMap.put(community.getName(), sum);
         }
-       return resMap;
+        return resMap;
     }
 
     public String queryIssueScore(String community, String item) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
@@ -1627,21 +1627,17 @@ public class QueryDao {
             statusText = response.getStatusText();
             String responseBody = response.getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
-            JsonNode records = dataNode.get("hits").get("hits");
+            JsonNode records = dataNode.get("aggregations").get("group_by_issue_author").get("buckets");
             int totalCount = records.size();
 
             JSONArray resJsonArray = new JSONArray();
             for (JsonNode record : records) {
-                JsonNode source = record.get("_source");
-
-                String issue_number = source.get("issue_number").asText();
-                String scoring_admin = source.get("scoring_admin").asText();
-                Double score = source.get("score").asDouble();
+                String issue_author = record.get("key").asText();
+                Double issue_score = record.get("sum_of_score").get("value").asDouble();
 
                 JSONObject recordJsonObj = new JSONObject();
-                recordJsonObj.put("issue_number", issue_number);
-                recordJsonObj.put("scoring_admin", scoring_admin);
-                recordJsonObj.put("score", score);
+                recordJsonObj.put("issue_author", issue_author);
+                recordJsonObj.put("issue_score", issue_score);
                 resJsonArray.put(recordJsonObj);
 
             }
