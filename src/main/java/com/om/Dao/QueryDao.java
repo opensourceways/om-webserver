@@ -20,6 +20,7 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1589,5 +1590,72 @@ public class QueryDao {
         }
        return resMap;
     }
+
+    public String queryIssueScore(String community, String item) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+        String index = "";
+        String queryjson = "";
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getIssueScoreIndex();
+                queryjson = openEuler.getIssueScoreQueryStr();
+                break;
+            case "opengauss":
+            case "openlookeng":
+            case "mindspore":
+                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+            default:
+                return "";
+        }
+        builder.setUrl(this.url + index + "/_search");
+        builder.setBody(queryjson);
+        //获取执行结果
+        ListenableFuture<Response> futureRes = client.executeRequest(builder.build());
+        return parseIssueScoreFutureRes(futureRes, item);
+    }
+
+    private String parseIssueScoreFutureRes(ListenableFuture<Response> futureRes, String dataflage) {
+        Response response = null;
+        String statusText = "请求内部错误";
+        double count = 0d;
+        int statusCode = 500;
+        try {
+            response = futureRes.get();
+            statusCode = response.getStatusCode();
+            statusText = response.getStatusText();
+            String responseBody = response.getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            JsonNode records = dataNode.get("hits").get("hits");
+            int totalCount = records.size();
+
+            JSONArray resJsonArray = new JSONArray();
+            for (JsonNode record : records) {
+                JsonNode source = record.get("_source");
+
+                String issue_number = source.get("issue_number").asText();
+                String scoring_admin = source.get("scoring_admin").asText();
+                Double score = source.get("score").asDouble();
+
+                JSONObject recordJsonObj = new JSONObject();
+                recordJsonObj.put("issue_number", issue_number);
+                recordJsonObj.put("scoring_admin", scoring_admin);
+                recordJsonObj.put("score", score);
+                resJsonArray.put(recordJsonObj);
+
+            }
+            String result = "{\"code\":" + statusCode + ",\"data\":" + resJsonArray + ",\"msg\":\"" + statusText + "\"}";
+            return result;
+        } catch (InterruptedException | JsonProcessingException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return "{\"code\":" + statusCode + ",\"data\":\"[]\",\"msg\":\"" + statusText + "\"}";
+    }
+
 
 }

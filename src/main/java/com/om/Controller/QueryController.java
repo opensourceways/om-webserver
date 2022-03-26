@@ -182,4 +182,11 @@ public class QueryController {
         String res = queryService.queryUserContributors(community, "userContribute", contributeType, timeRange);
         return res;
     }
+
+    @RequestMapping(value = "/issueScore", method = RequestMethod.GET)
+    public String queryIssueScore(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String res = queryService.queryIssueScore(community, "issueScore");
+        return res;
+    }
+
 }

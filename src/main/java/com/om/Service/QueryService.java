@@ -514,5 +514,23 @@ public class QueryService {
         return result;
     }
 
+    public String queryIssueScore(String community, String item) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String key = community + item;
+        String result;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryIssueScore(community, item);
+            } catch (NoSuchAlgorithmException | KeyManagementException e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
 }
 
