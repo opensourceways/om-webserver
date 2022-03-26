@@ -58,6 +58,25 @@ public class openComObject {
     protected String sigDetailsIndex;
     protected String sigDetailsIndexQueryStr;
     protected String claCorporationIndex;
+    protected String issueScoreIndex;
+    protected String issueScoreQueryStr;
+
+    public String getIssueScoreIndex() {
+        return issueScoreIndex;
+    }
+
+    public void setIssueScoreIndex(String issueScoreIndex) {
+        this.issueScoreIndex = issueScoreIndex;
+    }
+
+    public String getIssueScoreQueryStr() {
+        return issueScoreQueryStr;
+    }
+
+    public void setIssueScoreQueryStr(String issueScoreQueryStr) {
+        this.issueScoreQueryStr = issueScoreQueryStr;
+    }
+
 
     public String getGiteeContributesQueryStr() {
         return GiteeContributesQueryStr;
