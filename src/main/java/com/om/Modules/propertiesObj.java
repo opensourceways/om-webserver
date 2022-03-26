@@ -210,6 +210,8 @@ public class propertiesObj {
         bean.setSigDetailsIndex(openconf.getProperty("sig_details_index"));
         bean.setSigDetailsIndexQueryStr(openconf.getProperty("sig_details_index_queryStr"));
         bean.setClaCorporationIndex(openconf.getProperty("cla_corporation_index"));
+        bean.setIssueScoreIndex(openconf.getProperty("issuescore_index"));
+        bean.setIssueScoreQueryStr(openconf.getProperty("issuescore_queryStr"));
     }
 
     private static Properties readProperties(String path) throws IOException {
