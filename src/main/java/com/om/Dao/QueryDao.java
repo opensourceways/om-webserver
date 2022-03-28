@@ -1,5 +1,6 @@
 package com.om.Dao;
 
+import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -1591,7 +1592,7 @@ public class QueryDao {
         return resMap;
     }
 
-    public String queryIssueScore(String community, String item) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+    public String queryIssueScore(String community, String start_date, String end_date, String item) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
         RequestBuilder builder = asyncHttpUtil.getBuilder();
 
@@ -1609,6 +1610,19 @@ public class QueryDao {
             default:
                 return "";
         }
+
+        com.alibaba.fastjson.JSONObject queryjsonObj = JSON.parseObject(queryjson);
+        if (start_date != null) {
+            queryjsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(0)
+                    .getJSONObject("range").getJSONObject("created_at").fluentPut("gte", start_date);
+        }
+
+        if (end_date != null) {
+            queryjsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(0)
+                    .getJSONObject("range").getJSONObject("created_at").fluentPut("lte", end_date);
+        }
+        queryjson = queryjsonObj.toJSONString();
+
         builder.setUrl(this.url + index + "/_search");
         builder.setBody(queryjson);
         //获取执行结果
@@ -1619,15 +1633,23 @@ public class QueryDao {
     private String parseIssueScoreFutureRes(ListenableFuture<Response> futureRes, String dataflage) {
         Response response = null;
         String statusText = "请求内部错误";
-        double count = 0d;
         int statusCode = 500;
+        String data = null;
+        String result = null;
+        double count = 0d;
         try {
             response = futureRes.get();
             statusCode = response.getStatusCode();
             statusText = response.getStatusText();
+
+            if (statusCode != 200) {
+                data = "[]";
+                result = "{\"code\":" + statusCode + ",\"data\":" + data + ",\"msg\":\"" + statusText + "\"}";
+                return result;
+            }
             String responseBody = response.getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
-            JsonNode records = dataNode.get("aggregations").get("group_by_issue_author").get("buckets");
+            JsonNode records = dataNode.get("aggregations").get("group_by_user_login").get("buckets");
             int totalCount = records.size();
 
             JSONArray resJsonArray = new JSONArray();
@@ -1641,7 +1663,7 @@ public class QueryDao {
                 resJsonArray.put(recordJsonObj);
 
             }
-            String result = "{\"code\":" + statusCode + ",\"data\":" + resJsonArray + ",\"msg\":\"" + statusText + "\"}";
+            result = "{\"code\":" + statusCode + ",\"data\":" + resJsonArray + ",\"msg\":\"" + statusText + "\"}";
             return result;
         } catch (InterruptedException | JsonProcessingException e) {
             e.printStackTrace();

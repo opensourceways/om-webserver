@@ -184,8 +184,10 @@ public class QueryController {
     }
 
     @RequestMapping(value = "/issueScore", method = RequestMethod.GET)
-    public String queryIssueScore(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String res = queryService.queryIssueScore(community, "issueScore");
+    public String queryIssueScore(@RequestParam(value = "community") String community,
+                                  @RequestParam(value = "start_date", required = false) String start_date,
+                                  @RequestParam(value = "end_date",required = false) String end_date) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String res = queryService.queryIssueScore(community, start_date, end_date, "issueScore");
         return res;
     }
 
