@@ -514,14 +514,14 @@ public class QueryService {
         return result;
     }
 
-    public String queryIssueScore(String community, String item) throws InterruptedException, ExecutionException, JsonProcessingException {
+    public String queryIssueScore(String community,String start_date,String end_date, String item) throws InterruptedException, ExecutionException, JsonProcessingException {
         String key = community + item;
         String result;
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryIssueScore(community, item);
+                result = queryDao.queryIssueScore(community,start_date,end_date, item);
             } catch (NoSuchAlgorithmException | KeyManagementException e) {
                 e.printStackTrace();
             }
