@@ -1627,7 +1627,7 @@ public class QueryDao {
             statusText = response.getStatusText();
             String responseBody = response.getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
-            JsonNode records = dataNode.get("aggregations").get("group_by_issue_author").get("buckets");
+            JsonNode records = dataNode.get("aggregations").get("group_by_user_login").get("buckets");
             int totalCount = records.size();
 
             JSONArray resJsonArray = new JSONArray();
