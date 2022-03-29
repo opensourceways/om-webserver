@@ -516,33 +516,13 @@ public class QueryService {
 
     public String queryIssueScore(String community, String start_date, String end_date, String item) throws InterruptedException, ExecutionException, JsonProcessingException {
 
-        String result;
-        String key = community + item;
-
-        if (!StringUtils.isNotBlank(start_date) && !StringUtils.isNotBlank(end_date)) {
-            result = (String) redisDao.get(key);
-        } else {
-            result = null;
+        String result = null;
+        try {
+            result = queryDao.queryIssueScore(community, start_date, end_date, item);
+        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+            e.printStackTrace();
         }
 
-        if (result == null) {
-            //查询数据库，更新redis 缓存。
-            try {
-                result = queryDao.queryIssueScore(community, start_date, end_date, item);
-            } catch (NoSuchAlgorithmException | KeyManagementException e) {
-                e.printStackTrace();
-            }
-
-            boolean set;
-            if (!StringUtils.isNotBlank(start_date) && !StringUtils.isNotBlank(end_date)) {
-                set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
-            } else {
-                set = false;
-            }
-            if (set) {
-                System.out.println("update " + key + " success!");
-            }
-        }
         return result;
     }
 }
