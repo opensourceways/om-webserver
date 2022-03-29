@@ -1612,12 +1612,12 @@ public class QueryDao {
         }
 
         com.alibaba.fastjson.JSONObject queryjsonObj = JSON.parseObject(queryjson);
-        if (start_date != null) {
+        if (StringUtils.isNotBlank(start_date)) {
             queryjsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(0)
                     .getJSONObject("range").getJSONObject("created_at").fluentPut("gte", start_date);
         }
 
-        if (end_date != null) {
+        if (StringUtils.isNotBlank(end_date)) {
             queryjsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(0)
                     .getJSONObject("range").getJSONObject("created_at").fluentPut("lte", end_date);
         }
