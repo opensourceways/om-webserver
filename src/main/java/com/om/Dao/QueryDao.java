@@ -1307,22 +1307,22 @@ public class QueryDao {
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getGiteeAllIndex();
-                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange);
+                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, community);
                 claIndex = openEuler.getClaCorporationIndex();
                 break;
             case "opengauss":
                 index = openGauss.getGiteeAllIndex();
-                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange);
+                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community);
                 claIndex = openGauss.getClaCorporationIndex();
                 break;
             case "openlookeng":
                 index = openLookeng.getGiteeAllIndex();
-                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange);
+                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, community);
                 claIndex = openLookeng.getClaCorporationIndex();
                 break;
             case "mindspore":
                 index = mindSpore.getGiteeAllIndex();
-                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange);
+                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, community);
                 claIndex = mindSpore.getClaCorporationIndex();
                 break;
             default:
@@ -1402,19 +1402,19 @@ public class QueryDao {
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getGiteeAllIndex();
-                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange);
+                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, community);
                 break;
             case "opengauss":
                 index = openGauss.getGiteeAllIndex();
-                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange);
+                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community);
                 break;
             case "openlookeng":
                 index = openLookeng.getGiteeAllIndex();
-                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange);
+                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, community);
                 break;
             case "mindspore":
                 index = mindSpore.getGiteeAllIndex();
-                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange);
+                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, community);
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
