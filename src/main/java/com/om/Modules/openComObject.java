@@ -474,7 +474,7 @@ public class openComObject {
         return queryStr;
     }
 
-    public String getAggCountQueryStr(String groupField, String contributeType, String timeRange) {
+    public String getAggCountQueryStr(String groupField, String contributeType, String timeRange, String community) {
         String queryStr;
         String queryJson;
         long currentTimeMillis = System.currentTimeMillis();
@@ -488,7 +488,11 @@ public class openComObject {
 
         switch (contributeType.toLowerCase()) {
             case "pr":
-                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_pull_state_merged");
+                if (community.toLowerCase().equals("opengauss")) {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_pull_request");
+                } else {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_pull_state_merged");
+                }
                 break;
             case "issue":
                 queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_issue");
