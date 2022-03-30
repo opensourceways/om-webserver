@@ -1349,22 +1349,27 @@ public class QueryDao {
             ArrayList<JsonNode> dataList = new ArrayList<>();
             HashMap<String, Object> dataMap = new HashMap<>();
             long independent = 0;
-            long partner = 0;
+//            long partner = 0;
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 String company = bucket.get("key").asText();
                 long contribute = bucket.get("sum_field").get("value").asLong();
-                if (company.equals("华为合作方")) {
-                    partner += contribute;
-                    continue;
-                }
-                if (!claCompanys.contains(company) || contribute == 0) {
+
+//                if (company.equals("华为合作方")) {
+//                    partner += contribute;
+//                    continue;
+//                }
+                if (!claCompanys.contains(company) || contribute == 0 ||
+                        company.contains("软通动力") ||
+                        company.contains("中软国际") ||
+                        company.contains("易宝软件") ||
+                        company.contains("华为合作方")) {
                     independent += contribute;
                     continue;
                 }
-                if (company.equals("软通动力信息技术（集团）股份有限公司")) {
-                    contribute += partner;
-                }
+//                if (company.equals("软通动力信息技术（集团）股份有限公司")) {
+//                    contribute += partner;
+//                }
                 String companyCn = companyNameAlCn.getOrDefault(company.trim(), company.trim());
                 String companyEn = companyNameCnEn.getOrDefault(company.trim(), companyCn);
                 dataMap.put("company_cn", companyCn);
