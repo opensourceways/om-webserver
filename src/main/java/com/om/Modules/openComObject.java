@@ -488,7 +488,7 @@ public class openComObject {
 
         switch (contributeType.toLowerCase()) {
             case "pr":
-                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_pull_request");
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_pull_state_merged");
                 break;
             case "issue":
                 queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_issue");
