@@ -1268,13 +1268,13 @@ public class QueryDao {
                     String giteeIdStr = giteeId == null ? "" : giteeId.asText();
                     JsonNode email = maintainer.get("email");
                     String emailStr = email == null ? "" : email.asText();
-                    maintainers.add(new SigDetailsMaintainer(giteeIdStr, emailStr));  //TODO
+                    maintainers.add(new SigDetailsMaintainer(giteeIdStr, emailStr));
                 }
             } else {
                 Iterator<JsonNode> jsonNodes = source.get("maintainers").elements();
                 while (jsonNodes.hasNext()) {
                     JsonNode maintainer = jsonNodes.next();
-                    maintainers.add(new SigDetailsMaintainer(maintainer.textValue(), ""));  //TODO
+                    maintainers.add(new SigDetailsMaintainer(maintainer.textValue(), ""));
                 }
             }
 
@@ -1284,9 +1284,10 @@ public class QueryDao {
                 JsonNode repo = repoNodes.next();
                 repos.add(repo.textValue());
             }
+            String description = source.get("description") == null ? "" : source.get("description").asText();
 
             sig.setName(source.get("sig_name").asText());
-            sig.setDescription(""/*source.get("description").asText()*/);  //TODO
+            sig.setDescription(description);
             sig.setMaintainer(maintainers);
             sig.setRepositories(repos);
             JsonNode resNode = objectMapper.convertValue(sig, JsonNode.class);
