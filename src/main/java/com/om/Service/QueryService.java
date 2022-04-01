@@ -525,5 +525,23 @@ public class QueryService {
 
         return result;
     }
+
+    public String queryBuildCheckInfo(String community, String pr_title, String pr_url, String pr_committer, String pr_branch, String build_no,
+                                      String check_total, String pr_create_startTime, String pr_create_endTime, String build_startTime, String build_endTime,
+                                      String result_update_startTime, String result_update_endTime, String mistake_update_startTime, String mistake_update_endTime,
+                                      String build_time_min, String build_time_max, String page, String per_page, String item) {
+
+        String result = null;
+        try {
+            result = queryDao.queryBuildCheckInfo(community, pr_title, pr_url, pr_committer, pr_branch, build_no,
+                    check_total, pr_create_startTime, pr_create_endTime, build_startTime, build_endTime, result_update_startTime,
+                    result_update_endTime, mistake_update_startTime, mistake_update_endTime, build_time_min, build_time_max,
+                    page, per_page, "buildCheckInfo");
+        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+            e.printStackTrace();
+        }
+
+        return result;
+    }
 }
 
