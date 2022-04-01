@@ -985,7 +985,8 @@ public class QueryDao {
         indexMap.put("community", community);
         indexMap.put("user_login", user);
         String id = nowStr + "_" + community + "_" + user;
-        request.add(new IndexRequest("new_year_" + item, "_doc", id).source(indexMap));
+//        request.add(new IndexRequest("new_year_" + item, "_doc", id).source(indexMap));
+        request.add(new IndexRequest("version_" + item, "_doc", id).source(indexMap));
         if (request.requests().size() != 0) {
             try {
                 restHighLevelClient.bulk(request, RequestOptions.DEFAULT);
