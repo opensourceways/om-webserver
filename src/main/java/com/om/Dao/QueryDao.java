@@ -1,6 +1,5 @@
 package com.om.Dao;
 
-import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -33,11 +32,13 @@ import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
+import static com.alibaba.fastjson.JSON.parseObject;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
@@ -1618,7 +1619,7 @@ public class QueryDao {
                 return "";
         }
 
-        com.alibaba.fastjson.JSONObject queryjsonObj = JSON.parseObject(queryjson);
+        com.alibaba.fastjson.JSONObject queryjsonObj = parseObject(queryjson);
         if (StringUtils.isNotBlank(start_date)) {
             queryjsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(0)
                     .getJSONObject("range").getJSONObject("created_at").fluentPut("gte", start_date);
@@ -1680,6 +1681,253 @@ public class QueryDao {
             e.printStackTrace();
         }
         return "{\"code\":" + statusCode + ",\"data\":\"[]\",\"msg\":\"" + statusText + "\"}";
+    }
+
+
+    public String queryBuildCheckInfo(String community, String pr_title, String pr_url, String pr_committer, String pr_branch, String build_no,
+                                      String check_total, String pr_create_startTime, String pr_create_endTime, String build_startTime,
+                                      String build_endTime, String result_update_startTime, String result_update_endTime,
+                                      String mistake_update_startTime, String mistake_update_endTime, String build_time_min,
+                                      String build_time_max, String page, String per_page, String item) throws NoSuchAlgorithmException, KeyManagementException {
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+        String buildCheckInfoResultIndex = "";
+        String buildCheckInfoResultQueryStr = "";
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                buildCheckInfoResultIndex = openEuler.getBuildCheckResultIndex();
+                buildCheckInfoResultQueryStr = openEuler.getBuildCheckResultQueryStr();
+                break;
+            case "opengauss":
+            case "openlookeng":
+            case "mindspore":
+                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+            default:
+                return "";
+        }
+
+        com.alibaba.fastjson.JSONObject buildCheckInfoResultQueryJsonObj;
+        buildCheckInfoResultQueryJsonObj = parseObject(buildCheckInfoResultQueryStr);
+
+
+        if (StringUtils.isNotBlank(pr_title)) {
+            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(0)
+                    .getJSONObject("wildcard").fluentPut("pr_title.keyword", pr_title);
+        }
+        if (StringUtils.isNotBlank(pr_url)) {
+            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(1)
+                    .getJSONObject("wildcard").fluentPut("pr_url.keyword", pr_url);
+        }
+        if (StringUtils.isNotBlank(pr_committer)) {
+            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(2)
+                    .getJSONObject("wildcard").fluentPut("pr_committer.keyword", pr_committer);
+        }
+        if (StringUtils.isNotBlank(pr_branch)) {
+            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(3)
+                    .getJSONObject("wildcard").fluentPut("pr_branch.keyword", pr_branch);
+        }
+        if (StringUtils.isNotBlank(check_total)) {
+            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(4)
+                    .getJSONObject("wildcard").fluentPut("check_total.keyword", check_total);
+        }
+        if (StringUtils.isNotBlank(pr_create_startTime)) {
+            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(5)
+                    .getJSONObject("range").getJSONObject("pr_create_at").fluentPut("gte", pr_create_startTime);
+        }
+        if (StringUtils.isNotBlank(pr_create_endTime)) {
+            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(5)
+                    .getJSONObject("range").getJSONObject("pr_create_at").fluentPut("lte", pr_create_endTime);
+        }
+        if (StringUtils.isNotBlank(build_startTime)) {
+            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(6)
+                    .getJSONObject("range").getJSONObject("build_at").fluentPut("gte", build_startTime);
+        }
+        if (StringUtils.isNotBlank(build_endTime)) {
+            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(6)
+                    .getJSONObject("range").getJSONObject("build_at").fluentPut("lte", build_endTime);
+        }
+        if (StringUtils.isNotBlank(result_update_startTime)) {
+            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(7)
+                    .getJSONObject("range").getJSONObject("update_at").fluentPut("gte", result_update_startTime);
+        }
+        if (StringUtils.isNotBlank(result_update_endTime)) {
+            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(7)
+                    .getJSONObject("range").getJSONObject("update_at").fluentPut("lte", result_update_endTime);
+        }
+        if (StringUtils.isNotBlank(mistake_update_startTime)) {
+            System.out.printf(String.format("mistake_update_startTime:%s", mistake_update_startTime));
+        }
+        if (StringUtils.isNotBlank(mistake_update_endTime)) {
+            System.out.printf(String.format("mistake_update_endTime:%s", mistake_update_endTime));
+        }
+        if (StringUtils.isNotBlank(build_time_min)) {
+            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(8)
+                    .getJSONObject("range").getJSONObject("build_time").fluentPut("gte", build_time_min);
+        }
+        if (StringUtils.isNotBlank(build_time_max)) {
+            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(8)
+                    .getJSONObject("range").getJSONObject("build_at").fluentPut("lte", build_time_max);
+        }
+
+        if (StringUtils.isNotBlank(build_no)) {
+            String buildNoStr = String.format("{\"term\": {\"build_no\": %s}}", build_no);
+            com.alibaba.fastjson.JSONObject buildNoJson = null;
+            try {
+                buildNoJson = parseObject(buildNoStr);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").add(buildNoJson);
+        }
+
+
+        buildCheckInfoResultQueryStr = buildCheckInfoResultQueryJsonObj.toJSONString();
+
+        builder.setUrl(this.url + buildCheckInfoResultIndex + "/_search");
+        builder.setBody(buildCheckInfoResultQueryStr);
+        ListenableFuture<Response> futureRes = client.executeRequest(builder.build());
+
+        return parseBuildCheckInfoResultFutureRes(futureRes, item);
+    }
+
+    private String parseBuildCheckInfoResultFutureRes(ListenableFuture<Response> futureRes, String dataflage) {
+        Response response = null;
+        String statusText = "请求内部错误";
+        int statusCode = 500;
+        String data = null;
+        String result = null;
+        double count = 0d;
+        com.alibaba.fastjson.JSONObject responseJsonObj;
+        try {
+            response = futureRes.get();
+            statusCode = response.getStatusCode();
+            statusText = response.getStatusText();
+
+            if (statusCode != 200) {
+                data = "[]";
+                result = "{\"code\":" + statusCode + ",\"data\":" + data + ",\"msg\":\"" + statusText + "\"}";
+                return result;
+            }
+            String responseBody = response.getResponseBody(UTF_8);
+            responseJsonObj = parseObject(responseBody);
+            com.alibaba.fastjson.JSONArray records = responseJsonObj.getJSONObject("hits").getJSONArray("hits");
+
+            int recordSize = records.size();
+            com.alibaba.fastjson.JSONArray resJsonArray = new com.alibaba.fastjson.JSONArray();
+            for (int i = 0; i < recordSize; i++) {
+                com.alibaba.fastjson.JSONObject source = records.getJSONObject(i).getJSONObject("_source");
+                String pr_url = (String) source.get("pr_url");
+                String build_no = String.valueOf(source.get("build_no"));
+                String build_at = String.valueOf(source.get("build_at"));
+
+                String mistake_updateTime = build_at;
+                com.alibaba.fastjson.JSONArray ci_mistake_list = new com.alibaba.fastjson.JSONArray();
+                String mistakeInfoStr = queryBuildCheckMistakeInfo(pr_url, build_no);
+                com.alibaba.fastjson.JSONObject mistakeInfoJsonObj = parseObject(mistakeInfoStr);
+                if (mistakeInfoJsonObj != null) {
+                    mistake_updateTime = String.valueOf(mistakeInfoJsonObj.get("mistake_latest_updateTime"));
+                    ci_mistake_list = mistakeInfoJsonObj.getJSONArray("mistake_list");
+                }
+
+                // Substitute the update_at field to result_update_at
+                source.put("ci_mistake_update_at", mistake_updateTime);
+                source.put("ci_mistake_list", ci_mistake_list);
+                resJsonArray.add(source);
+            }
+            count = recordSize;
+            data = resJsonArray.toJSONString();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        result = "{\"code\":" + statusCode + ",\"totalCount\":" + count + ",\"msg\":\"" + statusText + "\",\"data\":" + data + "}";
+        return result;
+    }
+
+    private String queryBuildCheckMistakeInfo(String pr_url, String build_no) throws NoSuchAlgorithmException, KeyManagementException {
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+        String buildCheckMistakeIndex = openEuler.getBuildCheckMistakeIndex();
+        String buildCheckMistakeQueryStr = openEuler.getBuildCheckMistakeQueryStr();
+
+        com.alibaba.fastjson.JSONObject buildCheckMistakeQueryJsonObj = parseObject(buildCheckMistakeQueryStr);
+        if (StringUtils.isNotBlank(pr_url)) {
+            buildCheckMistakeQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must")
+                    .getJSONObject(0).getJSONObject("wildcard").fluentPut("pr_url.keyword", pr_url);
+        }
+
+        if (StringUtils.isNotBlank(build_no)) {
+            String buildNoStr = String.format("{\"term\": {\"build_no\": %s}}", build_no);
+            com.alibaba.fastjson.JSONObject buildNoJson = null;
+            try {
+                buildNoJson = parseObject(buildNoStr);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            buildCheckMistakeQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").add(buildNoJson);
+        }
+
+        buildCheckMistakeQueryStr = buildCheckMistakeQueryJsonObj.toJSONString();
+
+        builder.setUrl(this.url + buildCheckMistakeIndex + "/_search");
+        builder.setBody(buildCheckMistakeQueryStr);
+        ListenableFuture<Response> futureRes = client.executeRequest(builder.build());
+
+        return parseBuildCheckInfoMistakeFutureRes(futureRes, "buildCheckMistakeInfo");
+    }
+
+    private String parseBuildCheckInfoMistakeFutureRes(ListenableFuture<Response> futureRes, String buildCheckMistakeInfo) {
+        Response response = null;
+        String statusText = "请求内部错误";
+        int statusCode = 500;
+        String data = null;
+        String result = null;
+        double count = 0d;
+        com.alibaba.fastjson.JSONObject responseJsonObj;
+        com.alibaba.fastjson.JSONObject resJsonObj = new com.alibaba.fastjson.JSONObject();
+        try {
+            response = futureRes.get();
+            statusCode = response.getStatusCode();
+            statusText = response.getStatusText();
+
+            if (statusCode != 200) {
+                System.out.println(String.format("!!!!Failed to fetch mistakeInfo, reason is : %. statusCode is:%s", statusText, statusCode));
+                return null;
+            }
+            String responseBody = response.getResponseBody(UTF_8);
+            responseJsonObj = parseObject(responseBody);
+            com.alibaba.fastjson.JSONArray records = responseJsonObj.getJSONObject("hits").getJSONArray("hits");
+            int recordSize = records.size();
+            if (recordSize == 0) {
+                return null;
+            }
+
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+            Calendar c = Calendar.getInstance();
+            c.clear();
+            c.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"));
+            c.set(2000, 00 /* 1月 */, 01, 0, 0, 0);
+            Date latestUpdateTime = c.getTime();
+
+            com.alibaba.fastjson.JSONArray mistakeJsonArray = new com.alibaba.fastjson.JSONArray();
+            for (int i = 0; i < recordSize; i++) {
+                com.alibaba.fastjson.JSONObject source = records.getJSONObject(i).getJSONObject("_source");
+                String mistakeUpdateAtStr = String.valueOf(source.get("update_at"));
+                Date currentMistakeUpdateAt = simpleDateFormat.parse(mistakeUpdateAtStr);
+
+                if (latestUpdateTime.compareTo(currentMistakeUpdateAt) < 0) {
+                    latestUpdateTime = currentMistakeUpdateAt;
+                }
+                mistakeJsonArray.add(source);
+            }
+            resJsonObj.put("mistake_latest_updateTime", latestUpdateTime);
+            resJsonObj.fluentPut("mistake_list", mistakeJsonArray);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return resJsonObj.toJSONString();
     }
 
 

@@ -85,6 +85,10 @@
             <artifactId>snakeyaml</artifactId>
             <version>1.25</version>
         </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+        </dependency>
     </dependencies>
     <build>
 
