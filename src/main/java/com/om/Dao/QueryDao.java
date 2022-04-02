@@ -1,5 +1,7 @@
 package com.om.Dao;
 
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -20,9 +22,6 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -527,15 +526,7 @@ public class QueryDao {
             String str_data = projectObj.toString();
             String result = "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + str_data + "},\"msg\":\"" + statusText + "\"}";
             return result;
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (JsonMappingException e) {
-            e.printStackTrace();
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        } catch (JSONException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
@@ -1619,7 +1610,7 @@ public class QueryDao {
                 return "";
         }
 
-        com.alibaba.fastjson.JSONObject queryjsonObj = parseObject(queryjson);
+        JSONObject queryjsonObj = parseObject(queryjson);
         if (StringUtils.isNotBlank(start_date)) {
             queryjsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(0)
                     .getJSONObject("range").getJSONObject("created_at").fluentPut("gte", start_date);
@@ -1668,16 +1659,11 @@ public class QueryDao {
                 JSONObject recordJsonObj = new JSONObject();
                 recordJsonObj.put("issue_author", issue_author);
                 recordJsonObj.put("issue_score", issue_score);
-                resJsonArray.put(recordJsonObj);
-
+                resJsonArray.fluentAdd(recordJsonObj);
             }
             result = "{\"code\":" + statusCode + ",\"data\":" + resJsonArray + ",\"msg\":\"" + statusText + "\"}";
             return result;
-        } catch (InterruptedException | JsonProcessingException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        } catch (JSONException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return "{\"code\":" + statusCode + ",\"data\":\"[]\",\"msg\":\"" + statusText + "\"}";
@@ -1707,8 +1693,7 @@ public class QueryDao {
                 return "";
         }
 
-        com.alibaba.fastjson.JSONObject buildCheckInfoResultQueryJsonObj;
-        buildCheckInfoResultQueryJsonObj = parseObject(buildCheckInfoResultQueryStr);
+        JSONObject buildCheckInfoResultQueryJsonObj = parseObject(buildCheckInfoResultQueryStr);
 
 
         if (StringUtils.isNotBlank(pr_title)) {
@@ -1772,7 +1757,7 @@ public class QueryDao {
 
         if (StringUtils.isNotBlank(build_no)) {
             String buildNoStr = String.format("{\"term\": {\"build_no\": %s}}", build_no);
-            com.alibaba.fastjson.JSONObject buildNoJson = null;
+            JSONObject buildNoJson = null;
             try {
                 buildNoJson = parseObject(buildNoStr);
             } catch (Exception e) {
@@ -1798,7 +1783,7 @@ public class QueryDao {
         String data = null;
         String result = null;
         double count = 0d;
-        com.alibaba.fastjson.JSONObject responseJsonObj;
+        JSONObject responseJsonObj;
         try {
             response = futureRes.get();
             statusCode = response.getStatusCode();
@@ -1811,20 +1796,20 @@ public class QueryDao {
             }
             String responseBody = response.getResponseBody(UTF_8);
             responseJsonObj = parseObject(responseBody);
-            com.alibaba.fastjson.JSONArray records = responseJsonObj.getJSONObject("hits").getJSONArray("hits");
+            JSONArray records = responseJsonObj.getJSONObject("hits").getJSONArray("hits");
 
             int recordSize = records.size();
-            com.alibaba.fastjson.JSONArray resJsonArray = new com.alibaba.fastjson.JSONArray();
+            JSONArray resJsonArray = new JSONArray();
             for (int i = 0; i < recordSize; i++) {
-                com.alibaba.fastjson.JSONObject source = records.getJSONObject(i).getJSONObject("_source");
+                JSONObject source = records.getJSONObject(i).getJSONObject("_source");
                 String pr_url = (String) source.get("pr_url");
                 String build_no = String.valueOf(source.get("build_no"));
                 String build_at = String.valueOf(source.get("build_at"));
 
                 String mistake_updateTime = build_at;
-                com.alibaba.fastjson.JSONArray ci_mistake_list = new com.alibaba.fastjson.JSONArray();
+                JSONArray ci_mistake_list = new JSONArray();
                 String mistakeInfoStr = queryBuildCheckMistakeInfo(pr_url, build_no);
-                com.alibaba.fastjson.JSONObject mistakeInfoJsonObj = parseObject(mistakeInfoStr);
+                JSONObject mistakeInfoJsonObj = parseObject(mistakeInfoStr);
                 if (mistakeInfoJsonObj != null) {
                     mistake_updateTime = String.valueOf(mistakeInfoJsonObj.get("mistake_latest_updateTime"));
                     ci_mistake_list = mistakeInfoJsonObj.getJSONArray("mistake_list");
@@ -1851,7 +1836,7 @@ public class QueryDao {
         String buildCheckMistakeIndex = openEuler.getBuildCheckMistakeIndex();
         String buildCheckMistakeQueryStr = openEuler.getBuildCheckMistakeQueryStr();
 
-        com.alibaba.fastjson.JSONObject buildCheckMistakeQueryJsonObj = parseObject(buildCheckMistakeQueryStr);
+        JSONObject buildCheckMistakeQueryJsonObj = parseObject(buildCheckMistakeQueryStr);
         if (StringUtils.isNotBlank(pr_url)) {
             buildCheckMistakeQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must")
                     .getJSONObject(0).getJSONObject("wildcard").fluentPut("pr_url.keyword", pr_url);
@@ -1859,7 +1844,7 @@ public class QueryDao {
 
         if (StringUtils.isNotBlank(build_no)) {
             String buildNoStr = String.format("{\"term\": {\"build_no\": %s}}", build_no);
-            com.alibaba.fastjson.JSONObject buildNoJson = null;
+            JSONObject buildNoJson = null;
             try {
                 buildNoJson = parseObject(buildNoStr);
             } catch (Exception e) {
@@ -1869,7 +1854,6 @@ public class QueryDao {
         }
 
         buildCheckMistakeQueryStr = buildCheckMistakeQueryJsonObj.toJSONString();
-
         builder.setUrl(this.url + buildCheckMistakeIndex + "/_search");
         builder.setBody(buildCheckMistakeQueryStr);
         ListenableFuture<Response> futureRes = client.executeRequest(builder.build());
@@ -1884,8 +1868,8 @@ public class QueryDao {
         String data = null;
         String result = null;
         double count = 0d;
-        com.alibaba.fastjson.JSONObject responseJsonObj;
-        com.alibaba.fastjson.JSONObject resJsonObj = new com.alibaba.fastjson.JSONObject();
+        JSONObject responseJsonObj;
+        JSONObject resJsonObj = new JSONObject();
         try {
             response = futureRes.get();
             statusCode = response.getStatusCode();
@@ -1897,7 +1881,7 @@ public class QueryDao {
             }
             String responseBody = response.getResponseBody(UTF_8);
             responseJsonObj = parseObject(responseBody);
-            com.alibaba.fastjson.JSONArray records = responseJsonObj.getJSONObject("hits").getJSONArray("hits");
+            JSONArray records = responseJsonObj.getJSONObject("hits").getJSONArray("hits");
             int recordSize = records.size();
             if (recordSize == 0) {
                 return null;
@@ -1910,9 +1894,9 @@ public class QueryDao {
             c.set(2000, 00 /* 1月 */, 01, 0, 0, 0);
             Date latestUpdateTime = c.getTime();
 
-            com.alibaba.fastjson.JSONArray mistakeJsonArray = new com.alibaba.fastjson.JSONArray();
+            JSONArray mistakeJsonArray = new JSONArray();
             for (int i = 0; i < recordSize; i++) {
-                com.alibaba.fastjson.JSONObject source = records.getJSONObject(i).getJSONObject("_source");
+                JSONObject source = records.getJSONObject(i).getJSONObject("_source");
                 String mistakeUpdateAtStr = String.valueOf(source.get("update_at"));
                 Date currentMistakeUpdateAt = simpleDateFormat.parse(mistakeUpdateAtStr);
 
