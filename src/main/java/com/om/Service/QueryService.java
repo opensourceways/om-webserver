@@ -63,7 +63,6 @@ public class QueryService {
         return result;
     }
 
-
     public String queryDurationAggFromProjectHostarchPackage(String community) {
         String key = community + "avgDuration";
         String result;
@@ -84,7 +83,6 @@ public class QueryService {
         }
         return result;
     }
-
 
     public String querySigs(String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String key = community + "sigs";
@@ -514,7 +512,7 @@ public class QueryService {
         return result;
     }
 
-    public String queryIssueScore(String community, String start_date, String end_date, String item) throws InterruptedException, ExecutionException, JsonProcessingException {
+    public String queryIssueScore(String community, String start_date, String end_date, String item) {
 
         String result = null;
         try {
