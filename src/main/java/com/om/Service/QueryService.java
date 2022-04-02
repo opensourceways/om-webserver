@@ -519,7 +519,7 @@ public class QueryService {
         String result = null;
         try {
             result = queryDao.queryIssueScore(community, start_date, end_date, item);
-        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
