@@ -1782,7 +1782,7 @@ public class QueryDao {
         int statusCode = 500;
         String data = null;
         String result = null;
-        double count = 0d;
+        long count = 0L;
         JSONObject responseJsonObj;
         try {
             response = futureRes.get();
