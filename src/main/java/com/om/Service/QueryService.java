@@ -535,7 +535,7 @@ public class QueryService {
                     check_total, pr_create_startTime, pr_create_endTime, build_startTime, build_endTime, result_update_startTime,
                     result_update_endTime, mistake_update_startTime, mistake_update_endTime, build_time_min, build_time_max,
                     page, per_page, "buildCheckInfo");
-        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
