@@ -77,6 +77,9 @@ public class QueryDao {
     @Autowired
     StarFork starFork;
 
+    String DEFAULT_MISTAKE_UPDATE_START_TIME = "2010-01-01";
+    String DEFAULT_MISTAKE_UPDATE_END_TIME = "now";
+
     //openeuler openlookeng opengauss 测试通过
     public String queryContributors(String community) throws NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
@@ -1718,6 +1721,13 @@ public class QueryDao {
         JSONObject buildCheckInfoResultQueryJsonObj = parseObject(buildCheckInfoResultQueryStr);
 
 
+        if (!StringUtils.isNotBlank(mistake_update_startTime)) {
+            mistake_update_startTime = DEFAULT_MISTAKE_UPDATE_START_TIME;
+        }
+        if (!StringUtils.isNotBlank(mistake_update_endTime)) {
+            mistake_update_endTime = DEFAULT_MISTAKE_UPDATE_END_TIME;
+        }
+
         if (StringUtils.isNotBlank(pr_title)) {
             buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(0)
                     .getJSONObject("wildcard").fluentPut("pr_title.keyword", pr_title);
@@ -1762,12 +1772,6 @@ public class QueryDao {
             buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(7)
                     .getJSONObject("range").getJSONObject("update_at").fluentPut("lte", result_update_endTime);
         }
-        if (StringUtils.isNotBlank(mistake_update_startTime)) {
-            System.out.printf(String.format("mistake_update_startTime:%s", mistake_update_startTime));
-        }
-        if (StringUtils.isNotBlank(mistake_update_endTime)) {
-            System.out.printf(String.format("mistake_update_endTime:%s", mistake_update_endTime));
-        }
         if (StringUtils.isNotBlank(build_time_min)) {
             buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(8)
                     .getJSONObject("range").getJSONObject("build_time").fluentPut("gte", build_time_min);
@@ -1775,6 +1779,12 @@ public class QueryDao {
         if (StringUtils.isNotBlank(build_time_max)) {
             buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(8)
                     .getJSONObject("range").getJSONObject("build_at").fluentPut("lte", build_time_max);
+        }
+        if (StringUtils.isNotBlank(mistake_update_startTime)) {
+            System.out.printf(String.format("mistake_update_startTime:%s]\n", mistake_update_startTime));
+        }
+        if (StringUtils.isNotBlank(mistake_update_endTime)) {
+            System.out.printf(String.format("mistake_update_endTime:%s", mistake_update_endTime));
         }
 
         if (StringUtils.isNotBlank(build_no)) {
@@ -1787,18 +1797,15 @@ public class QueryDao {
             }
             buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").add(buildNoJson);
         }
-
-
         buildCheckInfoResultQueryStr = buildCheckInfoResultQueryJsonObj.toJSONString();
-
         builder.setUrl(this.url + buildCheckInfoResultIndex + "/_search");
         builder.setBody(buildCheckInfoResultQueryStr);
         ListenableFuture<Response> futureRes = client.executeRequest(builder.build());
-
-        return parseBuildCheckInfoResultFutureRes(futureRes, item);
+        return parseBuildCheckInfoResultFutureRes(futureRes, item, mistake_update_startTime, mistake_update_endTime);
     }
 
-    private String parseBuildCheckInfoResultFutureRes(ListenableFuture<Response> futureRes, String dataflage) {
+    private String parseBuildCheckInfoResultFutureRes(ListenableFuture<Response> futureRes, String item,
+                                                      String mistake_update_startTime, String mistake_update_endTime) {
         Response response = null;
         String statusText = "请求内部错误";
         int statusCode = 500;
@@ -1830,7 +1837,7 @@ public class QueryDao {
 
                 String mistake_updateTime = build_at;
                 JSONArray ci_mistake_list = new JSONArray();
-                String mistakeInfoStr = queryBuildCheckMistakeInfo(pr_url, build_no);
+                String mistakeInfoStr = queryBuildCheckMistakeInfo(pr_url, build_no, mistake_update_startTime, mistake_update_endTime);
                 JSONObject mistakeInfoJsonObj = parseObject(mistakeInfoStr);
                 if (mistakeInfoJsonObj != null) {
                     mistake_updateTime = String.valueOf(mistakeInfoJsonObj.get("mistake_latest_updateTime"));
@@ -1840,8 +1847,18 @@ public class QueryDao {
                 // Substitute the update_at field to result_update_at
                 source.put("ci_mistake_update_at", mistake_updateTime);
                 source.put("ci_mistake_list", ci_mistake_list);
+
+                // if provide mistake_update_time arguments, filter out the other results
+                if (!mistake_update_startTime.equals(DEFAULT_MISTAKE_UPDATE_START_TIME) ||
+                        !mistake_update_endTime.equals(DEFAULT_MISTAKE_UPDATE_END_TIME)) {   //mistake_update_time不为空
+                    if (ci_mistake_list.size() == 0) {
+                        continue;
+                    }
+                }
                 resJsonArray.add(source);
             }
+
+
             count = recordSize;
             data = resJsonArray.toJSONString();
         } catch (Exception e) {
@@ -1851,7 +1868,8 @@ public class QueryDao {
         return result;
     }
 
-    private String queryBuildCheckMistakeInfo(String pr_url, String build_no) throws NoSuchAlgorithmException, KeyManagementException {
+    private String queryBuildCheckMistakeInfo(String pr_url, String build_no, String mistake_update_startTime,
+                                              String mistake_update_endTime) throws NoSuchAlgorithmException, KeyManagementException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
         RequestBuilder builder = asyncHttpUtil.getBuilder();
 
@@ -1880,10 +1898,12 @@ public class QueryDao {
         builder.setBody(buildCheckMistakeQueryStr);
         ListenableFuture<Response> futureRes = client.executeRequest(builder.build());
 
-        return parseBuildCheckInfoMistakeFutureRes(futureRes, "buildCheckMistakeInfo");
+        return parseBuildCheckInfoMistakeFutureRes(futureRes, "buildCheckMistakeInfo",
+                mistake_update_startTime, mistake_update_endTime);
     }
 
-    private String parseBuildCheckInfoMistakeFutureRes(ListenableFuture<Response> futureRes, String buildCheckMistakeInfo) {
+    private String parseBuildCheckInfoMistakeFutureRes(ListenableFuture<Response> futureRes, String buildCheckMistakeInfo,
+                                                       String mistake_update_startTime, String mistake_update_endTime) {
         Response response = null;
         String statusText = "请求内部错误";
         int statusCode = 500;
@@ -1898,7 +1918,8 @@ public class QueryDao {
             statusText = response.getStatusText();
 
             if (statusCode != 200) {
-                System.out.println(String.format("!!!!Failed to fetch mistakeInfo, reason is : %. statusCode is:%s", statusText, statusCode));
+                System.out.println(String.format("!!!!Failed to fetch mistakeInfo, reason is : %; \t" +
+                        "statusCode is:%s", statusText, statusCode));
                 return null;
             }
             String responseBody = response.getResponseBody(UTF_8);
@@ -1910,6 +1931,7 @@ public class QueryDao {
             }
 
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+            SimpleDateFormat timeWindowSimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
             Calendar c = Calendar.getInstance();
             c.clear();
             c.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"));
@@ -1927,14 +1949,24 @@ public class QueryDao {
                 }
                 mistakeJsonArray.add(source);
             }
-            resJsonObj.put("mistake_latest_updateTime", latestUpdateTime);
-            resJsonObj.fluentPut("mistake_list", mistakeJsonArray);
+
+            Date mistake_update_startTime_dateObj = timeWindowSimpleDateFormat.parse(mistake_update_startTime);
+            Date mistake_update_endTime_dateObj = timeWindowSimpleDateFormat.parse(mistake_update_endTime);
+
+            if (latestUpdateTime.compareTo(mistake_update_startTime_dateObj) >= 0 &&
+                    latestUpdateTime.compareTo(mistake_update_endTime_dateObj) <= 0) {
+                String lastestUpdateTimeStr = simpleDateFormat.format(latestUpdateTime);
+                resJsonObj.put("mistake_latest_updateTime", lastestUpdateTimeStr);
+                resJsonObj.fluentPut("mistake_list", mistakeJsonArray);
+            } else {
+                return null;
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         return resJsonObj.toJSONString();
     }
-
 
 }
