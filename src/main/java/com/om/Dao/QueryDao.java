@@ -15,6 +15,7 @@ import com.om.Vo.BlueZoneUserVo;
 import com.om.Vo.IsoBuildTimesVo;
 import com.om.Vo.SigDetailsVo;
 import org.apache.commons.lang3.StringUtils;
+import org.assertj.core.util.Lists;
 import org.asynchttpclient.*;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
@@ -102,7 +103,7 @@ public class QueryDao {
                     builder.setBody(queryjson);
                     //获取执行结果
                     ListenableFuture<Response> f = client.executeRequest(builder.build());
-                    String users = getResult(f, "contributors");
+                    String users = getBucketCount(f, "contributors");
                     JsonNode dataNode = objectMapper.readTree(users);
                     statusCode = dataNode.get("code").intValue();
                     contributors_count += dataNode.get("data").get("contributors").intValue();
@@ -120,8 +121,29 @@ public class QueryDao {
         builder.setBody(queryjson);
         //获取执行结果
         ListenableFuture<Response> f = client.executeRequest(builder.build());
-        String contributors = getResult(f, "contributors");
+        String contributors = getBucketCount(f, "contributors");
         return contributors;
+    }
+
+    private String getBucketCount(ListenableFuture<Response> f, String dataFlag) {
+        Response response;
+        String statusText = "请求内部错误";
+        long count = 0;
+        int statusCode = 500;
+        try {
+            response = f.get();
+            statusCode = response.getStatusCode();
+            statusText = response.getStatusText();
+            String responseBody = response.getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("distinct_field").get("buckets").elements();
+            count = Lists.newArrayList(buckets).size();
+            return "{\"code\":" + statusCode + ",\"data\":{\"" + dataFlag + "\":" + Math.round(count) + "},\"msg\":\"" + statusText + "\"}";
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return "{\"code\":" + statusCode + ",\"data\":{\"" + dataFlag + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
     }
 
     public String queryDurationAggFromProjectHostarchPackage(String community) throws NoSuchAlgorithmException, KeyManagementException {
