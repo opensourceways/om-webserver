@@ -1736,39 +1736,50 @@ public class QueryDao {
         JSONObject resultJsonObject = parseObject(resultInfo);
         JSONArray resultJsonArray = resultJsonObject.getJSONArray("data");
 
-        JSONArray finalResultJSONArray = new JSONArray();
-        JSONArray empty_ci_mistake_list = new JSONArray();
-        int resultTotalCount = resultJsonArray.size();
-        for (int i = 0; i < resultTotalCount; i++) {
-            JSONObject eachResultJsonObject = (JSONObject) resultJsonArray.get(i);
-            String pr_url = eachResultJsonObject.getString("pr_url");
-            String build_no = eachResultJsonObject.getString("build_no");
-            String result_update_at = eachResultJsonObject.getString("update_at");
-            eachResultJsonObject.fluentPut("result_update_at", result_update_at);
-            eachResultJsonObject.fluentRemove("update_at");
+        JSONArray finalResultJSONArray;
+        try {
+            finalResultJSONArray = new JSONArray();
+            JSONArray empty_ci_mistake_list = new JSONArray();
+            int resultTotalCount = resultJsonArray.size();
+            for (int i = 0; i < resultTotalCount; i++) {
+                JSONObject eachResultJsonObject = (JSONObject) resultJsonArray.get(i);
+                String pr_url = eachResultJsonObject.getString("pr_url");
+                String build_no = eachResultJsonObject.getString("build_no");
+                String result_update_at = eachResultJsonObject.getString("update_at");
+                eachResultJsonObject.fluentPut("result_update_at", result_update_at);
+                eachResultJsonObject.fluentRemove("update_at");
 
-            SearchSourceBuilder mistakeSourceBuilder = assembleMistakeSourceBuilder("update_at", pr_url, build_no, queryBody);
-            String mistakeInfoStr = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoMistakeIndex, 5000, mistakeSourceBuilder);
-            JSONObject eachResultMistakeInfoObj = parseObject(mistakeInfoStr);
-            JSONArray eachResultMistakeDataJsonArray = eachResultMistakeInfoObj.getJSONArray("data");
+                SearchSourceBuilder mistakeSourceBuilder = assembleMistakeSourceBuilder("update_at", pr_url, build_no, queryBody);
+                String mistakeInfoStr = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoMistakeIndex, 5000, mistakeSourceBuilder);
+                JSONObject eachResultMistakeInfoObj = parseObject(mistakeInfoStr);
+                JSONArray eachResultMistakeDataJsonArray = eachResultMistakeInfoObj.getJSONArray("data");
 
-            if (eachResultMistakeDataJsonArray.size() < 1) {
-                eachResultJsonObject.fluentPut("ci_mistake_update_at", result_update_at);
-                eachResultJsonObject.fluentPut("ci_mistake", empty_ci_mistake_list);
-            } else {
-                String mistakeLatestUpdateTime = getMistakeLatestUpdateTime(eachResultMistakeDataJsonArray);
-                eachResultJsonObject.fluentPut("ci_mistake_update_at", mistakeLatestUpdateTime);
-                eachResultJsonObject.fluentPut("ci_mistake", eachResultMistakeDataJsonArray);
+                if (eachResultMistakeDataJsonArray.size() < 1) {
+                    eachResultJsonObject.fluentPut("ci_mistake_update_at", result_update_at);
+                    eachResultJsonObject.fluentPut("ci_mistake", empty_ci_mistake_list);
+                } else {
+                    String mistakeLatestUpdateTime = getMistakeLatestUpdateTime(eachResultMistakeDataJsonArray);
+                    eachResultJsonObject.fluentPut("ci_mistake_update_at", mistakeLatestUpdateTime);
+                    eachResultJsonObject.fluentPut("ci_mistake", eachResultMistakeDataJsonArray);
+                }
+
+
+
+                boolean isAdd = isLocatedInTimeWindow(queryBody, eachResultJsonObject.getString("ci_mistake_update_at"));
+                if (!isAdd) {
+                    continue;
+                }
+                finalResultJSONArray.add(eachResultJsonObject);
+            }
+        } finally {
+            try {
+                restHighLevelClient.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
 
-
-
-            boolean isAdd = isLocatedInTimeWindow(queryBody, eachResultJsonObject.getString("ci_mistake_update_at"));
-            if (!isAdd) {
-                continue;
-            }
-            finalResultJSONArray.add(eachResultJsonObject);
         }
+
 
         return "{\"code\":200,\"totalCount\":" + finalResultJSONArray.size() + ",\"msg\":\"ok\",\"data\":" + finalResultJSONArray + "}";
     }
