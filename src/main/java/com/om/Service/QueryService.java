@@ -8,10 +8,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
 import com.om.Utils.StringDesensitizationUtils;
-import com.om.Vo.BlueZoneContributeVo;
-import com.om.Vo.BlueZoneUserVo;
-import com.om.Vo.IsoBuildTimesVo;
-import com.om.Vo.SigDetailsVo;
+import com.om.Utils.StringValidationUtil;
+import com.om.Vo.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -20,8 +18,7 @@ import org.springframework.stereotype.Service;
 import java.net.SocketTimeoutException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
-import java.util.LinkedHashMap;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -524,22 +521,96 @@ public class QueryService {
         return result;
     }
 
-    public String queryBuildCheckInfo(String community, String pr_title, String pr_url, String pr_committer, String pr_branch, String build_no,
-                                      String check_total, String pr_create_startTime, String pr_create_endTime, String build_startTime, String build_endTime,
-                                      String result_update_startTime, String result_update_endTime, String mistake_update_startTime, String mistake_update_endTime,
-                                      String build_time_min, String build_time_max, String page, String per_page, String item) {
+    public String queryBuildCheckInfo(BuildCheckInfoQueryVo queryBody, String item) {
+        String validateResult = validateBuildCheckInfo(queryBody, item);
+        if (!StringUtils.isBlank(validateResult)) {
+            return validateResult;
+        }
+        String res = queryDao.queryBuildCheckInfo(queryBody, item, env);
 
-        String result = null;
-        try {
-            result = queryDao.queryBuildCheckInfo(community, pr_title, pr_url, pr_committer, pr_branch, build_no,
-                    check_total, pr_create_startTime, pr_create_endTime, build_startTime, build_endTime, result_update_startTime,
-                    result_update_endTime, mistake_update_startTime, mistake_update_endTime, build_time_min, build_time_max,
-                    page, per_page, "buildCheckInfo");
-        } catch (Exception e) {
-            e.printStackTrace();
+        return res;
+    }
+
+    private String validateBuildCheckInfo(BuildCheckInfoQueryVo buildCheckInfoQueryVo, String item) {
+        List<String> communityNameList = Arrays.asList("openeuler", "opengauss", "openlookeng", "mindspore");
+        List<String> checkTotalValidField = Arrays.asList("success", "failed");
+        double MIN_BUILD_DURATION = 0;
+        double MAX_BUILD_DURATION = 10000;
+        String errorMsg = "";
+
+
+        String community_name = buildCheckInfoQueryVo.getCommunity_name();
+        if (!communityNameList.contains(community_name.toLowerCase())) {
+            errorMsg = "community name is invalid, Only allows: openeuler,opengauss, openlookeng, mindspore";
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":" + errorMsg + "}";
         }
 
-        return result;
+        String check_total = buildCheckInfoQueryVo.getCheck_total();
+        if (!StringUtils.isBlank(check_total) && !checkTotalValidField.contains(check_total.toLowerCase())) {
+            errorMsg = "check_total is invalid, Only allows: SUCCESS and FAILED";
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":" + errorMsg + "}";
+        }
+
+        Map<String, String> build_duration = buildCheckInfoQueryVo.getBuild_duration();
+        double min_duration_time = Double.parseDouble(build_duration.get("min_duration_time"));
+        double max_duration_time = Double.parseDouble(build_duration.get("max_duration_time"));
+        if (!((min_duration_time >= MIN_BUILD_DURATION) && (max_duration_time <= MAX_BUILD_DURATION))) {
+            errorMsg = "build_time is invalid, Only allows: bigger than " + MIN_BUILD_DURATION + ", and less than "
+                    + MAX_BUILD_DURATION + "";
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":" + errorMsg + "}";
+        }
+
+
+        Map<String, String> pr_create_time = buildCheckInfoQueryVo.getPr_create_time();
+        Map<String, String> result_build_time = buildCheckInfoQueryVo.getResult_build_time();
+        Map<String, String> result_update_time = buildCheckInfoQueryVo.getResult_update_time();
+        Map<String, String> mistake_update_time = buildCheckInfoQueryVo.getMistake_update_time();
+
+        String pr_create_start_time = pr_create_time.get("start_time");
+        String pr_create_end_time = pr_create_time.get("end_time");
+        String result_build_start_time = result_build_time.get("start_time");
+        String result_build_end_time = result_build_time.get("end_time");
+        String result_update_start_time = result_update_time.get("start_time");
+        String result_update_end_time = result_update_time.get("end_time");
+        String mistake_update_start_time = mistake_update_time.get("start_time");
+        String mistake_update_end_time = mistake_update_time.get("end_time");
+
+        if (!StringValidationUtil.isDateTimeStrValid(pr_create_start_time)) {
+            errorMsg = "pr_create_start_time format is invalid";
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":" + errorMsg + "}";
+        }
+        if (!StringValidationUtil.isDateTimeStrValid(pr_create_end_time)) {
+            errorMsg = "pr_create_end_time format is invalid";
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":" + errorMsg + "}";
+        }
+        if (!StringValidationUtil.isDateTimeStrValid(result_build_start_time)) {
+            errorMsg = "result_build_start_time format is invalid";
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":" + errorMsg + "}";
+        }
+        if (!StringValidationUtil.isDateTimeStrValid(result_build_end_time)) {
+            errorMsg = "result_build_end_time format is invalid";
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":" + errorMsg + "}";
+        }
+        if (!StringValidationUtil.isDateTimeStrValid(result_update_start_time)) {
+            errorMsg = "result_update_start_time format is invalid";
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":" + errorMsg + "}";
+        }
+        if (!StringValidationUtil.isDateTimeStrValid(result_update_end_time)) {
+            errorMsg = "result_update_end_time format is invalid";
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":" + errorMsg + "}";
+        }
+        if (!StringValidationUtil.isDateTimeStrValid(mistake_update_start_time)) {
+            errorMsg = "mistake_update_start_time format is invalid";
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":" + errorMsg + "}";
+        }
+        if (!StringValidationUtil.isDateTimeStrValid(mistake_update_end_time)) {
+            errorMsg = "mistake_update_end_time format is invalid";
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":" + errorMsg + "}";
+        }
+
+        return null;
     }
+
+
 }
 

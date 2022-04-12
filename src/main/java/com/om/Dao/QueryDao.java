@@ -12,10 +12,8 @@ import com.om.Modules.yaml.CommunityPartnersYamlInfo;
 import com.om.Modules.yaml.CompanyYaml;
 import com.om.Modules.yaml.CompanyYamlInfo;
 import com.om.Utils.*;
-import com.om.Vo.BlueZoneContributeVo;
-import com.om.Vo.BlueZoneUserVo;
-import com.om.Vo.IsoBuildTimesVo;
-import com.om.Vo.SigDetailsVo;
+import com.om.Vo.*;
+import io.netty.util.internal.StringUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.util.Lists;
 import org.asynchttpclient.*;
@@ -23,6 +21,12 @@ import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.RangeQueryBuilder;
+import org.elasticsearch.index.query.TermQueryBuilder;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -32,6 +36,7 @@ import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -1694,279 +1699,247 @@ public class QueryDao {
         return "{\"code\":" + statusCode + ",\"data\":\"[]\",\"msg\":\"" + statusText + "\"}";
     }
 
+    public String queryBuildCheckInfo(BuildCheckInfoQueryVo queryBody, String item, Environment env) {
 
-    public String queryBuildCheckInfo(String community, String pr_title, String pr_url, String pr_committer, String pr_branch, String build_no,
-                                      String check_total, String pr_create_startTime, String pr_create_endTime, String build_startTime,
-                                      String build_endTime, String result_update_startTime, String result_update_endTime,
-                                      String mistake_update_startTime, String mistake_update_endTime, String build_time_min,
-                                      String build_time_max, String page, String per_page, String item) throws NoSuchAlgorithmException, KeyManagementException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
+        String communityName = queryBody.getCommunity_name();
 
-        String buildCheckInfoResultIndex = "";
-        String buildCheckInfoResultQueryStr = "";
-        switch (community.toLowerCase()) {
+        String result = null;
+        String resultInfo = null;
+        String buildCheckInfoResultIndex;
+        String buildCheckInfoMistakeIndex;
+
+
+        switch (communityName.toLowerCase()) {
             case "openeuler":
                 buildCheckInfoResultIndex = openEuler.getBuildCheckResultIndex();
-                buildCheckInfoResultQueryStr = openEuler.getBuildCheckResultQueryStr();
+                buildCheckInfoMistakeIndex = openEuler.getBuildCheckMistakeIndex();
                 break;
             case "opengauss":
             case "openlookeng":
             case "mindspore":
                 return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
             default:
-                return "";
-        }
-
-        JSONObject buildCheckInfoResultQueryJsonObj = parseObject(buildCheckInfoResultQueryStr);
-
-
-        if (!StringUtils.isNotBlank(mistake_update_startTime)) {
-            mistake_update_startTime = DEFAULT_MISTAKE_UPDATE_START_TIME;
-        }
-        if (!StringUtils.isNotBlank(mistake_update_endTime)) {
-            mistake_update_endTime = DEFAULT_MISTAKE_UPDATE_END_TIME;
-        }
-
-        if (StringUtils.isNotBlank(pr_title)) {
-            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(0)
-                    .getJSONObject("wildcard").fluentPut("pr_title.keyword", pr_title);
-        }
-        if (StringUtils.isNotBlank(pr_url)) {
-            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(1)
-                    .getJSONObject("wildcard").fluentPut("pr_url.keyword", pr_url);
-        }
-        if (StringUtils.isNotBlank(pr_committer)) {
-            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(2)
-                    .getJSONObject("wildcard").fluentPut("pr_committer.keyword", pr_committer);
-        }
-        if (StringUtils.isNotBlank(pr_branch)) {
-            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(3)
-                    .getJSONObject("wildcard").fluentPut("pr_branch.keyword", pr_branch);
-        }
-        if (StringUtils.isNotBlank(check_total)) {
-            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(4)
-                    .getJSONObject("wildcard").fluentPut("check_total.keyword", check_total);
-        }
-        if (StringUtils.isNotBlank(pr_create_startTime)) {
-            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(5)
-                    .getJSONObject("range").getJSONObject("pr_create_at").fluentPut("gte", pr_create_startTime);
-        }
-        if (StringUtils.isNotBlank(pr_create_endTime)) {
-            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(5)
-                    .getJSONObject("range").getJSONObject("pr_create_at").fluentPut("lte", pr_create_endTime);
-        }
-        if (StringUtils.isNotBlank(build_startTime)) {
-            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(6)
-                    .getJSONObject("range").getJSONObject("build_at").fluentPut("gte", build_startTime);
-        }
-        if (StringUtils.isNotBlank(build_endTime)) {
-            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(6)
-                    .getJSONObject("range").getJSONObject("build_at").fluentPut("lte", build_endTime);
-        }
-        if (StringUtils.isNotBlank(result_update_startTime)) {
-            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(7)
-                    .getJSONObject("range").getJSONObject("update_at").fluentPut("gte", result_update_startTime);
-        }
-        if (StringUtils.isNotBlank(result_update_endTime)) {
-            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(7)
-                    .getJSONObject("range").getJSONObject("update_at").fluentPut("lte", result_update_endTime);
-        }
-        if (StringUtils.isNotBlank(build_time_min)) {
-            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(8)
-                    .getJSONObject("range").getJSONObject("build_time").fluentPut("gte", build_time_min);
-        }
-        if (StringUtils.isNotBlank(build_time_max)) {
-            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(8)
-                    .getJSONObject("range").getJSONObject("build_at").fluentPut("lte", build_time_max);
-        }
-        if (StringUtils.isNotBlank(mistake_update_startTime)) {
-            System.out.printf(String.format("mistake_update_startTime:%s]\n", mistake_update_startTime));
-        }
-        if (StringUtils.isNotBlank(mistake_update_endTime)) {
-            System.out.printf(String.format("mistake_update_endTime:%s", mistake_update_endTime));
-        }
-
-        if (StringUtils.isNotBlank(build_no)) {
-            String buildNoStr = String.format("{\"term\": {\"build_no\": %s}}", build_no);
-            JSONObject buildNoJson = null;
-            try {
-                buildNoJson = parseObject(buildNoStr);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            buildCheckInfoResultQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").add(buildNoJson);
-        }
-        buildCheckInfoResultQueryStr = buildCheckInfoResultQueryJsonObj.toJSONString();
-        builder.setUrl(this.url + buildCheckInfoResultIndex + "/_search");
-        builder.setBody(buildCheckInfoResultQueryStr);
-        ListenableFuture<Response> futureRes = client.executeRequest(builder.build());
-        return parseBuildCheckInfoResultFutureRes(futureRes, item, mistake_update_startTime, mistake_update_endTime);
-    }
-
-    private String parseBuildCheckInfoResultFutureRes(ListenableFuture<Response> futureRes, String item,
-                                                      String mistake_update_startTime, String mistake_update_endTime) {
-        Response response = null;
-        String statusText = "请求内部错误";
-        int statusCode = 500;
-        String data = null;
-        String result = null;
-        long count = 0L;
-        JSONObject responseJsonObj;
-        try {
-            response = futureRes.get();
-            statusCode = response.getStatusCode();
-            statusText = response.getStatusText();
-
-            if (statusCode != 200) {
-                data = "[]";
-                result = "{\"code\":" + statusCode + ",\"data\":" + data + ",\"msg\":\"" + statusText + "\"}";
                 return result;
-            }
-            String responseBody = response.getResponseBody(UTF_8);
-            responseJsonObj = parseObject(responseBody);
-            JSONArray records = responseJsonObj.getJSONObject("hits").getJSONArray("hits");
-
-            int recordSize = records.size();
-            JSONArray resJsonArray = new JSONArray();
-            for (int i = 0; i < recordSize; i++) {
-                JSONObject source = records.getJSONObject(i).getJSONObject("_source");
-                String pr_url = (String) source.get("pr_url");
-                String build_no = String.valueOf(source.get("build_no"));
-                String build_at = String.valueOf(source.get("build_at"));
-
-                String mistake_updateTime = build_at;
-                JSONArray ci_mistake_list = new JSONArray();
-                String mistakeInfoStr = queryBuildCheckMistakeInfo(pr_url, build_no, mistake_update_startTime, mistake_update_endTime);
-                JSONObject mistakeInfoJsonObj = parseObject(mistakeInfoStr);
-                if (mistakeInfoJsonObj != null) {
-                    mistake_updateTime = String.valueOf(mistakeInfoJsonObj.get("mistake_latest_updateTime"));
-                    ci_mistake_list = mistakeInfoJsonObj.getJSONArray("mistake_list");
-                }
-
-                // Substitute the update_at field to result_update_at
-                source.put("ci_mistake_update_at", mistake_updateTime);
-                source.put("ci_mistake_list", ci_mistake_list);
-
-                // if provide mistake_update_time arguments, filter out the other results
-                if (!mistake_update_startTime.equals(DEFAULT_MISTAKE_UPDATE_START_TIME) ||
-                        !mistake_update_endTime.equals(DEFAULT_MISTAKE_UPDATE_END_TIME)) {   //mistake_update_time不为空
-                    if (ci_mistake_list.size() == 0) {
-                        continue;
-                    }
-                }
-                resJsonArray.add(source);
-            }
-
-
-            count = recordSize;
-            data = resJsonArray.toJSONString();
-        } catch (Exception e) {
-            e.printStackTrace();
         }
-        result = "{\"code\":" + statusCode + ",\"totalCount\":" + count + ",\"msg\":\"" + statusText + "\",\"data\":" + data + "}";
-        return result;
+
+        String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
+        String host = env.getProperty("es.host");
+        int port = Integer.parseInt(env.getProperty("es.port", "9200"));
+        String scheme = env.getProperty("es.scheme");
+        String esUser = userpass[0];
+        String password = userpass[1];
+        RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
+        EsQueryUtils esQueryUtils = new EsQueryUtils();
+
+        SearchSourceBuilder queryResultSourceBuilder = assembleResultSourceBuilder("pr_create_at", queryBody);
+        resultInfo = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoResultIndex, 5000, queryResultSourceBuilder);
+        JSONObject resultJsonObject = parseObject(resultInfo);
+        JSONArray resultJsonArray = resultJsonObject.getJSONArray("data");
+
+        JSONArray finalResultJSONArray = new JSONArray();
+        JSONArray empty_ci_mistake_list = new JSONArray();
+        int resultTotalCount = resultJsonArray.size();
+        for (int i = 0; i < resultTotalCount; i++) {
+            JSONObject eachResultJsonObject = (JSONObject) resultJsonArray.get(i);
+            String pr_url = eachResultJsonObject.getString("pr_url");
+            String build_no = eachResultJsonObject.getString("build_no");
+            String result_update_at = eachResultJsonObject.getString("update_at");
+            eachResultJsonObject.fluentPut("result_update_at", result_update_at);
+            eachResultJsonObject.fluentRemove("update_at");
+
+            SearchSourceBuilder mistakeSourceBuilder = assembleMistakeSourceBuilder("update_at", pr_url, build_no, queryBody);
+            String mistakeInfoStr = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoMistakeIndex, 5000, mistakeSourceBuilder);
+            JSONObject eachResultMistakeInfoObj = parseObject(mistakeInfoStr);
+            JSONArray eachResultMistakeDataJsonArray = eachResultMistakeInfoObj.getJSONArray("data");
+
+            if (eachResultMistakeDataJsonArray.size() < 1) {
+                eachResultJsonObject.fluentPut("ci_mistake_update_at", result_update_at);
+                eachResultJsonObject.fluentPut("ci_mistake", empty_ci_mistake_list);
+            } else {
+                String mistakeLatestUpdateTime = getMistakeLatestUpdateTime(eachResultMistakeDataJsonArray);
+                eachResultJsonObject.fluentPut("ci_mistake_update_at", mistakeLatestUpdateTime);
+                eachResultJsonObject.fluentPut("ci_mistake", eachResultMistakeDataJsonArray);
+            }
+
+
+
+            boolean isAdd = isLocatedInTimeWindow(queryBody, eachResultJsonObject.getString("ci_mistake_update_at"));
+            if (!isAdd) {
+                continue;
+            }
+            finalResultJSONArray.add(eachResultJsonObject);
+        }
+
+        return "{\"code\":200,\"totalCount\":" + finalResultJSONArray.size() + ",\"msg\":\"ok\",\"data\":" + finalResultJSONArray + "}";
     }
 
-    private String queryBuildCheckMistakeInfo(String pr_url, String build_no, String mistake_update_startTime,
-                                              String mistake_update_endTime) throws NoSuchAlgorithmException, KeyManagementException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
+    public String getMistakeLatestUpdateTime(JSONArray dateJsonArray) {
+        SimpleDateFormat simpleDateFormatWithTimeZone = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+        Calendar c = Calendar.getInstance();
+        c.clear();
+        c.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"));
+        c.set(2000, 00 /* 1月 */, 01, 0, 0, 0);
+        Date latestUpdateTime = c.getTime();
 
-        String buildCheckMistakeIndex = openEuler.getBuildCheckMistakeIndex();
-        String buildCheckMistakeQueryStr = openEuler.getBuildCheckMistakeQueryStr();
-
-        JSONObject buildCheckMistakeQueryJsonObj = parseObject(buildCheckMistakeQueryStr);
-        if (StringUtils.isNotBlank(pr_url)) {
-            buildCheckMistakeQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must")
-                    .getJSONObject(0).getJSONObject("wildcard").fluentPut("pr_url.keyword", pr_url);
-        }
-
-        if (StringUtils.isNotBlank(build_no)) {
-            String buildNoStr = String.format("{\"term\": {\"build_no\": %s}}", build_no);
-            JSONObject buildNoJson = null;
+        int size = dateJsonArray.size();
+        for (int i = 0; i < size; i++) {
+            JSONObject eachMistakeJsonObject = dateJsonArray.getJSONObject(i);
+            String mistakeUpdateAtStr = String.valueOf(eachMistakeJsonObject.get("update_at"));
+            Date currentMistakeUpdateAt = null;
             try {
-                buildNoJson = parseObject(buildNoStr);
-            } catch (Exception e) {
+                currentMistakeUpdateAt = simpleDateFormatWithTimeZone.parse(mistakeUpdateAtStr);
+            } catch (ParseException e) {
                 e.printStackTrace();
             }
-            buildCheckMistakeQueryJsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").add(buildNoJson);
+
+            if (latestUpdateTime.compareTo(currentMistakeUpdateAt) < 0) {
+                latestUpdateTime = currentMistakeUpdateAt;
+            }
         }
-
-        buildCheckMistakeQueryStr = buildCheckMistakeQueryJsonObj.toJSONString();
-        builder.setUrl(this.url + buildCheckMistakeIndex + "/_search");
-        builder.setBody(buildCheckMistakeQueryStr);
-        ListenableFuture<Response> futureRes = client.executeRequest(builder.build());
-
-        return parseBuildCheckInfoMistakeFutureRes(futureRes, "buildCheckMistakeInfo",
-                mistake_update_startTime, mistake_update_endTime);
+        return simpleDateFormatWithTimeZone.format(latestUpdateTime);
     }
 
-    private String parseBuildCheckInfoMistakeFutureRes(ListenableFuture<Response> futureRes, String buildCheckMistakeInfo,
-                                                       String mistake_update_startTime, String mistake_update_endTime) {
-        Response response = null;
-        String statusText = "请求内部错误";
-        int statusCode = 500;
-        String data = null;
-        String result = null;
-        double count = 0d;
-        JSONObject responseJsonObj;
-        JSONObject resJsonObj = new JSONObject();
+    public SearchSourceBuilder assembleResultSourceBuilder(String sortKeyword, BuildCheckInfoQueryVo buildCheckInfoQueryVo) {
+        String DEFAULT_START_DATETIME = "2000-01-01 00:00:00";
+        String DEFAULT_END_DATETIME = "now";
+        String MIN_BUILD_TIME = "0";
+        String MAX_BUILD_TIME = "10000";
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        builder.sort(sortKeyword, SortOrder.DESC);
+
+        String pr_url = buildCheckInfoQueryVo.getPr_url();
+        String pr_title = buildCheckInfoQueryVo.getPr_title();
+        String pr_committer = buildCheckInfoQueryVo.getPr_committer();
+        String pr_branch = buildCheckInfoQueryVo.getPr_branch();
+        String build_no = buildCheckInfoQueryVo.getBuild_no();
+        String check_total = buildCheckInfoQueryVo.getCheck_total();
+        Map<String, String> build_duration = buildCheckInfoQueryVo.getBuild_duration();
+        Map<String, String> pr_create_time = buildCheckInfoQueryVo.getPr_create_time();
+        Map<String, String> result_update_time = buildCheckInfoQueryVo.getResult_update_time();
+        Map<String, String> result_build_time = buildCheckInfoQueryVo.getResult_build_time();
+        Map<String, String> mistake_update_time = buildCheckInfoQueryVo.getMistake_update_time();
+
+        String min_duration_time = MIN_BUILD_TIME;
+        String max_duration_time = MAX_BUILD_TIME;
+        String pr_create_start_time = DEFAULT_START_DATETIME;
+        String pr_create_end_time = DEFAULT_END_DATETIME;
+        String result_update_start_time = DEFAULT_START_DATETIME;
+        String result_update_end_time = DEFAULT_END_DATETIME;
+        String result_build_start_time = DEFAULT_START_DATETIME;
+        String result_build_end_time = DEFAULT_END_DATETIME;
+        String mistake_update_start_time = DEFAULT_START_DATETIME;
+        String mistake_update_end_time = DEFAULT_END_DATETIME;
+
+        if (!StringUtil.isNullOrEmpty(build_duration.get("min_duration_time")))
+            min_duration_time = build_duration.get("min_duration_time");
+        if (!StringUtil.isNullOrEmpty(build_duration.get("max_duration_time")))
+            max_duration_time = build_duration.get("max_duration_time");
+        if (!StringUtil.isNullOrEmpty(pr_create_time.get("start_time")))
+            pr_create_start_time = pr_create_time.get("start_time");
+        if (!StringUtil.isNullOrEmpty(pr_create_time.get("end_time")))
+            pr_create_end_time = pr_create_time.get("end_time");
+        ;
+        if (!StringUtil.isNullOrEmpty(result_update_time.get("start_time")))
+            result_update_start_time = result_update_time.get("start_time");
+        if (!StringUtil.isNullOrEmpty(result_update_time.get("end_time")))
+            result_update_end_time = result_update_time.get("end_time");
+        if (!StringUtil.isNullOrEmpty(result_build_time.get("start_time")))
+            result_build_start_time = result_build_time.get("start_time");
+        if (!StringUtil.isNullOrEmpty(result_build_time.get("end_time")))
+            result_build_end_time = result_build_time.get("end_time");
+        if (!StringUtil.isNullOrEmpty(mistake_update_time.get("start_time")))
+            mistake_update_start_time = mistake_update_time.get("start_time");
+        if (!StringUtil.isNullOrEmpty(mistake_update_time.get("end_time")))
+            mistake_update_end_time = mistake_update_time.get("end_time");
+
+
+        TermQueryBuilder termPrUrlQueryBuilder = null;
+        TermQueryBuilder termPrTitleQueryBuilder = null;
+        TermQueryBuilder termPrCommitterQueryBuilder = null;
+        TermQueryBuilder termPrBranchQueryBuilder = null;
+        TermQueryBuilder termBuildNoQueryBuilder = null;
+        TermQueryBuilder termCheckTotalQueryBuilder = null;
+
+        if (!StringUtil.isNullOrEmpty(pr_url))
+            termPrUrlQueryBuilder = QueryBuilders.termQuery("pr_url.keyword", pr_url);
+        if (!StringUtil.isNullOrEmpty(pr_title))
+            termPrTitleQueryBuilder = QueryBuilders.termQuery("pr_title.keyword", pr_title);
+        if (!StringUtil.isNullOrEmpty(pr_committer))
+            termPrCommitterQueryBuilder = QueryBuilders.termQuery("pr_committer.keyword", pr_committer);
+        if (!StringUtil.isNullOrEmpty(pr_branch))
+            termPrBranchQueryBuilder = QueryBuilders.termQuery("pr_branch.keyword", pr_branch);
+        if (!StringUtil.isNullOrEmpty(build_no))
+            termBuildNoQueryBuilder = QueryBuilders.termQuery("build_no.keyword", build_no);
+        if (!StringUtil.isNullOrEmpty(check_total))
+            termCheckTotalQueryBuilder = QueryBuilders.termQuery("check_total.keyword", check_total);
+
+        RangeQueryBuilder rangeBuildTimeQueryBuilder = QueryBuilders.rangeQuery("build_time").gte(min_duration_time).lte(max_duration_time);
+        RangeQueryBuilder rangePrCreateTimeQueryBuilder = QueryBuilders.rangeQuery("pr_create_at").gte(pr_create_start_time).lte(pr_create_end_time).format("yyyy-MM-dd HH:mm:ss");
+        RangeQueryBuilder rangeResultUpdateTimeQueryBuilder = QueryBuilders.rangeQuery("update_at").gte(result_update_start_time).lte(result_update_end_time).format("yyyy-MM-dd HH:mm:ss");
+        RangeQueryBuilder rangeResultBuildTimeQueryBuilder = QueryBuilders.rangeQuery("build_at").gte(result_build_start_time).lte(result_build_end_time).format("yyyy-MM-dd HH:mm:ss");
+
+        BoolQueryBuilder mustQuery = QueryBuilders.boolQuery().must(rangeBuildTimeQueryBuilder).must(rangePrCreateTimeQueryBuilder).
+                must(rangeResultUpdateTimeQueryBuilder).must(rangeResultBuildTimeQueryBuilder);
+
+        if (termPrUrlQueryBuilder != null) mustQuery = mustQuery.must(termPrUrlQueryBuilder);
+        if (termPrTitleQueryBuilder != null) mustQuery = mustQuery.must(termPrTitleQueryBuilder);
+        if (termPrCommitterQueryBuilder != null) mustQuery = mustQuery.must(termPrCommitterQueryBuilder);
+        if (termPrBranchQueryBuilder != null) mustQuery = mustQuery.must(termPrBranchQueryBuilder);
+        if (termBuildNoQueryBuilder != null) mustQuery = mustQuery.must(termBuildNoQueryBuilder);
+        if (termCheckTotalQueryBuilder != null) mustQuery = mustQuery.must(termCheckTotalQueryBuilder);
+
+        builder.query(mustQuery);
+        return builder;
+    }
+
+    public SearchSourceBuilder assembleMistakeSourceBuilder(String sortKeyword, String prUrl, String buildNoStr,
+                                                            BuildCheckInfoQueryVo buildCheckInfoQueryVo) {
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        builder.sort(sortKeyword, SortOrder.DESC);
+
+        TermQueryBuilder prUrlTermQueryBuilder = QueryBuilders.termQuery("pr_url.keyword", prUrl);
+        TermQueryBuilder buildNoTermQueryBuilder = QueryBuilders.termQuery("build_no", Long.parseLong(buildNoStr));
+        BoolQueryBuilder mustQuery = QueryBuilders.boolQuery().must(prUrlTermQueryBuilder).must(buildNoTermQueryBuilder);
+
+        builder.query(mustQuery);
+        return builder;
+    }
+
+    private boolean isLocatedInTimeWindow(BuildCheckInfoQueryVo buildCheckInfoQueryVo, String resultMistakeLatestTimeStr) {
+        boolean justifiedResult = false;
+        SimpleDateFormat simpleDateFormatWithTimeZone = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+        String DEFAULT_START_TIME = "2000-01-01 00:00:00";
+        String DEFAULT_END_TIME = "2100-01-01 00:00:00";
+        String mistakeUpdateStartTimeStr = buildCheckInfoQueryVo.getMistake_update_time().get("start_time");
+        String mistakeUpdateEndTimeStr = buildCheckInfoQueryVo.getMistake_update_time().get("end_time");
+        if (StringUtil.isNullOrEmpty(mistakeUpdateStartTimeStr)) {
+            mistakeUpdateStartTimeStr = DEFAULT_START_TIME;
+        }
+        if (StringUtil.isNullOrEmpty(mistakeUpdateEndTimeStr)) {
+            mistakeUpdateEndTimeStr = DEFAULT_END_TIME;
+        }
+
+        Date resultMistakeLatestTime = null;
+        Date mistakeUpdateStartTime = null;
+        Date mistakeUpdateEndTime = null;
         try {
-            response = futureRes.get();
-            statusCode = response.getStatusCode();
-            statusText = response.getStatusText();
-
-            if (statusCode != 200) {
-                System.out.println(String.format("!!!!Failed to fetch mistakeInfo, reason is : %; \t" +
-                        "statusCode is:%s", statusText, statusCode));
-                return null;
-            }
-            String responseBody = response.getResponseBody(UTF_8);
-            responseJsonObj = parseObject(responseBody);
-            JSONArray records = responseJsonObj.getJSONObject("hits").getJSONArray("hits");
-            int recordSize = records.size();
-            if (recordSize == 0) {
-                return null;
-            }
-
-            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
-            SimpleDateFormat timeWindowSimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd");
-            Calendar c = Calendar.getInstance();
-            c.clear();
-            c.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"));
-            c.set(2000, 00 /* 1月 */, 01, 0, 0, 0);
-            Date latestUpdateTime = c.getTime();
-
-            JSONArray mistakeJsonArray = new JSONArray();
-            for (int i = 0; i < recordSize; i++) {
-                JSONObject source = records.getJSONObject(i).getJSONObject("_source");
-                String mistakeUpdateAtStr = String.valueOf(source.get("update_at"));
-                Date currentMistakeUpdateAt = simpleDateFormat.parse(mistakeUpdateAtStr);
-
-                if (latestUpdateTime.compareTo(currentMistakeUpdateAt) < 0) {
-                    latestUpdateTime = currentMistakeUpdateAt;
-                }
-                mistakeJsonArray.add(source);
-            }
-
-            Date mistake_update_startTime_dateObj = timeWindowSimpleDateFormat.parse(mistake_update_startTime);
-            Date mistake_update_endTime_dateObj = timeWindowSimpleDateFormat.parse(mistake_update_endTime);
-
-            if (latestUpdateTime.compareTo(mistake_update_startTime_dateObj) >= 0 &&
-                    latestUpdateTime.compareTo(mistake_update_endTime_dateObj) <= 0) {
-                String lastestUpdateTimeStr = simpleDateFormat.format(latestUpdateTime);
-                resJsonObj.put("mistake_latest_updateTime", lastestUpdateTimeStr);
-                resJsonObj.fluentPut("mistake_list", mistakeJsonArray);
-            } else {
-                return null;
-            }
-
-        } catch (Exception e) {
+            resultMistakeLatestTime = simpleDateFormatWithTimeZone.parse(resultMistakeLatestTimeStr);
+            mistakeUpdateStartTime = simpleDateFormat.parse(mistakeUpdateStartTimeStr);
+            mistakeUpdateEndTime = simpleDateFormat.parse(mistakeUpdateEndTimeStr);
+        } catch (ParseException e) {
             e.printStackTrace();
         }
 
-        return resJsonObj.toJSONString();
+        assert resultMistakeLatestTime != null;
+        if (resultMistakeLatestTime.compareTo(mistakeUpdateStartTime) >= 0 &&
+                resultMistakeLatestTime.compareTo(mistakeUpdateEndTime) <= 0) {
+            justifiedResult = true;
+        }
+
+
+        return justifiedResult;
     }
 
 }
