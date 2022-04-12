@@ -213,9 +213,7 @@ public class propertiesObj {
         bean.setIssueScoreIndex(openconf.getProperty("issuescore_index"));
         bean.setIssueScoreQueryStr(openconf.getProperty("issuescore_queryStr"));
         bean.setBuildCheckResultIndex(openconf.getProperty("buildCheck_result_index"));
-        bean.setBuildCheckResultQueryStr(openconf.getProperty("buildCheck_result_queryStr"));
         bean.setBuildCheckMistakeIndex(openconf.getProperty("buildCheck_mistake_index"));
-        bean.setBuildCheckMistakeQueryStr(openconf.getProperty("buildCheck_mistake_queryStr"));
     }
 
     private static Properties readProperties(String path) throws IOException {

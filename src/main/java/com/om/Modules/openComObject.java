@@ -61,9 +61,7 @@ public class openComObject {
     protected String issueScoreIndex;
     protected String issueScoreQueryStr;
     protected String buildCheckResultIndex;
-    protected String buildCheckResultQueryStr;
     protected String buildCheckMistakeIndex;
-    protected String buildCheckMistakeQueryStr;
 
 
 
@@ -75,28 +73,12 @@ public class openComObject {
         this.buildCheckResultIndex = buildCheckResultIndex;
     }
 
-    public String getBuildCheckResultQueryStr() {
-        return buildCheckResultQueryStr;
-    }
-
-    public void setBuildCheckResultQueryStr(String buildCheckResultQueryStr) {
-        this.buildCheckResultQueryStr = buildCheckResultQueryStr;
-    }
-
     public String getBuildCheckMistakeIndex() {
         return buildCheckMistakeIndex;
     }
 
     public void setBuildCheckMistakeIndex(String buildCheckMistakeIndex) {
         this.buildCheckMistakeIndex = buildCheckMistakeIndex;
-    }
-
-    public String getBuildCheckMistakeQueryStr() {
-        return buildCheckMistakeQueryStr;
-    }
-
-    public void setBuildCheckMistakeQueryStr(String buildCheckMistakeQueryStr) {
-        this.buildCheckMistakeQueryStr = buildCheckMistakeQueryStr;
     }
 
     public String getIssueScoreIndex() {

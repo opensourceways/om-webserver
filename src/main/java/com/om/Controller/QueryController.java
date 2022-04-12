@@ -2,10 +2,7 @@ package com.om.Controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.om.Service.QueryService;
-import com.om.Vo.BlueZoneContributeVo;
-import com.om.Vo.BlueZoneUserVo;
-import com.om.Vo.IsoBuildTimesVo;
-import com.om.Vo.SigDetailsVo;
+import com.om.Vo.*;
 import com.om.token.UserLoginToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -194,30 +191,9 @@ public class QueryController {
     }
 
 
-    @RequestMapping(value = "/buildCheckInfo", method = RequestMethod.GET)
-    public String queryBuildCheckInfo(@RequestParam(value = "community") String community,
-                                      @RequestParam(value = "pr_title", required = false) String pr_title,
-                                      @RequestParam(value = "pr_url", required = false) String pr_url,
-                                      @RequestParam(value = "pr_committer", required = false) String pr_committer,
-                                      @RequestParam(value = "pr_branch", required = false) String pr_branch,
-                                      @RequestParam(value = "build_no", required = false) String build_no,
-                                      @RequestParam(value = "check_total", required = false) String check_total,
-                                      @RequestParam(value = "pr_create_startTime", required = false) String pr_create_startTime,
-                                      @RequestParam(value = "pr_create_endTime", required = false) String pr_create_endTime,
-                                      @RequestParam(value = "build_startTime", required = false) String build_startTime,
-                                      @RequestParam(value = "build_endTime", required = false) String build_endTime,
-                                      @RequestParam(value = "result_update_startTime", required = false) String result_update_startTime,
-                                      @RequestParam(value = "result_update_endTime", required = false) String result_update_endTime,
-                                      @RequestParam(value = "mistake_update_startTime", required = false) String mistake_update_startTime,
-                                      @RequestParam(value = "mistake_update_endTime", required = false) String mistake_update_endTime,
-                                      @RequestParam(value = "build_time_min", required = false) String build_time_min,
-                                      @RequestParam(value = "build_time_max", required = false) String build_time_max,
-                                      @RequestParam(value = "page", required = false) String page,
-                                      @RequestParam(value = "per_page", required = false) String per_page) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String res = queryService.queryBuildCheckInfo(community, pr_title, pr_url,pr_committer, pr_branch,build_no,
-                check_total,pr_create_startTime,pr_create_endTime,build_startTime,build_endTime,result_update_startTime,
-                result_update_endTime,mistake_update_startTime,mistake_update_endTime,build_time_min,build_time_max,
-                page,per_page,"buildCheckInfo");
+    @RequestMapping(value = "/buildCheckInfo", method = RequestMethod.POST)
+    public String queryBuildCheckInfo(@RequestBody BuildCheckInfoQueryVo queryBody) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String res = queryService.queryBuildCheckInfo(queryBody,"buildCheckInfo");
         return res;
     }
 

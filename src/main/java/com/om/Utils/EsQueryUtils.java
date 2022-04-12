@@ -10,6 +10,7 @@ import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -19,6 +20,7 @@ public class EsQueryUtils {
     private static final int MAXSIZE = 10000;
     private static final int MAXPAGESIZE = 5000;
     private static final ObjectMapper objectMapper = new ObjectMapper();
+
 
     public String esScroll(RestHighLevelClient client, String item, String indexname) {
         SearchRequest request = new SearchRequest(indexname);
@@ -69,6 +71,65 @@ public class EsQueryUtils {
 
         String s = objectMapper.valueToTree(list).toString();
         return "{\"code\":200,\"data\":" + s + ",\"totalCount\":" + totalCount + ",\"msg\":\"ok\"}";
+
+    }
+
+    public String esScroll(RestHighLevelClient restHighLevelClient, String item, String indexName,
+                           int pageSize, SearchSourceBuilder sourceBuilder) {
+        SearchRequest request = new SearchRequest(indexName);
+        request.scroll(TimeValue.timeValueMinutes(2));
+
+        if (pageSize > MAXPAGESIZE) pageSize = MAXPAGESIZE;
+        sourceBuilder.size(pageSize);
+        request.source(sourceBuilder);
+
+        ArrayList<Object> list = new ArrayList<>();
+        Long totalCount = 0L;
+        String scrollId = null;
+        try {
+            SearchResponse response = restHighLevelClient.search(request, RequestOptions.DEFAULT);
+            totalCount = response.getHits().getTotalHits().value;
+            scrollId = response.getScrollId();
+            System.out.println(scrollId);
+
+            for (SearchHit hit : response.getHits().getHits()) {
+                Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+                list.add(sourceAsMap);
+            }
+
+            while (true) {
+                SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
+                scrollRequest.scroll(TimeValue.timeValueMinutes(2));
+                SearchResponse scroll = restHighLevelClient.scroll(scrollRequest, RequestOptions.DEFAULT);
+                SearchHit[] hits = scroll.getHits().getHits();
+                if (hits == null || hits.length < 1) {
+                    break;
+                }
+                for (SearchHit hit : hits) {
+                    Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+                    list.add(sourceAsMap);
+                }
+            }
+
+        } catch (Exception ex) {
+            System.out.println(ex.getMessage());
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+        } finally {
+            ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
+            clearScrollRequest.addScrollId(scrollId);
+            try {
+                ClearScrollResponse clearScrollResponse = restHighLevelClient.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
+                restHighLevelClient.close();
+                if (clearScrollResponse != null) {
+                    System.out.println("clear scrollId success: " + clearScrollResponse.isSucceeded());
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        String data = objectMapper.valueToTree(list).toString();
+        return "{\"code\":200,\"totalCount\":" + totalCount + ",\"msg\":\"ok\",\"data\":" + data + "}";
 
     }
 
