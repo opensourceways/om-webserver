@@ -119,9 +119,10 @@ public class EsQueryUtils {
             clearScrollRequest.addScrollId(scrollId);
             try {
                 ClearScrollResponse clearScrollResponse = restHighLevelClient.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
-                restHighLevelClient.close();
                 if (clearScrollResponse != null) {
                     System.out.println("clear scrollId success: " + clearScrollResponse.isSucceeded());
+                } else {
+                    System.out.println("failed to clear scrollId.");
                 }
             } catch (IOException e) {
                 e.printStackTrace();
