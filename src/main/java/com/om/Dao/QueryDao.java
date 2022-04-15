@@ -1731,7 +1731,7 @@ public class QueryDao {
         RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
         EsQueryUtils esQueryUtils = new EsQueryUtils();
 
-        SearchSourceBuilder queryResultSourceBuilder = assembleResultSourceBuilder("pr_create_at", queryBody);
+        SearchSourceBuilder queryResultSourceBuilder = assembleResultSourceBuilder("update_at", queryBody);
         resultInfo = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoResultIndex, 5000, queryResultSourceBuilder);
         JSONObject resultJsonObject = parseObject(resultInfo);
         JSONArray resultJsonArray = resultJsonObject.getJSONArray("data");
@@ -1841,10 +1841,8 @@ public class QueryDao {
         String mistake_update_start_time = DEFAULT_START_DATETIME;
         String mistake_update_end_time = DEFAULT_END_DATETIME;
 
-        if (!StringUtil.isNullOrEmpty(build_duration.get("min_duration_time")))
-            min_duration_time = build_duration.get("min_duration_time");
-        if (!StringUtil.isNullOrEmpty(build_duration.get("max_duration_time")))
-            max_duration_time = build_duration.get("max_duration_time");
+        min_duration_time = build_duration.get("min_duration_time");
+        max_duration_time = build_duration.get("max_duration_time");
         if (!StringUtil.isNullOrEmpty(pr_create_time.get("start_time")))
             pr_create_start_time = pr_create_time.get("start_time");
         if (!StringUtil.isNullOrEmpty(pr_create_time.get("end_time")))
@@ -1864,6 +1862,7 @@ public class QueryDao {
             mistake_update_end_time = mistake_update_time.get("end_time");
 
 
+        RangeQueryBuilder rangeBuildTimeQueryBuilder = null;
         TermQueryBuilder termPrUrlQueryBuilder = null;
         TermQueryBuilder termPrTitleQueryBuilder = null;
         TermQueryBuilder termPrCommitterQueryBuilder = null;
@@ -1880,18 +1879,25 @@ public class QueryDao {
         if (!StringUtil.isNullOrEmpty(pr_branch))
             termPrBranchQueryBuilder = QueryBuilders.termQuery("pr_branch.keyword", pr_branch);
         if (!StringUtil.isNullOrEmpty(build_no))
-            termBuildNoQueryBuilder = QueryBuilders.termQuery("build_no.keyword", build_no);
+            termBuildNoQueryBuilder = QueryBuilders.termQuery("build_no", Long.parseLong(build_no));
         if (!StringUtil.isNullOrEmpty(check_total))
             termCheckTotalQueryBuilder = QueryBuilders.termQuery("check_total.keyword", check_total);
+        if (!StringUtil.isNullOrEmpty(min_duration_time)) {
+            rangeBuildTimeQueryBuilder = QueryBuilders.rangeQuery("build_time").gte(min_duration_time);
+        }
+        if (!StringUtil.isNullOrEmpty(max_duration_time)) {
+            rangeBuildTimeQueryBuilder = QueryBuilders.rangeQuery("build_time").lte(max_duration_time);
+        }
 
-        RangeQueryBuilder rangeBuildTimeQueryBuilder = QueryBuilders.rangeQuery("build_time").gte(min_duration_time).lte(max_duration_time);
         RangeQueryBuilder rangePrCreateTimeQueryBuilder = QueryBuilders.rangeQuery("pr_create_at").gte(pr_create_start_time).lte(pr_create_end_time).format("yyyy-MM-dd HH:mm:ss");
         RangeQueryBuilder rangeResultUpdateTimeQueryBuilder = QueryBuilders.rangeQuery("update_at").gte(result_update_start_time).lte(result_update_end_time).format("yyyy-MM-dd HH:mm:ss");
         RangeQueryBuilder rangeResultBuildTimeQueryBuilder = QueryBuilders.rangeQuery("build_at").gte(result_build_start_time).lte(result_build_end_time).format("yyyy-MM-dd HH:mm:ss");
 
-        BoolQueryBuilder mustQuery = QueryBuilders.boolQuery().must(rangeBuildTimeQueryBuilder).must(rangePrCreateTimeQueryBuilder).
-                must(rangeResultUpdateTimeQueryBuilder).must(rangeResultBuildTimeQueryBuilder);
+        BoolQueryBuilder mustQuery = QueryBuilders.boolQuery().must(rangePrCreateTimeQueryBuilder)
+                .must(rangeResultUpdateTimeQueryBuilder).must(rangeResultBuildTimeQueryBuilder);
 
+        if (rangeBuildTimeQueryBuilder != null)
+            mustQuery = mustQuery.must(rangeBuildTimeQueryBuilder);
         if (termPrUrlQueryBuilder != null) mustQuery = mustQuery.must(termPrUrlQueryBuilder);
         if (termPrTitleQueryBuilder != null) mustQuery = mustQuery.must(termPrTitleQueryBuilder);
         if (termPrCommitterQueryBuilder != null) mustQuery = mustQuery.must(termPrCommitterQueryBuilder);
