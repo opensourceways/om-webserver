@@ -535,7 +535,7 @@ public class QueryService {
         List<String> communityNameList = Arrays.asList("openeuler", "opengauss", "openlookeng", "mindspore");
         List<String> checkTotalValidField = Arrays.asList("success", "failed");
         double MIN_BUILD_DURATION = 0;
-        double MAX_BUILD_DURATION = 10000;
+        double min_duration_time = MIN_BUILD_DURATION;
         String errorMsg = "";
 
 
@@ -552,12 +552,12 @@ public class QueryService {
         }
 
         Map<String, String> build_duration = buildCheckInfoQueryVo.getBuild_duration();
-        double min_duration_time = Double.parseDouble(build_duration.get("min_duration_time"));
-        double max_duration_time = Double.parseDouble(build_duration.get("max_duration_time"));
-        if (!((min_duration_time >= MIN_BUILD_DURATION) && (max_duration_time <= MAX_BUILD_DURATION))) {
-            errorMsg = "build_time is invalid, Only allows: bigger than " + MIN_BUILD_DURATION + ", and less than "
-                    + MAX_BUILD_DURATION + "";
-            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":" + errorMsg + "}";
+        if (StringUtils.isNotBlank(build_duration.get("min_duration_time"))) {
+            min_duration_time = Double.parseDouble(build_duration.get("min_duration_time"));
+            if (min_duration_time < MIN_BUILD_DURATION) {
+                errorMsg = "build_time is invalid, Only allows: bigger than " + MIN_BUILD_DURATION + "";
+                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":" + errorMsg + "}";
+            }
         }
 
 
