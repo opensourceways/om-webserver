@@ -1810,11 +1810,8 @@ public class QueryDao {
         return simpleDateFormatWithTimeZone.format(latestUpdateTime);
     }
 
-    public SearchSourceBuilder assembleResultSourceBuilder(String sortKeyword, BuildCheckInfoQueryVo buildCheckInfoQueryVo) {
-        String DEFAULT_START_DATETIME = "2000-01-01 00:00:00";
-        String DEFAULT_END_DATETIME = "now";
-        String MIN_BUILD_TIME = "0";
-        String MAX_BUILD_TIME = "10000";
+    public SearchSourceBuilder assembleResultSourceBuilder(String sortKeyword,
+            BuildCheckInfoQueryVo buildCheckInfoQueryVo) {
         SearchSourceBuilder builder = new SearchSourceBuilder();
         builder.sort(sortKeyword, SortOrder.DESC);
 
@@ -1830,45 +1827,27 @@ public class QueryDao {
         Map<String, String> result_build_time = buildCheckInfoQueryVo.getResult_build_time();
         Map<String, String> mistake_update_time = buildCheckInfoQueryVo.getMistake_update_time();
 
-        String min_duration_time = MIN_BUILD_TIME;
-        String max_duration_time = MAX_BUILD_TIME;
-        String pr_create_start_time = DEFAULT_START_DATETIME;
-        String pr_create_end_time = DEFAULT_END_DATETIME;
-        String result_update_start_time = DEFAULT_START_DATETIME;
-        String result_update_end_time = DEFAULT_END_DATETIME;
-        String result_build_start_time = DEFAULT_START_DATETIME;
-        String result_build_end_time = DEFAULT_END_DATETIME;
-        String mistake_update_start_time = DEFAULT_START_DATETIME;
-        String mistake_update_end_time = DEFAULT_END_DATETIME;
+        String min_duration_time = build_duration.get("min_duration_time");
+        String max_duration_time = build_duration.get("max_duration_time");
+        String pr_create_start_time = pr_create_time.get("start_time");
+        String pr_create_end_time = pr_create_time.get("end_time");
+        String result_update_start_time = result_update_time.get("start_time");
+        String result_update_end_time = result_update_time.get("end_time");
+        String result_build_start_time = result_build_time.get("start_time");
+        String result_build_end_time = result_build_time.get("end_time");
+        String mistake_update_start_time = mistake_update_time.get("start_time");
+        String mistake_update_end_time = mistake_update_time.get("end_time");
 
-        min_duration_time = build_duration.get("min_duration_time");
-        max_duration_time = build_duration.get("max_duration_time");
-        if (!StringUtil.isNullOrEmpty(pr_create_time.get("start_time")))
-            pr_create_start_time = pr_create_time.get("start_time");
-        if (!StringUtil.isNullOrEmpty(pr_create_time.get("end_time")))
-            pr_create_end_time = pr_create_time.get("end_time");
-        ;
-        if (!StringUtil.isNullOrEmpty(result_update_time.get("start_time")))
-            result_update_start_time = result_update_time.get("start_time");
-        if (!StringUtil.isNullOrEmpty(result_update_time.get("end_time")))
-            result_update_end_time = result_update_time.get("end_time");
-        if (!StringUtil.isNullOrEmpty(result_build_time.get("start_time")))
-            result_build_start_time = result_build_time.get("start_time");
-        if (!StringUtil.isNullOrEmpty(result_build_time.get("end_time")))
-            result_build_end_time = result_build_time.get("end_time");
-        if (!StringUtil.isNullOrEmpty(mistake_update_time.get("start_time")))
-            mistake_update_start_time = mistake_update_time.get("start_time");
-        if (!StringUtil.isNullOrEmpty(mistake_update_time.get("end_time")))
-            mistake_update_end_time = mistake_update_time.get("end_time");
-
-
-        RangeQueryBuilder rangeBuildTimeQueryBuilder = null;
         TermQueryBuilder termPrUrlQueryBuilder = null;
         TermQueryBuilder termPrTitleQueryBuilder = null;
         TermQueryBuilder termPrCommitterQueryBuilder = null;
         TermQueryBuilder termPrBranchQueryBuilder = null;
         TermQueryBuilder termBuildNoQueryBuilder = null;
         TermQueryBuilder termCheckTotalQueryBuilder = null;
+        RangeQueryBuilder rangeBuildTimeQueryBuilder = null;
+        RangeQueryBuilder rangePrCreateTimeQueryBuilder = null;
+        RangeQueryBuilder rangeResultUpdateTimeQueryBuilder = null;
+        RangeQueryBuilder rangeResultBuildTimeQueryBuilder = null;
 
         if (!StringUtil.isNullOrEmpty(pr_url))
             termPrUrlQueryBuilder = QueryBuilders.termQuery("pr_url.keyword", pr_url);
@@ -1886,18 +1865,38 @@ public class QueryDao {
             rangeBuildTimeQueryBuilder = QueryBuilders.rangeQuery("build_time").gte(min_duration_time);
         }
         if (!StringUtil.isNullOrEmpty(max_duration_time)) {
-            rangeBuildTimeQueryBuilder = QueryBuilders.rangeQuery("build_time").lte(max_duration_time);
+            rangeBuildTimeQueryBuilder = rangeBuildTimeQueryBuilder.lte(max_duration_time);
         }
 
-        RangeQueryBuilder rangePrCreateTimeQueryBuilder = QueryBuilders.rangeQuery("pr_create_at").gte(pr_create_start_time).lte(pr_create_end_time).format("yyyy-MM-dd HH:mm:ss");
-        RangeQueryBuilder rangeResultUpdateTimeQueryBuilder = QueryBuilders.rangeQuery("update_at").gte(result_update_start_time).lte(result_update_end_time).format("yyyy-MM-dd HH:mm:ss");
-        RangeQueryBuilder rangeResultBuildTimeQueryBuilder = QueryBuilders.rangeQuery("build_at").gte(result_build_start_time).lte(result_build_end_time).format("yyyy-MM-dd HH:mm:ss");
+        if (!StringUtil.isNullOrEmpty(pr_create_start_time)) {
+            rangePrCreateTimeQueryBuilder = QueryBuilders.rangeQuery("pr_create_at").gte(pr_create_start_time)
+                    .format("yyyy-MM-dd HH:mm:ss");
+        }
+        if (!StringUtil.isNullOrEmpty(pr_create_end_time)) {
+            rangePrCreateTimeQueryBuilder = rangePrCreateTimeQueryBuilder.lte(pr_create_end_time)
+                    .format("yyyy-MM-dd HH:mm:ss");
+        }
 
-        BoolQueryBuilder mustQuery = QueryBuilders.boolQuery().must(rangePrCreateTimeQueryBuilder)
-                .must(rangeResultUpdateTimeQueryBuilder).must(rangeResultBuildTimeQueryBuilder);
+        if (!StringUtil.isNullOrEmpty(result_update_start_time)) {
+            rangeResultUpdateTimeQueryBuilder = QueryBuilders.rangeQuery("update_at").gte(result_update_start_time)
+                    .format("yyyy-MM-dd HH:mm:ss");
+        }
+        if (!StringUtil.isNullOrEmpty(result_update_end_time)) {
+            rangeResultUpdateTimeQueryBuilder = rangeResultUpdateTimeQueryBuilder.lte(result_update_end_time)
+                    .format("yyyy-MM-dd HH:mm:ss");
+        }
 
-        if (rangeBuildTimeQueryBuilder != null)
-            mustQuery = mustQuery.must(rangeBuildTimeQueryBuilder);
+        if (!StringUtil.isNullOrEmpty(result_build_start_time)) {
+            rangeResultBuildTimeQueryBuilder = QueryBuilders.rangeQuery("build_at").gte(result_build_start_time)
+                    .format("yyyy-MM-dd HH:mm:ss");
+        }
+        if (!StringUtil.isNullOrEmpty(result_build_end_time)) {
+            rangeResultBuildTimeQueryBuilder = rangeResultBuildTimeQueryBuilder.lte(result_build_end_time)
+                    .format("yyyy-MM-dd HH:mm:ss");
+        }
+
+        BoolQueryBuilder mustQuery = QueryBuilders.boolQuery();
+
         if (termPrUrlQueryBuilder != null) mustQuery = mustQuery.must(termPrUrlQueryBuilder);
         if (termPrTitleQueryBuilder != null) mustQuery = mustQuery.must(termPrTitleQueryBuilder);
         if (termPrCommitterQueryBuilder != null) mustQuery = mustQuery.must(termPrCommitterQueryBuilder);
@@ -1905,12 +1904,21 @@ public class QueryDao {
         if (termBuildNoQueryBuilder != null) mustQuery = mustQuery.must(termBuildNoQueryBuilder);
         if (termCheckTotalQueryBuilder != null) mustQuery = mustQuery.must(termCheckTotalQueryBuilder);
 
+        if (rangeBuildTimeQueryBuilder != null)
+            mustQuery = mustQuery.must(rangeBuildTimeQueryBuilder);
+        if (rangePrCreateTimeQueryBuilder != null)
+            mustQuery = mustQuery.must(rangePrCreateTimeQueryBuilder);
+        if (rangeResultUpdateTimeQueryBuilder != null)
+            mustQuery = mustQuery.must(rangeResultUpdateTimeQueryBuilder);
+        if (rangeResultBuildTimeQueryBuilder != null)
+            mustQuery = mustQuery.must(rangeResultBuildTimeQueryBuilder);
+
         builder.query(mustQuery);
         return builder;
     }
 
     public SearchSourceBuilder assembleMistakeSourceBuilder(String sortKeyword, String prUrl, String buildNoStr,
-                                                            BuildCheckInfoQueryVo buildCheckInfoQueryVo) {
+            BuildCheckInfoQueryVo buildCheckInfoQueryVo) {
         SearchSourceBuilder builder = new SearchSourceBuilder();
         builder.sort(sortKeyword, SortOrder.DESC);
 
@@ -1948,14 +1956,11 @@ public class QueryDao {
         } catch (ParseException e) {
             e.printStackTrace();
         }
-
         assert resultMistakeLatestTime != null;
         if (resultMistakeLatestTime.compareTo(mistakeUpdateStartTime) >= 0 &&
                 resultMistakeLatestTime.compareTo(mistakeUpdateEndTime) <= 0) {
             justifiedResult = true;
         }
-
-
         return justifiedResult;
     }
 
