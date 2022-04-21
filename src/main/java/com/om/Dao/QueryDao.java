@@ -1973,7 +1973,7 @@ public class QueryDao {
         String nowStr = now.toString().split("\\.")[0] + "+08:00";
 
         String index = env.getProperty("mindSpore.tracker.index");
-        String id = userVo.getString("id");
+        String id = userVo.getString("_track_id");
 
         Map resMap = objectMapper.convertValue(userVo, Map.class);
         resMap.put("created_at", nowStr);
@@ -1983,7 +1983,7 @@ public class QueryDao {
             restHighLevelClient.bulk(request, RequestOptions.DEFAULT);
         restHighLevelClient.close();
 
-        String res = "{\"code\":200,\"data\":" + id + ",\"msg\":\"collect over\"}";
+        String res = "{\"code\":200, \"track_id\":" + id + ", \"msg\":\"collect over\"}";
         return res;
     }
 
