@@ -197,4 +197,11 @@ public class QueryController {
         return res;
     }
 
+    @RequestMapping(value = "/track", method = RequestMethod.GET)
+    public String putUserActionsinfo(@RequestParam(value = "data") String data, @RequestParam(value = "ext") String ext) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String sdata = new String(Base64.getDecoder().decode(data));
+        JSONObject userVo = JSONObject.parseObject(sdata);
+        String res = queryService.putUserActionsinfo(userVo);
+        return res;
+    }
 }

@@ -1959,4 +1959,32 @@ public class QueryDao {
         return justifiedResult;
     }
 
+    public String putUserActionsinfo(JSONObject userVo, Environment env) throws NoSuchAlgorithmException, KeyManagementException, IOException {
+        String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
+        String host = env.getProperty("es.host");
+        int port = Integer.parseInt(env.getProperty("es.port", "9200"));
+        String scheme = env.getProperty("es.scheme");
+        String esUser = userpass[0];
+        String password = userpass[1];
+        RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
+        BulkRequest request = new BulkRequest();
+
+        LocalDateTime now = LocalDateTime.now();
+        String nowStr = now.toString().split("\\.")[0] + "+08:00";
+
+        String index = env.getProperty("mindSpore.tracker.index");
+        String id = userVo.getString("id");
+
+        Map resMap = objectMapper.convertValue(userVo, Map.class);
+        resMap.put("created_at", nowStr);
+        request.add(new IndexRequest(index, "_doc", id).source(resMap));
+
+        if (request.requests().size() != 0)
+            restHighLevelClient.bulk(request, RequestOptions.DEFAULT);
+        restHighLevelClient.close();
+
+        String res = "{\"code\":200,\"data\":" + id + ",\"msg\":\"collect over\"}";
+        return res;
+    }
+
 }
