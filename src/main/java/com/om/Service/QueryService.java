@@ -611,10 +611,10 @@ public class QueryService {
         return null;
     }
 
-    public String putUserActionsinfo(JSONObject userVo) throws InterruptedException, ExecutionException, JsonProcessingException {
+    public String putUserActionsinfo(String data) throws InterruptedException, ExecutionException, JsonProcessingException {
         String result = "{\"code\":500, \"bad request\"},\"msg\":\"bad request\"}";
         try {
-            result = queryDao.putUserActionsinfo(userVo, env);
+            result = queryDao.putUserActionsinfo(data, env);
         } catch (SocketTimeoutException ex) {
             ex.printStackTrace();
             return "{\"code\":504, \"Socket Timeout\"},\"msg\":\"60 seconds timeout on connection\"}";
