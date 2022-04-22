@@ -613,7 +613,6 @@ public class QueryService {
 
     public String putUserActionsinfo(JSONObject userVo) throws InterruptedException, ExecutionException, JsonProcessingException {
         String result = "{\"code\":500, \"bad request\"},\"msg\":\"bad request\"}";
-        //查询数据库，更新redis 缓存。
         try {
             result = queryDao.putUserActionsinfo(userVo, env);
         } catch (SocketTimeoutException ex) {
