@@ -457,6 +457,7 @@ public class QueryDao {
         resMap.put("code", 200);
         resMap.put("data", contributes);
         resMap.put("msg", "success");
+        resMap.put("update_at", (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")).format(new Date()));
         return objectMapper.valueToTree(resMap).toString();
 
 //        String result = "{\"code\":" + 200 + ",\"data\":{\"downloads\":" + downloads + ",\"contributors\":" + contributors + ",\"users\":" + users + ",\"noticeusers\":" + noticeusers + ",\"sigs\":" + sigs + ",\"modulenums\":" + modulenums + ",\"businessosv\":" + businessOsv + ",\"communitymembers\":" + communityMembers + "},\"msg\":\"" + "OK" + "\"}";
