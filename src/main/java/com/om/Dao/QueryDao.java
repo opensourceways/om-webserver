@@ -59,6 +59,12 @@ public class QueryDao {
     @Value("${esurl}")
     String url;
 
+    @Value("${meeting.esurl}")
+    String meeting_url;
+
+    @Value("${meeting.userpass}")
+    String meeting_userpass;
+
     @Value("${company.name.yaml}")
     String companyNameYaml;
 
@@ -1987,6 +1993,698 @@ public class QueryDao {
 
         String res = "{\"code\":200,\"track_id\":" + id + ",\"msg\":\"collect over\"}";
         return res;
+    }
+
+    public String querySigName(String community) {
+        try{
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            String index = "";
+            String queryjson = "";
+            switch (community.toLowerCase()) {
+                case "openeuler":
+                    index = openEuler.getSigs_index();
+                    queryjson = openEuler.getSigNameQueryStr();
+                    break;
+                case "opengauss":
+                    index = openGauss.getSigs_index();
+                    queryjson = openGauss.getSigNameQueryStr();
+                    break;
+                case "mindspore":
+                    index = mindSpore.getSigs_index();
+                    queryjson = mindSpore.getSigNameQueryStr();                
+                case "openlookeng":
+                    return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
+                default:
+                    return "";
+            }
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryjson);
+            //获取执行结果
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+    
+            Response response = f.get();
+            String responseBody = response.getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+            HashMap<String, Object> dataMap = new HashMap<>();
+            ArrayList<String> sigList = new ArrayList<>();
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                String sig = bucket.get("key").asText();
+                sigList.add(sig);
+            }
+            dataMap.put(community, sigList);
+    
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", dataMap);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+
+        }catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
+
+    public String querySigRepo(String community, String sig, String timeRange) {
+        String index;
+        String queryStr;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getGiteeAllIndex();
+                queryStr = openEuler.getAggSigRepoQueryStr(timeRange, sig);
+                break;
+            case "opengauss":
+                index = openGauss.getGiteeAllIndex();
+                queryStr = openGauss.getAggSigRepoQueryStr(timeRange, sig);
+                break;
+            case "openlookeng":
+                index = openLookeng.getGiteeAllIndex();
+                queryStr = openLookeng.getAggSigRepoQueryStr(timeRange, sig);
+                break;
+            case "mindspore":
+                index = mindSpore.getGiteeAllIndex();
+                queryStr = mindSpore.getAggSigRepoQueryStr(timeRange, sig);
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+            //获取执行结果
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+
+            HashMap<String, Object> dataMap = new HashMap<>();
+            ArrayList<String> repoList = new ArrayList<>();
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                String repo = bucket.get("key").asText();
+                repoList.add(repo);
+            }
+            dataMap.put(sig, repoList);
+
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", dataMap);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
+
+    public String querySigDetails(String community, String sig, String timeRange, String curDate) {
+        String gitee_index;
+        String[] queryStrs;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                gitee_index = openEuler.getGiteeAllIndex();               
+                String queryjson = openEuler.getSigGiteeQueryStr();
+                if (queryjson == null){
+                    System.out.println("SigGiteeQueryStr missing, please set properties...");
+                    return null;
+                }
+                queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig, curDate);
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"community error\"},\"msg\":\"community error\"}";
+        }
+        ArrayList<Integer> sigMetricsList = common(gitee_index, queryStrs);
+        if (sigMetricsList==null){
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+
+        ArrayList<Integer> sigContributeList = querySigContribute(community, sig, timeRange, curDate);
+        if (sigContributeList==null){
+            return "{\"code\":400,\"data\":{\"sig contribute error\"},\"msg\":\"querySigContribute error\"}";
+        }
+        sigMetricsList.add(sigContributeList.get(0));
+
+        ArrayList<Integer> meetingsList = querySigMeetings(community, sig, timeRange, curDate);
+        if (meetingsList==null){
+            return "{\"code\":400,\"data\":{\"sig meeting error\"},\"msg\":\"querySigMeetings error\"}";
+        }
+        for(int i=0; i<meetingsList.size(); i++){
+            sigMetricsList.add(meetingsList.get(i));
+        }
+
+        ArrayList<Integer> maintainersList = querySigMaintainers(community, sig, timeRange, curDate);
+        if (maintainersList==null){
+            return "{\"code\":400,\"data\":{\"sig maintainer error\"},\"msg\":\"querySigMaintainers error\"}";
+        }
+        sigMetricsList.add(maintainersList.get(0));
+
+        HashMap<String, Object> dataMap = new HashMap<>();
+        List<String> metrics=Arrays.asList(new String[]{"D0","D1","D2","Company","PR_Merged","PR_Review","Issue_update","Issue_Closed","Issue_Comment","Contribute","Meeting","Attebdee","Maintainer"});
+        dataMap.put("metrics", metrics);
+        dataMap.put(sig, sigMetricsList);           
+        HashMap<String, Object> resMap = new HashMap<>();
+        resMap.put("code", 200);
+        resMap.put("data", dataMap);
+        resMap.put("msg", "success");
+        return objectMapper.valueToTree(resMap).toString();
+
+    }
+
+    public ArrayList<Integer> querySigContribute(String community, String sig, String timeRange, String curDate) {
+        String gitee_index;
+        String[] queryStrs;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                gitee_index = openEuler.getGiteeAllIndex();                
+                String queryjson = openEuler.getSigContributeQueryStr();
+                if (queryjson == null){
+                    System.out.println("SigContributeQueryStr missing, please set properties...");
+                    return null;
+                }
+                queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig, curDate);
+                break;
+            default:
+                return null;
+        }
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            ArrayList<Integer> sigMetricsList = new ArrayList<>();
+
+            for (int i=0; i<queryStrs.length; i++){
+                //获取执行结果
+                builder.setUrl(this.url + gitee_index + "/_search");
+                builder.setBody(queryStrs[i]);
+
+                ListenableFuture<Response> f = client.executeRequest(builder.build());
+                String responseBody = f.get().getResponseBody(UTF_8);
+                JsonNode dataNode = objectMapper.readTree(responseBody);              
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+                int count = 0;
+                if (buckets.hasNext()) {
+                    JsonNode bucket = buckets.next();
+                    count = bucket.get("doc_count").asInt();
+                }
+                sigMetricsList.add(count);
+            }
+            return sigMetricsList;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public ArrayList<Integer> querySigMeetings(String community, String sig, String timeRange, String curDate) {
+        String meeting_index;
+        String[] queryStrs;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                meeting_index = openEuler.getMeetingsIndex();
+                String queryjson = openEuler.getSigMeetingsQueryStr();
+                if (queryjson == null){
+                    System.out.println("SigMeetingsQueryStr missing, please set properties...");
+                    return null;
+                }
+                queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig, curDate);                
+                break;
+            default:
+                return null;
+        }
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder().setHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString((meeting_userpass).getBytes()));
+            ArrayList<Integer> sigMetricsList = new ArrayList<>();
+
+            for (int i=0; i<queryStrs.length; i++){
+                //获取执行结果
+                builder.setUrl(this.meeting_url + meeting_index + "/_search");
+                builder.setBody(queryStrs[i]);
+
+                ListenableFuture<Response> f = client.executeRequest(builder.build());
+                String responseBody = f.get().getResponseBody(UTF_8);
+                JsonNode dataNode = objectMapper.readTree(responseBody);              
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+                int count = 0, num = 0;
+                if (buckets.hasNext()) {
+                    JsonNode bucket = buckets.next();
+                    count = bucket.get("doc_count").asInt();
+                    num = bucket.get("1").get("value").asInt();
+                }
+                sigMetricsList.add(count);
+                sigMetricsList.add(num);
+            }
+            return sigMetricsList;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+   
+    public ArrayList<Integer> querySigMaintainers(String community, String sig, String timeRange, String curDate) {
+        String sig_index;
+        String[] queryStrs;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                sig_index = openEuler.getSigs_index();               
+                String queryjson = openEuler.getSigMaintainersQueryStr();
+                if (queryjson == null){
+                    System.out.println("SigMaintainersQueryStr missing, please set properties...");
+                    return null;
+                }
+                queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig, curDate);
+                break;
+            default:
+                return null;
+        }
+        ArrayList<Integer> userMetricsList=common(sig_index, queryStrs);
+        return userMetricsList;
+    }
+
+    public ArrayList<Integer> common(String index, String[] queryStrs){
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            ArrayList<Integer> sigMetricsList = new ArrayList<>();
+
+            for (int i=0; i<queryStrs.length; i++){
+                //获取执行结果
+                builder.setUrl(this.url + index + "/_search");
+                builder.setBody(queryStrs[i]);
+
+                ListenableFuture<Response> f = client.executeRequest(builder.build());
+                String responseBody = f.get().getResponseBody(UTF_8);
+                JsonNode dataNode = objectMapper.readTree(responseBody);          
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+                int num = 0;
+                if (buckets.hasNext()) {
+                    JsonNode bucket = buckets.next();
+                    num = bucket.get("1").get("value").asInt();
+                }
+                sigMetricsList.add(num);
+            }
+            return sigMetricsList;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }       
+    }
+
+    public String queryCompanyName(String community) {
+        String index = "";
+        String queryjson = "";
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getClaCorporationIndex();
+                queryjson = openEuler.getCompanyNameQueryStr();
+                break;
+            case "opengauss":
+                index = openGauss.getClaCorporationIndex();
+                queryjson = openGauss.getCompanyNameQueryStr();
+                break;
+            case "mindspore":
+                index = mindSpore.getClaCorporationIndex();
+                queryjson = mindSpore.getCompanyNameQueryStr();                
+            case "openlookeng":
+                return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
+            default:
+                return "";
+        }
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();   
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryjson);
+            //获取执行结果
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+    
+            Response response = f.get();
+            String responseBody = response.getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+            HashMap<String, Object> dataMap = new HashMap<>();
+            ArrayList<String> companyList = new ArrayList<>();
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                String company = bucket.get("key").asText();
+                companyList.add(company);
+            }
+            dataMap.put(community, companyList);
+    
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", dataMap);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
+
+    public String queryCompanyUsercontribute(String community, String company, String timeRange) {
+        String index;
+        String queryStr;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getGiteeAllIndex();
+                queryStr = openEuler.getAggCompanyUserQueryStr(timeRange, company);
+                break;
+            case "opengauss":
+                index = openGauss.getGiteeAllIndex();
+                queryStr = openGauss.getAggCompanyUserQueryStr(timeRange, company);
+                break;
+            case "openlookeng":
+                index = openLookeng.getGiteeAllIndex();
+                queryStr = openLookeng.getAggCompanyUserQueryStr(timeRange, company);
+                break;
+            case "mindspore":
+                index = mindSpore.getGiteeAllIndex();
+                queryStr = mindSpore.getAggCompanyUserQueryStr(timeRange, company);
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+            //获取执行结果
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);   
+
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("3").get("buckets").elements();
+
+            HashMap<String, Object> dataMap = new HashMap<>();
+            List<String> metrics=Arrays.asList(new String[]{"PR","PR_Review","Issue","Issue_Comment","Fork","Star","Watch"});
+            dataMap.put("metrics", metrics);
+            
+            while (buckets.hasNext()) {
+                ArrayList<Integer> valueList = new ArrayList<>();
+                JsonNode bucket = buckets.next();
+                String user = bucket.get("key").asText();
+                valueList.add(bucket.get("1").get("value").asInt());
+                valueList.add(bucket.get("2").get("value").asInt());
+                valueList.add(bucket.get("3").get("value").asInt());
+                valueList.add(bucket.get("4").get("value").asInt());
+                valueList.add(bucket.get("5").get("value").asInt());
+                valueList.add(bucket.get("6").get("value").asInt());
+                valueList.add(bucket.get("7").get("value").asInt());
+                dataMap.put(user, valueList);
+            }           
+
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", dataMap);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
+
+    public String queryCompanySigDetails(String community, String company, String timeRange) {
+        String gitee_index;
+        String[] queryStrs;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                gitee_index = openEuler.getGiteeAllIndex();               
+                String queryjson = openEuler.getCompanySigsQueryStr();
+                if (queryjson == null){
+                    System.out.println("CompanySigsQueryStr missing, please set properties...");
+                    return null;
+                }
+                queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"community error\"},\"msg\":\"community error\"}";
+        }
+        HashMap<String, ArrayList<Integer>> sigMetricsList = commonCompany(gitee_index, queryStrs);
+        if (sigMetricsList==null){
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+        Iterator<String> sigAll = sigMetricsList.keySet().iterator();
+
+        HashMap<String, Integer> companyContriList = queryCompanyContribute(community, company, timeRange);
+        if (companyContriList==null){
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"queryCompanyContribute error\"}";
+        }
+        Set<String> sigCon = companyContriList.keySet();
+        while (sigAll.hasNext()){
+            String s = sigAll.next();
+            if (sigCon.contains(s)) {
+                sigMetricsList.get(s).add(companyContriList.get(s));
+            }
+            else {
+                sigMetricsList.get(s).add(0);
+            }
+        }
+
+        HashMap<String, ArrayList<Integer>> companyMeetingList = queryCompanyMeetings(community, company, timeRange);
+        if (companyMeetingList==null){
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"queryCompanyMeetings error\"}";
+        }
+        Set<String> sigMeeting = companyMeetingList.keySet();
+        sigAll = sigMetricsList.keySet().iterator();
+        while (sigAll.hasNext()){
+            String s = sigAll.next();
+            if (sigMeeting.contains(s)) {
+                ArrayList<Integer> meetingValue = companyMeetingList.get(s);
+                sigMetricsList.get(s).add(meetingValue.get(0));
+                sigMetricsList.get(s).add(meetingValue.get(1));
+            }
+            else {
+                sigMetricsList.get(s).add(0);
+                sigMetricsList.get(s).add(0);               
+            }
+        }
+
+        HashMap<String, Integer> maintainersList = queryCompanyMaintainers(community, company, timeRange);
+        if (maintainersList==null){
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"queryCompanyMaintainers error\"}";
+        }
+        Set<String> sigMain = maintainersList.keySet();
+        sigAll = sigMetricsList.keySet().iterator();
+        while (sigAll.hasNext()){
+            String s = sigAll.next();
+            if (sigMain.contains(s)) {
+                sigMetricsList.get(s).add(maintainersList.get(s));
+            }
+            else {
+                sigMetricsList.get(s).add(0);
+            }
+        }
+
+        HashMap<String, Object> dataMap = new HashMap<>();
+        List<String> metrics=Arrays.asList(new String[]{"D0","D1","D2","Company","PR_Merged","PR_Review","Issue_update","Issue_Closed","Issue_Comment","Contribute","Meeting","Attebdee","Maintainer"});
+        dataMap.put("metrics", metrics);
+        dataMap.put(company, sigMetricsList);   
+        //System.out.println(dataMap);
+        HashMap<String, Object> resMap = new HashMap<>();
+        resMap.put("code", 200);
+        resMap.put("data", dataMap);
+        resMap.put("msg", "success");
+        return objectMapper.valueToTree(resMap).toString();
+
+    }
+
+    public HashMap<String, ArrayList<Integer>> commonCompany(String index, String[] queryStrs){
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            HashMap<String, ArrayList<Integer>> sigMap = new HashMap<>();
+            
+
+            for (int i=0; i<queryStrs.length; i++){
+                //获取执行结果
+                builder.setUrl(this.url + index + "/_search");
+                builder.setBody(queryStrs[i]);
+
+                ListenableFuture<Response> f = client.executeRequest(builder.build());
+                String responseBody = f.get().getResponseBody(UTF_8);
+                JsonNode dataNode = objectMapper.readTree(responseBody);                        
+                
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+                   
+                ArrayList<String> tmp = new ArrayList<>();
+                while (buckets.hasNext()) {
+                    JsonNode bucket = buckets.next();
+                    String sig = bucket.get("key").asText();
+                    int value = bucket.get("1").get("value").asInt();         
+                              
+                    ArrayList<Integer> sigMetricsList = new ArrayList<>(); 
+                    if (!sigMap.containsKey(sig)){
+                        sigMap.put(sig, sigMetricsList);
+                    }				
+                    sigMap.get(sig).add(value);
+                    tmp.add(sig);
+                }       
+                Iterator<String> sigkeys = sigMap.keySet().iterator();
+                while (sigkeys.hasNext()){
+                    String key = sigkeys.next();
+                    if(!tmp.contains(key)){
+                        sigMap.get(key).add(0);
+                    }
+                }        
+            }
+            return sigMap;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }       
+    }
+
+    public HashMap<String, Integer> queryCompanyContribute(String community, String company, String timeRange) {
+        String gitee_index;
+        String[] queryStrs;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                gitee_index = openEuler.getGiteeAllIndex();                
+                String queryjson = openEuler.getCompanyContributeQueryStr();
+                if (queryjson == null){
+                    System.out.println("CompanyContributeQueryStr missing, please set properties...");
+                    return null;
+                }
+                queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);
+                break;
+            default:
+                return null;
+        }
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            HashMap<String, Integer> sigMap = new HashMap<>();
+
+            for (int i=0; i<queryStrs.length; i++){
+                //获取执行结果
+                builder.setUrl(this.url + gitee_index + "/_search");
+                builder.setBody(queryStrs[i]);
+
+                ListenableFuture<Response> f = client.executeRequest(builder.build());
+                String responseBody = f.get().getResponseBody(UTF_8);
+                JsonNode dataNode = objectMapper.readTree(responseBody);             
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+                int count = 0;
+                while (buckets.hasNext()) {
+                    JsonNode bucket = buckets.next();
+                    String sig = bucket.get("key").asText();
+                    count = bucket.get("doc_count").asInt();
+                    sigMap.put(sig, count);
+                }               
+            }
+            return sigMap;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public HashMap<String, ArrayList<Integer>> queryCompanyMeetings(String community, String company, String timeRange) {
+        String meeting_index;
+        String[] queryStrs;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                meeting_index = openEuler.getMeetingsIndex();
+                String queryjson = openEuler.getCompanyMeetingsQueryStr();
+                if (queryjson == null){
+                    System.out.println("CompanyMeetingsQueryStr missing, please set properties...");
+                    return null;
+                }
+                queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);                
+                break;
+            default:
+                return null;
+        }
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder().setHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString((meeting_userpass).getBytes()));
+            HashMap<String, ArrayList<Integer>> sigMap = new HashMap<>();
+
+            for (int i=0; i<queryStrs.length; i++){
+                //获取执行结果
+                builder.setUrl(this.meeting_url + meeting_index + "/_search");
+                builder.setBody(queryStrs[i]);
+
+                ListenableFuture<Response> f = client.executeRequest(builder.build());
+                String responseBody = f.get().getResponseBody(UTF_8);
+                JsonNode dataNode = objectMapper.readTree(responseBody); 
+                //System.out.println(dataNode);             
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();              
+                
+                while (buckets.hasNext()) {
+                    JsonNode bucket = buckets.next();
+                    String sig = bucket.get("key").asText();
+                    int count = bucket.get("doc_count").asInt();
+                    int num = bucket.get("1").get("value").asInt();
+                    ArrayList<Integer> meeting= new ArrayList<>();
+                    meeting.add(count);
+                    meeting.add(num);
+                    sigMap.put(sig, meeting);
+                }
+            }
+            return sigMap;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public HashMap<String, Integer> queryCompanyMaintainers(String community, String company, String timeRange) {
+        String sig_index;
+        String[] queryStrs;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                sig_index = openEuler.getSigs_index();               
+                String queryjson = openEuler.getCompanyMaintainersQueryStr();
+                if (queryjson == null){
+                    System.out.println("SigMaintainersQueryStr missing, please set properties...");
+                    return null;
+                }
+                queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);
+                break;
+            default:
+                return null;
+        }
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            HashMap<String, Integer> sigMap = new HashMap<>();
+            
+            String query = queryStrs[0];
+            //获取执行结果
+            builder.setUrl(this.url + sig_index + "/_search");
+            builder.setBody(query);
+
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);    
+            //System.out.println(dataNode);     
+            
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();                                 
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                String sig = bucket.get("key").asText();
+                int value = bucket.get("1").get("value").asInt();                           
+                sigMap.put(sig, value);               
+            }                     
+            return sigMap;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        } 
     }
 
 }
