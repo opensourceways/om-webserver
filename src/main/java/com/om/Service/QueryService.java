@@ -623,5 +623,123 @@ public class QueryService {
         }
         return result;
     }
+
+    public String querySigName(String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String key = community + "sigsname";
+        String result;
+        //result = queryDao.querySigName(community);
+        
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            result = queryDao.querySigName(community);           
+            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String querySigRepo(String community, String sig, String timeRange) {
+        String key = community.toLowerCase() + "sigrepo" + timeRange.toLowerCase();
+        String result;
+        // result = queryDao.querySigRepo(community, sig, timeRange);
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.querySigRepo(community, sig, timeRange);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+    
+    public String querySigDetails(String community, String sig, String timeRange, String curDate) {
+        String key = community.toLowerCase() + "sigdetails" + timeRange.toLowerCase();
+        String result;
+        // result = queryDao.querySigDetails(community, sig, timeRange, curDate);
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.querySigDetails(community, sig, timeRange, curDate);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryCompanyName(String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String key = community + "companyname";
+        String result = null;
+        // result = queryDao.queryCompanyName(community);
+        
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryCompanyName(community);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryCompanyUsercontribute(String community, String company, String timeRange) {
+        String key = community.toLowerCase() + "companyuser" + timeRange.toLowerCase();
+        String result;
+        // result = queryDao.queryCompanyUsercontribute(community, company, timeRange);
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryCompanyUsercontribute(community, company, timeRange);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryCompanySigDetails(String community, String company, String timeRange) {
+        String key = community.toLowerCase() + "companysig" + timeRange.toLowerCase();
+        String result;
+        // result = queryDao.queryCompanySigDetails(community, company, timeRange);
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryCompanySigDetails(community, company, timeRange);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
 }
 

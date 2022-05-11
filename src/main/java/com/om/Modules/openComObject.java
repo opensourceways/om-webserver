@@ -62,8 +62,124 @@ public class openComObject {
     protected String issueScoreQueryStr;
     protected String buildCheckResultIndex;
     protected String buildCheckMistakeIndex;
+    protected String sig_name_queryStr;
+    protected String sig_repo_queryStr;
+    protected String sig_gitee_queryStr;
+    protected String sig_maintainers_queryStr;
+    protected String sig_meetings_queryStr;
+    protected String meetings_index;
+    protected String sig_contribute_queryStr;
+    protected String company_name_quertStr;
+    protected String company_user_queryStr;
+    protected String company_sigs_queryStr;
+    protected String company_contribute_queryStr;
+    protected String company_meetings_queryStr;
+    protected String company_maintainers_queryStr;
 
 
+    public String getCompanyNameQueryStr() {
+        return company_name_quertStr;
+    }
+
+    public void setCompanyNameQueryStr(String company_name_quertStr) {
+        this.company_name_quertStr = company_name_quertStr;
+    }
+
+    public String getCompanyUserQueryStr() {
+        return company_user_queryStr;
+    }
+
+    public void setCompanyUserQueryStr(String company_user_queryStr) {
+        this.company_user_queryStr = company_user_queryStr;
+    }
+
+    public String getCompanySigsQueryStr() {
+        return company_sigs_queryStr;
+    }
+
+    public void setCompanySigsQueryStr(String company_sigs_queryStr) {
+        this.company_sigs_queryStr = company_sigs_queryStr;
+    }
+
+    public String getCompanyContributeQueryStr() {
+        return company_contribute_queryStr;
+    }
+
+    public void setCompanyContributeQueryStr(String company_contribute_queryStr) {
+        this.company_contribute_queryStr = company_contribute_queryStr;
+    }
+
+    public String getCompanyMeetingsQueryStr() {
+        return company_meetings_queryStr;
+    }
+
+    public void setCompanyMeetingsQueryStr(String company_meetings_queryStr) {
+        this.company_meetings_queryStr = company_meetings_queryStr;
+    }
+
+    public String getCompanyMaintainersQueryStr() {
+        return company_maintainers_queryStr;
+    }
+
+    public void setCompanyMaintainersQueryStr(String company_maintainers_queryStr) {
+        this.company_maintainers_queryStr = company_maintainers_queryStr;
+    }
+
+    public String getSigNameQueryStr() {
+        return sig_name_queryStr;
+    }
+
+    public void setSigNameQueryStr(String sig_name_queryStr) {
+        this.sig_name_queryStr = sig_name_queryStr;
+    }
+
+    public String getSigRepoQueryStr() {
+        return sig_repo_queryStr;
+    }
+
+    public void setSigRepoQueryStr(String sig_repo_queryStr) {
+        this.sig_repo_queryStr = sig_repo_queryStr;
+    }
+
+    public String getSigGiteeQueryStr() {
+        return sig_gitee_queryStr;
+    }
+
+    public void setSigGiteeQueryStr(String sig_user_queryStr) {
+        this.sig_gitee_queryStr = sig_user_queryStr;
+    }
+
+    public String getSigMaintainersQueryStr() {
+        return sig_maintainers_queryStr;
+    }
+
+    public void setSigMaintainersQueryStr(String sig_maintainers_queryStr) {
+        this.sig_maintainers_queryStr = sig_maintainers_queryStr;
+    }
+
+    public String getMeetingsIndex() {
+        return meetings_index;
+    }
+
+    public void setMeetingsIndex(String meetings_index) {
+        this.meetings_index = meetings_index;
+    }
+
+    public String getSigMeetingsQueryStr() {
+        return sig_meetings_queryStr;
+    }
+
+    public void setSigMeetingsQueryStr(String sig_meetings_queryStr) {
+        this.sig_meetings_queryStr = sig_meetings_queryStr;
+    }
+
+    public String getSigContributeQueryStr() {
+        return sig_contribute_queryStr;
+    }
+
+    public void setSigContributeQueryStr(String sig_contribute_queryStr) {
+        this.sig_contribute_queryStr = sig_contribute_queryStr;
+    }
 
     public String getBuildCheckResultIndex() {
         return buildCheckResultIndex;
@@ -546,7 +662,82 @@ public class openComObject {
         return c.getTimeInMillis();
     }
 
+    private long[] getRangeTime(String timeRange, String curDate) {
+        Calendar c = Calendar.getInstance();
+        c.clear();
+        String[] str = curDate.split("-");
+        int[] d = new int[3];
+        for(int i=0; i<3; i++){
+            d[i] = Integer.parseInt(str[i]);
+        }
+        //set year,month,day, Calendar中月份从0月开始
+        c.set(d[0], d[1]-1, d[2]); 
 
+        long[] mills = new long[2];
+        mills[0] = c.getTimeInMillis();
+        switch (timeRange.toLowerCase()) {
+            case "lastonemonth":
+                c.add(Calendar.MONTH, -1);
+                break;
+            case "lasthalfyear":
+                c.add(Calendar.MONTH, -6);
+                break;
+            case "lastoneyear":
+                c.add(Calendar.YEAR, -1);
+                break;
+            default:
+                c.setTimeInMillis(0);
+        }
+        mills[1] = c.getTimeInMillis();
+        return mills;
+    }
+
+    public String getAggSigRepoQueryStr(String timeRange, String sig) {
+        String queryStr;
+        String queryJson;
+        long currentTimeMillis = System.currentTimeMillis();
+        long lastTimeMillis = getPastTime(timeRange);
+
+        queryJson = getSigRepoQueryStr();       
+        queryStr = String.format(queryJson, sig);
+
+        return queryStr;
+    }
+
+    public String[] getAggSigGiteeQueryStr(String queryJson, String timeRange, String sig, String curDate) {
+        long[] mills = getRangeTime(timeRange, curDate);      
+        String[] queryJsons = queryJson.split(";");
+        String[] queryStr=new String[queryJsons.length];
+
+        for (int i=0; i<queryJsons.length; i++){
+            queryStr[i] = String.format(queryJsons[i], mills[1], mills[0], sig);
+        }           
+        return queryStr;
+    }
+
+    public String getAggCompanyUserQueryStr(String timeRange, String company) {
+        String queryStr;
+        String queryJson;
+        long currentTimeMillis = System.currentTimeMillis();
+        long lastTimeMillis = getPastTime(timeRange);
+
+        queryJson = getCompanyUserQueryStr();       
+        queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, company);
+
+        return queryStr;
+    }
+
+    public String[] getAggCompanyGiteeQueryStr(String queryJson, String timeRange, String company) {
+        long currentTimeMillis = System.currentTimeMillis();
+        long lastTimeMillis = getPastTime(timeRange);      
+        String[] queryJsons = queryJson.split(";");
+        String[] queryStr=new String[queryJsons.length];
+
+        for (int i=0; i<queryJsons.length; i++){
+            queryStr[i] = String.format(queryJsons[i], lastTimeMillis, currentTimeMillis, company);
+        }           
+        return queryStr;
+    }
 }
 
 

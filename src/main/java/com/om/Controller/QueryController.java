@@ -202,4 +202,44 @@ public class QueryController {
         String res = queryService.putUserActionsinfo(data);
         return res;
     }
+
+    @RequestMapping("/sig/name")
+    public String querySigName(@RequestParam(value = "community") String community) throws JsonProcessingException, InterruptedException, ExecutionException {
+        String res = queryService.querySigName(community);
+        return res;
+    }
+
+    @RequestMapping("/sig/repo")
+    public String querySigRepo(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig,
+                                        @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.querySigRepo(community, sig, timeRange);
+        return res;
+    }
+
+    @RequestMapping("/sig/sigdetails")
+    public String querySigDetails(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
+                               @RequestParam(value = "timeRange") String timeRange, @RequestParam(value = "date") String date) {
+        String res = queryService.querySigDetails(community, sig, timeRange, date);
+        return res;
+    }
+
+    @RequestMapping("/company/name")
+    public String queryCompanyName(@RequestParam(value = "community") String community) throws JsonProcessingException, InterruptedException, ExecutionException {
+        String res = queryService.queryCompanyName(community);
+        return res;
+    }
+
+    @RequestMapping("/company/usercontribute")
+    public String queryCompanyUsercontribute(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
+                               @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.queryCompanyUsercontribute(community, company, timeRange);
+        return res;
+    }
+
+    @RequestMapping("/company/sigdetails")
+    public String queryCompanySigDetails(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
+                               @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.queryCompanySigDetails(community, company, timeRange);
+        return res;
+    }
 }
