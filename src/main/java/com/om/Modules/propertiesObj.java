@@ -214,6 +214,19 @@ public class propertiesObj {
         bean.setIssueScoreQueryStr(openconf.getProperty("issuescore_queryStr"));
         bean.setBuildCheckResultIndex(openconf.getProperty("buildCheck_result_index"));
         bean.setBuildCheckMistakeIndex(openconf.getProperty("buildCheck_mistake_index"));
+        bean.setSigRepoQueryStr(openconf.getProperty("sig_repo_queryStr"));
+        bean.setSigNameQueryStr(openconf.getProperty("sig_name_queryStr"));
+        bean.setSigGiteeQueryStr(openconf.getProperty("sig_gitee_queryStr"));
+        bean.setSigMaintainersQueryStr(openconf.getProperty("sig_maintainers_queryStr"));
+        bean.setSigMeetingsQueryStr(openconf.getProperty("sig_meetings_queryStr"));
+        bean.setMeetingsIndex(openconf.getProperty("meetings_index"));
+        bean.setSigContributeQueryStr(openconf.getProperty("sig_contribute_queryStr"));
+        bean.setCompanyNameQueryStr(openconf.getProperty("company_name_quertStr"));
+        bean.setCompanyUserQueryStr(openconf.getProperty("company_user_queryStr"));
+        bean.setCompanySigsQueryStr(openconf.getProperty("company_sigs_queryStr"));
+        bean.setCompanyContributeQueryStr(openconf.getProperty("company_contribute_queryStr"));
+        bean.setCompanyMeetingsQueryStr(openconf.getProperty("company_meetings_queryStr"));
+        bean.setCompanyMaintainersQueryStr(openconf.getProperty("company_maintainers_queryStr"));
     }
 
     private static Properties readProperties(String path) throws IOException {
