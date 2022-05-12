@@ -223,6 +223,13 @@ public class QueryController {
         return res;
     }
 
+    @RequestMapping("/sig/sigscores")
+    public String querySigScores(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
+                               @RequestParam(value = "timeRange") String timeRange, @RequestParam(value = "date") String date) {
+        String res = queryService.querySigScores(community, sig, timeRange, date);
+        return res;
+    }
+
     @RequestMapping("/company/name")
     public String queryCompanyName(@RequestParam(value = "community") String community) throws JsonProcessingException, InterruptedException, ExecutionException {
         String res = queryService.queryCompanyName(community);
