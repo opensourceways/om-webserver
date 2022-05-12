@@ -626,9 +626,7 @@ public class QueryService {
 
     public String querySigName(String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String key = community + "sigsname";
-        String result;
-        //result = queryDao.querySigName(community);
-        
+        String result;        
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
@@ -644,7 +642,6 @@ public class QueryService {
     public String querySigRepo(String community, String sig, String timeRange) {
         String key = community.toLowerCase() + "sigrepo" + timeRange.toLowerCase();
         String result;
-        // result = queryDao.querySigRepo(community, sig, timeRange);
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
@@ -663,8 +660,8 @@ public class QueryService {
     
     public String querySigDetails(String community, String sig, String timeRange, String curDate) {
         String key = community.toLowerCase() + "sigdetails" + timeRange.toLowerCase();
-        String result;
-        // result = queryDao.querySigDetails(community, sig, timeRange, curDate);
+        String result;   
+
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
@@ -681,11 +678,29 @@ public class QueryService {
         return result;
     }
 
+    public String querySigScores(String community, String sig, String timeRange, String curDate) {
+        String key = community.toLowerCase() + "sigscores" + timeRange.toLowerCase();
+        String result;
+
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.querySigScores(community, sig, timeRange, curDate);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
     public String queryCompanyName(String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String key = community + "companyname";
-        String result = null;
-        // result = queryDao.queryCompanyName(community);
-        
+        String result;       
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
@@ -705,7 +720,6 @@ public class QueryService {
     public String queryCompanyUsercontribute(String community, String company, String timeRange) {
         String key = community.toLowerCase() + "companyuser" + timeRange.toLowerCase();
         String result;
-        // result = queryDao.queryCompanyUsercontribute(community, company, timeRange);
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
@@ -725,7 +739,6 @@ public class QueryService {
     public String queryCompanySigDetails(String community, String company, String timeRange) {
         String key = community.toLowerCase() + "companysig" + timeRange.toLowerCase();
         String result;
-        // result = queryDao.queryCompanySigDetails(community, company, timeRange);
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
