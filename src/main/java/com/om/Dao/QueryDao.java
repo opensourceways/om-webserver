@@ -1,7 +1,9 @@
 package com.om.Dao;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -2105,7 +2107,25 @@ public class QueryDao {
         }
     }
 
-    public String querySigDetails(String community, String sig, String timeRange, String curDate) {
+    public String querySigDetails(String community, String sig, String timeRange, String curDate) {       
+        ArrayList<Integer> sigMetricsList = querySigMetrics(community, sig, timeRange, curDate);
+        if (sigMetricsList == null) {
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+        HashMap<String, Object> dataMap = new HashMap<>();
+        List<String> metrics=Arrays.asList(new String[]{"D0","D1","D2","Company","PR_Merged","PR_Review","Issue_update","Issue_closed","Issue_comment","Contribute","Meeting","Attendee","Maintainer"});
+        dataMap.put("metrics", metrics);
+        dataMap.put(sig, sigMetricsList);   
+        System.out.println(dataMap);        
+        HashMap<String, Object> resMap = new HashMap<>();
+        resMap.put("code", 200);
+        resMap.put("data", dataMap);
+        resMap.put("msg", "success");
+        return objectMapper.valueToTree(resMap).toString();
+
+    }
+
+    public ArrayList<Integer> querySigMetrics(String community, String sig, String timeRange, String curDate) {
         String gitee_index;
         String[] queryStrs;
         switch (community.toLowerCase()) {
@@ -2119,22 +2139,26 @@ public class QueryDao {
                 queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig, curDate);
                 break;
             default:
-                return "{\"code\":400,\"data\":{\"community error\"},\"msg\":\"community error\"}";
+                System.out.println("{\"code\":400,\"data\":{\"community error\"},\"msg\":\"community error\"}");
+                return null;
         }
         ArrayList<Integer> sigMetricsList = common(gitee_index, queryStrs);
         if (sigMetricsList==null){
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            System.out.println("{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}");
+            return null;
         }
 
         ArrayList<Integer> sigContributeList = querySigContribute(community, sig, timeRange, curDate);
         if (sigContributeList==null){
-            return "{\"code\":400,\"data\":{\"sig contribute error\"},\"msg\":\"querySigContribute error\"}";
+            System.out.println("{\"code\":400,\"data\":{\"sig contribute error\"},\"msg\":\"querySigContribute error\"}");
+            return null;
         }
         sigMetricsList.add(sigContributeList.get(0));
 
         ArrayList<Integer> meetingsList = querySigMeetings(community, sig, timeRange, curDate);
         if (meetingsList==null){
-            return "{\"code\":400,\"data\":{\"sig meeting error\"},\"msg\":\"querySigMeetings error\"}";
+            System.out.println("{\"code\":400,\"data\":{\"sig meeting error\"},\"msg\":\"querySigMeetings error\"}");
+            return null;
         }
         for(int i=0; i<meetingsList.size(); i++){
             sigMetricsList.add(meetingsList.get(i));
@@ -2142,20 +2166,79 @@ public class QueryDao {
 
         ArrayList<Integer> maintainersList = querySigMaintainers(community, sig, timeRange, curDate);
         if (maintainersList==null){
-            return "{\"code\":400,\"data\":{\"sig maintainer error\"},\"msg\":\"querySigMaintainers error\"}";
+            System.out.println("{\"code\":400,\"data\":{\"sig maintainer error\"},\"msg\":\"querySigMaintainers error\"}");
+            return null;
         }
         sigMetricsList.add(maintainersList.get(0));
+        return sigMetricsList;
+    }
 
-        HashMap<String, Object> dataMap = new HashMap<>();
-        List<String> metrics=Arrays.asList(new String[]{"D0","D1","D2","Company","PR_Merged","PR_Review","Issue_update","Issue_Closed","Issue_Comment","Contribute","Meeting","Attebdee","Maintainer"});
-        dataMap.put("metrics", metrics);
-        dataMap.put(sig, sigMetricsList);           
+    public double sigScoreFormula(double value, ArrayList<Double> params){
+        double score = Math.log(1+value)/Math.log(1+Math.max(value,params.get(1)))*params.get(0);
+        return score;
+    }
+
+    public String querySigScores(String community, String sig, String timeRange, String curDate) {
+        HashMap<String, ArrayList<Double>> paramObject = new HashMap<>();
+        List<String> metrics=Arrays.asList(new String[]{"D0","D1","D2","Company","PR_Merged","PR_Review","Issue_update","Issue_closed","Issue_comment","Contribute","Meeting","Attendee","Maintainer"});
+
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                String paramStr = openEuler.getSigParams();
+                
+                paramObject = JSONObject.parseObject(paramStr, new TypeReference<HashMap<String, ArrayList<Double>>>(){});
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"community error\"},\"msg\":\"community error\"}";
+        }
+        ArrayList<Integer> sigMetricsList = querySigMetrics(community, sig, timeRange, curDate);
+        if (sigMetricsList == null) {
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+        
+        ArrayList<Double> sigScoresList = new ArrayList<>();
+        Double sigScore = 0.00;
+        for(int i=0; i<sigMetricsList.size(); i++){
+            String metricsName = metrics.get(i);
+            if (i == 5){
+                if (sigMetricsList.get(4) == 0){
+                    sigScoresList.add(0.0);
+                    sigScore += 0;
+                }
+                else {
+                    Double pr_review = sigMetricsList.get(5)/sigMetricsList.get(4).doubleValue();
+                    Double pr_review_score = sigScoreFormula(pr_review, paramObject.get(metricsName));
+                    sigScore += pr_review_score;
+                    sigScoresList.add(pr_review_score);
+                }
+            }
+            else if (i == 8){
+                if (sigMetricsList.get(7) == 0){
+                    sigScoresList.add(0.0);
+                    sigScore += 0;
+                }
+                else {
+                    Double issue_comment = sigMetricsList.get(8)/sigMetricsList.get(7).doubleValue();
+                    Double issue_comment_score = sigScoreFormula(issue_comment, paramObject.get(metricsName));
+                    sigScore += issue_comment_score;
+                    sigScoresList.add(issue_comment_score);
+                }
+            }
+            else {
+                Double metric = sigMetricsList.get(i).doubleValue();                               
+                Double metric_score = sigScoreFormula(metric, paramObject.get(metricsName));
+                sigScore += metric_score;
+                sigScoresList.add(metric_score);
+            }              
+        }
+        System.out.println(sigScoresList);
+        HashMap<String, Double> dataMap = new HashMap<>();
+        dataMap.put(sig, sigScore);           
         HashMap<String, Object> resMap = new HashMap<>();
         resMap.put("code", 200);
         resMap.put("data", dataMap);
         resMap.put("msg", "success");
         return objectMapper.valueToTree(resMap).toString();
-
     }
 
     public ArrayList<Integer> querySigContribute(String community, String sig, String timeRange, String curDate) {
@@ -2492,7 +2575,6 @@ public class QueryDao {
         List<String> metrics=Arrays.asList(new String[]{"D0","D1","D2","Company","PR_Merged","PR_Review","Issue_update","Issue_Closed","Issue_Comment","Contribute","Meeting","Attebdee","Maintainer"});
         dataMap.put("metrics", metrics);
         dataMap.put(company, sigMetricsList);   
-        //System.out.println(dataMap);
         HashMap<String, Object> resMap = new HashMap<>();
         resMap.put("code", 200);
         resMap.put("data", dataMap);
@@ -2620,8 +2702,7 @@ public class QueryDao {
 
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
                 String responseBody = f.get().getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody); 
-                //System.out.println(dataNode);             
+                JsonNode dataNode = objectMapper.readTree(responseBody);             
                 Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();              
                 
                 while (buckets.hasNext()) {
@@ -2670,8 +2751,7 @@ public class QueryDao {
 
             ListenableFuture<Response> f = client.executeRequest(builder.build());
             String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);    
-            //System.out.println(dataNode);     
+            JsonNode dataNode = objectMapper.readTree(responseBody);      
             
             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();                                 
             while (buckets.hasNext()) {

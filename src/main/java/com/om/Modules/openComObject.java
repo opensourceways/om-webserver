@@ -75,7 +75,16 @@ public class openComObject {
     protected String company_contribute_queryStr;
     protected String company_meetings_queryStr;
     protected String company_maintainers_queryStr;
+    protected String sig_params;
 
+
+    public String getSigParams() {
+        return sig_params;
+    }
+
+    public void setSigParams(String sig_params) {
+        this.sig_params = sig_params;
+    }
 
     public String getCompanyNameQueryStr() {
         return company_name_quertStr;
