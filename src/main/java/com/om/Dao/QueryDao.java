@@ -2768,7 +2768,7 @@ public class QueryDao {
         } 
     }
 
-    public JsonNode querySigUserTypeCount(String community, String sig, String timeRange) {
+    public JsonNode querySigUserTypeCount(String community, String sig) {
         String index;
         String queryStr;
         String queryJson;
@@ -2818,7 +2818,7 @@ public class QueryDao {
                 if (robotUsers.contains(giteeId)) {
                     continue;
                 }
-                dataMap.put(giteeId, ownerType);
+                dataMap.put(giteeId.toLowerCase(), ownerType.toLowerCase());
                 
             }
             JsonNode resNode = objectMapper.valueToTree(dataMap);
@@ -2829,12 +2829,14 @@ public class QueryDao {
             return null;
         }
     }
-
+    
     public String querySigUserContributors(String community, String sig, String contributeType, String timeRange) {
         String index;
-        String queryStr;
-        
-        JsonNode userType = querySigUserTypeCount(community, sig, timeRange);
+        String queryStr;       
+        JsonNode userType = querySigUserTypeCount(community, sig);
+        JsonNode TC_owners = querySigUserTypeCount(community, "TC");       
+        System.out.println(TC_owners); 
+
         switch (community.toLowerCase()) {
             case "openeuler":                
                 index = openEuler.getGiteeAllIndex();
@@ -2864,7 +2866,7 @@ public class QueryDao {
             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
 
             ArrayList<JsonNode> dataList = new ArrayList<>();
-            HashMap<String, Object> dataMap = new HashMap<>();
+            
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 String giteeId = bucket.get("key").asText();
@@ -2873,12 +2875,16 @@ public class QueryDao {
                     continue;
                 }
                 String ownerType = "contributor";
-                if (userType.has(giteeId)) {
-                    ownerType = userType.get(giteeId).asText();
-                }               
+                if (userType.has(giteeId.toLowerCase())) {
+                    ownerType = userType.get(giteeId.toLowerCase()).asText();
+                }    
+                HashMap<String, Object> dataMap = new HashMap<>();           
                 dataMap.put("gitee_id", giteeId);
                 dataMap.put("contribute", contribute);
                 dataMap.put("ownertype", ownerType);
+                if (TC_owners.has(giteeId.toLowerCase())) {
+                    dataMap.put("is_TC_owner", 1);
+                }
                 JsonNode resNode = objectMapper.valueToTree(dataMap);
                 dataList.add(resNode);
             }
