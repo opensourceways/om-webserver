@@ -76,6 +76,8 @@ public class openComObject {
     protected String company_meetings_queryStr;
     protected String company_maintainers_queryStr;
     protected String sig_params;
+    protected String sig_user_type;
+    protected String sig_agg_user_queryStr;
 
 
     public String getSigParams() {
@@ -84,6 +86,22 @@ public class openComObject {
 
     public void setSigParams(String sig_params) {
         this.sig_params = sig_params;
+    }
+
+    public String getSigUserType() {
+        return sig_user_type;
+    }
+
+    public void setSigUserType(String sig_user_type) {
+        this.sig_user_type = sig_user_type;
+    }
+
+    public String getSigAggUserQueryStr() {
+        return sig_agg_user_queryStr;
+    }
+
+    public void setSigAggUserQueryStr(String sig_agg_user_queryStr) {
+        this.sig_agg_user_queryStr = sig_agg_user_queryStr;
     }
 
     public String getCompanyNameQueryStr() {
@@ -730,7 +748,11 @@ public class openComObject {
         long currentTimeMillis = System.currentTimeMillis();
         long lastTimeMillis = getPastTime(timeRange);
 
-        queryJson = getCompanyUserQueryStr();       
+        queryJson = getCompanyUserQueryStr();           
+        if (queryJson == null){
+            System.out.println("CompanyUserQueryStr is null...");
+            return "";
+        }   
         queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, company);
 
         return queryStr;
@@ -747,6 +769,40 @@ public class openComObject {
         }           
         return queryStr;
     }
+
+    public String getAggSigCountQueryStr(String sig, String contributeType, String timeRange, String community) {
+        String queryStr;
+        String queryJson;
+        long currentTimeMillis = System.currentTimeMillis();
+        long lastTimeMillis = getPastTime(timeRange);
+        queryJson = getSigAggUserQueryStr();
+        if (queryJson == null){
+            System.out.println("SigAggUserQueryStr is null...");
+            return "";
+        }
+
+        switch (contributeType.toLowerCase()) {
+            case "pr":
+                if (community.toLowerCase().equals("opengauss")) {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, sig, "is_gitee_pull_request");
+                } else {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, sig, "is_pull_state_merged");
+                }
+                break;
+            case "issue":
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, sig, "is_gitee_issue");
+                break;
+            case "comment":
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, sig, "is_gitee_comment");
+                break;
+            default:
+                return "";
+        }
+
+        return queryStr;
+    }
+
+
 }
 
 

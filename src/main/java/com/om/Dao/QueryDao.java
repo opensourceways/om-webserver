@@ -2034,7 +2034,7 @@ public class QueryDao {
             Response response = f.get();
             String responseBody = response.getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("sig_names").get("buckets").elements();
             HashMap<String, Object> dataMap = new HashMap<>();
             ArrayList<String> sigList = new ArrayList<>();
             while (buckets.hasNext()) {
@@ -2091,7 +2091,7 @@ public class QueryDao {
             String responseBody = f.get().getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
 
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
 
             HashMap<String, Object> dataMap = new HashMap<>();
             ArrayList<String> repoList = new ArrayList<>();
@@ -2203,39 +2203,40 @@ public class QueryDao {
         }
         
         ArrayList<Double> sigScoresList = new ArrayList<>();
-        Double sigScore = 0.00;
+        Double sigScore = 0.0;
         for(int i=0; i<sigMetricsList.size(); i++){
-            String metricsName = metrics.get(i);
-            if (i == 5){
-                if (sigMetricsList.get(4) == 0){
-                    sigScoresList.add(0.0);
-                    sigScore += 0;
-                }
-                else {
-                    Double pr_review = sigMetricsList.get(5)/sigMetricsList.get(4).doubleValue();
-                    Double pr_review_score = sigScoreFormula(pr_review, paramObject.get(metricsName));
-                    sigScore += pr_review_score;
-                    sigScoresList.add(pr_review_score);
-                }
+            String metricsName = metrics.get(i);            
+            switch (metricsName) {
+                case "PR_Review":
+                    if (sigMetricsList.get(i-1) == 0){
+                        sigScoresList.add(0.0);
+                        sigScore += 0;
+                    }
+                    else {
+                        Double pr_review = sigMetricsList.get(i)/sigMetricsList.get(i-1).doubleValue();
+                        Double pr_review_score = sigScoreFormula(pr_review, paramObject.get(metricsName));
+                        sigScore += pr_review_score;
+                        sigScoresList.add(pr_review_score);
+                    }
+                    break;
+                case "Issue_comment":
+                    if (sigMetricsList.get(i-1) == 0){
+                        sigScoresList.add(0.0);
+                        sigScore += 0;
+                    }
+                    else {
+                        Double pr_review = sigMetricsList.get(i)/sigMetricsList.get(i-1).doubleValue();
+                        Double pr_review_score = sigScoreFormula(pr_review, paramObject.get(metricsName));
+                        sigScore += pr_review_score;
+                        sigScoresList.add(pr_review_score);
+                    }
+                    break;
+                default:
+                    Double metric = sigMetricsList.get(i).doubleValue();                               
+                    Double metric_score = sigScoreFormula(metric, paramObject.get(metricsName));
+                    sigScore += metric_score;
+                    sigScoresList.add(metric_score);
             }
-            else if (i == 8){
-                if (sigMetricsList.get(7) == 0){
-                    sigScoresList.add(0.0);
-                    sigScore += 0;
-                }
-                else {
-                    Double issue_comment = sigMetricsList.get(8)/sigMetricsList.get(7).doubleValue();
-                    Double issue_comment_score = sigScoreFormula(issue_comment, paramObject.get(metricsName));
-                    sigScore += issue_comment_score;
-                    sigScoresList.add(issue_comment_score);
-                }
-            }
-            else {
-                Double metric = sigMetricsList.get(i).doubleValue();                               
-                Double metric_score = sigScoreFormula(metric, paramObject.get(metricsName));
-                sigScore += metric_score;
-                sigScoresList.add(metric_score);
-            }              
         }
         System.out.println(sigScoresList);
         HashMap<String, Double> dataMap = new HashMap<>();
@@ -2276,7 +2277,7 @@ public class QueryDao {
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
                 String responseBody = f.get().getResponseBody(UTF_8);
                 JsonNode dataNode = objectMapper.readTree(responseBody);              
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("count").get("buckets").elements();
                 int count = 0;
                 if (buckets.hasNext()) {
                     JsonNode bucket = buckets.next();
@@ -2320,12 +2321,12 @@ public class QueryDao {
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
                 String responseBody = f.get().getResponseBody(UTF_8);
                 JsonNode dataNode = objectMapper.readTree(responseBody);              
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
                 int count = 0, num = 0;
                 if (buckets.hasNext()) {
                     JsonNode bucket = buckets.next();
                     count = bucket.get("doc_count").asInt();
-                    num = bucket.get("1").get("value").asInt();
+                    num = bucket.get("attendee").get("value").asInt();
                 }
                 sigMetricsList.add(count);
                 sigMetricsList.add(num);
@@ -2371,11 +2372,11 @@ public class QueryDao {
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
                 String responseBody = f.get().getResponseBody(UTF_8);
                 JsonNode dataNode = objectMapper.readTree(responseBody);          
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
                 int num = 0;
                 if (buckets.hasNext()) {
                     JsonNode bucket = buckets.next();
-                    num = bucket.get("1").get("value").asInt();
+                    num = bucket.get("count").get("value").asInt();
                 }
                 sigMetricsList.add(num);
             }
@@ -2417,7 +2418,7 @@ public class QueryDao {
             Response response = f.get();
             String responseBody = response.getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
             HashMap<String, Object> dataMap = new HashMap<>();
             ArrayList<String> companyList = new ArrayList<>();
             while (buckets.hasNext()) {
@@ -2474,7 +2475,7 @@ public class QueryDao {
             String responseBody = f.get().getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);   
 
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("3").get("buckets").elements();
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
 
             HashMap<String, Object> dataMap = new HashMap<>();
             List<String> metrics=Arrays.asList(new String[]{"PR","PR_Review","Issue","Issue_Comment","Fork","Star","Watch"});
@@ -2484,13 +2485,13 @@ public class QueryDao {
                 ArrayList<Integer> valueList = new ArrayList<>();
                 JsonNode bucket = buckets.next();
                 String user = bucket.get("key").asText();
-                valueList.add(bucket.get("1").get("value").asInt());
-                valueList.add(bucket.get("2").get("value").asInt());
-                valueList.add(bucket.get("3").get("value").asInt());
-                valueList.add(bucket.get("4").get("value").asInt());
-                valueList.add(bucket.get("5").get("value").asInt());
-                valueList.add(bucket.get("6").get("value").asInt());
-                valueList.add(bucket.get("7").get("value").asInt());
+                valueList.add(bucket.get("pr").get("value").asInt());
+                valueList.add(bucket.get("review").get("value").asInt());
+                valueList.add(bucket.get("issue").get("value").asInt());
+                valueList.add(bucket.get("issue_comment").get("value").asInt());
+                valueList.add(bucket.get("fork").get("value").asInt());
+                valueList.add(bucket.get("star").get("value").asInt());
+                valueList.add(bucket.get("watch").get("value").asInt());
                 dataMap.put(user, valueList);
             }           
 
@@ -2605,13 +2606,13 @@ public class QueryDao {
                 String responseBody = f.get().getResponseBody(UTF_8);
                 JsonNode dataNode = objectMapper.readTree(responseBody);                        
                 
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
                    
                 ArrayList<String> tmp = new ArrayList<>();
                 while (buckets.hasNext()) {
                     JsonNode bucket = buckets.next();
                     String sig = bucket.get("key").asText();
-                    int value = bucket.get("1").get("value").asInt();         
+                    int value = bucket.get("count").get("value").asInt();         
                               
                     ArrayList<Integer> sigMetricsList = new ArrayList<>(); 
                     if (!sigMap.containsKey(sig)){
@@ -2664,7 +2665,7 @@ public class QueryDao {
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
                 String responseBody = f.get().getResponseBody(UTF_8);
                 JsonNode dataNode = objectMapper.readTree(responseBody);             
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
                 int count = 0;
                 while (buckets.hasNext()) {
                     JsonNode bucket = buckets.next();
@@ -2709,13 +2710,13 @@ public class QueryDao {
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
                 String responseBody = f.get().getResponseBody(UTF_8);
                 JsonNode dataNode = objectMapper.readTree(responseBody);             
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();              
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();              
                 
                 while (buckets.hasNext()) {
                     JsonNode bucket = buckets.next();
                     String sig = bucket.get("key").asText();
                     int count = bucket.get("doc_count").asInt();
-                    int num = bucket.get("1").get("value").asInt();
+                    int num = bucket.get("count").get("value").asInt();
                     ArrayList<Integer> meeting= new ArrayList<>();
                     meeting.add(count);
                     meeting.add(num);
@@ -2759,11 +2760,11 @@ public class QueryDao {
             String responseBody = f.get().getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);      
             
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();                                 
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();                                 
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 String sig = bucket.get("key").asText();
-                int value = bucket.get("1").get("value").asInt();                           
+                int value = bucket.get("count").get("value").asInt();                           
                 sigMap.put(sig, value);               
             }                     
             return sigMap;
@@ -2773,4 +2774,136 @@ public class QueryDao {
         } 
     }
 
+    public JsonNode querySigUserTypeCount(String community, String sig) {
+        String index;
+        String queryStr;
+        String queryJson;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getSigs_index();
+                queryJson = openEuler.getSigUserType();
+                if (queryJson == null){
+                    System.out.println("SigUserTypeQueryStr is null...");
+                    return null;
+                }
+                queryStr = String.format(queryJson, sig);                    
+                break;
+            case "opengauss":
+                index = openGauss.getSigs_index();
+                queryJson = openEuler.getSigUserType();
+                if (queryJson == null){
+                    System.out.println("SigUserTypeQueryStr is null...");
+                    return null;
+                }
+                queryStr = String.format(queryJson, sig); 
+                break;            
+            default:
+                System.out.println("{\"code\":400,\"data\":{\"" + sig + "\":\"query error\"},\"msg\":\"query error\"}");
+                return null;
+        }
+
+        try {
+            List<String> robotUsers = Arrays.asList(robotUser.split(","));
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+            //获取执行结果
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+
+            HashMap<String, Object> dataMap = new HashMap<>();
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                String giteeId = bucket.get("key").asText();
+                String ownerType = bucket.get("owner_type").get("buckets").elements().next().get("key").asText();
+                
+                if (robotUsers.contains(giteeId)) {
+                    continue;
+                }
+                dataMap.put(giteeId.toLowerCase(), ownerType.toLowerCase());
+                
+            }
+            JsonNode resNode = objectMapper.valueToTree(dataMap);
+            return resNode;
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.out.println("{\"code\":400,\"data\":{\"" + sig + "\":\"query error\"},\"msg\":\"query error\"}");
+            return null;
+        }
+    }
+    
+    public String querySigUserContributors(String community, String sig, String contributeType, String timeRange) {
+        String index;
+        String queryStr;       
+        JsonNode userType = querySigUserTypeCount(community, sig);
+        JsonNode TC_owners = querySigUserTypeCount(community, "TC");       
+        System.out.println(TC_owners); 
+
+        switch (community.toLowerCase()) {
+            case "openeuler":                
+                index = openEuler.getGiteeAllIndex();
+                queryStr = openEuler.getAggSigCountQueryStr(sig, contributeType, timeRange, community);                
+                break;
+            case "opengauss":
+                index = openGauss.getGiteeAllIndex();
+                queryStr = openGauss.getAggSigCountQueryStr(sig, contributeType, timeRange, community);
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+
+        try {
+            List<String> robotUsers = Arrays.asList(robotUser.split(","));
+
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+            //获取执行结果
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+
+            ArrayList<JsonNode> dataList = new ArrayList<>();
+            
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                String giteeId = bucket.get("key").asText();
+                long contribute = bucket.get("sum_field").get("value").asLong();
+                if (contribute == 0 || robotUsers.contains(giteeId)) {
+                    continue;
+                }
+                String ownerType = "contributor";
+                if (userType.has(giteeId.toLowerCase())) {
+                    ownerType = userType.get(giteeId.toLowerCase()).asText();
+                }    
+                HashMap<String, Object> dataMap = new HashMap<>();           
+                dataMap.put("gitee_id", giteeId);
+                dataMap.put("contribute", contribute);
+                dataMap.put("ownertype", ownerType);
+                if (TC_owners.has(giteeId.toLowerCase())) {
+                    dataMap.put("is_TC_owner", 1);
+                }
+                JsonNode resNode = objectMapper.valueToTree(dataMap);
+                dataList.add(resNode);
+            }
+
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", dataList);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+
+    }
 }

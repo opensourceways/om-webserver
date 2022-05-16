@@ -228,6 +228,8 @@ public class propertiesObj {
         bean.setCompanyMeetingsQueryStr(openconf.getProperty("company_meetings_queryStr"));
         bean.setCompanyMaintainersQueryStr(openconf.getProperty("company_maintainers_queryStr"));
         bean.setSigParams(openconf.getProperty("sig_params"));
+        bean.setSigUserType(openconf.getProperty("sig_user_type"));
+        bean.setSigAggUserQueryStr(openconf.getProperty("sig_agg_user_queryStr"));
     }
 
     private static Properties readProperties(String path) throws IOException {
