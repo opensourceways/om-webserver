@@ -2283,12 +2283,10 @@ public class QueryDao {
                 paramObject = JSONObject.parseObject(paramStr, new TypeReference<HashMap<String, ArrayList<Double>>>(){});
                 break;
             default:
-                // return "{\"code\":400,\"data\":{\"community error\"},\"msg\":\"community error\"}";
                 return null;
         }
         ArrayList<Integer> sigMetricsList = querySigMetrics(community, sig, timeRange, curDate);
         if (sigMetricsList == null) {
-            // return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
             return null;
         }
         
@@ -2329,14 +2327,6 @@ public class QueryDao {
             }
         }
         return sigScore;
-        // System.out.println(sigScoresList);
-        // HashMap<String, Double> dataMap = new HashMap<>();
-        // dataMap.put(sig, sigScore);           
-        // HashMap<String, Object> resMap = new HashMap<>();
-        // resMap.put("code", 200);
-        // resMap.put("data", dataMap);
-        // resMap.put("msg", "success");
-        // return objectMapper.valueToTree(resMap).toString();
     }
 
     public ArrayList<Integer> querySigContribute(String community, String sig, String timeRange, String curDate) {
@@ -2868,7 +2858,7 @@ public class QueryDao {
     }
 
     // 获取每个sig的maintainers、committers
-    public JsonNode querySigUserTypeCount(String community, String sig) {
+    public JsonNode querySigOwnerTypeCount(String community, String sig) {
         String index;
         String queryStr;
         String queryJson;
@@ -2891,12 +2881,12 @@ public class QueryDao {
             return null;
         }
         queryStr = String.format(queryJson, sig); 
-        JsonNode resNode = commonUserType(index, queryStr);
+        JsonNode resNode = commonOwnerType(index, queryStr);
         return resNode;
     }
 
     // 获取所有sig的maintainers、committers
-    public JsonNode queryUserTypeCount(String community) {
+    public JsonNode queryOwnerTypeCount(String community) {
         String index;
         String queryJson;
         switch (community.toLowerCase()) {
@@ -2915,11 +2905,11 @@ public class QueryDao {
         if (queryJson == null) {
             return null;
         }
-        JsonNode resNode = commonUserType(index, queryJson);
+        JsonNode resNode = commonOwnerType(index, queryJson);
         return resNode;
     }
     
-    public JsonNode commonUserType(String index, String queryStr) {
+    public JsonNode commonOwnerType(String index, String queryStr) {
         try {
             List<String> robotUsers = Arrays.asList(robotUser.split(","));
             AsyncHttpClient client = AsyncHttpUtil.getClient();
@@ -2968,23 +2958,23 @@ public class QueryDao {
     public String queryGroupUserContributors(String community, String group_field, String group, String contributeType, String timeRange) {
         String index;
         String queryStr;  
-        JsonNode userType;   
-        JsonNode TC_owners = querySigUserTypeCount(community, "TC"); 
+        JsonNode ownerType;   
+        JsonNode TC_owners = querySigOwnerTypeCount(community, "TC"); 
         
         switch (group_field) {
             case "sig":
-                userType = querySigUserTypeCount(community, group);        
+                ownerType = querySigOwnerTypeCount(community, group);        
                 break;   
                 
             case "company":
-                userType = queryUserTypeCount(community);       
+                ownerType = queryOwnerTypeCount(community);       
                 break;    
                 
             default:
                 return "";
 
         }
-        System.out.println(userType); 
+        System.out.println(ownerType); 
         switch (community.toLowerCase()) {
             case "openeuler":                
                 index = openEuler.getGiteeAllIndex();
@@ -3025,14 +3015,14 @@ public class QueryDao {
                 if (contribute == 0 || robotUsers.contains(giteeId)) {
                     continue;
                 }
-                String ownerType = "contributor";
-                if (userType.has(giteeId.toLowerCase())) {
-                    ownerType = userType.get(giteeId.toLowerCase()).asText();
+                String userType = "contributor";
+                if (ownerType.has(giteeId.toLowerCase())) {
+                    userType = ownerType.get(giteeId.toLowerCase()).asText();
                 }    
                 HashMap<String, Object> dataMap = new HashMap<>();           
                 dataMap.put("gitee_id", giteeId);
                 dataMap.put("contribute", contribute);
-                dataMap.put("ownertype", ownerType);
+                dataMap.put("usertype", userType);
                 if (TC_owners.has(giteeId.toLowerCase())) {
                     dataMap.put("is_TC_owner", 1);
                 }

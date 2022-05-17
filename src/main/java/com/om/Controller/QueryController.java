@@ -243,6 +243,13 @@ public class QueryController {
         return res;
     }
 
+    @RequestMapping("/company/usercontribute")
+    public String queryCompanyUsercontribute(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
+                                        @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.queryCompanyUsercontribute(community, company, contributeType, timeRange);
+        return res;
+    }
+
     @RequestMapping("/company/sigdetails")
     public String queryCompanySigDetails(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
                                @RequestParam(value = "timeRange") String timeRange) {
@@ -254,13 +261,6 @@ public class QueryController {
     public String querySigUserTypeCount(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
                                         @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
         String res = queryService.querySigUserTypeCount(community, sig, contributeType, timeRange);
-        return res;
-    }
-
-    @RequestMapping("/company/usercontribute")
-    public String queryCompanyUsercontribute(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
-                                        @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
-        String res = queryService.queryCompanyUsercontribute(community, company, contributeType, timeRange);
         return res;
     }
 }
