@@ -681,12 +681,30 @@ public class QueryService {
     public String querySigScores(String community, String sig, String timeRange, String curDate) {
         String key = community.toLowerCase() + "sigscores" + timeRange.toLowerCase();
         String result;
-
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
                 result = queryDao.querySigScores(community, sig, timeRange, curDate);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryAllSigScores(String community, String timeRange, String curDate) {
+        String key = community.toLowerCase() + "allsigscores" + timeRange.toLowerCase();
+        String result;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryAllSigScores(community, timeRange, curDate);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -717,25 +735,6 @@ public class QueryService {
         return result;
     }
 
-    public String queryCompanyUsercontribute(String community, String company, String timeRange) {
-        String key = community.toLowerCase() + "companyuser" + timeRange.toLowerCase();
-        String result;
-        result = (String) redisDao.get(key);
-        if (result == null) {
-            //查询数据库，更新redis 缓存。
-            try {
-                result = queryDao.queryCompanyUsercontribute(community, company, timeRange);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
-            if (set) {
-                System.out.println("update " + key + " success!");
-            }
-        }
-        return result;
-    }
-
     public String queryCompanySigDetails(String community, String company, String timeRange) {
         String key = community.toLowerCase() + "companysig" + timeRange.toLowerCase();
         String result;
@@ -757,13 +756,31 @@ public class QueryService {
 
     public String querySigUserTypeCount(String community, String sig, String contributeType, String timeRange) {
         String key = community.toLowerCase() + "sigusertypecontribute" + timeRange.toLowerCase();
-        String result;
-        
+        String result;      
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
-                result = queryDao.querySigUserContributors(community, sig, contributeType, timeRange);
+                result = queryDao.queryGroupUserContributors(community, "sig", sig, contributeType, timeRange);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryCompanyUsercontribute(String community, String company, String contributeType, String timeRange) {
+        String key = community.toLowerCase() + "companyusertypecontribute" + timeRange.toLowerCase();
+        String result;            
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryGroupUserContributors(community, "company", company, contributeType, timeRange);
             } catch (Exception e) {
                 e.printStackTrace();
             }
