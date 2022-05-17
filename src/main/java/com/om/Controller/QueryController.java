@@ -230,6 +230,13 @@ public class QueryController {
         return res;
     }
 
+    @RequestMapping("/allsigscores")
+    public String queryAllSigScores(@RequestParam(value = "community") String community, @RequestParam(value = "timeRange") String timeRange, 
+                                    @RequestParam(value = "date") String date) {
+        String res = queryService.queryAllSigScores(community, timeRange, date);
+        return res;
+    }
+
     @RequestMapping("/company/name")
     public String queryCompanyName(@RequestParam(value = "community") String community) throws JsonProcessingException, InterruptedException, ExecutionException {
         String res = queryService.queryCompanyName(community);
@@ -238,8 +245,8 @@ public class QueryController {
 
     @RequestMapping("/company/usercontribute")
     public String queryCompanyUsercontribute(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
-                               @RequestParam(value = "timeRange") String timeRange) {
-        String res = queryService.queryCompanyUsercontribute(community, company, timeRange);
+                                        @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.queryCompanyUsercontribute(community, company, contributeType, timeRange);
         return res;
     }
 
