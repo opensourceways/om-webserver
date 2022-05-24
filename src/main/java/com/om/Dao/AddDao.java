@@ -2,6 +2,7 @@ package com.om.Dao;
 
 
 import com.om.Modules.openEuler;
+import com.om.Modules.openLookeng;
 import com.om.Utils.AsyncHttpUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.StringValidationUtil;
@@ -37,6 +38,8 @@ public class AddDao {
     @Autowired
     protected openEuler openEuler;
 
+    @Autowired
+    protected openLookeng openLookeng;
 
     public String putBugQuestionnaire(String community, String item, BugQuestionnaireVo bugQuestionnaireVo) {
         String[] userpass = Objects.requireNonNull(env.getProperty("secure.userpass")).split(":");
@@ -51,14 +54,19 @@ public class AddDao {
         switch (community.toLowerCase()) {
             case "openeuler":
                 indexName = openEuler.getBug_questionnaire_index();
-                indexName = indexName.substring(1);
                 break;
             case "opengauss":
             case "openlookeng":
+                indexName = openLookeng.getBug_questionnaire_index();
+                break;
             case "mindspore":
             default:
                 return "{\"code\":400,\"data\":{\"" + item + "\":\"write error\"},\"msg\":\"community error\"}";
         }
+        if (indexName == null){
+            return "{\"code\":400,\"data\":\"write error\"},\"msg\":\"indexname is null\"}";
+        }
+        indexName = indexName.substring(1);
 
         String nowStr = ZonedDateTime.now().toOffsetDateTime().toString();
         nowStr = nowStr.replaceAll("\\.\\d{3}", "");
@@ -116,11 +124,11 @@ public class AddDao {
         boolean comprehensiveSatisficationValidation = comprehensiveSatisficationTemplate.contains(comprehensiveSatisfication);
         boolean emailValidation = StringValidationUtil.isEmail(email);
 
-        if (bugDocFragment.contains("\\")) {
+        if (bugDocFragment!=null && bugDocFragment.contains("\\")) {
             String cleanBugDocFragment = bugDocFragment.replace("\\", "/");
             bugQuestionnaireVo.setBugDocFragment(cleanBugDocFragment);
         }
-        if (problemDetail.contains("\\")) {
+        if (problemDetail!=null && problemDetail.contains("\\")) {
             String cleanProblemDetail = problemDetail.replace("\\", "/");
             bugQuestionnaireVo.setBugDocFragment(cleanProblemDetail);
         }
@@ -142,6 +150,4 @@ public class AddDao {
 
         return errorMesseges;
     }
-
-
 }
