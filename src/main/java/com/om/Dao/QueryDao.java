@@ -1117,36 +1117,39 @@ public class QueryDao {
         Iterator<JsonNode> packages = jsonNode.elements();
 
         ArrayList<JsonNode> dataList = new ArrayList<>();
+        String[] hostArchs = new String[]{"x86_64", "aarch64"};
         while (packages.hasNext()) {
             String packageName = packages.next().get("key").asText();
-            builder.setBody(String.format(obsDetailsQueryStr, branch, packageName, size));
-            f = client.executeRequest(builder.build());
-            responseBody = f.get().getResponseBody(UTF_8);
-            dataNode = objectMapper.readTree(responseBody);
-            JsonNode hits = dataNode.get("hits").get("hits");
-            Iterator<JsonNode> it = hits.elements();
+            for (String hostarch : hostArchs) {
+                builder.setBody(String.format(obsDetailsQueryStr, branch, packageName, hostarch, size));
+                f = client.executeRequest(builder.build());
+                responseBody = f.get().getResponseBody(UTF_8);
+                dataNode = objectMapper.readTree(responseBody);
+                JsonNode hits = dataNode.get("hits").get("hits");
+                Iterator<JsonNode> it = hits.elements();
 
-            HashMap<String, Object> packageMap = new HashMap<>();
-            ArrayList<Long> buildTimes = new ArrayList<>();
-            boolean is_head = true;
-            // 2、获取某个工程每个包最近的数据
-            while (it.hasNext()) {
-                JsonNode hit = it.next();
-                JsonNode source = hit.get("_source");
-                if (is_head) {
-                    packageMap.put("repo_name", source.get("package").asText());
-                    packageMap.put("obs_version", source.get("versrel").asText());
-                    packageMap.put("architecture", source.get("hostarch").asText());
-                    packageMap.put("obs_branch", source.get("project").asText());
-                    packageMap.put("build_state", source.get("code").asText());
+                HashMap<String, Object> packageMap = new HashMap<>();
+                ArrayList<Long> buildTimes = new ArrayList<>();
+                boolean is_head = true;
+                // 2、获取某个工程每个包最近的数据
+                while (it.hasNext()) {
+                    JsonNode hit = it.next();
+                    JsonNode source = hit.get("_source");
+                    if (is_head) {
+                        packageMap.put("repo_name", source.get("package").asText());
+                        packageMap.put("obs_version", source.get("versrel").asText());
+                        packageMap.put("architecture", source.get("hostarch").asText());
+                        packageMap.put("obs_branch", source.get("project").asText());
+                        packageMap.put("build_state", source.get("code").asText());
+                    }
+                    buildTimes.add(source.get("duration").asLong());
+                    is_head = false;
+
                 }
-                buildTimes.add(source.get("duration").asLong());
-                is_head = false;
-
+                packageMap.put("history_build_times", buildTimes);
+                JsonNode resNode = objectMapper.valueToTree(packageMap);
+                dataList.add(resNode);
             }
-            packageMap.put("history_build_times", buildTimes);
-            JsonNode resNode = objectMapper.valueToTree(packageMap);
-            dataList.add(resNode);
         }
 
         return dataList;
