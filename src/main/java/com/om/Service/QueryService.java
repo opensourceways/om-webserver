@@ -249,7 +249,7 @@ public class QueryService {
 
     public String queryDownload(String community, String item) throws InterruptedException, ExecutionException, JsonProcessingException {
         String key = community + item;
-        String result;
+        String result = "";
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。

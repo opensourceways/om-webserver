@@ -652,7 +652,8 @@ public class QueryDao {
         return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
     }
 
-    public String queryDownload(String community, String item) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+    public String queryDownload(String community, String item) throws NoSuchAlgorithmException, KeyManagementException,
+            ExecutionException, InterruptedException, JsonProcessingException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
         RequestBuilder builder = asyncHttpUtil.getBuilder();
         String index = "";
@@ -679,15 +680,15 @@ public class QueryDao {
         }
         builder.setUrl(this.url + index + "/_search");
         builder.setBody(queryjson);
-        //获取执行结果
+        // 获取执行结果
         ListenableFuture<Response> f = client.executeRequest(builder.build());
 
-        //mindspore多个下载需要加起来
+        // mindspore多个下载需要加起来
         ListenableFuture<Response> fDockerHub = null;
         if (StringUtils.isNotBlank(queryDockerHubjson)) {
             builder.setUrl(this.url + index + "/_search");
             builder.setBody(queryDockerHubjson);
-            //获取执行结果
+            // 获取执行结果
             fDockerHub = client.executeRequest(builder.build());
         }
 
@@ -732,7 +733,8 @@ public class QueryDao {
                 statusText = response.getStatusText();
                 String responseBody = response.getResponseBody(UTF_8);
                 JsonNode dataNode = objectMapper.readTree(responseBody);
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets").elements();
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets")
+                        .elements();
                 while (buckets.hasNext()) {
                     JsonNode bucket = buckets.next();
                     count += bucket.get("sum").get("value").asLong();
@@ -743,7 +745,8 @@ public class QueryDao {
             }
         }
 
-        return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
+        return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText
+                + "\"}";
     }
 
     public String queryBlueZoneContributes(BlueZoneContributeVo body, String item) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
@@ -1058,14 +1061,20 @@ public class QueryDao {
         switch (community.toLowerCase()) {
             case "openeuler":
                 indexName = openEuler.getBug_questionnaire_index();
-                indexName = indexName.substring(1);
                 break;
             case "opengauss":
             case "openlookeng":
+                indexName = openLookeng.getBug_questionnaire_index();
+                break;
             case "mindspore":
             default:
                 return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
         }
+        if (indexName == null) {
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"indexname is null\"}";
+        }
+        indexName = indexName.substring(1);
+
         String[] userpass = Objects.requireNonNull(env.getProperty("secure.userpass")).split(":");
         String host = env.getProperty("es.secure.host");
         int port = Integer.parseInt(env.getProperty("es.port", "9200"));
@@ -1647,6 +1656,9 @@ public class QueryDao {
                 break;
             case "opengauss":
             case "openlookeng":
+                index = openLookeng.getIssueScoreIndex();
+                queryjson = openLookeng.getIssueScoreQueryStr();
+                break;
             case "mindspore":
                 return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
             default:
