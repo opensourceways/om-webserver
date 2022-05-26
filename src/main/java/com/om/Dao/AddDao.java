@@ -1,6 +1,5 @@
 package com.om.Dao;
 
-
 import com.om.Modules.openEuler;
 import com.om.Modules.openLookeng;
 import com.om.Utils.AsyncHttpUtil;
@@ -63,7 +62,7 @@ public class AddDao {
             default:
                 return "{\"code\":400,\"data\":{\"" + item + "\":\"write error\"},\"msg\":\"community error\"}";
         }
-        if (indexName == null){
+        if (indexName == null) {
             return "{\"code\":400,\"data\":\"write error\"},\"msg\":\"indexname is null\"}";
         }
         indexName = indexName.substring(1);
@@ -90,7 +89,9 @@ public class AddDao {
                 if (status_code == 200) {
                     res = "{\"code\":200,\"data\":{\"questionnaire_count\":\"1\"},\"msg\":\"add success\"}";
                 } else {
-                    res = String.format("{\"code\":%i,\"data\":{\"questionnaire_count\":\"0\"},\"msg\":\"add bug questionnaire failed\"}", status_code);
+                    res = String.format(
+                            "{\"code\":%i,\"data\":{\"questionnaire_count\":\"0\"},\"msg\":\"add bug questionnaire failed\"}",
+                            status_code);
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -121,14 +122,15 @@ public class AddDao {
 
         boolean existProblemValidation = existProblemTemplate.containsAll(existProblem);
         boolean participateReasonValidation = participateReasonTemplate.contains(participateReason);
-        boolean comprehensiveSatisficationValidation = comprehensiveSatisficationTemplate.contains(comprehensiveSatisfication);
+        boolean comprehensiveSatisficationValidation = comprehensiveSatisficationTemplate
+                .contains(comprehensiveSatisfication);
         boolean emailValidation = StringValidationUtil.isEmail(email);
 
-        if (bugDocFragment!=null && bugDocFragment.contains("\\")) {
+        if (bugDocFragment != null && bugDocFragment.contains("\\")) {
             String cleanBugDocFragment = bugDocFragment.replace("\\", "/");
             bugQuestionnaireVo.setBugDocFragment(cleanBugDocFragment);
         }
-        if (problemDetail!=null && problemDetail.contains("\\")) {
+        if (problemDetail != null && problemDetail.contains("\\")) {
             String cleanProblemDetail = problemDetail.replace("\\", "/");
             bugQuestionnaireVo.setBugDocFragment(cleanProblemDetail);
         }
