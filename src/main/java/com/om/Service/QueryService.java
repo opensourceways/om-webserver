@@ -640,7 +640,7 @@ public class QueryService {
     }
 
     public String querySigRepo(String community, String sig, String timeRange) {
-        String key = community.toLowerCase() + "sigrepo" + timeRange.toLowerCase();
+        String key = community.toLowerCase() + sig + "repo" + timeRange.toLowerCase();
         String result;
         result = (String) redisDao.get(key);
         if (result == null) {
@@ -659,7 +659,7 @@ public class QueryService {
     }
     
     public String querySigDetails(String community, String sig, String timeRange, String curDate) {
-        String key = community.toLowerCase() + "sigdetails" + timeRange.toLowerCase();
+        String key = community.toLowerCase() + sig + "details" + timeRange.toLowerCase();
         String result;   
 
         result = (String) redisDao.get(key);
@@ -679,7 +679,7 @@ public class QueryService {
     }
 
     public String querySigScores(String community, String sig, String timeRange, String curDate) {
-        String key = community.toLowerCase() + "sigscores" + timeRange.toLowerCase();
+        String key = community.toLowerCase() + sig + "scores" + timeRange.toLowerCase();
         String result;
         result = (String) redisDao.get(key);
         if (result == null) {
@@ -717,7 +717,7 @@ public class QueryService {
     }
 
     public String queryCompanyName(String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String key = community + "companyname";
+        String key = community.toLowerCase() + "companyname";
         String result;       
         result = (String) redisDao.get(key);
         if (result == null) {
@@ -736,26 +736,27 @@ public class QueryService {
     }
 
     public String queryCompanyUsercontribute(String community, String company, String contributeType, String timeRange) {
-        String key = community.toLowerCase() + "companyusertypecontribute" + timeRange.toLowerCase();
-        String result;            
-        result = (String) redisDao.get(key);
-        if (result == null) {
-            //查询数据库，更新redis 缓存。
-            try {
-                result = queryDao.queryGroupUserContributors(community, "company", company, contributeType, timeRange);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
-            if (set) {
-                System.out.println("update " + key + " success!");
-            }
-        }
+        String key = community.toLowerCase() + company + "usertypecontribute" + timeRange.toLowerCase();
+        System.out.println(key);
+        String result = "";            
+        // result = (String) redisDao.get(key);
+        // if (result == null) {
+        //     //查询数据库，更新redis 缓存。
+        //     try {
+        //         result = queryDao.queryGroupUserContributors(community, "company", company, contributeType, timeRange);
+        //     } catch (Exception e) {
+        //         e.printStackTrace();
+        //     }
+        //     boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+        //     if (set) {
+        //         System.out.println("update " + key + " success!");
+        //     }
+        // }
         return result;
     }
 
     public String queryCompanySigDetails(String community, String company, String timeRange) {
-        String key = community.toLowerCase() + "companysig" + timeRange.toLowerCase();
+        String key = community.toLowerCase() + company + "sig" + timeRange.toLowerCase();
         String result;
         result = (String) redisDao.get(key);
         if (result == null) {
@@ -774,7 +775,7 @@ public class QueryService {
     }
 
     public String querySigUserTypeCount(String community, String sig, String contributeType, String timeRange) {
-        String key = community.toLowerCase() + "sigusertypecontribute" + timeRange.toLowerCase();
+        String key = community.toLowerCase() + sig + "usertypecontribute" + timeRange.toLowerCase();
         String result;      
         result = (String) redisDao.get(key);
         if (result == null) {
