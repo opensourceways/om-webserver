@@ -221,7 +221,6 @@ public class propertiesObj {
         bean.setSigMeetingsQueryStr(openconf.getProperty("sig_meetings_queryStr"));
         bean.setMeetingsIndex(openconf.getProperty("meetings_index"));
         bean.setSigContributeQueryStr(openconf.getProperty("sig_contribute_queryStr"));
-        bean.setCompanyNameQueryStr(openconf.getProperty("company_name_quertStr"));
         bean.setCompanyUserQueryStr(openconf.getProperty("company_user_queryStr"));
         bean.setCompanySigsQueryStr(openconf.getProperty("company_sigs_queryStr"));
         bean.setCompanyContributeQueryStr(openconf.getProperty("company_contribute_queryStr"));
