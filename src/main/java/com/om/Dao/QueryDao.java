@@ -2491,45 +2491,39 @@ public class QueryDao {
 
     public String queryCompanyName(String community) {
         String index = "";
-        String queryjson = "";
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getClaCorporationIndex();
-                queryjson = openEuler.getCompanyNameQueryStr();
                 break;
             case "opengauss":
                 index = openGauss.getClaCorporationIndex();
-                queryjson = openGauss.getCompanyNameQueryStr();
                 break;
             case "mindspore":
                 index = mindSpore.getClaCorporationIndex();
-                queryjson = mindSpore.getCompanyNameQueryStr();                
+                break;
             case "openlookeng":
                 return "{\"code\":" + 404 + ",\"data\":{\"companys\":" + 0 + "},\"msg\":\"not Found!\"}";
             default:
                 return "";
         }
         try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();   
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryjson);
-            //获取执行结果
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-    
-            Response response = f.get();
-            String responseBody = response.getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
             HashMap<String, Object> dataMap = new HashMap<>();
-            ArrayList<String> companyList = new ArrayList<>();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String company = bucket.get("key").asText();
-                companyList.add(company);
+            List<String> companyList = new ArrayList<>();
+            companyList = queryClaCompany(index);
+            List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml);
+            Map<String, String> companyNameCnEn = companys.get(0);
+            Map<String, String> companyNameAlCn = companys.get(1);
+            List<HashMap<String, Object>> companyNameList = new ArrayList<>();
+            for (String company : companyList) {
+                HashMap<String, Object> nameMap = new HashMap<>();
+                String companyCn = companyNameAlCn.getOrDefault(company.trim(), company.trim());
+                String companyEn = companyNameCnEn.getOrDefault(company.trim(), companyCn);
+                nameMap.put("company_cn", companyCn);
+                nameMap.put("company_en", companyEn);
+                companyNameList.add(nameMap);
             }
-            dataMap.put(community, companyList);
-    
+            dataMap.put(community, companyNameList);
+
             HashMap<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
             resMap.put("data", dataMap);
@@ -2613,6 +2607,7 @@ public class QueryDao {
     public String queryCompanySigDetails(String community, String company, String timeRange) {
         String gitee_index;
         String[] queryStrs;
+        company = CompanyCN2Cla(community, company);
         switch (community.toLowerCase()) {
             case "openeuler":
                 gitee_index = openEuler.getGiteeAllIndex();               
@@ -2974,7 +2969,30 @@ public class QueryDao {
             return null;
         }
     }
-   
+
+    public String CompanyCN2Cla(String community, String company) {
+        String claCompany = "";
+        YamlUtil yamlUtil = new YamlUtil();
+        CompanyYaml companies = yamlUtil.readUrlYaml(companyNameYaml, CompanyYaml.class);
+        for (CompanyYamlInfo companyinfo : companies.getCompanies()) {
+            claCompany = companyinfo.getCompany_cn().trim();
+            if (company.equals(claCompany)) {
+                List<String> aliases = companyinfo.getAliases();
+                if (aliases != null) {
+                    for (String alias : aliases) {
+                        if (community.toLowerCase().equals("openeuler")) {
+                            claCompany = alias;
+                            break;
+                        }
+                        claCompany = alias;
+                    }
+                }
+                break;
+            }
+        }
+        return claCompany;
+    }
+
     // 根据sig或者commpany获取贡献者的pr、issue、comment等指标
     public String queryGroupUserContributors(String community, String group_field, String group, String contributeType, String timeRange) {
         String index;
@@ -2988,7 +3006,8 @@ public class QueryDao {
                 break;   
                 
             case "company":
-                ownerType = queryOwnerTypeCount(community);       
+                ownerType = queryOwnerTypeCount(community);
+                group = CompanyCN2Cla(community, group);       
                 break;    
                 
             default:
