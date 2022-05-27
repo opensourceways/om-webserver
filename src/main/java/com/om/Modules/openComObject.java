@@ -69,7 +69,6 @@ public class openComObject {
     protected String sig_meetings_queryStr;
     protected String meetings_index;
     protected String sig_contribute_queryStr;
-    protected String company_name_quertStr;
     protected String company_user_queryStr;
     protected String company_sigs_queryStr;
     protected String company_contribute_queryStr;
@@ -120,14 +119,6 @@ public class openComObject {
 
     public void setCompanyAggUserQueryStr(String company_agg_user_queryStr) {
         this.company_agg_user_queryStr = company_agg_user_queryStr;
-    }
-
-    public String getCompanyNameQueryStr() {
-        return company_name_quertStr;
-    }
-
-    public void setCompanyNameQueryStr(String company_name_quertStr) {
-        this.company_name_quertStr = company_name_quertStr;
     }
 
     public String getCompanyUserQueryStr() {
