@@ -735,23 +735,24 @@ public class QueryService {
         return result;
     }
 
-    public String queryCompanyUsercontribute(String community, String company, String contributeType, String timeRange) {
+    public String queryCompanyUsercontribute(String community, String company, String contributeType,
+            String timeRange) {
         String key = community.toLowerCase() + company + "usertypecontribute" + timeRange.toLowerCase();
-        System.out.println(key);
-        String result = "";            
-        // result = (String) redisDao.get(key);
-        // if (result == null) {
-        //     //查询数据库，更新redis 缓存。
-        //     try {
-        //         result = queryDao.queryGroupUserContributors(community, "company", company, contributeType, timeRange);
-        //     } catch (Exception e) {
-        //         e.printStackTrace();
-        //     }
-        //     boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
-        //     if (set) {
-        //         System.out.println("update " + key + " success!");
-        //     }
-        // }
+        String result = "";
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryGroupUserContributors(community, "company", company, contributeType, timeRange);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result,
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
         return result;
     }
 
