@@ -79,6 +79,8 @@ public class openComObject {
     protected String sig_agg_user_queryStr;
     protected String company_agg_user_queryStr;
     protected String all_sigs_owner_type;
+    protected String sigs_feature_url;
+    protected String company_users;
 
 
     public String getSigParams() {
@@ -87,6 +89,22 @@ public class openComObject {
 
     public void setSigParams(String sig_params) {
         this.sig_params = sig_params;
+    }
+
+    public String getComapnyUsers() {
+        return company_users;
+    }
+
+    public void setComapnyUsers(String company_users) {
+        this.company_users = company_users;
+    }
+
+    public String getSigsFeature() {
+        return sigs_feature_url;
+    }
+
+    public void setSigsFeature(String sigs_feature_url) {
+        this.sigs_feature_url = sigs_feature_url;
     }
 
     public String getSigOwnerType() {
@@ -703,11 +721,11 @@ public class openComObject {
         c.clear();
         String[] str = curDate.split("-");
         int[] d = new int[3];
-        for(int i=0; i<3; i++){
+        for (int i = 0; i < 3; i++) {
             d[i] = Integer.parseInt(str[i]);
         }
-        //set year,month,day, Calendar中月份从0月开始
-        c.set(d[0], d[1]-1, d[2]); 
+        // set year,month,day, Calendar中月份从0月开始
+        c.set(d[0], d[1] - 1, d[2]);
 
         long[] mills = new long[2];
         mills[0] = c.getTimeInMillis();
@@ -731,24 +749,19 @@ public class openComObject {
     public String getAggSigRepoQueryStr(String timeRange, String sig) {
         String queryStr;
         String queryJson;
-        long currentTimeMillis = System.currentTimeMillis();
-        long lastTimeMillis = getPastTime(timeRange);
-
-        queryJson = getSigRepoQueryStr();       
+        queryJson = getSigRepoQueryStr();
         queryStr = String.format(queryJson, sig);
-
         return queryStr;
     }
 
     public String[] getAggSigGiteeQueryStr(String queryJson, String timeRange, String sig, String curDate) {
-        long[] mills = getRangeTime(timeRange, curDate);      
+        long[] mills = getRangeTime(timeRange, curDate);
         String[] queryJsons = queryJson.split(";");
-        String[] queryStr=new String[queryJsons.length];
+        String[] queryStr = new String[queryJsons.length];
 
-        for (int i=0; i<queryJsons.length; i++){
-            // queryStr[i] = String.format(queryJsons[i], mills[1], mills[0]);
+        for (int i = 0; i < queryJsons.length; i++) {
             queryStr[i] = String.format(queryJsons[i], mills[1], mills[0], sig);
-        }           
+        }
         return queryStr;
     }
 
@@ -758,29 +771,33 @@ public class openComObject {
         long currentTimeMillis = System.currentTimeMillis();
         long lastTimeMillis = getPastTime(timeRange);
 
-        queryJson = getCompanyUserQueryStr();           
-        if (queryJson == null){
+        queryJson = getCompanyUserQueryStr();
+        if (queryJson == null) {
             System.out.println("CompanyUserQueryStr is null...");
             return "";
-        }   
+        }
         queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, company);
 
         return queryStr;
     }
 
     public String[] getAggCompanyGiteeQueryStr(String queryJson, String timeRange, String company) {
+        if (queryJson == null) {
+            System.out.println("QueryStr is null...");
+            return null;
+        }
         long currentTimeMillis = System.currentTimeMillis();
-        long lastTimeMillis = getPastTime(timeRange);      
+        long lastTimeMillis = getPastTime(timeRange);
         String[] queryJsons = queryJson.split(";");
-        String[] queryStr=new String[queryJsons.length];
-
-        for (int i=0; i<queryJsons.length; i++){
+        String[] queryStr = new String[queryJsons.length];
+        for (int i = 0; i < queryJsons.length; i++) {
             queryStr[i] = String.format(queryJsons[i], lastTimeMillis, currentTimeMillis, company);
-        }           
+        }
         return queryStr;
     }
 
-    public String getAggGroupCountQueryStr(String group_field, String group, String contributeType, String timeRange, String community) {
+    public String getAggGroupCountQueryStr(String group_field, String group, String contributeType, String timeRange,
+            String community) {
         String queryStr;
         String queryJson;
         long currentTimeMillis = System.currentTimeMillis();
@@ -794,8 +811,8 @@ public class openComObject {
                 break;
             default:
                 return null;
-        }       
-        if (queryJson == null){
+        }
+        if (queryJson == null) {
             System.out.println("QueryString is null...");
             return null;
         }
@@ -803,9 +820,11 @@ public class openComObject {
         switch (contributeType.toLowerCase()) {
             case "pr":
                 if (community.toLowerCase().equals("opengauss")) {
-                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group, "is_gitee_pull_request");
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group,
+                            "is_gitee_pull_request");
                 } else {
-                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group, "is_pull_state_merged");
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group,
+                            "is_pull_state_merged");
                 }
                 break;
             case "issue":
@@ -820,8 +839,6 @@ public class openComObject {
 
         return queryStr;
     }
-
-
 }
 
 
