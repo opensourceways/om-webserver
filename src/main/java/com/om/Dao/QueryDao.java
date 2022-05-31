@@ -1094,7 +1094,8 @@ public class QueryDao {
                 return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
         }
         try {
-            ArrayList<JsonNode> dataList = getObsDetails(indexName, packageQueryjson, queryjson, branch, limit);
+//            ArrayList<JsonNode> dataList = getObsDetails(indexName, packageQueryjson, queryjson, branch, limit);
+            ArrayList<JsonNode> dataList = getObsDetails(indexName, branch, queryjson);
             HashMap resMap = new HashMap();
             resMap.put("code", 200);
             resMap.put("data", dataList);
@@ -1105,6 +1106,41 @@ public class QueryDao {
             e.printStackTrace();
             return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
         }
+    }
+
+    public ArrayList<JsonNode> getObsDetails(String index, String branch, String obsDetailsQueryStr) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+        // 1、获取某个工程下的所有包
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+        builder.setUrl(this.url + index + "/_search");
+        builder.setBody(String.format(obsDetailsQueryStr, branch));
+        ListenableFuture<Response> f = client.executeRequest(builder.build());
+        String responseBody = f.get().getResponseBody(UTF_8);
+        JsonNode dataNode = objectMapper.readTree(responseBody);
+        JsonNode hits = dataNode.get("hits").get("hits");
+        Iterator<JsonNode> it = hits.elements();
+
+        ArrayList<JsonNode> dataList = new ArrayList<>();
+        while (it.hasNext()) {
+            JsonNode hit = it.next();
+            JsonNode source = hit.get("_source");
+            HashMap<String, Object> packageMap = new HashMap<>();
+            packageMap.put("repo_name", source.get("package").asText());
+            packageMap.put("obs_version", source.get("versrel").asText());
+            packageMap.put("architecture", source.get("hostarch").asText());
+            packageMap.put("obs_branch", source.get("project").asText());
+            packageMap.put("build_state", source.get("code").asText());
+
+            ArrayList<Long> buildTimes = new ArrayList<>();
+            buildTimes.add(source.get("duration").asLong());
+            packageMap.put("history_build_times", buildTimes);
+
+            JsonNode resNode = objectMapper.valueToTree(packageMap);
+            dataList.add(resNode);
+        }
+
+        return dataList;
     }
 
     public ArrayList<JsonNode> getObsDetails(String index, String packageQueryStr, String obsDetailsQueryStr, String branch, String limit) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
