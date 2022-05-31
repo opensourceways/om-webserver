@@ -231,6 +231,8 @@ public class propertiesObj {
         bean.setSigAggUserQueryStr(openconf.getProperty("sig_agg_user_queryStr"));
         bean.setCompanyAggUserQueryStr(openconf.getProperty("company_agg_user_queryStr"));
         bean.setAllSigsOwnerType(openconf.getProperty("all_sigs_owner_type"));
+        bean.setSigsFeature(openconf.getProperty("sigs_feature_url"));
+        bean.setComapnyUsers(openconf.getProperty("company_users"));
     }
 
     private static Properties readProperties(String path) throws IOException {
