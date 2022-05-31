@@ -13,6 +13,8 @@ import com.om.Modules.yaml.CommunityPartnersYaml;
 import com.om.Modules.yaml.CommunityPartnersYamlInfo;
 import com.om.Modules.yaml.CompanyYaml;
 import com.om.Modules.yaml.CompanyYamlInfo;
+import com.om.Modules.yaml.SigYaml;
+import com.om.Modules.yaml.SigYamlInfo;
 import com.om.Utils.*;
 import com.om.Vo.*;
 import io.netty.util.internal.StringUtil;
@@ -1989,7 +1991,8 @@ public class QueryDao {
         return justifiedResult;
     }
 
-    public String putUserActionsinfo(String data, Environment env) throws NoSuchAlgorithmException, KeyManagementException, IOException {
+    public String putUserActionsinfo(String data, Environment env)
+            throws NoSuchAlgorithmException, KeyManagementException, IOException {
         String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
         String host = env.getProperty("es.host");
         int port = Integer.parseInt(env.getProperty("es.port", "9200"));
@@ -2020,7 +2023,7 @@ public class QueryDao {
     }
 
     public String querySigName(String community) {
-        try{
+        try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             String index = "";
@@ -2036,7 +2039,7 @@ public class QueryDao {
                     break;
                 case "mindspore":
                     index = mindSpore.getSigs_index();
-                    queryjson = mindSpore.getSigNameQueryStr();                
+                    queryjson = mindSpore.getSigNameQueryStr();
                 case "openlookeng":
                     return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
                 default:
@@ -2044,9 +2047,9 @@ public class QueryDao {
             }
             builder.setUrl(this.url + index + "/_search");
             builder.setBody(queryjson);
-            //获取执行结果
+            // 获取执行结果
             ListenableFuture<Response> f = client.executeRequest(builder.build());
-    
+
             Response response = f.get();
             String responseBody = response.getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
@@ -2059,14 +2062,14 @@ public class QueryDao {
                 sigList.add(sig);
             }
             dataMap.put(community, sigList);
-    
+
             HashMap<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
             resMap.put("data", dataMap);
             resMap.put("msg", "success");
             return objectMapper.valueToTree(resMap).toString();
 
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
@@ -2102,7 +2105,7 @@ public class QueryDao {
 
             builder.setUrl(this.url + index + "/_search");
             builder.setBody(queryStr);
-            //获取执行结果
+            // 获取执行结果
             ListenableFuture<Response> f = client.executeRequest(builder.build());
             String responseBody = f.get().getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
@@ -2129,16 +2132,17 @@ public class QueryDao {
         }
     }
 
-    public String querySigDetails(String community, String sig, String timeRange, String curDate) {       
+    public String querySigDetails(String community, String sig, String timeRange, String curDate) {
         ArrayList<Integer> sigMetricsList = querySigMetrics(community, sig, timeRange, curDate);
         if (sigMetricsList == null) {
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
         HashMap<String, Object> dataMap = new HashMap<>();
-        List<String> metrics=Arrays.asList(new String[]{"D0","D1","D2","Company","PR_Merged","PR_Review","Issue_update","Issue_closed","Issue_comment","Contribute","Meeting","Attendee","Maintainer"});
+        List<String> metrics = Arrays.asList(new String[] { "D0", "D1", "D2", "Company", "PR_Merged", "PR_Review",
+                "Issue_update", "Issue_closed", "Issue_comment", "Contribute", "Meeting", "Attendee", "Maintainer" });
         dataMap.put("metrics", metrics);
-        dataMap.put(sig, sigMetricsList);   
-        System.out.println(dataMap);        
+        dataMap.put(sig, sigMetricsList);
+        System.out.println(dataMap);
         HashMap<String, Object> resMap = new HashMap<>();
         resMap.put("code", 200);
         resMap.put("data", dataMap);
@@ -2152,9 +2156,9 @@ public class QueryDao {
         String[] queryStrs;
         switch (community.toLowerCase()) {
             case "openeuler":
-                gitee_index = openEuler.getGiteeAllIndex();               
+                gitee_index = openEuler.getGiteeAllIndex();
                 String queryjson = openEuler.getSigGiteeQueryStr();
-                if (queryjson == null){
+                if (queryjson == null) {
                     System.out.println("SigGiteeQueryStr missing, please set properties...");
                     return null;
                 }
@@ -2165,29 +2169,29 @@ public class QueryDao {
                 return null;
         }
         ArrayList<Integer> sigMetricsList = common(gitee_index, queryStrs);
-        if (sigMetricsList==null){
+        if (sigMetricsList == null) {
             System.out.println("{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}");
             return null;
         }
 
         ArrayList<Integer> sigContributeList = querySigContribute(community, sig, timeRange, curDate);
-        if (sigContributeList==null){
+        if (sigContributeList == null) {
             System.out.println("{\"code\":400,\"data\":{\"sig contribute error\"},\"msg\":\"querySigContribute error\"}");
             return null;
         }
         sigMetricsList.add(sigContributeList.get(0));
 
         ArrayList<Integer> meetingsList = querySigMeetings(community, sig, timeRange, curDate);
-        if (meetingsList==null){
+        if (meetingsList == null) {
             System.out.println("{\"code\":400,\"data\":{\"sig meeting error\"},\"msg\":\"querySigMeetings error\"}");
             return null;
         }
-        for(int i=0; i<meetingsList.size(); i++){
+        for (int i = 0; i < meetingsList.size(); i++) {
             sigMetricsList.add(meetingsList.get(i));
         }
 
         ArrayList<Integer> maintainersList = querySigMaintainers(community, sig, timeRange, curDate);
-        if (maintainersList==null){
+        if (maintainersList == null) {
             System.out.println("{\"code\":400,\"data\":{\"sig maintainer error\"},\"msg\":\"querySigMaintainers error\"}");
             return null;
         }
@@ -2196,7 +2200,7 @@ public class QueryDao {
     }
 
     public JsonNode AllSigScores(String community, String timeRange, String curDate) {
-        try{
+        try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             String index = "";
@@ -2209,7 +2213,7 @@ public class QueryDao {
                 case "opengauss":
                     index = openGauss.getSigs_index();
                     queryjson = openGauss.getSigNameQueryStr();
-                    break;               
+                    break;
                 default:
                     return null;
             }
@@ -2218,9 +2222,9 @@ public class QueryDao {
             }
             builder.setUrl(this.url + index + "/_search");
             builder.setBody(queryjson);
-            //获取执行结果
+            // 获取执行结果
             ListenableFuture<Response> f = client.executeRequest(builder.build());
-    
+
             Response response = f.get();
             String responseBody = response.getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
@@ -2241,20 +2245,22 @@ public class QueryDao {
                 public int compare(Entry<String, Double> o1, Entry<String, Double> o2) {
                     return o2.getValue().compareTo(o1.getValue());
                 }
-                });
-            for (int i = 0; i<list.size(); i++){
-                int rank = i + 1; 
+            });
+            for (int i = 0; i < list.size(); i++) {
+                int rank = i + 1;
                 String key = list.get(i).getKey();
                 Double value = list.get(i).getValue();
+                String feature = getSigFeature(community, key);
                 HashMap<String, Object> map = new HashMap<>();
                 map.put("sig", key);
                 map.put("score", value);
                 map.put("rank", rank);
+                map.put("feature", feature);
                 resMap.put(key, map);
             }
             JsonNode resNode = objectMapper.valueToTree(resMap);
             return resNode;
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
@@ -2262,29 +2268,29 @@ public class QueryDao {
 
     public String queryAllSigScores(String community, String timeRange, String curDate) {
         JsonNode allsigScore = AllSigScores(community, timeRange, curDate);
-        if (allsigScore == null){
+        if (allsigScore == null) {
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
         HashMap<String, Object> resMap = new HashMap<>();
         resMap.put("code", 200);
         resMap.put("data", allsigScore);
         resMap.put("msg", "success");
-        return objectMapper.valueToTree(resMap).toString();        
+        return objectMapper.valueToTree(resMap).toString();
     }
 
-    public double sigScoreFormula(double value, ArrayList<Double> params){
-        double score = Math.log(1+value)/Math.log(1+Math.max(value,params.get(1)))*params.get(0);
+    public double sigScoreFormula(double value, ArrayList<Double> params) {
+        double score = Math.log(1 + value) / Math.log(1 + Math.max(value, params.get(1))) * params.get(0);
         return score;
     }
 
     public String querySigScores(String community, String sig, String timeRange, String curDate) {
         JsonNode allsigScore = AllSigScores(community, timeRange, curDate);
-        if (allsigScore == null){
+        if (allsigScore == null) {
             return "";
         }
         HashMap<String, Object> resMap = new HashMap<>();
         JsonNode res;
-        if (allsigScore.has(sig)){
+        if (allsigScore.has(sig)) {
             res = allsigScore.get(sig);
             resMap.put("code", 200);
             resMap.put("data", res);
@@ -2296,12 +2302,14 @@ public class QueryDao {
     
     public Double SigScores(String community, String sig, String timeRange, String curDate) {
         HashMap<String, ArrayList<Double>> paramObject = new HashMap<>();
-        List<String> metrics=Arrays.asList(new String[]{"D0","D1","D2","Company","PR_Merged","PR_Review","Issue_update","Issue_closed","Issue_comment","Contribute","Meeting","Attendee","Maintainer"});
+        List<String> metrics = Arrays.asList(new String[] { "D0", "D1", "D2", "Company", "PR_Merged", "PR_Review",
+                "Issue_update", "Issue_closed", "Issue_comment", "Contribute", "Meeting", "Attendee", "Maintainer" });
 
         switch (community.toLowerCase()) {
             case "openeuler":
-                String paramStr = openEuler.getSigParams();              
-                paramObject = JSONObject.parseObject(paramStr, new TypeReference<HashMap<String, ArrayList<Double>>>(){});
+                String paramStr = openEuler.getSigParams();
+                paramObject = JSONObject.parseObject(paramStr, new TypeReference<HashMap<String, ArrayList<Double>>>() {
+                });
                 break;
             default:
                 return null;
@@ -2310,38 +2318,36 @@ public class QueryDao {
         if (sigMetricsList == null) {
             return null;
         }
-        
+
         ArrayList<Double> sigScoresList = new ArrayList<>();
         Double sigScore = 0d;
-        for(int i=0; i<sigMetricsList.size(); i++){
-            String metricsName = metrics.get(i);            
+        for (int i = 0; i < sigMetricsList.size(); i++) {
+            String metricsName = metrics.get(i);
             switch (metricsName) {
                 case "PR_Review":
-                    if (sigMetricsList.get(i-1) == 0){
+                    if (sigMetricsList.get(i - 1) == 0) {
                         sigScoresList.add(0d);
                         sigScore += 0;
-                    }
-                    else {
-                        Double pr_review = sigMetricsList.get(i)/sigMetricsList.get(i-1).doubleValue();
+                    } else {
+                        Double pr_review = sigMetricsList.get(i) / sigMetricsList.get(i - 1).doubleValue();
                         Double pr_review_score = sigScoreFormula(pr_review, paramObject.get(metricsName));
                         sigScore += pr_review_score;
                         sigScoresList.add(pr_review_score);
                     }
                     break;
                 case "Issue_comment":
-                    if (sigMetricsList.get(i-1) == 0){
+                    if (sigMetricsList.get(i - 1) == 0) {
                         sigScoresList.add(0d);
                         sigScore += 0;
-                    }
-                    else {
-                        Double issue_comment = sigMetricsList.get(i)/sigMetricsList.get(i-1).doubleValue();
+                    } else {
+                        Double issue_comment = sigMetricsList.get(i) / sigMetricsList.get(i - 1).doubleValue();
                         Double issue_comment_score = sigScoreFormula(issue_comment, paramObject.get(metricsName));
                         sigScore += issue_comment_score;
                         sigScoresList.add(issue_comment_score);
                     }
                     break;
                 default:
-                    Double metric = sigMetricsList.get(i).doubleValue();                               
+                    Double metric = sigMetricsList.get(i).doubleValue();
                     Double metric_score = sigScoreFormula(metric, paramObject.get(metricsName));
                     sigScore += metric_score;
                     sigScoresList.add(metric_score);
@@ -2355,9 +2361,9 @@ public class QueryDao {
         String[] queryStrs;
         switch (community.toLowerCase()) {
             case "openeuler":
-                gitee_index = openEuler.getGiteeAllIndex();                
+                gitee_index = openEuler.getGiteeAllIndex();
                 String queryjson = openEuler.getSigContributeQueryStr();
-                if (queryjson == null){
+                if (queryjson == null) {
                     System.out.println("SigContributeQueryStr missing, please set properties...");
                     return null;
                 }
@@ -2371,14 +2377,14 @@ public class QueryDao {
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             ArrayList<Integer> sigMetricsList = new ArrayList<>();
 
-            for (int i=0; i<queryStrs.length; i++){
-                //获取执行结果
+            for (int i = 0; i < queryStrs.length; i++) {
+                // 获取执行结果
                 builder.setUrl(this.url + gitee_index + "/_search");
                 builder.setBody(queryStrs[i]);
 
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
                 String responseBody = f.get().getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);              
+                JsonNode dataNode = objectMapper.readTree(responseBody);
                 Iterator<JsonNode> buckets = dataNode.get("aggregations").get("count").get("buckets").elements();
                 int count = 0;
                 if (buckets.hasNext()) {
@@ -2401,28 +2407,29 @@ public class QueryDao {
             case "openeuler":
                 meeting_index = openEuler.getMeetingsIndex();
                 String queryjson = openEuler.getSigMeetingsQueryStr();
-                if (queryjson == null){
+                if (queryjson == null) {
                     System.out.println("SigMeetingsQueryStr missing, please set properties...");
                     return null;
                 }
-                queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig, curDate);                
+                queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig, curDate);
                 break;
             default:
                 return null;
         }
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder().setHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString((meeting_userpass).getBytes()));
+            RequestBuilder builder = asyncHttpUtil.getBuilder().setHeader("Authorization",
+                    "Basic " + Base64.getEncoder().encodeToString((meeting_userpass).getBytes()));
             ArrayList<Integer> sigMetricsList = new ArrayList<>();
 
-            for (int i=0; i<queryStrs.length; i++){
-                //获取执行结果
+            for (int i = 0; i < queryStrs.length; i++) {
+                // 获取执行结果
                 builder.setUrl(this.meeting_url + meeting_index + "/_search");
                 builder.setBody(queryStrs[i]);
 
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
                 String responseBody = f.get().getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);              
+                JsonNode dataNode = objectMapper.readTree(responseBody);
                 Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
                 int count = 0, num = 0;
                 if (buckets.hasNext()) {
@@ -2439,15 +2446,15 @@ public class QueryDao {
             return null;
         }
     }
-   
+
     public ArrayList<Integer> querySigMaintainers(String community, String sig, String timeRange, String curDate) {
         String sig_index;
         String[] queryStrs;
         switch (community.toLowerCase()) {
             case "openeuler":
-                sig_index = openEuler.getSigs_index();               
+                sig_index = openEuler.getSigs_index();
                 String queryjson = openEuler.getSigMaintainersQueryStr();
-                if (queryjson == null){
+                if (queryjson == null) {
                     System.out.println("SigMaintainersQueryStr missing, please set properties...");
                     return null;
                 }
@@ -2456,24 +2463,24 @@ public class QueryDao {
             default:
                 return null;
         }
-        ArrayList<Integer> userMetricsList=common(sig_index, queryStrs);
+        ArrayList<Integer> userMetricsList = common(sig_index, queryStrs);
         return userMetricsList;
     }
 
-    public ArrayList<Integer> common(String index, String[] queryStrs){
+    public ArrayList<Integer> common(String index, String[] queryStrs) {
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             ArrayList<Integer> sigMetricsList = new ArrayList<>();
 
-            for (int i=0; i<queryStrs.length; i++){
-                //获取执行结果
+            for (int i = 0; i < queryStrs.length; i++) {
+                // 获取执行结果
                 builder.setUrl(this.url + index + "/_search");
                 builder.setBody(queryStrs[i]);
 
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
                 String responseBody = f.get().getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);          
+                JsonNode dataNode = objectMapper.readTree(responseBody);
                 Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
                 int num = 0;
                 if (buckets.hasNext()) {
@@ -2486,7 +2493,7 @@ public class QueryDao {
         } catch (Exception e) {
             e.printStackTrace();
             return null;
-        }       
+        }
     }
 
     public String queryCompanyName(String community) {
@@ -2567,17 +2574,17 @@ public class QueryDao {
 
             builder.setUrl(this.url + index + "/_search");
             builder.setBody(queryStr);
-            //获取执行结果
+            // 获取执行结果
             ListenableFuture<Response> f = client.executeRequest(builder.build());
             String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);   
+            JsonNode dataNode = objectMapper.readTree(responseBody);
 
             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
 
             HashMap<String, Object> dataMap = new HashMap<>();
-            List<String> metrics=Arrays.asList(new String[]{"PR","PR_Review","Issue","Issue_Comment","Fork","Star","Watch"});
+            List<String> metrics = Arrays.asList(new String[] { "PR", "PR_Review", "Issue", "Issue_Comment", "Fork", "Star", "Watch" });
             dataMap.put("metrics", metrics);
-            
+
             while (buckets.hasNext()) {
                 ArrayList<Integer> valueList = new ArrayList<>();
                 JsonNode bucket = buckets.next();
@@ -2590,7 +2597,7 @@ public class QueryDao {
                 valueList.add(bucket.get("star").get("value").asInt());
                 valueList.add(bucket.get("watch").get("value").asInt());
                 dataMap.put(user, valueList);
-            }           
+            }
 
             HashMap<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
@@ -2610,54 +2617,48 @@ public class QueryDao {
         company = CompanyCN2Cla(community, company);
         switch (community.toLowerCase()) {
             case "openeuler":
-                gitee_index = openEuler.getGiteeAllIndex();               
+                gitee_index = openEuler.getGiteeAllIndex();
                 String queryjson = openEuler.getCompanySigsQueryStr();
-                if (queryjson == null){
-                    System.out.println("CompanySigsQueryStr missing, please set properties...");
-                    return null;
-                }
                 queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"community error\"},\"msg\":\"community error\"}";
         }
         HashMap<String, ArrayList<Integer>> sigMetricsList = commonCompany(gitee_index, queryStrs);
-        if (sigMetricsList==null){
+        if (sigMetricsList == null) {
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
         Iterator<String> sigAll = sigMetricsList.keySet().iterator();
 
         HashMap<String, Integer> companyContriList = queryCompanyContribute(community, company, timeRange);
-        if (companyContriList==null){
+        if (companyContriList == null) {
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"queryCompanyContribute error\"}";
         }
         Set<String> sigCon = companyContriList.keySet();
-        while (sigAll.hasNext()){
+        while (sigAll.hasNext()) {
             String s = sigAll.next();
             if (sigCon.contains(s)) {
                 sigMetricsList.get(s).add(companyContriList.get(s));
-            }
-            else {
+            } else {
                 sigMetricsList.get(s).add(0);
             }
         }
 
         HashMap<String, ArrayList<Integer>> companyMeetingList = queryCompanyMeetings(community, company, timeRange);
-        if (companyMeetingList==null){
+        if (companyMeetingList == null) {
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"queryCompanyMeetings error\"}";
         }
         Set<String> sigMeeting = companyMeetingList.keySet();
         sigAll = sigMetricsList.keySet().iterator();
-        while (sigAll.hasNext()){
+        while (sigAll.hasNext()) {
             String s = sigAll.next();
             if (sigMeeting.contains(s)) {
                 ArrayList<Integer> meetingValue = companyMeetingList.get(s);
                 sigMetricsList.get(s).add(meetingValue.get(0));
                 sigMetricsList.get(s).add(meetingValue.get(1));
-            }
-            else {
+            } else {
                 sigMetricsList.get(s).add(0);
-                sigMetricsList.get(s).add(0);               
+                sigMetricsList.get(s).add(0);
             }
         }
 
@@ -2675,64 +2676,77 @@ public class QueryDao {
             else {
                 sigMetricsList.get(s).add(0);
             }
-        }
+        }        
 
         HashMap<String, Object> dataMap = new HashMap<>();
+        
+        ArrayList<HashMap<String, Object>> itemList = new ArrayList<>();
+        sigAll = sigMetricsList.keySet().iterator();
+        while(sigAll.hasNext()){
+            HashMap<String, Object> item =new HashMap<>();
+            String s = sigAll.next();
+            List<Integer> value = sigMetricsList.get(s);
+            String feature = getSigFeature(community, s);
+            item.put("sig", s);
+            item.put("value", value);
+            item.put("feature", feature);
+            itemList.add(item);
+        }
         List<String> metrics=Arrays.asList(new String[]{"D0","D1","D2","Company","PR_Merged","PR_Review","Issue_update","Issue_Closed","Issue_Comment","Contribute","Meeting","Attebdee","Maintainer"});
         dataMap.put("metrics", metrics);
-        dataMap.put(company, sigMetricsList);   
+        dataMap.put(company, itemList);   
         HashMap<String, Object> resMap = new HashMap<>();
         resMap.put("code", 200);
         resMap.put("data", dataMap);
         resMap.put("msg", "success");
         return objectMapper.valueToTree(resMap).toString();
-
     }
 
-    public HashMap<String, ArrayList<Integer>> commonCompany(String index, String[] queryStrs){
+    public HashMap<String, ArrayList<Integer>> commonCompany(String index, String[] queryStrs) {
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             HashMap<String, ArrayList<Integer>> sigMap = new HashMap<>();
-            
 
-            for (int i=0; i<queryStrs.length; i++){
-                //获取执行结果
+            for (int i = 0; i < queryStrs.length; i++) {
+                // 获取执行结果
                 builder.setUrl(this.url + index + "/_search");
                 builder.setBody(queryStrs[i]);
 
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
                 String responseBody = f.get().getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);                        
-                
+                JsonNode dataNode = objectMapper.readTree(responseBody);
+
                 Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
-                   
+
                 ArrayList<String> tmp = new ArrayList<>();
                 while (buckets.hasNext()) {
                     JsonNode bucket = buckets.next();
                     String sig = bucket.get("key").asText();
-                    int value = bucket.get("count").get("value").asInt();         
-                              
-                    ArrayList<Integer> sigMetricsList = new ArrayList<>(); 
-                    if (!sigMap.containsKey(sig)){
+                    int value = bucket.get("count").get("value").asInt();
+                    ArrayList<Integer> sigMetricsList = new ArrayList<>();
+                    for (int j = 0; j < i; j++) {
+                        sigMetricsList.add(0);
+                    }
+                    if (!sigMap.containsKey(sig)) {
                         sigMap.put(sig, sigMetricsList);
-                    }				
+                    }
                     sigMap.get(sig).add(value);
                     tmp.add(sig);
-                }       
+                }
                 Iterator<String> sigkeys = sigMap.keySet().iterator();
-                while (sigkeys.hasNext()){
+                while (sigkeys.hasNext()) {
                     String key = sigkeys.next();
-                    if(!tmp.contains(key)){
+                    if (!tmp.contains(key)) {
                         sigMap.get(key).add(0);
                     }
-                }        
+                }
             }
             return sigMap;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
-        }       
+        }
     }
 
     public HashMap<String, Integer> queryCompanyContribute(String community, String company, String timeRange) {
@@ -2740,12 +2754,8 @@ public class QueryDao {
         String[] queryStrs;
         switch (community.toLowerCase()) {
             case "openeuler":
-                gitee_index = openEuler.getGiteeAllIndex();                
+                gitee_index = openEuler.getGiteeAllIndex();
                 String queryjson = openEuler.getCompanyContributeQueryStr();
-                if (queryjson == null){
-                    System.out.println("CompanyContributeQueryStr missing, please set properties...");
-                    return null;
-                }
                 queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);
                 break;
             default:
@@ -2756,14 +2766,14 @@ public class QueryDao {
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             HashMap<String, Integer> sigMap = new HashMap<>();
 
-            for (int i=0; i<queryStrs.length; i++){
-                //获取执行结果
+            for (int i = 0; i < queryStrs.length; i++) {
+                // 获取执行结果
                 builder.setUrl(this.url + gitee_index + "/_search");
                 builder.setBody(queryStrs[i]);
 
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
                 String responseBody = f.get().getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);             
+                JsonNode dataNode = objectMapper.readTree(responseBody);
                 Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
                 int count = 0;
                 while (buckets.hasNext()) {
@@ -2771,7 +2781,7 @@ public class QueryDao {
                     String sig = bucket.get("key").asText();
                     count = bucket.get("doc_count").asInt();
                     sigMap.put(sig, count);
-                }               
+                }
             }
             return sigMap;
         } catch (Exception e) {
@@ -2787,36 +2797,33 @@ public class QueryDao {
             case "openeuler":
                 meeting_index = openEuler.getMeetingsIndex();
                 String queryjson = openEuler.getCompanyMeetingsQueryStr();
-                if (queryjson == null){
-                    System.out.println("CompanyMeetingsQueryStr missing, please set properties...");
-                    return null;
-                }
-                queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);                
+                queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);
                 break;
             default:
                 return null;
         }
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder().setHeader("Authorization", "Basic "+Base64.getEncoder().encodeToString((meeting_userpass).getBytes()));
+            RequestBuilder builder = asyncHttpUtil.getBuilder().setHeader("Authorization",
+                    "Basic " + Base64.getEncoder().encodeToString((meeting_userpass).getBytes()));
             HashMap<String, ArrayList<Integer>> sigMap = new HashMap<>();
 
-            for (int i=0; i<queryStrs.length; i++){
-                //获取执行结果
+            for (int i = 0; i < queryStrs.length; i++) {
+                // 获取执行结果
                 builder.setUrl(this.meeting_url + meeting_index + "/_search");
                 builder.setBody(queryStrs[i]);
 
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
                 String responseBody = f.get().getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);             
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();              
-                
+                JsonNode dataNode = objectMapper.readTree(responseBody);
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
+
                 while (buckets.hasNext()) {
                     JsonNode bucket = buckets.next();
                     String sig = bucket.get("key").asText();
                     int count = bucket.get("doc_count").asInt();
                     int num = bucket.get("count").get("value").asInt();
-                    ArrayList<Integer> meeting= new ArrayList<>();
+                    ArrayList<Integer> meeting = new ArrayList<>();
                     meeting.add(count);
                     meeting.add(num);
                     sigMap.put(sig, meeting);
@@ -2834,12 +2841,8 @@ public class QueryDao {
         String[] queryStrs;
         switch (community.toLowerCase()) {
             case "openeuler":
-                sig_index = openEuler.getSigs_index();               
+                sig_index = openEuler.getSigs_index();
                 String queryjson = openEuler.getCompanyMaintainersQueryStr();
-                if (queryjson == null){
-                    System.out.println("SigMaintainersQueryStr missing, please set properties...");
-                    return null;
-                }
                 queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);
                 break;
             default:
@@ -2849,28 +2852,28 @@ public class QueryDao {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             HashMap<String, Integer> sigMap = new HashMap<>();
-            
+
             String query = queryStrs[0];
-            //获取执行结果
+            // 获取执行结果
             builder.setUrl(this.url + sig_index + "/_search");
             builder.setBody(query);
 
             ListenableFuture<Response> f = client.executeRequest(builder.build());
             String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);      
-            
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();                                 
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 String sig = bucket.get("key").asText();
-                int value = bucket.get("count").get("value").asInt();                           
-                sigMap.put(sig, value);               
-            }                     
+                int value = bucket.get("count").get("value").asInt();
+                sigMap.put(sig, value);
+            }
             return sigMap;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
-        } 
+        }
     }
 
     // 获取每个sig的maintainers、committers
@@ -2881,22 +2884,22 @@ public class QueryDao {
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getSigs_index();
-                queryJson = openEuler.getSigOwnerType();                                  
+                queryJson = openEuler.getSigOwnerType();
                 break;
             case "opengauss":
                 index = openGauss.getSigs_index();
-                queryJson = openEuler.getSigOwnerType();               
-                break;            
+                queryJson = openEuler.getSigOwnerType();
+                break;
             default:
                 System.out.println("{\"code\":400,\"data\":{\"" + sig + "\":\"query error\"},\"msg\":\"query error\"}");
                 return null;
         }
 
-        if (queryJson == null){
+        if (queryJson == null) {
             System.out.println("SigUserTypeQueryStr is null...");
             return null;
         }
-        queryStr = String.format(queryJson, sig); 
+        queryStr = String.format(queryJson, sig);
         JsonNode resNode = commonOwnerType(index, queryStr);
         return resNode;
     }
@@ -2908,12 +2911,12 @@ public class QueryDao {
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getSigs_index();
-                queryJson = openEuler.getAllSigsOwnerType();                                  
+                queryJson = openEuler.getAllSigsOwnerType();
                 break;
             case "opengauss":
                 index = openGauss.getSigs_index();
                 queryJson = openEuler.getAllSigsOwnerType();
-                break;            
+                break;
             default:
                 System.out.println("{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}");
                 return null;
@@ -2924,7 +2927,7 @@ public class QueryDao {
         JsonNode resNode = commonOwnerType(index, queryJson);
         return resNode;
     }
-    
+
     public JsonNode commonOwnerType(String index, String queryStr) {
         try {
             List<String> robotUsers = Arrays.asList(robotUser.split(","));
@@ -2933,11 +2936,11 @@ public class QueryDao {
 
             builder.setUrl(this.url + index + "/_search");
             builder.setBody(queryStr);
-            //获取执行结果
+            // 获取执行结果
             ListenableFuture<Response> f = client.executeRequest(builder.build());
             String responseBody = f.get().getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();           
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
 
             HashMap<String, Object> dataMap = new HashMap<>();
             while (buckets.hasNext()) {
@@ -2951,15 +2954,16 @@ public class QueryDao {
                     if (ownerType.equals("maintainers")) {
                         break;
                     }
-                }                            
+                }
                 if (robotUsers.contains(giteeId)) { // openeuler-basic
                     continue;
                 }
-                if (dataMap.containsKey(giteeId.toLowerCase()) && dataMap.get(giteeId.toLowerCase()).equals("maintainers")){               
+                if (dataMap.containsKey(giteeId.toLowerCase())
+                        && dataMap.get(giteeId.toLowerCase()).equals("maintainers")) {
                     continue;
                 }
                 dataMap.put(giteeId.toLowerCase(), ownerType);
-                
+
             }
             JsonNode resNode = objectMapper.valueToTree(dataMap);
             return resNode;
@@ -2971,54 +2975,53 @@ public class QueryDao {
     }
 
     public String CompanyCN2Cla(String community, String company) {
-        String claCompany = "";
+        String resCompany = "";
         YamlUtil yamlUtil = new YamlUtil();
         CompanyYaml companies = yamlUtil.readUrlYaml(companyNameYaml, CompanyYaml.class);
         for (CompanyYamlInfo companyinfo : companies.getCompanies()) {
-            claCompany = companyinfo.getCompany_cn().trim();
-            if (company.equals(claCompany)) {
+            String cnCompany = companyinfo.getCompany_cn().trim();
+            if (company.equals(cnCompany)) {
                 List<String> aliases = companyinfo.getAliases();
                 if (aliases != null) {
                     for (String alias : aliases) {
                         if (community.toLowerCase().equals("openeuler")) {
-                            claCompany = alias;
+                            resCompany = alias;
                             break;
                         }
-                        claCompany = alias;
+                        resCompany = alias;
                     }
+                    return resCompany;
                 }
-                break;
+                resCompany = cnCompany;
+                return resCompany;
             }
         }
-        return claCompany;
+        return resCompany;
     }
 
     // 根据sig或者commpany获取贡献者的pr、issue、comment等指标
     public String queryGroupUserContributors(String community, String group_field, String group, String contributeType, String timeRange) {
         String index;
-        String queryStr;  
-        JsonNode ownerType;   
-        JsonNode TC_owners = querySigOwnerTypeCount(community, "TC"); 
-        
+        String queryStr;
+        JsonNode ownerType;
+        JsonNode TC_owners = querySigOwnerTypeCount(community, "TC");
+
         switch (group_field) {
             case "sig":
-                ownerType = querySigOwnerTypeCount(community, group);        
-                break;   
-                
+                ownerType = querySigOwnerTypeCount(community, group);
+                break;
             case "company":
                 ownerType = queryOwnerTypeCount(community);
-                group = CompanyCN2Cla(community, group);       
-                break;    
-                
+                group = CompanyCN2Cla(community, group);
+                break;
             default:
                 return "";
-
         }
-        System.out.println(ownerType); 
+        System.out.println(ownerType);
         switch (community.toLowerCase()) {
-            case "openeuler":                
+            case "openeuler":
                 index = openEuler.getGiteeAllIndex();
-                queryStr = openEuler.getAggGroupCountQueryStr(group_field, group, contributeType, timeRange, community);                
+                queryStr = openEuler.getAggGroupCountQueryStr(group_field, group, contributeType, timeRange, community);
                 break;
             case "opengauss":
                 index = openGauss.getGiteeAllIndex();
@@ -3039,15 +3042,15 @@ public class QueryDao {
 
             builder.setUrl(this.url + index + "/_search");
             builder.setBody(queryStr);
-            //获取执行结果
+            // 获取执行结果
             ListenableFuture<Response> f = client.executeRequest(builder.build());
             String responseBody = f.get().getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
-            
+
             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
 
             ArrayList<JsonNode> dataList = new ArrayList<>();
-            
+
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 String giteeId = bucket.get("key").asText();
@@ -3058,8 +3061,8 @@ public class QueryDao {
                 String userType = "contributor";
                 if (ownerType.has(giteeId.toLowerCase())) {
                     userType = ownerType.get(giteeId.toLowerCase()).asText();
-                }    
-                HashMap<String, Object> dataMap = new HashMap<>();           
+                }
+                HashMap<String, Object> dataMap = new HashMap<>();
                 dataMap.put("gitee_id", giteeId);
                 dataMap.put("contribute", contribute);
                 dataMap.put("usertype", userType);
@@ -3080,5 +3083,89 @@ public class QueryDao {
             return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
         }
 
+    }
+
+    public String getSigFeature(String community, String sig) {
+        String yamlFile;
+        String sigFeature = "";
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                yamlFile = openEuler.getSigsFeature();
+                break;
+            case "opengauss":
+                yamlFile = openGauss.getSigsFeature();
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+        if (yamlFile == null) {
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"yaml is null\"}";
+        }
+        YamlUtil yamlUtil = new YamlUtil();
+        SigYaml res = yamlUtil.readUrlYaml(yamlFile, SigYaml.class);
+        List<SigYamlInfo> features = res.getFeatures();
+        for (SigYamlInfo feature : features) {
+            String name = feature.getName();
+            List<String> sigs = feature.getSigs();
+            for (String item : sigs) {
+                if (item.toLowerCase().equals(sig.toLowerCase())) {
+                    sigFeature = name;
+                }
+            }
+        }
+        return sigFeature;
+    }
+
+    public String queryCompanyUsers(String community, String company, String timeRange) {
+        String queryjsons;
+        String index;
+        String[] queryStrs;
+        company = CompanyCN2Cla(community,company);
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                queryjsons = openEuler.getComapnyUsers();
+                queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjsons, timeRange, company);
+                index = openEuler.getGiteeAllIndex();
+                break;
+            case "opengauss":
+                queryjsons = openGauss.getComapnyUsers();
+                queryStrs = openGauss.getAggCompanyGiteeQueryStr(queryjsons, timeRange, company);
+                index = openGauss.getGiteeAllIndex();
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }       
+
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            ArrayList<Integer> companyUsersList = new ArrayList<>();
+
+            for (int i = 0; i < queryStrs.length; i++) {
+                // 获取执行结果
+                builder.setUrl(this.url + index + "/_search");
+                builder.setBody(queryStrs[i]);
+                System.out.println(queryStrs[i]);
+
+                ListenableFuture<Response> f = client.executeRequest(builder.build());
+                String responseBody = f.get().getResponseBody(UTF_8);
+                JsonNode dataNode = objectMapper.readTree(responseBody);
+                int value = dataNode.get("aggregations").get("group_filed").get("value").asInt();
+                companyUsersList.add(value);
+            }
+            HashMap<String, Object> dataMap = new HashMap<>();
+            dataMap.put(company, companyUsersList);
+            List<String> metrics = Arrays.asList(new String[] { "D0", "D1", "D2" });
+            dataMap.put("metrics", metrics);
+
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", dataMap);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
     }
 }
