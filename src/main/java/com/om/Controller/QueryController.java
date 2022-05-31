@@ -263,4 +263,11 @@ public class QueryController {
         String res = queryService.querySigUserTypeCount(community, sig, contributeType, timeRange);
         return res;
     }
+
+    @RequestMapping("/company/users")
+    public String queryCompanyUsers(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
+                               @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.queryCompanyUsers(community, company, timeRange);
+        return res;
+    }
 }
