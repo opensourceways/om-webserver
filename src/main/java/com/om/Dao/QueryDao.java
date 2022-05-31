@@ -84,6 +84,8 @@ public class QueryDao {
 
     String DEFAULT_MISTAKE_UPDATE_START_TIME = "2010-01-01";
     String DEFAULT_MISTAKE_UPDATE_END_TIME = "now";
+    @Value("${openeuler.contributors.default}")
+    int globalContributors;
 
     //openeuler openlookeng opengauss 测试通过
     public String queryContributors(String community) throws NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
@@ -424,6 +426,9 @@ public class QueryDao {
         Map<String, Object> contributes = queryContributes(community, "contributes");
         JsonNode contributorsNode = objectMapper.readTree(this.queryContributors(community)).get("data").get("contributors");
         Object contributors = contributorsNode == null ? null : contributorsNode.intValue();
+        if (contributors != null && contributorsNode.intValue() != 0) {
+            globalContributors = contributorsNode.intValue();
+        }
         JsonNode usersNode = objectMapper.readTree(this.queryUsers(community)).get("data").get("users");
         Object users = usersNode == null ? null : usersNode.intValue();
         JsonNode noticeusersNode = objectMapper.readTree(this.queryNoticeusers(community)).get("data").get("noticeusers");
@@ -444,7 +449,7 @@ public class QueryDao {
             users = downloads;
         }
         contributes.put("downloads", downloads);
-        contributes.put("contributors", contributors);
+        contributes.put("contributors", globalContributors);
         contributes.put("users", users);
         contributes.put("noticeusers", noticeusers);
         contributes.put("sigs", sigs);
