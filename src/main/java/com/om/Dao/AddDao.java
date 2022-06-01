@@ -72,7 +72,7 @@ public class AddDao {
 
         bugQuestionnaireVo.setCreated_at(nowStr);
 
-        ArrayList<String> validationMesseages = checkoutFieldValidate(bugQuestionnaireVo);
+        ArrayList<String> validationMesseages = checkoutFieldValidate(bugQuestionnaireVo, community);
         if (validationMesseages.size() != 0) {
             return "{\"code\":400,\"data\":{\"" + item + "\":\"write error\"},\"msg:" + validationMesseages + "\"}";
         }
@@ -107,9 +107,21 @@ public class AddDao {
         return res;
     }
 
-    private ArrayList<String> checkoutFieldValidate(BugQuestionnaireVo bugQuestionnaireVo) {
-
-        List<String> existProblemTemplate = Arrays.asList("文档存在风险与错误", "内容描述不清晰", "内容获取有困难", "示例代码错误", "内容有缺失");
+    private ArrayList<String> checkoutFieldValidate(BugQuestionnaireVo bugQuestionnaireVo, String community) {
+        List<String> existProblemTemplate;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                existProblemTemplate = Arrays.asList("规范和低错类", "易用性", "正确性", "风险提示", "内容合规");
+                break;
+            case "opengauss":
+            case "openlookeng":
+                existProblemTemplate = Arrays.asList("文档存在风险与错误", "内容描述不清晰", "内容获取有困难", "示例代码错误", "内容有缺失");
+                break;
+            case "mindspore":
+            default:
+                return null;
+        }
+        
         List<String> participateReasonTemplate = Arrays.asList("本职工作", "求职", "技术兴趣", "学习");
         List<Integer> comprehensiveSatisficationTemplate = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 
