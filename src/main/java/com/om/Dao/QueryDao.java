@@ -1571,12 +1571,12 @@ public class QueryDao {
                 return dataMap;
         }
 
-        List<String> companys = queryClaCompany(claIndex);
-        Map<String, Integer> communityPartners = getCommunityPartners(communityPartnersYaml);
-        Integer otherPartners = communityPartners.getOrDefault(community.toLowerCase(), 0);
-        dataMap.put("partners", companys.size() + otherPartners);
-
         try {
+            List<String> companys = queryClaCompany(claIndex);
+            Map<String, Integer> communityPartners = getCommunityPartners(communityPartnersYaml);
+            Integer otherPartners = communityPartners.getOrDefault(community.toLowerCase(), 0);
+            dataMap.put("partners", companys.size() + otherPartners);
+
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
 
@@ -1605,26 +1605,23 @@ public class QueryDao {
         return dataMap;
     }
 
-    private List<String> queryClaCompany(String index) {
+    private List<String> queryClaCompany(String index) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
         ArrayList<String> companys = new ArrayList<>();
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
 
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody("{\"size\": 10000}");
+        builder.setUrl(this.url + index + "/_search");
+        builder.setBody("{\"size\": 10000}");
 
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> hits = dataNode.get("hits").get("hits").elements();
-            while (hits.hasNext()) {
-                JsonNode source = hits.next().get("_source");
-                companys.add(source.get("corporation_name").asText());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+        ListenableFuture<Response> f = client.executeRequest(builder.build());
+        String responseBody = f.get().getResponseBody(UTF_8);
+        JsonNode dataNode = objectMapper.readTree(responseBody);
+        Iterator<JsonNode> hits = dataNode.get("hits").get("hits").elements();
+        while (hits.hasNext()) {
+            JsonNode source = hits.next().get("_source");
+            companys.add(source.get("corporation_name").asText());
         }
+
         return companys;
     }
 
