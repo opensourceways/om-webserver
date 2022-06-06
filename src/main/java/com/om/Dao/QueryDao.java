@@ -1592,7 +1592,8 @@ public class QueryDao {
         }
 
         try {
-            List<String> companys = queryClaCompany(claIndex);
+            List<String> companys = community.toLowerCase().equals("openlookeng") ? new ArrayList<>() : queryClaCompany(claIndex);
+//            List<String> companys = queryClaCompany(claIndex);
             Map<String, Integer> communityPartners = getCommunityPartners(communityPartnersYaml);
             Integer otherPartners = communityPartners.getOrDefault(community.toLowerCase(), 0);
             dataMap.put("partners", companys.size() + otherPartners);
