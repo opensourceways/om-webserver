@@ -1592,12 +1592,16 @@ public class QueryDao {
         }
 
         try {
-            List<String> companys = community.toLowerCase().equals("openlookeng") ? new ArrayList<>() : queryClaCompany(claIndex);
-//            List<String> companys = queryClaCompany(claIndex);
+            List<String> companys = queryClaCompany(claIndex);
             Map<String, Integer> communityPartners = getCommunityPartners(communityPartnersYaml);
             Integer otherPartners = communityPartners.getOrDefault(community.toLowerCase(), 0);
             dataMap.put("partners", companys.size() + otherPartners);
+        } catch (Exception ex) {
+            dataMap.put("partners", 0);
+            ex.printStackTrace();
+        }
 
+        try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
 
