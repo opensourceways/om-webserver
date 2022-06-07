@@ -1591,13 +1591,13 @@ public class QueryDao {
                 return dataMap;
         }
 
+        Map<String, Integer> communityPartners = getCommunityPartners(communityPartnersYaml);
+        Integer otherPartners = communityPartners.getOrDefault(community.toLowerCase(), 0);
         try {
             List<String> companys = queryClaCompany(claIndex);
-            Map<String, Integer> communityPartners = getCommunityPartners(communityPartnersYaml);
-            Integer otherPartners = communityPartners.getOrDefault(community.toLowerCase(), 0);
             dataMap.put("partners", companys.size() + otherPartners);
         } catch (Exception ex) {
-            dataMap.put("partners", 0);
+            dataMap.put("partners", otherPartners);
             ex.printStackTrace();
         }
 
@@ -3211,4 +3211,35 @@ public class QueryDao {
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
     }
+
+    public String queryCommunityRepos(String community) {
+        String index;
+        String queryStr;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                queryStr = openEuler.getCommunityRepoQueryStr();
+                index = openEuler.getContributors_index();
+                break;
+            case "opengauss":
+                queryStr = openGauss.getCommunityRepoQueryStr();
+                index = openGauss.getContributors_index();
+                break;
+            case "openlookeng":
+                queryStr = openLookeng.getCommunityRepoQueryStr();
+                index = openLookeng.getContributors_index();
+            case "mindspore":
+                queryStr = mindSpore.getCommunityRepoQueryStr();
+                index = mindSpore.getContributors_index();
+            default:
+                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+
+        try {
+            return "";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
+
 }
