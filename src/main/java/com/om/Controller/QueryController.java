@@ -270,4 +270,10 @@ public class QueryController {
         String res = queryService.queryCompanyUsers(community, company, timeRange);
         return res;
     }
+
+    @RequestMapping("/community/repos")
+    public String queryRepos(@RequestParam(value = "community") String community) {
+        String repos = queryService.queryCommunityRepos(community);
+        return repos;
+    }
 }
