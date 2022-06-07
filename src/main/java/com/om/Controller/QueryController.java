@@ -169,8 +169,8 @@ public class QueryController {
     public String queryCompanyContributors(@RequestParam(value = "community") String community,
                                            @RequestParam(value = "contributeType") String contributeType,
                                            @RequestParam(value = "timeRange") String timeRange,
-                                           @RequestParam(value = "version", required = false) String version) {
-        String res = queryService.queryCompanyContributors(community, "companyContribute", contributeType, timeRange, version);
+                                           @RequestParam(value = "repo", required = false) String repo) {
+        String res = queryService.queryCompanyContributors(community, "companyContribute", contributeType, timeRange, repo);
         return res;
     }
 
