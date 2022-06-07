@@ -812,5 +812,25 @@ public class QueryService {
         }
         return result;
     }
+
+    public String queryCommunityRepos(String community) {
+        String key = community.toLowerCase() + "repos";
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryCommunityRepos(community);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
 }
 

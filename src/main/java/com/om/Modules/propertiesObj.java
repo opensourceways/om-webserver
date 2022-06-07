@@ -233,6 +233,7 @@ public class propertiesObj {
         bean.setAllSigsOwnerType(openconf.getProperty("all_sigs_owner_type"));
         bean.setSigsFeature(openconf.getProperty("sigs_feature_url"));
         bean.setComapnyUsers(openconf.getProperty("company_users"));
+        bean.setCommunityRepoQueryStr(openconf.getProperty("community_repo_queryStr"));
     }
 
     private static Properties readProperties(String path) throws IOException {

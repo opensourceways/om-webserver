@@ -81,7 +81,15 @@ public class openComObject {
     protected String all_sigs_owner_type;
     protected String sigs_feature_url;
     protected String company_users;
+    protected String communityRepoQueryStr;
 
+    public String getCommunityRepoQueryStr() {
+        return communityRepoQueryStr;
+    }
+
+    public void setCommunityRepoQueryStr(String communityRepoQueryStr) {
+        this.communityRepoQueryStr = communityRepoQueryStr;
+    }
 
     public String getSigParams() {
         return sig_params;

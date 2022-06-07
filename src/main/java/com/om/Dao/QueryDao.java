@@ -3227,15 +3227,43 @@ public class QueryDao {
             case "openlookeng":
                 queryStr = openLookeng.getCommunityRepoQueryStr();
                 index = openLookeng.getContributors_index();
+                break;
             case "mindspore":
                 queryStr = mindSpore.getCommunityRepoQueryStr();
                 index = mindSpore.getContributors_index();
+                break;
             default:
                 return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
 
         try {
-            return "";
+            ArrayList<Map> dataList = new ArrayList<>();
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> hits = dataNode.get("hits").get("hits").elements();
+            while (hits.hasNext()) {
+                HashMap<Object, Object> repos = new HashMap<>();
+                JsonNode hit = hits.next();
+                String repository = hit.get("_source").get("repository").asText();
+                String[] split = repository.split("/");
+                repos.put("owner", split[0]);
+                repos.put("repo", split[1]);
+                dataList.add(repos);
+            }
+
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", dataList);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+
         } catch (Exception e) {
             e.printStackTrace();
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
