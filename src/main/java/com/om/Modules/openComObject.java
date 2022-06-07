@@ -81,7 +81,15 @@ public class openComObject {
     protected String all_sigs_owner_type;
     protected String sigs_feature_url;
     protected String company_users;
+    protected String communityRepoQueryStr;
 
+    public String getCommunityRepoQueryStr() {
+        return communityRepoQueryStr;
+    }
+
+    public void setCommunityRepoQueryStr(String communityRepoQueryStr) {
+        this.communityRepoQueryStr = communityRepoQueryStr;
+    }
 
     public String getSigParams() {
         return sig_params;
@@ -664,7 +672,7 @@ public class openComObject {
         return queryStr;
     }
 
-    public String getAggCountQueryStr(String groupField, String contributeType, String timeRange, String community) {
+    public String getAggCountQueryStr(String groupField, String contributeType, String timeRange, String repo) {
         String queryStr;
         String queryJson;
         long currentTimeMillis = System.currentTimeMillis();
@@ -678,11 +686,7 @@ public class openComObject {
 
         switch (contributeType.toLowerCase()) {
             case "pr":
-                if (community.toLowerCase().equals("opengauss")) {
-                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_pull_request");
-                } else {
-                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_pull_state_merged");
-                }
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_pull_state_merged");
                 break;
             case "issue":
                 queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_issue");

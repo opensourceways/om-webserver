@@ -1390,7 +1390,7 @@ public class QueryDao {
         return dataList;
     }
 
-    public String queryCompanyContributors(String community, String item, String contributeType, String timeRange, String version) {
+    public String queryCompanyContributors(String community, String item, String contributeType, String timeRange, String repo) {
         String index;
         String queryStr;
         String claIndex;
@@ -1398,22 +1398,22 @@ public class QueryDao {
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getGiteeAllIndex();
-                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, community);
+                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, repo);
                 claIndex = openEuler.getClaCorporationIndex();
                 break;
             case "opengauss":
                 index = openGauss.getGiteeAllIndex();
-                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community);
+                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, repo);
                 claIndex = openGauss.getClaCorporationIndex();
                 break;
             case "openlookeng":
                 index = openLookeng.getGiteeAllIndex();
-                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, community);
+                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, repo);
                 claIndex = openLookeng.getClaCorporationIndex();
                 break;
             case "mindspore":
                 index = mindSpore.getGiteeAllIndex();
-                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, community);
+                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, repo);
                 claIndex = mindSpore.getClaCorporationIndex();
                 break;
             default:
@@ -3227,15 +3227,39 @@ public class QueryDao {
             case "openlookeng":
                 queryStr = openLookeng.getCommunityRepoQueryStr();
                 index = openLookeng.getContributors_index();
+                break;
             case "mindspore":
                 queryStr = mindSpore.getCommunityRepoQueryStr();
                 index = mindSpore.getContributors_index();
+                break;
             default:
                 return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
 
         try {
-            return "";
+            ArrayList<String> dataList = new ArrayList<>();
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> hits = dataNode.get("hits").get("hits").elements();
+            while (hits.hasNext()) {
+                JsonNode hit = hits.next();
+                String repository = hit.get("_source").get("repository").asText();
+                dataList.add(repository);
+            }
+
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", dataList);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+
         } catch (Exception e) {
             e.printStackTrace();
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
