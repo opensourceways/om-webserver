@@ -471,14 +471,14 @@ public class QueryService {
         return result;
     }
 
-    public String queryCompanyContributors(String community, String item, String contributeType, String timeRange, String version) {
-        String key = community.toLowerCase() + item + contributeType.toLowerCase() + timeRange.toLowerCase();
+    public String queryCompanyContributors(String community, String item, String contributeType, String timeRange, String repo) {
+        String key = community.toLowerCase() + item + contributeType.toLowerCase() + timeRange.toLowerCase() + repo;
         String result;
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryCompanyContributors(community, item, contributeType, timeRange, version);
+                result = queryDao.queryCompanyContributors(community, item, contributeType, timeRange, repo);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -490,14 +490,14 @@ public class QueryService {
         return result;
     }
 
-    public String queryUserContributors(String community, String item, String contributeType, String timeRange) {
-        String key = community.toLowerCase() + item + contributeType.toLowerCase() + timeRange.toLowerCase();
+    public String queryUserContributors(String community, String item, String contributeType, String timeRange, String repo) {
+        String key = community.toLowerCase() + item + contributeType.toLowerCase() + timeRange.toLowerCase() + repo;
         String result;
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryUserContributors(community, item, contributeType, timeRange);
+                result = queryDao.queryUserContributors(community, item, contributeType, timeRange, repo);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -816,7 +816,7 @@ public class QueryService {
     public String queryCommunityRepos(String community) {
         String key = community.toLowerCase() + "repos";
         String result = null;
-        result = (String) redisDao.get(key);
+        result = null; // (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
