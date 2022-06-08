@@ -74,7 +74,6 @@ public class openComObject {
     protected String company_contribute_queryStr;
     protected String company_meetings_queryStr;
     protected String company_maintainers_queryStr;
-    protected String sig_params;
     protected String sig_owner_type;
     protected String sig_agg_user_queryStr;
     protected String company_agg_user_queryStr;
@@ -82,6 +81,33 @@ public class openComObject {
     protected String sigs_feature_url;
     protected String company_users;
     protected String communityRepoQueryStr;
+    protected String sig_score_queryStr;
+    protected String sig_score_index;
+    protected String sig_radar_score_index;
+
+    public String getsig_score_queryStr() {
+        return sig_score_queryStr;
+    }
+
+    public void setsig_score_queryStr(String sig_score_queryStr) {
+        this.sig_score_queryStr = sig_score_queryStr;
+    }
+
+    public String getsig_score_index() {
+        return sig_score_index;
+    }
+
+    public void setsig_score_index(String sig_score_index) {
+        this.sig_score_index = sig_score_index;
+    }
+
+    public String getsig_radar_score_index() {
+        return sig_radar_score_index;
+    }
+
+    public void setsig_radar_score_index(String sig_radar_score_index) {
+        this.sig_radar_score_index = sig_radar_score_index;
+    }
 
     public String getCommunityRepoQueryStr() {
         return communityRepoQueryStr;
@@ -89,14 +115,6 @@ public class openComObject {
 
     public void setCommunityRepoQueryStr(String communityRepoQueryStr) {
         this.communityRepoQueryStr = communityRepoQueryStr;
-    }
-
-    public String getSigParams() {
-        return sig_params;
-    }
-
-    public void setSigParams(String sig_params) {
-        this.sig_params = sig_params;
     }
 
     public String getComapnyUsers() {
@@ -672,7 +690,7 @@ public class openComObject {
         return queryStr;
     }
 
-    public String getAggCountQueryStr(String groupField, String contributeType, String timeRange, String community, String repo) {
+    public String getAggCountQueryStr(String groupField, String contributeType, String timeRange, String community, String repo, String sig) {
         String queryStr;
         String queryJson;
         long currentTimeMillis = System.currentTimeMillis();
@@ -684,11 +702,15 @@ public class openComObject {
             queryJson = getGiteeAggUserQueryStr();
         }
         repo = repo == null ? "*" : String.format("\\\"https://gitee.com/%s\\\"", repo);
+        sig = sig == null ? "*" : sig;
 
         switch (contributeType.toLowerCase()) {
             case "pr":
                 if (community.toLowerCase().equals("opengauss")) {
-                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo, "is_gitee_pull_request");
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo,
+                            "is_gitee_pull_request");
+                } else if (community.toLowerCase().equals("openeuler") && groupField.equals("company")) {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, sig, "is_pull_state_merged");
                 } else {
                     queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_pull_state_merged");
                 }
@@ -696,6 +718,8 @@ public class openComObject {
             case "issue":
                 if (community.toLowerCase().equals("opengauss")) {
                     queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo, "is_gitee_issue");
+                } else if (community.toLowerCase().equals("openeuler") && groupField.equals("company")) {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, sig, "is_gitee_issue");
                 } else {
                     queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_issue");
                 }
@@ -703,6 +727,8 @@ public class openComObject {
             case "comment":
                 if (community.toLowerCase().equals("opengauss")) {
                     queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo, "is_gitee_comment");
+                } else if (community.toLowerCase().equals("openeuler") && groupField.equals("company")) {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, sig, "is_gitee_comment");
                 } else {
                     queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_comment");
                 }
@@ -854,6 +880,17 @@ public class openComObject {
                 return null;
         }
 
+        return queryStr;
+    }
+
+    public String getSigScoreQuery(String queryJson, String timeRange, String sig) {
+        if (queryJson == null) {
+            System.out.println("QueryStr is null...");
+            return null;
+        }
+        long currentTimeMillis = System.currentTimeMillis();
+        long lastTimeMillis = getPastTime(timeRange);
+        String queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, sig);
         return queryStr;
     }
 }

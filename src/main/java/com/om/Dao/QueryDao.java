@@ -1390,7 +1390,7 @@ public class QueryDao {
         return dataList;
     }
 
-    public String queryCompanyContributors(String community, String item, String contributeType, String timeRange, String repo) {
+    public String queryCompanyContributors(String community, String item, String contributeType, String timeRange, String repo, String sig) {
         String index;
         String queryStr;
         String claIndex;
@@ -1398,22 +1398,22 @@ public class QueryDao {
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getGiteeAllIndex();
-                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
+                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
                 claIndex = openEuler.getClaCorporationIndex();
                 break;
             case "opengauss":
                 index = openGauss.getGiteeAllIndex();
-                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
+                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
                 claIndex = openGauss.getClaCorporationIndex();
                 break;
             case "openlookeng":
                 index = openLookeng.getGiteeAllIndex();
-                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
+                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
                 claIndex = openLookeng.getClaCorporationIndex();
                 break;
             case "mindspore":
                 index = mindSpore.getGiteeAllIndex();
-                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
+                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
                 claIndex = mindSpore.getClaCorporationIndex();
                 break;
             default:
@@ -1490,22 +1490,23 @@ public class QueryDao {
         String index;
         String queryStr;
         String groupField = "gitee_id";
+        String sig = null;
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getGiteeAllIndex();
-                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
+                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
                 break;
             case "opengauss":
                 index = openGauss.getGiteeAllIndex();
-                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
+                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
                 break;
             case "openlookeng":
                 index = openLookeng.getGiteeAllIndex();
-                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
+                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
                 break;
             case "mindspore":
                 index = mindSpore.getGiteeAllIndex();
-                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
+                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
@@ -2240,163 +2241,6 @@ public class QueryDao {
         }
         sigMetricsList.add(maintainersList.get(0));
         return sigMetricsList;
-    }
-
-    public JsonNode AllSigScores(String community, String timeRange, String curDate) {
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            String index = "";
-            String queryjson = "";
-            switch (community.toLowerCase()) {
-                case "openeuler":
-                    index = openEuler.getSigs_index();
-                    queryjson = openEuler.getSigNameQueryStr();
-                    break;
-                case "opengauss":
-                    index = openGauss.getSigs_index();
-                    queryjson = openGauss.getSigNameQueryStr();
-                    break;
-                default:
-                    return null;
-            }
-            if (queryjson == null) {
-                return null;
-            }
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryjson);
-            // 获取执行结果
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-
-            Response response = f.get();
-            String responseBody = response.getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("sig_names").get("buckets").elements();
-            HashMap<String, Double> dataMap = new HashMap<>();
-            HashMap<String, Object> resMap = new HashMap<>();
-
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String sig = bucket.get("key").asText();
-                Double sigscore = SigScores(community, sig, timeRange, curDate);
-                dataMap.put(sig, sigscore);
-            }
-
-            List<HashMap.Entry<String, Double>> list = new ArrayList<HashMap.Entry<String, Double>>(dataMap.entrySet());
-            Collections.sort(list, new Comparator<HashMap.Entry<String, Double>>() {
-                @Override
-                public int compare(Entry<String, Double> o1, Entry<String, Double> o2) {
-                    return o2.getValue().compareTo(o1.getValue());
-                }
-            });
-            for (int i = 0; i < list.size(); i++) {
-                int rank = i + 1;
-                String key = list.get(i).getKey();
-                Double value = list.get(i).getValue();
-                String feature = getSigFeature(community, key);
-                HashMap<String, Object> map = new HashMap<>();
-                map.put("sig", key);
-                map.put("score", value);
-                map.put("rank", rank);
-                map.put("feature", feature);
-                resMap.put(key, map);
-            }
-            JsonNode resNode = objectMapper.valueToTree(resMap);
-            return resNode;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public String queryAllSigScores(String community, String timeRange, String curDate) {
-        JsonNode allsigScore = AllSigScores(community, timeRange, curDate);
-        if (allsigScore == null) {
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
-        }
-        HashMap<String, Object> resMap = new HashMap<>();
-        resMap.put("code", 200);
-        resMap.put("data", allsigScore);
-        resMap.put("msg", "success");
-        return objectMapper.valueToTree(resMap).toString();
-    }
-
-    public double sigScoreFormula(double value, ArrayList<Double> params) {
-        double score = Math.log(1 + value) / Math.log(1 + Math.max(value, params.get(1))) * params.get(0);
-        return score;
-    }
-
-    public String querySigScores(String community, String sig, String timeRange, String curDate) {
-        JsonNode allsigScore = AllSigScores(community, timeRange, curDate);
-        if (allsigScore == null) {
-            return "";
-        }
-        HashMap<String, Object> resMap = new HashMap<>();
-        JsonNode res;
-        if (allsigScore.has(sig)) {
-            res = allsigScore.get(sig);
-            resMap.put("code", 200);
-            resMap.put("data", res);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        }
-        return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
-    }
-    
-    public Double SigScores(String community, String sig, String timeRange, String curDate) {
-        HashMap<String, ArrayList<Double>> paramObject = new HashMap<>();
-        List<String> metrics = Arrays.asList(new String[] { "D0", "D1", "D2", "Company", "PR_Merged", "PR_Review",
-                "Issue_update", "Issue_closed", "Issue_comment", "Contribute", "Meeting", "Attendee", "Maintainer" });
-
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                String paramStr = openEuler.getSigParams();
-                paramObject = JSONObject.parseObject(paramStr, new TypeReference<HashMap<String, ArrayList<Double>>>() {
-                });
-                break;
-            default:
-                return null;
-        }
-        ArrayList<Integer> sigMetricsList = querySigMetrics(community, sig, timeRange, curDate);
-        if (sigMetricsList == null) {
-            return null;
-        }
-
-        ArrayList<Double> sigScoresList = new ArrayList<>();
-        Double sigScore = 0d;
-        for (int i = 0; i < sigMetricsList.size(); i++) {
-            String metricsName = metrics.get(i);
-            switch (metricsName) {
-                case "PR_Review":
-                    if (sigMetricsList.get(i - 1) == 0) {
-                        sigScoresList.add(0d);
-                        sigScore += 0;
-                    } else {
-                        Double pr_review = sigMetricsList.get(i) / sigMetricsList.get(i - 1).doubleValue();
-                        Double pr_review_score = sigScoreFormula(pr_review, paramObject.get(metricsName));
-                        sigScore += pr_review_score;
-                        sigScoresList.add(pr_review_score);
-                    }
-                    break;
-                case "Issue_comment":
-                    if (sigMetricsList.get(i - 1) == 0) {
-                        sigScoresList.add(0d);
-                        sigScore += 0;
-                    } else {
-                        Double issue_comment = sigMetricsList.get(i) / sigMetricsList.get(i - 1).doubleValue();
-                        Double issue_comment_score = sigScoreFormula(issue_comment, paramObject.get(metricsName));
-                        sigScore += issue_comment_score;
-                        sigScoresList.add(issue_comment_score);
-                    }
-                    break;
-                default:
-                    Double metric = sigMetricsList.get(i).doubleValue();
-                    Double metric_score = sigScoreFormula(metric, paramObject.get(metricsName));
-                    sigScore += metric_score;
-                    sigScoresList.add(metric_score);
-            }
-        }
-        return sigScore;
     }
 
     public ArrayList<Integer> querySigContribute(String community, String sig, String timeRange, String curDate) {
@@ -3265,5 +3109,57 @@ public class QueryDao {
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
     }
+    public String querySigScore(String community, String sig, String timeRange, String type) {
+        String queryjson;
+        String index;
+        String queryStr;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                queryjson = openEuler.getsig_score_queryStr();
+                queryStr = openEuler.getSigScoreQuery(queryjson, timeRange, sig);
+                if (type.equals("radar")) {
+                    index = openEuler.getsig_radar_score_index();
+                } else {
+                    index = openEuler.getsig_score_index();
+                }
+                break;
+            case "opengauss":
+                queryjson = openGauss.getsig_score_queryStr();
+                queryStr = openGauss.getSigScoreQuery(queryjson, timeRange, sig);
+                if (type.equals("radar")) {
+                    index = openEuler.getsig_radar_score_index();
+                } else {
+                    index = openEuler.getsig_score_index();
+                }
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
 
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
+            ArrayList<JsonNode> sigList = new ArrayList<>();
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                sigList.add(bucket.get("_source"));
+            }
+
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", sigList);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
 }

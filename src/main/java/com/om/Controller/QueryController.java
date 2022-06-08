@@ -169,8 +169,9 @@ public class QueryController {
     public String queryCompanyContributors(@RequestParam(value = "community") String community,
                                            @RequestParam(value = "contributeType") String contributeType,
                                            @RequestParam(value = "timeRange") String timeRange,
-                                           @RequestParam(value = "repo", required = false) String repo) {
-        String res = queryService.queryCompanyContributors(community, "companyContribute", contributeType, timeRange, repo);
+                                           @RequestParam(value = "repo", required = false) String repo,
+                                           @RequestParam(value = "sig", required = false) String sig) {
+        String res = queryService.queryCompanyContributors(community, "companyContribute", contributeType, timeRange, repo, sig);
         return res;
     }
 
@@ -224,20 +225,6 @@ public class QueryController {
         return res;
     }
 
-    @RequestMapping("/sig/sigscores")
-    public String querySigScores(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
-                               @RequestParam(value = "timeRange") String timeRange, @RequestParam(value = "date") String date) {
-        String res = queryService.querySigScores(community, sig, timeRange, date);
-        return res;
-    }
-
-    @RequestMapping("/allsigscores")
-    public String queryAllSigScores(@RequestParam(value = "community") String community, @RequestParam(value = "timeRange") String timeRange, 
-                                    @RequestParam(value = "date") String date) {
-        String res = queryService.queryAllSigScores(community, timeRange, date);
-        return res;
-    }
-
     @RequestMapping("/company/name")
     public String queryCompanyName(@RequestParam(value = "community") String community) throws JsonProcessingException, InterruptedException, ExecutionException {
         String res = queryService.queryCompanyName(community);
@@ -276,5 +263,19 @@ public class QueryController {
     public String queryRepos(@RequestParam(value = "community") String community) {
         String repos = queryService.queryCommunityRepos(community);
         return repos;
+    }
+    
+    @RequestMapping("/sig/score")
+    public String querySigScore(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
+                               @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.querySigScore(community, sig, timeRange);
+        return res;
+    }
+
+    @RequestMapping("/sig/radarscore")
+    public String querySigRadarScore(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
+                               @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.querySigRadarScore(community, sig, timeRange);
+        return res;
     }
 }
