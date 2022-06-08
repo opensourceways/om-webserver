@@ -472,7 +472,7 @@ public class QueryService {
     }
 
     public String queryCompanyContributors(String community, String item, String contributeType, String timeRange, String repo) {
-        String key = community.toLowerCase() + item + contributeType.toLowerCase() + timeRange.toLowerCase();
+        String key = community.toLowerCase() + item + contributeType.toLowerCase() + timeRange.toLowerCase() + repo;
         String result;
         result = (String) redisDao.get(key);
         if (result == null) {
@@ -491,7 +491,7 @@ public class QueryService {
     }
 
     public String queryUserContributors(String community, String item, String contributeType, String timeRange, String repo) {
-        String key = community.toLowerCase() + item + contributeType.toLowerCase() + timeRange.toLowerCase();
+        String key = community.toLowerCase() + item + contributeType.toLowerCase() + timeRange.toLowerCase() + repo;
         String result;
         result = (String) redisDao.get(key);
         if (result == null) {
