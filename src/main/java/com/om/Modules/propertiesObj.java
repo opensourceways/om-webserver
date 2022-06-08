@@ -226,7 +226,6 @@ public class propertiesObj {
         bean.setCompanyContributeQueryStr(openconf.getProperty("company_contribute_queryStr"));
         bean.setCompanyMeetingsQueryStr(openconf.getProperty("company_meetings_queryStr"));
         bean.setCompanyMaintainersQueryStr(openconf.getProperty("company_maintainers_queryStr"));
-        bean.setSigParams(openconf.getProperty("sig_params"));
         bean.setSigOwnerType(openconf.getProperty("sig_owner_type"));
         bean.setSigAggUserQueryStr(openconf.getProperty("sig_agg_user_queryStr"));
         bean.setCompanyAggUserQueryStr(openconf.getProperty("company_agg_user_queryStr"));
@@ -234,6 +233,9 @@ public class propertiesObj {
         bean.setSigsFeature(openconf.getProperty("sigs_feature_url"));
         bean.setComapnyUsers(openconf.getProperty("company_users"));
         bean.setCommunityRepoQueryStr(openconf.getProperty("community_repo_queryStr"));
+        bean.setsig_score_queryStr(openconf.getProperty("sig_score_queryStr"));
+        bean.setsig_score_index(openconf.getProperty("sig_score_index"));
+        bean.setsig_radar_score_index(openconf.getProperty("sig_radar_score_index"));
     }
 
     private static Properties readProperties(String path) throws IOException {
