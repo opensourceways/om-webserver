@@ -99,7 +99,7 @@ public class VersionService {
                     break;
             }
             RequestBuilder builder = asyncHttpUtil.getBuilder();
-            String bodyData = "{\"query\":{\"bool\":{\"filter\":[{\"query_string\":{\"analyze_wildcard\":true,\"query\":\"is_gitee_repo:1\"}}]}},\"_source\":[\"branches\"],\"size\":10000}";
+            String bodyData = "{\"query\":{\"bool\":{\"filter\":[{\"query_string\":{\"analyze_wildcard\":true,\"query\":\"is_gitee_repo:1\"}}]}},\"_source\":[\"branch_detail\"],\"size\":10000}";
             Request request = builder.setUrl(url).setBody(bodyData).build();
             ListenableFuture<Response> future = AsyncHttpUtil.getClient().executeRequest(request);
             Response response = future.get();
@@ -116,7 +116,6 @@ public class VersionService {
 
     /***
      * 功能描述:组装过滤数据
-     * @param branch:分支名称
      * @param data: 待处理数据，使用json 反序列化
      * @param page: 分页
      * @param pageSize:一页多少数据
@@ -216,7 +215,6 @@ public class VersionService {
     /***
      * 功能描述:
      * @param datas:传入数据
-     * @param community: 社区名称
      * @param repo: 仓库名称
      * @param branch:分支名称
      * @return: java.util.List
