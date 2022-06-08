@@ -177,8 +177,9 @@ public class QueryController {
     @RequestMapping("/user/contribute")
     public String queryUserContributors(@RequestParam(value = "community") String community,
                                         @RequestParam(value = "contributeType") String contributeType,
-                                        @RequestParam(value = "timeRange") String timeRange) {
-        String res = queryService.queryUserContributors(community, "userContribute", contributeType, timeRange);
+                                        @RequestParam(value = "timeRange") String timeRange,
+                                        @RequestParam(value = "repo", required = false) String repo) {
+        String res = queryService.queryUserContributors(community, "userContribute", contributeType, timeRange, repo);
         return res;
     }
 

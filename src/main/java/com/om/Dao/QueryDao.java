@@ -1398,22 +1398,22 @@ public class QueryDao {
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getGiteeAllIndex();
-                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, repo);
+                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
                 claIndex = openEuler.getClaCorporationIndex();
                 break;
             case "opengauss":
                 index = openGauss.getGiteeAllIndex();
-                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, repo);
+                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
                 claIndex = openGauss.getClaCorporationIndex();
                 break;
             case "openlookeng":
                 index = openLookeng.getGiteeAllIndex();
-                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, repo);
+                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
                 claIndex = openLookeng.getClaCorporationIndex();
                 break;
             case "mindspore":
                 index = mindSpore.getGiteeAllIndex();
-                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, repo);
+                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
                 claIndex = mindSpore.getClaCorporationIndex();
                 break;
             default:
@@ -1429,7 +1429,7 @@ public class QueryDao {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
 
-            builder.setUrl(this.url + index + "/_search");
+            builder.setUrl(this.url + index + "/_search");;
             builder.setBody(queryStr);
             //获取执行结果
             ListenableFuture<Response> f = client.executeRequest(builder.build());
@@ -1486,26 +1486,26 @@ public class QueryDao {
         }
     }
 
-    public String queryUserContributors(String community, String item, String contributeType, String timeRange) {
+    public String queryUserContributors(String community, String item, String contributeType, String timeRange, String repo) {
         String index;
         String queryStr;
         String groupField = "gitee_id";
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getGiteeAllIndex();
-                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, community);
+                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
                 break;
             case "opengauss":
                 index = openGauss.getGiteeAllIndex();
-                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community);
+                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
                 break;
             case "openlookeng":
                 index = openLookeng.getGiteeAllIndex();
-                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, community);
+                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
                 break;
             case "mindspore":
                 index = mindSpore.getGiteeAllIndex();
-                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, community);
+                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo);
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
