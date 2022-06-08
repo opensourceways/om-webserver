@@ -672,7 +672,7 @@ public class openComObject {
         return queryStr;
     }
 
-    public String getAggCountQueryStr(String groupField, String contributeType, String timeRange, String repo) {
+    public String getAggCountQueryStr(String groupField, String contributeType, String timeRange, String community, String repo) {
         String queryStr;
         String queryJson;
         long currentTimeMillis = System.currentTimeMillis();
@@ -683,16 +683,29 @@ public class openComObject {
         } else {
             queryJson = getGiteeAggUserQueryStr();
         }
+        repo = repo == null ? "*" : String.format("\\\"https://gitee.com/%s\\\"", repo);
 
         switch (contributeType.toLowerCase()) {
             case "pr":
-                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_pull_state_merged");
+                if (community.toLowerCase().equals("opengauss")) {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo, "is_gitee_pull_request");
+                } else {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_pull_state_merged");
+                }
                 break;
             case "issue":
-                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_issue");
+                if (community.toLowerCase().equals("opengauss")) {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo, "is_gitee_issue");
+                } else {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_issue");
+                }
                 break;
             case "comment":
-                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_comment");
+                if (community.toLowerCase().equals("opengauss")) {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo, "is_gitee_comment");
+                } else {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, "is_gitee_comment");
+                }
                 break;
             default:
                 return "";
