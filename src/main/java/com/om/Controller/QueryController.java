@@ -200,8 +200,10 @@ public class QueryController {
     }
 
     @RequestMapping(value = "/track", method = RequestMethod.GET)
-    public String putUserActionsinfo(@RequestParam(value = "data") String data, @RequestParam(value = "ext") String ext) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String res = queryService.putUserActionsinfo(data);
+    public String putUserActionsinfo(@RequestParam(value = "community") String community, 
+                                     @RequestParam(value = "data") String data, 
+                                     @RequestParam(value = "ext") String ext) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String res = queryService.putUserActionsinfo(community, data);
         return res;
     }
 
