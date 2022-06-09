@@ -84,6 +84,15 @@ public class openComObject {
     protected String sig_score_queryStr;
     protected String sig_score_index;
     protected String sig_radar_score_index;
+    protected String Tracker_index;
+
+    public String getTracker_index() {
+        return Tracker_index;
+    }
+
+    public void setTracker_index(String Tracker_index) {
+        this.Tracker_index = Tracker_index;
+    }
 
     public String getsig_score_queryStr() {
         return sig_score_queryStr;

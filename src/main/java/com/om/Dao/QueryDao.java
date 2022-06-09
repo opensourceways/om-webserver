@@ -2035,8 +2035,25 @@ public class QueryDao {
         return justifiedResult;
     }
 
-    public String putUserActionsinfo(String data, Environment env)
+    public String putUserActionsinfo(String community, String data, Environment env)
             throws NoSuchAlgorithmException, KeyManagementException, IOException {
+        String index;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getTracker_index();
+                break;
+            case "opengauss":
+                index = openGauss.getTracker_index();
+                break;
+            case "mindspore":
+                index = mindSpore.getTracker_index();
+                break;
+            case "openlookeng":
+                index = openLookeng.getTracker_index();
+                break; 
+            default:
+                return "{\"code\":" + 404 + ",\"data\":{\"index: error!\"},\"msg\":\"not Found!\"}";
+        }
         String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
         String host = env.getProperty("es.host");
         int port = Integer.parseInt(env.getProperty("es.port", "9200"));
@@ -2045,13 +2062,11 @@ public class QueryDao {
         String password = userpass[1];
         RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
         BulkRequest request = new BulkRequest();
-
         String sdata = new String(Base64.getDecoder().decode(data));
         JSONObject userVo = JSONObject.parseObject(sdata);
         Date now = new Date();
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
         String nowStr = simpleDateFormat.format(now);
-        String index = env.getProperty("mindSpore.tracker.index");
         String id = userVo.getString("_track_id");
 
         Map resMap = objectMapper.convertValue(userVo, Map.class);
