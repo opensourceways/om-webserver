@@ -716,8 +716,7 @@ public class openComObject {
         switch (contributeType.toLowerCase()) {
             case "pr":
                 if (community.toLowerCase().equals("opengauss")) {
-                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo,
-                            "is_gitee_pull_request");
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo, "is_pull_state_merged");
                 } else if (community.toLowerCase().equals("openeuler") && groupField.equals("company")) {
                     queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, sig, "is_pull_state_merged");
                 } else {
