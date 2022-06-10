@@ -658,7 +658,7 @@ public class QueryService {
         return result;
     }
     
-    public String querySigDetails(String community, String sig, String timeRange, String curDate) {
+    public String querySigDetails(String community, String sig, String timeRange) {
         String key = community.toLowerCase() + sig + "details" + timeRange.toLowerCase();
         String result;   
 
@@ -666,7 +666,7 @@ public class QueryService {
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
-                result = queryDao.querySigDetails(community, sig, timeRange, curDate);
+                result = queryDao.querySigDetails(community, sig, timeRange);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -823,6 +823,25 @@ public class QueryService {
             //查询数据库，更新redis 缓存。
             try {
                 result = queryDao.querySigScore(community, sig, timeRange, type);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryCompanySigs(String community, String company, String timeRange) {
+        String key = community.toLowerCase() + company + "companysigs" + timeRange.toLowerCase();
+        String result = null;    
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryCompanySigs(community, timeRange);
             } catch (Exception e) {
                 e.printStackTrace();
             }
