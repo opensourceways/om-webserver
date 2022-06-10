@@ -5,6 +5,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.om.Modules.*;
 import com.om.Vo.TokenUser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -21,6 +22,12 @@ public class JwtTokenCreateService {
     private openLookeng openlookeng;
     @Autowired
     private mindSpore mindspore;
+
+    @Value("${authing.token.expire.seconds}")
+    private String authingTokenExpireSeconds;
+
+    @Value("${authing.token.base.password}")
+    private String authingTokenBasePassword;
 
     public String getToken(TokenUser user) {
         openComObject communityObj;
@@ -55,5 +62,26 @@ public class JwtTokenCreateService {
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(expireAt) //过期时间
                 .sign(Algorithm.HMAC256(user.getPassword() + basePassword));
+    }
+
+    public String authingUserToken(String userId, String permission) {
+        // 过期时间
+        LocalDateTime nowDate = LocalDateTime.now();
+        Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
+        int expireSeconds = 60;
+        try {
+            expireSeconds = Integer.parseInt(authingTokenExpireSeconds);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
+        Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
+
+        return JWT.create()
+                .withAudience(userId) //谁接受签名
+                .withIssuedAt(issuedAt) //生成签名的时间
+                .withExpiresAt(expireAt) //过期时间
+                .withClaim("permission", permission)
+                .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));
     }
 }
