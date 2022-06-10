@@ -48,7 +48,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             if (userLoginToken.required()) {
                 // token 为空
                 if (token == null) {
-                    httpServletResponse.sendError(HttpServletResponse.SC_NOT_FOUND, "token miss");
+                    httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "token miss");
                     return false;
                 }
 
@@ -68,7 +68,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
                 // token 是否过期
                 if (expiresAt.before(new Date())) {
-                    httpServletResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "token expires");
+                    httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "token expires");
                     return false;
                 }
 
