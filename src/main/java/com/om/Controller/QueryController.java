@@ -3,6 +3,7 @@ package com.om.Controller;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.om.Service.QueryService;
 import com.om.Vo.*;
+import com.om.authing.AuthingToken;
 import com.om.token.UserLoginToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -220,6 +221,7 @@ public class QueryController {
         return res;
     }
 
+    @AuthingToken
     @RequestMapping("/sig/sigdetails")
     public String querySigDetails(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
                                @RequestParam(value = "timeRange") String timeRange) {
@@ -247,6 +249,7 @@ public class QueryController {
         return res;
     }
 
+    @AuthingToken
     @RequestMapping("/sig/usercontribute")
     public String querySigUserTypeCount(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
                                         @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
@@ -267,6 +270,7 @@ public class QueryController {
         return repos;
     }
     
+    @AuthingToken
     @RequestMapping("/sig/score")
     public String querySigScore(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
                                @RequestParam(value = "timeRange") String timeRange) {
@@ -274,6 +278,7 @@ public class QueryController {
         return res;
     }
 
+    @AuthingToken
     @RequestMapping("/sig/radarscore")
     public String querySigRadarScore(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
                                @RequestParam(value = "timeRange") String timeRange) {
@@ -282,9 +287,8 @@ public class QueryController {
     }
 
     @RequestMapping("/company/sigs")
-    public String queryCompanySigs(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
-                               @RequestParam(value = "timeRange") String timeRange) {
-        String res = queryService.queryCompanySigs(community, company, timeRange);
+    public String queryCompanySigs(@RequestParam(value = "community") String community, @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.queryCompanySigs(community, timeRange);
         return res;
     }
 }
