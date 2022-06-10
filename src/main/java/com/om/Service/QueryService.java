@@ -834,8 +834,8 @@ public class QueryService {
         return result;
     }
 
-    public String queryCompanySigs(String community, String company, String timeRange) {
-        String key = community.toLowerCase() + company + "companysigs" + timeRange.toLowerCase();
+    public String queryCompanySigs(String community, String timeRange) {
+        String key = community.toLowerCase() + "companysigs" + timeRange.toLowerCase();
         String result = null;    
         result = (String) redisDao.get(key);
         if (result == null) {
