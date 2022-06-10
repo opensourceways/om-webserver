@@ -85,6 +85,15 @@ public class openComObject {
     protected String sig_score_index;
     protected String sig_radar_score_index;
     protected String Tracker_index;
+    protected String AllCompanySigsQueryStr;
+
+    public String getAllCompanySigsQueryStr() {
+        return AllCompanySigsQueryStr;
+    }
+
+    public void setAllCompanySigsQueryStr(String AllCompanySigsQueryStr) {
+        this.AllCompanySigsQueryStr = AllCompanySigsQueryStr;
+    }
 
     public String getTracker_index() {
         return Tracker_index;
@@ -767,36 +776,6 @@ public class openComObject {
         return c.getTimeInMillis();
     }
 
-    private long[] getRangeTime(String timeRange, String curDate) {
-        Calendar c = Calendar.getInstance();
-        c.clear();
-        String[] str = curDate.split("-");
-        int[] d = new int[3];
-        for (int i = 0; i < 3; i++) {
-            d[i] = Integer.parseInt(str[i]);
-        }
-        // set year,month,day, Calendar中月份从0月开始
-        c.set(d[0], d[1] - 1, d[2]);
-
-        long[] mills = new long[2];
-        mills[0] = c.getTimeInMillis();
-        switch (timeRange.toLowerCase()) {
-            case "lastonemonth":
-                c.add(Calendar.MONTH, -1);
-                break;
-            case "lasthalfyear":
-                c.add(Calendar.MONTH, -6);
-                break;
-            case "lastoneyear":
-                c.add(Calendar.YEAR, -1);
-                break;
-            default:
-                c.setTimeInMillis(0);
-        }
-        mills[1] = c.getTimeInMillis();
-        return mills;
-    }
-
     public String getAggSigRepoQueryStr(String timeRange, String sig) {
         String queryStr;
         String queryJson;
@@ -805,13 +784,14 @@ public class openComObject {
         return queryStr;
     }
 
-    public String[] getAggSigGiteeQueryStr(String queryJson, String timeRange, String sig, String curDate) {
-        long[] mills = getRangeTime(timeRange, curDate);
+    public String[] getAggSigGiteeQueryStr(String queryJson, String timeRange, String sig) {
         String[] queryJsons = queryJson.split(";");
         String[] queryStr = new String[queryJsons.length];
+        long currentTimeMillis = System.currentTimeMillis();
+        long lastTimeMillis = getPastTime(timeRange);
 
         for (int i = 0; i < queryJsons.length; i++) {
-            queryStr[i] = String.format(queryJsons[i], mills[1], mills[0], sig);
+            queryStr[i] = String.format(queryJsons[i], lastTimeMillis, currentTimeMillis, sig);
         }
         return queryStr;
     }
@@ -824,7 +804,7 @@ public class openComObject {
 
         queryJson = getCompanyUserQueryStr();
         if (queryJson == null) {
-            System.out.println("CompanyUserQueryStr is null...");
+            System.out.println("QueryStr is null...");
             return "";
         }
         queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, company);
@@ -870,13 +850,7 @@ public class openComObject {
 
         switch (contributeType.toLowerCase()) {
             case "pr":
-                if (community.toLowerCase().equals("opengauss")) {
-                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group,
-                            "is_gitee_pull_request");
-                } else {
-                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group,
-                            "is_pull_state_merged");
-                }
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group, "is_pull_state_merged");
                 break;
             case "issue":
                 queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group, "is_gitee_issue");
@@ -899,6 +873,17 @@ public class openComObject {
         long currentTimeMillis = System.currentTimeMillis();
         long lastTimeMillis = getPastTime(timeRange);
         String queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, sig);
+        return queryStr;
+    }
+
+    public String getcommonQuery(String queryJson, String timeRange) {
+        if (queryJson == null) {
+            System.out.println("QueryStr is null...");
+            return null;
+        }
+        long currentTimeMillis = System.currentTimeMillis();
+        long lastTimeMillis = getPastTime(timeRange);
+        String queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis);
         return queryStr;
     }
 }
