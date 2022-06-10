@@ -471,9 +471,10 @@ public class QueryService {
         return result;
     }
 
-    public String queryCompanyContributors(String community, String item, String contributeType, String timeRange, String repo, String sig) {
-        String key = community.toLowerCase() + item + contributeType.toLowerCase() + timeRange.toLowerCase() + repo + sig;
+    public String queryCompanyContributors(String community, String item, String contributeType, String timeRange, String repo) {
+        String key = community.toLowerCase() + item + contributeType.toLowerCase() + timeRange.toLowerCase() + repo ;
         String result;
+        String sig = null;
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
@@ -667,6 +668,26 @@ public class QueryService {
             //查询数据库，更新redis 缓存。
             try {
                 result = queryDao.querySigDetails(community, sig, timeRange);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String querySigCompanyContributors(String community, String item, String contributeType, String timeRange, String sig) {
+        String key = community.toLowerCase() + item + contributeType.toLowerCase() + timeRange.toLowerCase() + sig ;
+        String result;
+        String repo = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryCompanyContributors(community, item, contributeType, timeRange, repo, sig);
             } catch (Exception e) {
                 e.printStackTrace();
             }
