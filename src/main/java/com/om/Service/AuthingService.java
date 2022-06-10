@@ -28,7 +28,7 @@ public class AuthingService {
         try {
             // 用户是否存在
             User user = authingUserDao.getUser(userId);
-            if (user == null) return result(HttpStatus.NOT_FOUND, "user not found", null);
+            if (user == null) return result(HttpStatus.UNAUTHORIZED, "user not found", null);
 
             // 资源权限验证
             String permissionInfo = env.getProperty(community + "." + permission);
@@ -36,7 +36,6 @@ public class AuthingService {
             boolean hasActionPer = authingUserDao.checkUserPermission(userId, split[0], split[1], split[2]);
             ArrayList<String> permissions = new ArrayList<>();
             if (hasActionPer) permissions.add(permission);
-//            if (!hasActionPer) return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
 
             // 生成token
             String token = jwtTokenCreateService.authingUserToken(userId, permissionInfo);
