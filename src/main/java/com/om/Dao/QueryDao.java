@@ -3197,7 +3197,7 @@ public class QueryDao {
                 index = openGauss.getGiteeAllIndex();
                 break;
             default:
-                return null;
+                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
 
         try {
@@ -3245,7 +3245,7 @@ public class QueryDao {
             return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
     }
 }
