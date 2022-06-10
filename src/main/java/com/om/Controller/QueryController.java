@@ -170,9 +170,8 @@ public class QueryController {
     public String queryCompanyContributors(@RequestParam(value = "community") String community,
                                            @RequestParam(value = "contributeType") String contributeType,
                                            @RequestParam(value = "timeRange") String timeRange,
-                                           @RequestParam(value = "repo", required = false) String repo,
-                                           @RequestParam(value = "sig", required = false) String sig) {
-        String res = queryService.queryCompanyContributors(community, "companyContribute", contributeType, timeRange, repo, sig);
+                                           @RequestParam(value = "repo", required = false) String repo) {
+        String res = queryService.queryCompanyContributors(community, "companyContribute", contributeType, timeRange, repo);
         return res;
     }
 
@@ -226,6 +225,16 @@ public class QueryController {
     public String querySigDetails(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
                                @RequestParam(value = "timeRange") String timeRange) {
         String res = queryService.querySigDetails(community, sig, timeRange);
+        return res;
+    }
+
+    @AuthingToken
+    @RequestMapping("sig/company/contribute")
+    public String querySigCompanyContributors(@RequestParam(value = "community") String community,
+                                           @RequestParam(value = "contributeType") String contributeType,
+                                           @RequestParam(value = "timeRange") String timeRange,
+                                           @RequestParam(value = "sig", required = false) String sig) {
+        String res = queryService.querySigCompanyContributors(community, "companyContribute", contributeType, timeRange, sig);
         return res;
     }
 
