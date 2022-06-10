@@ -2191,8 +2191,8 @@ public class QueryDao {
         }
     }
 
-    public String querySigDetails(String community, String sig, String timeRange, String curDate) {
-        ArrayList<Integer> sigMetricsList = querySigMetrics(community, sig, timeRange, curDate);
+    public String querySigDetails(String community, String sig, String timeRange) {
+        ArrayList<Integer> sigMetricsList = querySigMetrics(community, sig, timeRange);
         if (sigMetricsList == null) {
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
@@ -2210,7 +2210,7 @@ public class QueryDao {
 
     }
 
-    public ArrayList<Integer> querySigMetrics(String community, String sig, String timeRange, String curDate) {
+    public ArrayList<Integer> querySigMetrics(String community, String sig, String timeRange) {
         String gitee_index;
         String[] queryStrs;
         switch (community.toLowerCase()) {
@@ -2221,7 +2221,7 @@ public class QueryDao {
                     System.out.println("SigGiteeQueryStr missing, please set properties...");
                     return null;
                 }
-                queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig, curDate);
+                queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig);
                 break;
             default:
                 System.out.println("{\"code\":400,\"data\":{\"community error\"},\"msg\":\"community error\"}");
@@ -2233,14 +2233,14 @@ public class QueryDao {
             return null;
         }
 
-        ArrayList<Integer> sigContributeList = querySigContribute(community, sig, timeRange, curDate);
+        ArrayList<Integer> sigContributeList = querySigContribute(community, sig, timeRange);
         if (sigContributeList == null) {
             System.out.println("{\"code\":400,\"data\":{\"sig contribute error\"},\"msg\":\"querySigContribute error\"}");
             return null;
         }
         sigMetricsList.add(sigContributeList.get(0));
 
-        ArrayList<Integer> meetingsList = querySigMeetings(community, sig, timeRange, curDate);
+        ArrayList<Integer> meetingsList = querySigMeetings(community, sig, timeRange);
         if (meetingsList == null) {
             System.out.println("{\"code\":400,\"data\":{\"sig meeting error\"},\"msg\":\"querySigMeetings error\"}");
             return null;
@@ -2249,7 +2249,7 @@ public class QueryDao {
             sigMetricsList.add(meetingsList.get(i));
         }
 
-        ArrayList<Integer> maintainersList = querySigMaintainers(community, sig, timeRange, curDate);
+        ArrayList<Integer> maintainersList = querySigMaintainers(community, sig, timeRange);
         if (maintainersList == null) {
             System.out.println("{\"code\":400,\"data\":{\"sig maintainer error\"},\"msg\":\"querySigMaintainers error\"}");
             return null;
@@ -2258,7 +2258,7 @@ public class QueryDao {
         return sigMetricsList;
     }
 
-    public ArrayList<Integer> querySigContribute(String community, String sig, String timeRange, String curDate) {
+    public ArrayList<Integer> querySigContribute(String community, String sig, String timeRange) {
         String gitee_index;
         String[] queryStrs;
         switch (community.toLowerCase()) {
@@ -2269,7 +2269,7 @@ public class QueryDao {
                     System.out.println("SigContributeQueryStr missing, please set properties...");
                     return null;
                 }
-                queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig, curDate);
+                queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig);
                 break;
             default:
                 return null;
@@ -2302,7 +2302,7 @@ public class QueryDao {
         }
     }
 
-    public ArrayList<Integer> querySigMeetings(String community, String sig, String timeRange, String curDate) {
+    public ArrayList<Integer> querySigMeetings(String community, String sig, String timeRange) {
         String meeting_index;
         String[] queryStrs;
         switch (community.toLowerCase()) {
@@ -2313,7 +2313,7 @@ public class QueryDao {
                     System.out.println("SigMeetingsQueryStr missing, please set properties...");
                     return null;
                 }
-                queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig, curDate);
+                queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig);
                 break;
             default:
                 return null;
@@ -2349,7 +2349,7 @@ public class QueryDao {
         }
     }
 
-    public ArrayList<Integer> querySigMaintainers(String community, String sig, String timeRange, String curDate) {
+    public ArrayList<Integer> querySigMaintainers(String community, String sig, String timeRange) {
         String sig_index;
         String[] queryStrs;
         switch (community.toLowerCase()) {
@@ -2360,7 +2360,7 @@ public class QueryDao {
                     System.out.println("SigMaintainersQueryStr missing, please set properties...");
                     return null;
                 }
-                queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig, curDate);
+                queryStrs = openEuler.getAggSigGiteeQueryStr(queryjson, timeRange, sig);
                 break;
             default:
                 return null;
@@ -2898,7 +2898,7 @@ public class QueryDao {
                 return resCompany;
             }
         }
-        return resCompany;
+        return company;
     }
 
     // 根据sig或者commpany获取贡献者的pr、issue、comment等指标
@@ -3161,10 +3161,13 @@ public class QueryDao {
             String responseBody = f.get().getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
             Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
-            ArrayList<JsonNode> sigList = new ArrayList<>();
+            ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
             while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                sigList.add(bucket.get("_source"));
+                JsonNode bucket = buckets.next().get("_source");
+                HashMap<String, Object> data = objectMapper.convertValue(bucket, HashMap.class);
+                String feature = getSigFeature(community, bucket.get("sig_names").asText());
+                data.put("feature", feature);
+                sigList.add(data);
             }
 
             HashMap<String, Object> resMap = new HashMap<>();
@@ -3175,6 +3178,74 @@ public class QueryDao {
         } catch (Exception e) {
             e.printStackTrace();
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
+
+    public String queryCompanySigs(String community, String timeRange) {
+        String queryjson;
+        String index;
+        String queryStr;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                queryjson = openEuler.getAllCompanySigsQueryStr();
+                queryStr = openEuler.getcommonQuery(queryjson, timeRange);
+                index = openEuler.getGiteeAllIndex();
+                break;
+            case "opengauss":
+                queryjson = openGauss.getAllCompanySigsQueryStr();
+                queryStr = openGauss.getcommonQuery(queryjson, timeRange);
+                index = openGauss.getGiteeAllIndex();
+                break;
+            default:
+                return null;
+        }
+
+        try {
+            List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml);
+            Map<String, String> companyNameCnEn = companys.get(0);
+            Map<String, String> companyNameAlCn = companys.get(1);
+
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
+            ArrayList<JsonNode> dataList = new ArrayList<>();
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                String company = bucket.get("key").asText();
+                if (company.contains("软通动力") || company.contains("中软国际") ||
+                        company.contains("易宝软件") || company.contains("华为合作方")) {
+                    continue;
+                }
+                Iterator<JsonNode> its = bucket.get("sigs").get("buckets").elements();
+                ArrayList<String> sigList = new ArrayList<>();
+                while (its.hasNext()) {
+                    JsonNode it = its.next();
+                    sigList.add(it.get("key").asText());
+                }
+                String companyCn = companyNameAlCn.getOrDefault(company.trim(), company.trim());
+                String companyEn = companyNameCnEn.getOrDefault(company.trim(), companyCn);
+                HashMap<String, Object> dataMap = new HashMap<>();
+                dataMap.put("company_cn", companyCn);
+                dataMap.put("company_en", companyEn);
+                dataMap.put("sigList", sigList);
+                JsonNode resNode = objectMapper.valueToTree(dataMap);
+                dataList.add(resNode);
+            }
+
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("msg", "success");
+            resMap.put("code", 200);
+            resMap.put("data", dataList);
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }
