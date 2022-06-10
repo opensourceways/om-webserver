@@ -222,8 +222,8 @@ public class QueryController {
 
     @RequestMapping("/sig/sigdetails")
     public String querySigDetails(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
-                               @RequestParam(value = "timeRange") String timeRange, @RequestParam(value = "date") String date) {
-        String res = queryService.querySigDetails(community, sig, timeRange, date);
+                               @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.querySigDetails(community, sig, timeRange);
         return res;
     }
 
@@ -278,6 +278,13 @@ public class QueryController {
     public String querySigRadarScore(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
                                @RequestParam(value = "timeRange") String timeRange) {
         String res = queryService.querySigRadarScore(community, sig, timeRange);
+        return res;
+    }
+
+    @RequestMapping("/company/sigs")
+    public String queryCompanySigs(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
+                               @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.queryCompanySigs(community, company, timeRange);
         return res;
     }
 }
