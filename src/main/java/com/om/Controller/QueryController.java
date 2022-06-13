@@ -288,6 +288,13 @@ public class QueryController {
     }
 
     @AuthingToken
+    @RequestMapping("/sig/scoreAll")
+    public String querySigScoreAll(@RequestParam(value = "community") String community) {
+        String res = queryService.querySigScoreAll(community);
+        return res;
+    }
+
+    @AuthingToken
     @RequestMapping("/sig/radarscore")
     public String querySigRadarScore(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
                                @RequestParam(value = "timeRange") String timeRange) {

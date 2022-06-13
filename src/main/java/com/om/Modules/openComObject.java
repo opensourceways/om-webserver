@@ -86,6 +86,15 @@ public class openComObject {
     protected String sig_radar_score_index;
     protected String Tracker_index;
     protected String AllCompanySigsQueryStr;
+    protected String all_sig_score_queryStr;
+
+    public String getall_sig_score_queryStr() {
+        return all_sig_score_queryStr;
+    }
+
+    public void setall_sig_score_queryStr(String all_sig_score_queryStr) {
+        this.all_sig_score_queryStr = all_sig_score_queryStr;
+    }
 
     public String getAllCompanySigsQueryStr() {
         return AllCompanySigsQueryStr;
