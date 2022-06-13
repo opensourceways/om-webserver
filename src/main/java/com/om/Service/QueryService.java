@@ -838,14 +838,17 @@ public class QueryService {
 
     public String querySigScoreAll(String community) {
         Date now = new Date();
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'00:00:01XXX");
-        String nowStr = simpleDateFormat.format(now);
-        String key = community.toLowerCase() + "sigscoreall" + nowStr;
+        SimpleDateFormat simple = new SimpleDateFormat("yyyyMMdd");
+        String keyStr = simple.format(now);
+        String key = community.toLowerCase() + "sigscoreall" + keyStr;
+        System.out.println(key);
         String result = null;   
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
+                SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'00:00:01XXX");
+                String nowStr = simpleDateFormat.format(now);
                 result = queryDao.querySigScoreAll(community, nowStr);
             } catch (Exception e) {
                 e.printStackTrace();
