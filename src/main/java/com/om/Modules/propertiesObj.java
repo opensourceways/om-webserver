@@ -238,6 +238,7 @@ public class propertiesObj {
         bean.setsig_radar_score_index(openconf.getProperty("sig_radar_score_index"));
         bean.setTracker_index(openconf.getProperty("Tracker_index"));
         bean.setAllCompanySigsQueryStr(openconf.getProperty("AllCompanySigsQueryStr"));
+        bean.setall_sig_score_queryStr(openconf.getProperty("all_sig_score_queryStr"));
     }
 
     private static Properties readProperties(String path) throws IOException {
