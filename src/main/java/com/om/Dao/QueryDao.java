@@ -3124,6 +3124,7 @@ public class QueryDao {
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
     }
+
     public String querySigScore(String community, String sig, String timeRange, String type) {
         String queryjson;
         String index;
@@ -3167,6 +3168,55 @@ public class QueryDao {
                 HashMap<String, Object> data = objectMapper.convertValue(bucket, HashMap.class);
                 String feature = getSigFeature(community, bucket.get("sig_names").asText());
                 data.put("feature", feature);
+                sigList.add(data);
+            }
+
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", sigList);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
+
+    public String querySigScoreAll(String community, String nowStr) {
+        String queryjson;
+        String index;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                queryjson = openEuler.getall_sig_score_queryStr();
+
+                index = openEuler.getsig_score_index();
+                break;
+            case "opengauss":
+                queryjson = openGauss.getall_sig_score_queryStr();
+                index = openEuler.getsig_score_index();
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+
+        try {
+            String queryStr = String.format(queryjson, nowStr);
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
+            ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next().get("_source");
+                HashMap<String, Object> data = objectMapper.convertValue(bucket, HashMap.class);
+                String feature = getSigFeature(community, bucket.get("sig_names").asText());
+                data.put("feature", feature);
+                data.remove("value");
                 sigList.add(data);
             }
 
