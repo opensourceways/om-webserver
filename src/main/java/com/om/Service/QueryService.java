@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import java.net.SocketTimeoutException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
@@ -824,6 +825,28 @@ public class QueryService {
             //查询数据库，更新redis 缓存。
             try {
                 result = queryDao.querySigScore(community, sig, timeRange, type);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String querySigScoreAll(String community) {
+        Date now = new Date();
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'00:00:01XXX");
+        String nowStr = simpleDateFormat.format(now);
+        String key = community.toLowerCase() + "sigscoreall" + nowStr;
+        String result = null;   
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.querySigScoreAll(community, nowStr);
             } catch (Exception e) {
                 e.printStackTrace();
             }
