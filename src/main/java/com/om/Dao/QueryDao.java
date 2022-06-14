@@ -98,6 +98,34 @@ public class QueryDao {
     @Value("${openeuler.contributors.default}")
     int globalContributors;
 
+    public HashMap<String, String> getcommunityFeature(String community) {
+        String yamlFile;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                yamlFile = openEuler.getSigsFeature();
+                break;
+            case "opengauss":
+                yamlFile = openGauss.getSigsFeature();
+                break;
+            default:
+                return null;
+        }
+
+        YamlUtil yamlUtil = new YamlUtil();
+        SigYaml res = yamlUtil.readUrlYaml(yamlFile, SigYaml.class);
+
+        HashMap<String, String> resData = new HashMap<>();
+        List<SigYamlInfo> features = res.getFeatures();
+        for (SigYamlInfo feature : features) {
+            String name = feature.getName();
+            List<String> sigs = feature.getSigs();
+            for (String item : sigs) {
+                resData.put(item, name);
+            }
+        }
+        return resData;
+    }
+
     //openeuler openlookeng opengauss 测试通过
     public String queryContributors(String community) throws NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
@@ -2584,11 +2612,12 @@ public class QueryDao {
         
         ArrayList<HashMap<String, Object>> itemList = new ArrayList<>();
         sigAll = sigMetricsList.keySet().iterator();
+        HashMap<String, String> sigfeatures = getcommunityFeature(community);
         while(sigAll.hasNext()){
             HashMap<String, Object> item =new HashMap<>();
             String s = sigAll.next();
             List<Integer> value = sigMetricsList.get(s);
-            String feature = getSigFeature(community, s);
+            String feature = sigfeatures.get(s);
             item.put("sig", s);
             item.put("value", value);
             item.put("feature", feature);
@@ -2987,37 +3016,6 @@ public class QueryDao {
 
     }
 
-    public String getSigFeature(String community, String sig) {
-        String yamlFile;
-        String sigFeature = "";
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                yamlFile = openEuler.getSigsFeature();
-                break;
-            case "opengauss":
-                yamlFile = openGauss.getSigsFeature();
-                break;
-            default:
-                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
-        }
-        if (yamlFile == null) {
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"yaml is null\"}";
-        }
-        YamlUtil yamlUtil = new YamlUtil();
-        SigYaml res = yamlUtil.readUrlYaml(yamlFile, SigYaml.class);
-        List<SigYamlInfo> features = res.getFeatures();
-        for (SigYamlInfo feature : features) {
-            String name = feature.getName();
-            List<String> sigs = feature.getSigs();
-            for (String item : sigs) {
-                if (item.toLowerCase().equals(sig.toLowerCase())) {
-                    sigFeature = name;
-                }
-            }
-        }
-        return sigFeature;
-    }
-
     public String queryCompanyUsers(String community, String company, String timeRange) {
         String queryjsons;
         String index;
@@ -3163,10 +3161,11 @@ public class QueryDao {
             JsonNode dataNode = objectMapper.readTree(responseBody);
             Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
             ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
+            HashMap<String, String> sigfeatures = getcommunityFeature(community);
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next().get("_source");
                 HashMap<String, Object> data = objectMapper.convertValue(bucket, HashMap.class);
-                String feature = getSigFeature(community, bucket.get("sig_names").asText());
+                String feature = sigfeatures.get(sig);               
                 data.put("feature", feature);
                 sigList.add(data);
             }
@@ -3205,16 +3204,19 @@ public class QueryDao {
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             builder.setUrl(this.url + index + "/_search");
             builder.setBody(queryStr);
+            System.out.println(queryStr);
 
             ListenableFuture<Response> f = client.executeRequest(builder.build());
             String responseBody = f.get().getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
+            System.out.println(dataNode);
             Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
             ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
+            HashMap<String, String> sigfeatures = getcommunityFeature(community);
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next().get("_source");
                 HashMap<String, Object> data = objectMapper.convertValue(bucket, HashMap.class);
-                String feature = getSigFeature(community, bucket.get("sig_names").asText());
+                String feature = sigfeatures.get(bucket.get("sig_names").asText());
                 data.put("feature", feature);
                 data.remove("value");
                 sigList.add(data);
