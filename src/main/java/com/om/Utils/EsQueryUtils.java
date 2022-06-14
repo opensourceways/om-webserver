@@ -39,7 +39,7 @@ public class EsQueryUtils {
             SearchResponse response = client.search(request, RequestOptions.DEFAULT);
             totalCount = response.getHits().getTotalHits().value;
             String scrollId = response.getScrollId();
-            System.out.println(scrollId);
+            // System.out.println(scrollId);
 
             for (SearchHit hit : response.getHits().getHits()) {
                 Map<String, Object> sourceAsMap = hit.getSourceAsMap();
@@ -49,7 +49,7 @@ public class EsQueryUtils {
                 SearchScrollRequest scrollRequest = new SearchScrollRequest(scrollId);
                 scrollRequest.scroll(TimeValue.timeValueMinutes(1));
                 SearchResponse scroll = client.scroll(scrollRequest, RequestOptions.DEFAULT);
-                System.out.println(scroll.getScrollId());
+                // System.out.println(scroll.getScrollId());
                 SearchHit[] hits = scroll.getHits().getHits();
                 if (hits == null || hits.length < 10) {
                     break;
@@ -63,7 +63,7 @@ public class EsQueryUtils {
             ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
             clearScrollRequest.addScrollId(scrollId);
             ClearScrollResponse clearScrollResponse = client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
-            System.out.println("clear scrollId success: " + clearScrollResponse.isSucceeded());
+            // System.out.println("clear scrollId success: " + clearScrollResponse.isSucceeded());
         } catch (Exception ex) {
             System.out.println(ex.getMessage());
             return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
@@ -90,7 +90,7 @@ public class EsQueryUtils {
             SearchResponse response = restHighLevelClient.search(request, RequestOptions.DEFAULT);
             totalCount = response.getHits().getTotalHits().value;
             scrollId = response.getScrollId();
-            System.out.println(scrollId);
+            // System.out.println(scrollId);
 
             for (SearchHit hit : response.getHits().getHits()) {
                 Map<String, Object> sourceAsMap = hit.getSourceAsMap();
@@ -120,7 +120,7 @@ public class EsQueryUtils {
             try {
                 ClearScrollResponse clearScrollResponse = restHighLevelClient.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
                 if (clearScrollResponse != null) {
-                    System.out.println("clear scrollId success: " + clearScrollResponse.isSucceeded());
+                    // System.out.println("clear scrollId success: " + clearScrollResponse.isSucceeded());
                 } else {
                     System.out.println("failed to clear scrollId.");
                 }
