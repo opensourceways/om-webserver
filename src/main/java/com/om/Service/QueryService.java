@@ -844,12 +844,15 @@ public class QueryService {
         System.out.println(key);
         String result = null;   
         result = (String) redisDao.get(key);
+        System.out.println(result);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
                 SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'00:00:01XXX");
                 String nowStr = simpleDateFormat.format(now);
+                System.out.print("start to get..querySigScoreAll");
                 result = queryDao.querySigScoreAll(community, nowStr);
+                System.out.print(result);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -857,6 +860,8 @@ public class QueryService {
             if (set) {
                 System.out.println("update " + key + " success!");
             }
+        } else {
+            System.out.print("result in redis is not null");
         }
         return result;
     }
