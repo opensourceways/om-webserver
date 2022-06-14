@@ -3181,13 +3181,12 @@ public class QueryDao {
         }
     }
 
-    public String querySigScoreAll(String community, String nowStr) {
+    public String querySigScoreAll(String community) {
         String queryjson;
         String index;
         switch (community.toLowerCase()) {
             case "openeuler":
                 queryjson = openEuler.getall_sig_score_queryStr();
-
                 index = openEuler.getsig_score_index();
                 break;
             case "opengauss":
@@ -3199,7 +3198,10 @@ public class QueryDao {
         }
 
         try {
-            String queryStr = String.format(queryjson, nowStr);
+            Calendar c = Calendar.getInstance();
+            c.setTime(new Date());
+            c.add(Calendar.DATE, -1);
+            String queryStr = String.format(queryjson, c.getTimeInMillis());
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             builder.setUrl(this.url + index + "/_search");
@@ -3209,7 +3211,6 @@ public class QueryDao {
             ListenableFuture<Response> f = client.executeRequest(builder.build());
             String responseBody = f.get().getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
-            System.out.println(dataNode);
             Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
             ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
             HashMap<String, String> sigfeatures = getcommunityFeature(community);
