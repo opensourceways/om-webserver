@@ -850,9 +850,9 @@ public class QueryService {
             try {
                 SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'00:00:01XXX");
                 String nowStr = simpleDateFormat.format(now);
-                System.out.print("start to get..querySigScoreAll");
+                System.out.println("start to get..querySigScoreAll");
                 result = queryDao.querySigScoreAll(community, nowStr);
-                System.out.print(result);
+                System.out.println(result);
             } catch (Exception e) {
                 e.printStackTrace();
             }
