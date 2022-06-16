@@ -216,11 +216,7 @@ public class propertiesObj {
         bean.setBuildCheckMistakeIndex(openconf.getProperty("buildCheck_mistake_index"));
         bean.setSigRepoQueryStr(openconf.getProperty("sig_repo_queryStr"));
         bean.setSigNameQueryStr(openconf.getProperty("sig_name_queryStr"));
-        bean.setSigGiteeQueryStr(openconf.getProperty("sig_gitee_queryStr"));
-        bean.setSigMaintainersQueryStr(openconf.getProperty("sig_maintainers_queryStr"));
-        bean.setSigMeetingsQueryStr(openconf.getProperty("sig_meetings_queryStr"));
         bean.setMeetingsIndex(openconf.getProperty("meetings_index"));
-        bean.setSigContributeQueryStr(openconf.getProperty("sig_contribute_queryStr"));
         bean.setCompanyUserQueryStr(openconf.getProperty("company_user_queryStr"));
         bean.setCompanySigsQueryStr(openconf.getProperty("company_sigs_queryStr"));
         bean.setCompanyContributeQueryStr(openconf.getProperty("company_contribute_queryStr"));

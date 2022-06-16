@@ -64,11 +64,7 @@ public class openComObject {
     protected String buildCheckMistakeIndex;
     protected String sig_name_queryStr;
     protected String sig_repo_queryStr;
-    protected String sig_gitee_queryStr;
-    protected String sig_maintainers_queryStr;
-    protected String sig_meetings_queryStr;
     protected String meetings_index;
-    protected String sig_contribute_queryStr;
     protected String company_user_queryStr;
     protected String company_sigs_queryStr;
     protected String company_contribute_queryStr;
@@ -248,44 +244,12 @@ public class openComObject {
         this.sig_repo_queryStr = sig_repo_queryStr;
     }
 
-    public String getSigGiteeQueryStr() {
-        return sig_gitee_queryStr;
-    }
-
-    public void setSigGiteeQueryStr(String sig_user_queryStr) {
-        this.sig_gitee_queryStr = sig_user_queryStr;
-    }
-
-    public String getSigMaintainersQueryStr() {
-        return sig_maintainers_queryStr;
-    }
-
-    public void setSigMaintainersQueryStr(String sig_maintainers_queryStr) {
-        this.sig_maintainers_queryStr = sig_maintainers_queryStr;
-    }
-
     public String getMeetingsIndex() {
         return meetings_index;
     }
 
     public void setMeetingsIndex(String meetings_index) {
         this.meetings_index = meetings_index;
-    }
-
-    public String getSigMeetingsQueryStr() {
-        return sig_meetings_queryStr;
-    }
-
-    public void setSigMeetingsQueryStr(String sig_meetings_queryStr) {
-        this.sig_meetings_queryStr = sig_meetings_queryStr;
-    }
-
-    public String getSigContributeQueryStr() {
-        return sig_contribute_queryStr;
-    }
-
-    public void setSigContributeQueryStr(String sig_contribute_queryStr) {
-        this.sig_contribute_queryStr = sig_contribute_queryStr;
     }
 
     public String getBuildCheckResultIndex() {
@@ -790,18 +754,6 @@ public class openComObject {
         String queryJson;
         queryJson = getSigRepoQueryStr();
         queryStr = String.format(queryJson, sig);
-        return queryStr;
-    }
-
-    public String[] getAggSigGiteeQueryStr(String queryJson, String timeRange, String sig) {
-        String[] queryJsons = queryJson.split(";");
-        String[] queryStr = new String[queryJsons.length];
-        long currentTimeMillis = System.currentTimeMillis();
-        long lastTimeMillis = getPastTime(timeRange);
-
-        for (int i = 0; i < queryJsons.length; i++) {
-            queryStr[i] = String.format(queryJsons[i], lastTimeMillis, currentTimeMillis, sig);
-        }
         return queryStr;
     }
 
