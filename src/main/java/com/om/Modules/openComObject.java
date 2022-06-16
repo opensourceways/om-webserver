@@ -64,11 +64,7 @@ public class openComObject {
     protected String buildCheckMistakeIndex;
     protected String sig_name_queryStr;
     protected String sig_repo_queryStr;
-    // protected String sig_gitee_queryStr;
-    // protected String sig_maintainers_queryStr;
-    // protected String sig_meetings_queryStr;
     protected String meetings_index;
-    // protected String sig_contribute_queryStr;
     protected String company_user_queryStr;
     protected String company_sigs_queryStr;
     protected String company_contribute_queryStr;
