@@ -83,6 +83,7 @@ public class openComObject {
     protected String Tracker_index;
     protected String AllCompanySigsQueryStr;
     protected String all_sig_score_queryStr;
+    protected String sig_info_queryStr;
 
     public String getall_sig_score_queryStr() {
         return all_sig_score_queryStr;
@@ -234,6 +235,14 @@ public class openComObject {
 
     public void setSigNameQueryStr(String sig_name_queryStr) {
         this.sig_name_queryStr = sig_name_queryStr;
+    }
+
+    public String getSigInfoQueryStr() {
+        return sig_info_queryStr;
+    }
+
+    public void setSigInfoQueryStr(String sig_info_queryStr) {
+        this.sig_info_queryStr = sig_info_queryStr;
     }
 
     public String getSigRepoQueryStr() {
