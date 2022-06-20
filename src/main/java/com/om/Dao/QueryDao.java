@@ -2609,7 +2609,7 @@ public class QueryDao {
                 break;
             case "opengauss":
                 index = openGauss.getSigs_index();
-                queryJson = openEuler.getSigOwnerType();
+                queryJson = openGauss.getSigOwnerType();
                 break;
             default:
                 System.out.println("{\"code\":400,\"data\":{\"" + sig + "\":\"query error\"},\"msg\":\"query error\"}");

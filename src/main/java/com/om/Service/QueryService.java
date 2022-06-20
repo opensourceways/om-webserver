@@ -701,7 +701,7 @@ public class QueryService {
 
     public String queryCompanyUsercontribute(String community, String company, String contributeType,
             String timeRange) {
-        String key = community.toLowerCase() + company + "usertypecontribute" + timeRange.toLowerCase();
+        String key = community.toLowerCase() + company + "usertypecontribute_" + contributeType + timeRange.toLowerCase();
         String result = "";
         result = (String) redisDao.get(key);
         if (result == null) {
@@ -741,7 +741,7 @@ public class QueryService {
 
     public String querySigUserTypeCount(String community, String sig, String contributeType, String timeRange) {
         String key = community.toLowerCase() + sig + "usertypecontribute" + timeRange.toLowerCase();
-        String result;      
+        String result = null;      
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
