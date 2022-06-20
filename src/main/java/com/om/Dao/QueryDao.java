@@ -2106,7 +2106,7 @@ public class QueryDao {
         return res;
     }
 
-    public String querySigName(String community, String sig) {
+    public String querySigName(String community) {
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
@@ -2121,13 +2121,56 @@ public class QueryDao {
                     index = openGauss.getSigs_index();
                     queryjson = openGauss.getSigNameQueryStr();
                     break;
-                case "mindspore":
-                    index = mindSpore.getSigs_index();
-                    queryjson = mindSpore.getSigNameQueryStr();
-                case "openlookeng":
-                    return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
                 default:
-                    return "";
+                    return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
+            }
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryjson);
+            // 获取执行结果
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+
+            Response response = f.get();
+            String responseBody = response.getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("sig_names").get("buckets").elements();
+            HashMap<String, Object> dataMap = new HashMap<>();
+            ArrayList<String> sigList = new ArrayList<>();
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                String sig = bucket.get("key").asText();
+                sigList.add(sig);
+            }
+            dataMap.put(community, sigList);
+
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", dataMap);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
+    
+    public String querySigInfo(String community, String sig) {
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            String index = "";
+            String queryjson = "";
+            switch (community.toLowerCase()) {
+                case "openeuler":
+                    index = openEuler.getSigs_index();
+                    queryjson = openEuler.getSigInfoQueryStr();
+                    break;
+                case "opengauss":
+                    index = openGauss.getSigs_index();
+                    queryjson = openGauss.getSigInfoQueryStr();
+                    break;
+                default:
+                    return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
             }
             String querystr = String.format(queryjson, sig);
             builder.setUrl(this.url + index + "/_search");
