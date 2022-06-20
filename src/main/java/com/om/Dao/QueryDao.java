@@ -2106,7 +2106,7 @@ public class QueryDao {
         return res;
     }
 
-    public String querySigName(String community) {
+    public String querySigName(String community, String sig) {
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
@@ -2129,27 +2129,27 @@ public class QueryDao {
                 default:
                     return "";
             }
+            String querystr = String.format(queryjson, sig);
             builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryjson);
+            builder.setBody(querystr);
             // 获取执行结果
             ListenableFuture<Response> f = client.executeRequest(builder.build());
 
             Response response = f.get();
             String responseBody = response.getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("sig_names").get("buckets").elements();
-            HashMap<String, Object> dataMap = new HashMap<>();
-            ArrayList<String> sigList = new ArrayList<>();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String sig = bucket.get("key").asText();
-                sigList.add(sig);
-            }
-            dataMap.put(community, sigList);
 
+            Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
+            ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
+
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next().get("_source");
+                HashMap<String, Object> data = objectMapper.convertValue(bucket, HashMap.class);
+                sigList.add(data);
+            }
             HashMap<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
-            resMap.put("data", dataMap);
+            resMap.put("data", sigList);
             resMap.put("msg", "success");
             return objectMapper.valueToTree(resMap).toString();
 
