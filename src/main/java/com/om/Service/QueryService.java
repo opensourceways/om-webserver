@@ -626,13 +626,13 @@ public class QueryService {
         return result;
     }
 
-    public String querySigName(String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String key = community + "sigsname";
+    public String querySigName(String community, String sig) {
+        String key = community + sig + "siginfo";
         String result;        
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
-            result = queryDao.querySigName(community);           
+            result = queryDao.querySigName(community, sig);           
             boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
             if (set) {
                 System.out.println("update " + key + " success!");
