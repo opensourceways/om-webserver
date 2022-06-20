@@ -207,9 +207,9 @@ public class QueryController {
         return res;
     }
 
-    @RequestMapping("/sig/name")
-    public String querySigName(@RequestParam(value = "community") String community) throws JsonProcessingException, InterruptedException, ExecutionException {
-        String res = queryService.querySigName(community);
+    @RequestMapping("/sig/info")
+    public String querySigName(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig) {
+        String res = queryService.querySigName(community, sig);
         return res;
     }
 
