@@ -2722,11 +2722,11 @@ public class QueryDao {
                 if (robotUsers.contains(giteeId)) { // openeuler-basic
                     continue;
                 }
-                if (dataMap.containsKey(giteeId.toLowerCase())
-                        && dataMap.get(giteeId.toLowerCase()).equals("maintainers")) {
+                if (dataMap.containsKey(giteeId)
+                        && dataMap.get(giteeId).equals("maintainers")) {
                     continue;
                 }
-                dataMap.put(giteeId.toLowerCase(), ownerType);
+                dataMap.put(giteeId, ownerType);
 
             }
             JsonNode resNode = objectMapper.valueToTree(dataMap);
@@ -2814,6 +2814,7 @@ public class QueryDao {
             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
 
             ArrayList<JsonNode> dataList = new ArrayList<>();
+            ArrayList<String> userList = new ArrayList<>();
 
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
@@ -2823,14 +2824,32 @@ public class QueryDao {
                     continue;
                 }
                 String userType = "contributor";
-                if (ownerType.has(giteeId.toLowerCase())) {
-                    userType = ownerType.get(giteeId.toLowerCase()).asText();
+                if (ownerType.has(giteeId)) {
+                    userType = ownerType.get(giteeId).asText();
                 }
                 HashMap<String, Object> dataMap = new HashMap<>();
                 dataMap.put("gitee_id", giteeId);
                 dataMap.put("contribute", contribute);
                 dataMap.put("usertype", userType);
-                if (TC_owners.has(giteeId.toLowerCase())) {
+                if (TC_owners.has(giteeId)) {
+                    dataMap.put("is_TC_owner", 1);
+                }
+                JsonNode resNode = objectMapper.valueToTree(dataMap);
+                dataList.add(resNode);
+                userList.add(giteeId);
+            }
+
+            Iterator<String> owners = ownerType.fieldNames();
+            while (owners.hasNext()){
+                String owner = owners.next();
+                if(userList.contains(owner)){
+                    continue;
+                }
+                HashMap<String, Object> dataMap = new HashMap<>();
+                dataMap.put("gitee_id", owner);
+                dataMap.put("contribute", 0);
+                dataMap.put("usertype", ownerType.get(owner));
+                if (TC_owners.has(owner)) {
                     dataMap.put("is_TC_owner", 1);
                 }
                 JsonNode resNode = objectMapper.valueToTree(dataMap);
@@ -3035,15 +3054,16 @@ public class QueryDao {
             c.setTime(new Date());
             c.add(Calendar.DATE, -1);
             String queryStr = String.format(queryjson, c.getTimeInMillis());
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
+            String responseBody = query(index, queryStr);
             JsonNode dataNode = objectMapper.readTree(responseBody);
             Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
+            if (!buckets.hasNext()){
+                c.add(Calendar.DATE, -1);
+                queryStr = String.format(queryjson, c.getTimeInMillis());
+                responseBody = query(index, queryStr);
+                dataNode = objectMapper.readTree(responseBody);
+                buckets = dataNode.get("hits").get("hits").elements();
+            }         
             ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
             HashMap<String, String> sigfeatures = getcommunityFeature(community);
             while (buckets.hasNext()) {
