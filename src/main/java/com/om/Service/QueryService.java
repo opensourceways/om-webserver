@@ -755,7 +755,7 @@ public class QueryService {
     }
 
     public String querySigUserTypeCount(String community, String sig, String contributeType, String timeRange) {
-        String key = community.toLowerCase() + sig + "usertypecontribute" + timeRange.toLowerCase();
+        String key = community.toLowerCase() + sig + "usertypecontribute_" + contributeType + timeRange.toLowerCase();
         String result = null;      
         result = (String) redisDao.get(key);
         if (result == null) {
