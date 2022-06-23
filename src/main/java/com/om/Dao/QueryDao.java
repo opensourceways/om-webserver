@@ -13,6 +13,7 @@ import com.om.Modules.yaml.CompanyYaml;
 import com.om.Modules.yaml.CompanyYamlInfo;
 import com.om.Modules.yaml.SigYaml;
 import com.om.Modules.yaml.SigYamlInfo;
+import com.om.Modules.yaml.GroupYamlInfo;
 import com.om.Utils.*;
 import com.om.Vo.*;
 import io.netty.util.internal.StringUtil;
@@ -95,7 +96,7 @@ public class QueryDao {
     @Value("${openeuler.contributors.default}")
     int globalContributors;
 
-    public HashMap<String, String> getcommunityFeature(String community) {
+    public HashMap<String, HashMap<String, String>> getcommunityFeature(String community) {
         String yamlFile;
         switch (community.toLowerCase()) {
             case "openeuler":
@@ -111,13 +112,20 @@ public class QueryDao {
         YamlUtil yamlUtil = new YamlUtil();
         SigYaml res = yamlUtil.readUrlYaml(yamlFile, SigYaml.class);
 
-        HashMap<String, String> resData = new HashMap<>();
-        List<SigYamlInfo> features = res.getFeatures();
-        for (SigYamlInfo feature : features) {
-            String name = feature.getName();
-            List<String> sigs = feature.getSigs();
-            for (String item : sigs) {
-                resData.put(item, name);
+        List<GroupYamlInfo> features = res.getFeatures();
+        HashMap<String, HashMap<String, String>> resData = new HashMap<>();
+        for (GroupYamlInfo feature : features) {
+            String group = feature.getgroup();
+            List<SigYamlInfo> groupInfo = feature.getgroup_list();
+            for (SigYamlInfo item : groupInfo) {
+                List<String> sigs = item.getSigs();
+                for (String sig : sigs) {
+                    HashMap<String, String> it = new HashMap<>();
+                    String name = item.getName();
+                    it.put("group", group);
+                    it.put("name", name);
+                    resData.put(sig, it);
+                }
             }
         }
         return resData;
@@ -2445,15 +2453,22 @@ public class QueryDao {
         
         ArrayList<HashMap<String, Object>> itemList = new ArrayList<>();
         sigAll = sigMetricsList.keySet().iterator();
-        HashMap<String, String> sigfeatures = getcommunityFeature(community);
+        HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
         while(sigAll.hasNext()){
             HashMap<String, Object> item =new HashMap<>();
             String s = sigAll.next();
             List<Integer> value = sigMetricsList.get(s);
-            String feature = sigfeatures.get(s);
+            HashMap<String, String> sigInfo = sigfeatures.get(s);
+            String feature = "";
+            String group = "";
+            if (sigInfo != null) {
+                feature = sigInfo.get("name");
+                group = sigInfo.get("group");
+            }           
             item.put("sig", s);
             item.put("value", value);
             item.put("feature", feature);
+            item.put("group", group);
             itemList.add(item);
         }
         List<String> metrics=Arrays.asList(new String[]{"D0","D1","D2","Company","PR_Merged","PR_Review","Issue_update","Issue_Closed","Issue_Comment","Contribute","Meeting","Attebdee","Maintainer"});
@@ -2669,7 +2684,7 @@ public class QueryDao {
     }
 
     // 获取所有sig的maintainers、committers
-    public JsonNode queryOwnerTypeCount(String community) {
+    public JsonNode queryOwnerTypeCount(String community, String company) {
         String index;
         String queryJson;
         switch (community.toLowerCase()) {
@@ -2688,7 +2703,8 @@ public class QueryDao {
         if (queryJson == null) {
             return null;
         }
-        JsonNode resNode = commonOwnerType(index, queryJson);
+        String queryStr = String.format(queryJson, company);
+        JsonNode resNode = commonOwnerType(index, queryStr);
         return resNode;
     }
 
@@ -2775,8 +2791,8 @@ public class QueryDao {
                 ownerType = querySigOwnerTypeCount(community, group);
                 break;
             case "company":
-                ownerType = queryOwnerTypeCount(community);
                 group = CompanyCN2Cla(community, group);
+                ownerType = queryOwnerTypeCount(community, group);
                 break;
             default:
                 return "";
@@ -3013,12 +3029,19 @@ public class QueryDao {
             JsonNode dataNode = objectMapper.readTree(responseBody);
             Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
             ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
-            HashMap<String, String> sigfeatures = getcommunityFeature(community);
+            HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next().get("_source");
                 HashMap<String, Object> data = objectMapper.convertValue(bucket, HashMap.class);
-                String feature = sigfeatures.get(sig);               
+                HashMap<String, String> sigInfo = sigfeatures.get(sig);
+                String feature = "";
+                String group = "";
+                if (sigInfo != null){
+                    feature = sigInfo.get("name");
+                    group = sigInfo.get("group");
+                }
                 data.put("feature", feature);
+                data.put("group", group);
                 sigList.add(data);
             }
 
@@ -3065,12 +3088,20 @@ public class QueryDao {
                 buckets = dataNode.get("hits").get("hits").elements();
             }         
             ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
-            HashMap<String, String> sigfeatures = getcommunityFeature(community);
+            HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next().get("_source");
                 HashMap<String, Object> data = objectMapper.convertValue(bucket, HashMap.class);
-                String feature = sigfeatures.get(bucket.get("sig_names").asText());
+                String sig = bucket.get("sig_names").asText();
+                HashMap<String, String> sigInfo = sigfeatures.get(sig);
+                String feature = "";
+                String group = "";
+                if (sigInfo != null){
+                    feature = sigInfo.get("name");
+                    group = sigInfo.get("group");
+                }
                 data.put("feature", feature);
+                data.put("group", group);
                 data.remove("value");
                 sigList.add(data);
             }
