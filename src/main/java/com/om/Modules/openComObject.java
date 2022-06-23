@@ -84,6 +84,16 @@ public class openComObject {
     protected String AllCompanySigsQueryStr;
     protected String all_sig_score_queryStr;
     protected String sig_info_queryStr;
+    protected String user_owns_sigs_Str;
+
+    public String getuser_owns_sigs_Str() {
+        return user_owns_sigs_Str;
+    }
+
+    public void setuser_owns_sigs_Str(String user_owns_sigs_Str) {
+        this.user_owns_sigs_Str = user_owns_sigs_Str;
+    }
+    
 
     public String getall_sig_score_queryStr() {
         return all_sig_score_queryStr;
