@@ -242,6 +242,7 @@ public class QueryController {
         return res;
     }
 
+    @AuthingToken
     @RequestMapping("/company/usercontribute")
     public String queryCompanyUsercontribute(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
                                         @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
@@ -249,6 +250,7 @@ public class QueryController {
         return res;
     }
 
+    @AuthingToken
     @RequestMapping("/company/sigdetails")
     public String queryCompanySigDetails(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
                                @RequestParam(value = "timeRange") String timeRange) {
@@ -264,6 +266,7 @@ public class QueryController {
         return res;
     }
 
+    @AuthingToken
     @RequestMapping("/company/users")
     public String queryCompanyUsers(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
                                @RequestParam(value = "timeRange") String timeRange) {
@@ -300,9 +303,16 @@ public class QueryController {
         return res;
     }
 
+    @AuthingToken
     @RequestMapping("/company/sigs")
     public String queryCompanySigs(@RequestParam(value = "community") String community, @RequestParam(value = "timeRange") String timeRange) {
         String res = queryService.queryCompanySigs(community, timeRange);
+        return res;
+    }
+
+    @RequestMapping("/TC/sigs")
+    public String querySigsOfTCOwners(@RequestParam(value = "community") String community) {
+        String res = queryService.querySigsOfTCOwners(community);
         return res;
     }
 }

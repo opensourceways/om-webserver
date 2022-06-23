@@ -716,7 +716,7 @@ public class QueryService {
 
     public String queryCompanyUsercontribute(String community, String company, String contributeType,
             String timeRange) {
-        String key = community.toLowerCase() + company + "usertypecontribute_" + contributeType + timeRange.toLowerCase();
+        String key = community.toLowerCase() + company + "usertypecontribute_" + contributeType.toLowerCase() + timeRange.toLowerCase();
         String result = null;
         result = (String) redisDao.get(key);
         if (result == null) {
@@ -755,7 +755,7 @@ public class QueryService {
     }
 
     public String querySigUserTypeCount(String community, String sig, String contributeType, String timeRange) {
-        String key = community.toLowerCase() + sig + "usertypecontribute_" + contributeType + timeRange.toLowerCase();
+        String key = community.toLowerCase() + sig + "usertypecontribute_" + contributeType.toLowerCase()  + timeRange.toLowerCase();
         String result = null;      
         result = (String) redisDao.get(key);
         if (result == null) {
@@ -888,6 +888,26 @@ public class QueryService {
             if (set) {
                 System.out.println("update " + key + " success!");
             }
+        }
+        return result;
+    }
+
+    public String querySigsOfTCOwners(String community) {
+        String key = community.toLowerCase() + "sigs_of_tc_owners";
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.querySigsOfTCOwners(community);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+            System.out.println("update " + key + " success!");
+            }
+            
         }
         return result;
     }
