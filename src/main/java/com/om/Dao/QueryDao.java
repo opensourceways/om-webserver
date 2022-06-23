@@ -2798,6 +2798,15 @@ public class QueryDao {
                 return "";
         }
         System.out.println(ownerType);
+        
+        Iterator<String> users = ownerType.fieldNames();
+        HashMap<String, String> data = new HashMap<>();
+        while (users.hasNext()) {
+            String user = users.next();
+            data.put(user.toLowerCase(), ownerType.get(user).asText());
+        }
+        JsonNode ownerTypeLower = objectMapper.valueToTree(data);
+
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getGiteeAllIndex();
@@ -2840,8 +2849,8 @@ public class QueryDao {
                     continue;
                 }
                 String userType = "contributor";
-                if (ownerType.has(giteeId)) {
-                    userType = ownerType.get(giteeId).asText();
+                if (ownerTypeLower.has(giteeId.toLowerCase())) {
+                    userType = ownerTypeLower.get(giteeId.toLowerCase()).asText();
                 }
                 HashMap<String, Object> dataMap = new HashMap<>();
                 dataMap.put("gitee_id", giteeId);
@@ -2852,13 +2861,13 @@ public class QueryDao {
                 }
                 JsonNode resNode = objectMapper.valueToTree(dataMap);
                 dataList.add(resNode);
-                userList.add(giteeId);
+                userList.add(giteeId.toLowerCase());
             }
 
             Iterator<String> owners = ownerType.fieldNames();
             while (owners.hasNext()){
                 String owner = owners.next();
-                if(userList.contains(owner)){
+                if(userList.contains(owner.toLowerCase())){
                     continue;
                 }
                 HashMap<String, Object> dataMap = new HashMap<>();
