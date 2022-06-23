@@ -3,8 +3,8 @@ package com.om.Modules.yaml;
 import java.util.List;
 
 public class SigYamlInfo {
-    private String name;
-    private List<String> sigs;
+    public String name;
+    public List<String> sigs;
 
     public String getName() {
         return name;
@@ -22,3 +22,4 @@ public class SigYamlInfo {
         this.sigs = sigs;
     }
 }
+

@@ -3,12 +3,12 @@ package com.om.Modules.yaml;
 import java.util.List;
 
 public class SigYaml {
-    public List<SigYamlInfo> feature;
+    public List<GroupYamlInfo> feature;
 
-    public List<SigYamlInfo> getFeatures() {
+    public List<GroupYamlInfo> getFeatures() {
         return feature;
     }
-    public void setFeatures(List<SigYamlInfo> features) {
+    public void setFeatures(List<GroupYamlInfo> features) {
         this.feature = features;
     }
 }
