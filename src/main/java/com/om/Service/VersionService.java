@@ -83,19 +83,19 @@ public class VersionService {
             switch (community) {
                 case "openeuler":
                     url = this.url + openeuler.getGiteeAllIndex() + "/_search";
-                    expire = Long.valueOf(env.getProperty("spring.redis.keyexpire"));
+                    expire = Long.valueOf(env.getProperty("spring.redis.key.expire"));
                     break;
                 case "openlookeng":
                     url = this.url + openlookeng.getGiteeAllIndex() + "/_search";
-                    expire = Long.valueOf(env.getProperty("spring.redis.keyexpire"));
+                    expire = Long.valueOf(env.getProperty("spring.redis.key.expire"));
                     break;
                 case "opengauss":
                     url = this.url + opengauss.getGiteeAllIndex() + "/_search";
-                    expire = Long.valueOf(env.getProperty("spring.redis.keyexpire"));
+                    expire = Long.valueOf(env.getProperty("spring.redis.key.expire"));
                     break;
                 case "mindspore":
                     url = this.url + mindspore.getGiteeAllIndex() + "/_search";
-                    expire = Long.valueOf(env.getProperty("spring.redis.keyexpire"));
+                    expire = Long.valueOf(env.getProperty("spring.redis.key.expire"));
                     break;
             }
             RequestBuilder builder = asyncHttpUtil.getBuilder();
