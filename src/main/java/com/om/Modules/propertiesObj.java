@@ -237,6 +237,7 @@ public class propertiesObj {
         bean.setall_sig_score_queryStr(openconf.getProperty("all_sig_score_queryStr"));
         bean.setSigInfoQueryStr(openconf.getProperty("sig_info_queryStr"));
         bean.setuser_owns_sigs_Str(openconf.getProperty("user_owns_sigs_Str"));
+        bean.settc_owner_url(openconf.getProperty("tc_owner_url"));
     }
 
     private static Properties readProperties(String path) throws IOException {
