@@ -3166,7 +3166,7 @@ public class QueryDao {
                 JsonNode bucket = buckets.next();
                 String company = bucket.get("key").asText();
                 if (company.contains("软通动力") || company.contains("中软国际") ||
-                        company.contains("易宝软件") || company.contains("华为合作方")) {
+                        company.contains("易宝软件") || company.contains("华为合作方") || company.contains("学生")) {
                     continue;
                 }
                 Iterator<JsonNode> its = bucket.get("sigs").get("buckets").elements();
