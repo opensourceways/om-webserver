@@ -315,12 +315,12 @@ public class GiteeIssueService {
             String resCveStr = (String) redisDao.get(Constant.allIssueCveStr + vo.getCommunity());
             if (resCveStr == null || resCveStr.equals("")) {
                 resCveStr = getAllCveStr();
-                redisDao.set(Constant.allIssueCveStr + vo.getCommunity(), resCveStr, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+                redisDao.set(Constant.allIssueCveStr + vo.getCommunity(), resCveStr, Long.valueOf(env.getProperty("spring.redis.key.expire")));
             }
             Map cvemap = objectMapper.readValue(resCveStr, Map.class);
             List resultList = assIssCve(getIndexByCommunity(vo.getCommunity()), cvemap);
             result = objectMapper.writeValueAsString(resultList);
-            redisDao.set(Constant.allIssueResult + vo.getCommunity(), result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            redisDao.set(Constant.allIssueResult + vo.getCommunity(), result, Long.valueOf(env.getProperty("spring.redis.key.expire")));
         }
         List<Map> resultList = objectMapper.readValue(result, List.class);
         Stream<Map> resutstream = resultList.stream().filter(o -> {
