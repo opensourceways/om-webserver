@@ -3132,15 +3132,18 @@ public class QueryDao {
         String queryjson;
         String index;
         String queryStr;
+        String claIndex;
         switch (community.toLowerCase()) {
             case "openeuler":
                 queryjson = openEuler.getAllCompanySigsQueryStr();
                 queryStr = openEuler.getcommonQuery(queryjson, timeRange);
+                claIndex = openEuler.getClaCorporationIndex();
                 index = openEuler.getGiteeAllIndex();
                 break;
             case "opengauss":
                 queryjson = openGauss.getAllCompanySigsQueryStr();
                 queryStr = openGauss.getcommonQuery(queryjson, timeRange);
+                claIndex = openGauss.getClaCorporationIndex();
                 index = openGauss.getGiteeAllIndex();
                 break;
             default:
@@ -3148,6 +3151,7 @@ public class QueryDao {
         }
 
         try {
+            List<String> claCompanys = queryClaCompany(claIndex);
             List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml);
             Map<String, String> companyNameCnEn = companys.get(0);
             Map<String, String> companyNameAlCn = companys.get(1);
@@ -3165,8 +3169,8 @@ public class QueryDao {
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 String company = bucket.get("key").asText();
-                if (company.contains("软通动力") || company.contains("中软国际") ||
-                        company.contains("易宝软件") || company.contains("华为合作方") || company.contains("学生")) {
+                if (!claCompanys.contains(company) || company.contains("软通动力") || company.contains("中软国际") ||
+                        company.contains("易宝软件") || company.contains("华为合作方")) {
                     continue;
                 }
                 Iterator<JsonNode> its = bucket.get("sigs").get("buckets").elements();
