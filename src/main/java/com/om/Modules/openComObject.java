@@ -85,6 +85,7 @@ public class openComObject {
     protected String all_sig_score_queryStr;
     protected String sig_info_queryStr;
     protected String user_owns_sigs_Str;
+    protected String tc_owner_url;
 
     public String getuser_owns_sigs_Str() {
         return user_owns_sigs_Str;
@@ -93,7 +94,14 @@ public class openComObject {
     public void setuser_owns_sigs_Str(String user_owns_sigs_Str) {
         this.user_owns_sigs_Str = user_owns_sigs_Str;
     }
-    
+ 
+    public String gettc_owner_url() {
+        return tc_owner_url;
+    }
+
+    public void settc_owner_url(String tc_owner_url) {
+        this.tc_owner_url = tc_owner_url;
+    }
 
     public String getall_sig_score_queryStr() {
         return all_sig_score_queryStr;

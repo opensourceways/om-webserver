@@ -13,6 +13,8 @@ import com.om.Modules.yaml.CompanyYaml;
 import com.om.Modules.yaml.CompanyYamlInfo;
 import com.om.Modules.yaml.SigYaml;
 import com.om.Modules.yaml.SigYamlInfo;
+import com.om.Modules.yaml.UserInfoYaml;
+import com.om.Modules.yaml.UserNameYaml;
 import com.om.Modules.yaml.GroupYamlInfo;
 import com.om.Utils.*;
 import com.om.Vo.*;
@@ -3130,15 +3132,18 @@ public class QueryDao {
         String queryjson;
         String index;
         String queryStr;
+        String claIndex;
         switch (community.toLowerCase()) {
             case "openeuler":
                 queryjson = openEuler.getAllCompanySigsQueryStr();
                 queryStr = openEuler.getcommonQuery(queryjson, timeRange);
+                claIndex = openEuler.getClaCorporationIndex();
                 index = openEuler.getGiteeAllIndex();
                 break;
             case "opengauss":
                 queryjson = openGauss.getAllCompanySigsQueryStr();
                 queryStr = openGauss.getcommonQuery(queryjson, timeRange);
+                claIndex = openGauss.getClaCorporationIndex();
                 index = openGauss.getGiteeAllIndex();
                 break;
             default:
@@ -3146,6 +3151,7 @@ public class QueryDao {
         }
 
         try {
+            List<String> claCompanys = queryClaCompany(claIndex);
             List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml);
             Map<String, String> companyNameCnEn = companys.get(0);
             Map<String, String> companyNameAlCn = companys.get(1);
@@ -3163,7 +3169,7 @@ public class QueryDao {
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 String company = bucket.get("key").asText();
-                if (company.contains("软通动力") || company.contains("中软国际") ||
+                if (!claCompanys.contains(company) || company.contains("软通动力") || company.contains("中软国际") ||
                         company.contains("易宝软件") || company.contains("华为合作方")) {
                     continue;
                 }
@@ -3197,19 +3203,24 @@ public class QueryDao {
     public String querySigsOfTCOwners(String community) {
         String index;
         String queryJson;
+        String yamlFile;
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getSigs_index();
                 queryJson = openEuler.getuser_owns_sigs_Str();
+                yamlFile = openEuler.gettc_owner_url();
                 break;
             case "opengauss":
                 index = openGauss.getSigs_index();
                 queryJson = openGauss.getuser_owns_sigs_Str();
+                yamlFile = openGauss.gettc_owner_url();
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
         JsonNode TC_owners = querySigOwnerTypeCount(community, "TC");
+        Map<String, String> userName = getUserNameCnEn(yamlFile);
+        System.out.println(userName);
         
         Iterator<String> users = TC_owners.fieldNames();
         ArrayList<HashMap<String, Object>> res = new ArrayList<>();
@@ -3232,7 +3243,9 @@ public class QueryDao {
                     sigList.add(bucket.get("key").asText());
                 }
                 HashMap<String, Object> resData = new HashMap<>();
+                String user_cn = userName.get(user);
                 resData.put("user", user);
+                resData.put("name", user_cn);
                 resData.put("sigs", sigList);
                 res.add(resData);
                 
@@ -3246,5 +3259,19 @@ public class QueryDao {
         resMap.put("data", res);
         resMap.put("msg", "success");
         return objectMapper.valueToTree(resMap).toString();
+    }
+
+    public Map<String, String> getUserNameCnEn(String yamlFile) {
+        YamlUtil yamlUtil = new YamlUtil();
+        UserNameYaml users = yamlUtil.readUrlYaml(yamlFile, UserNameYaml.class);
+        System.out.println(users);
+
+        HashMap<String, String> userMap = new HashMap<>();
+        for (UserInfoYaml user : users.getUsers()) {
+            String user_en = user.getEn().trim();
+            String user_cn = user.getCn().trim();
+            userMap.put(user_en, user_cn);
+        }
+        return userMap;
     }
 }
