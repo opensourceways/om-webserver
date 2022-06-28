@@ -907,7 +907,6 @@ public class QueryService {
             if (set) {
             System.out.println("update " + key + " success!");
             }
-            
         }
         return result;
     }
