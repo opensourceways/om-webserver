@@ -2086,6 +2086,9 @@ public class QueryDao {
             case "openlookeng":
                 index = openLookeng.getTracker_index();
                 break; 
+            case "test":
+                index = "test_tracker";
+                break; 
             default:
                 return "{\"code\":" + 404 + ",\"data\":{\"index: error!\"},\"msg\":\"not Found!\"}";
         }
@@ -2295,6 +2298,10 @@ public class QueryDao {
             Map<String, String> companyNameAlCn = companys.get(1);
             List<HashMap<String, Object>> companyNameList = new ArrayList<>();
             for (String company : companyList) {
+                // if (company.contains("软通动力") || company.contains("中软国际") ||
+                //         company.contains("易宝软件") || company.contains("华为合作方")) {
+                //     continue;
+                // }
                 HashMap<String, Object> nameMap = new HashMap<>();
                 String companyCn = companyNameAlCn.getOrDefault(company.trim(), company.trim());
                 String companyEn = companyNameCnEn.getOrDefault(company.trim(), companyCn);
