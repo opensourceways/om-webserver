@@ -1,5 +1,6 @@
 package com.om.Dao;
 
+import cn.authing.core.auth.AuthenticationClient;
 import cn.authing.core.mgmt.ManagementClient;
 import cn.authing.core.types.AuthorizedResource;
 import cn.authing.core.types.PaginatedAuthorizedResources;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 @Repository
 public class AuthingUserDao {
@@ -18,6 +20,33 @@ public class AuthingUserDao {
     @Value("${authing.secret}")
     String secret;
 
+    @Value("${authing.app.fuxi.id}")
+    String omAppId;
+
+    @Value("${authing.app.fuxi.host}")
+    String omAppHost;
+
+    @Value("${authing.app.fuxi.secret}")
+    String omAppSecret;
+
+    public Map getUserInfoByAccessToken(String code) {
+        try {
+            // 初始化
+            AuthenticationClient authentication = new AuthenticationClient(omAppId, omAppHost);
+            authentication.setSecret(omAppSecret);
+
+            // code换access_token
+            Map res = (Map) authentication.getAccessTokenByCode(code).execute();
+            String access_token = res.get("access_token").toString();
+
+            // access_token换user
+            Map user = (Map) authentication.getUserInfoByAccessToken(access_token).execute();
+            return user;
+        } catch (Exception ex) {
+            return null;
+        }
+
+    }
 
     public User getUser(String userId) {
         try {
