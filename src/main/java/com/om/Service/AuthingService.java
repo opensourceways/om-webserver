@@ -1,7 +1,6 @@
 package com.om.Service;
 
-import cn.authing.core.mgmt.ManagementClient;
-import cn.authing.core.types.*;
+import cn.authing.core.types.User;
 import com.om.Dao.AuthingUserDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -11,7 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.Map;
 
 @Service
 public class AuthingService {
@@ -24,11 +23,12 @@ public class AuthingService {
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
 
-    public ResponseEntity authingUserPermission(String community, String userId, String permission) {
+    public ResponseEntity authingUserPermission(String community, String code, String permission) {
         try {
-            // 用户是否存在
-            User user = authingUserDao.getUser(userId);
+            // 通过code获取access_token，再通过access_token获取用户
+            Map user = authingUserDao.getUserInfoByAccessToken(code);
             if (user == null) return result(HttpStatus.UNAUTHORIZED, "user not found", null);
+            String userId = user.get("sub").toString();
 
             // 资源权限验证
             String permissionInfo = env.getProperty(community + "." + permission);
@@ -44,7 +44,7 @@ public class AuthingService {
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("id", userId);
             userData.put("token", token);
-            userData.put("photo", user.getPhoto());
+            userData.put("photo", user.get("picture").toString());
             userData.put("permissions", permissions);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
