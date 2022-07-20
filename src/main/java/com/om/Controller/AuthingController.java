@@ -13,8 +13,8 @@ public class AuthingController {
 
     @RequestMapping(value = "/user/permission")
     public ResponseEntity getUser(@RequestParam(value = "community") String community,
-                                  @RequestParam(value = "userId") String userId,
+                                  @RequestParam(value = "code") String code,
                                   @RequestParam(value = "permission") String permission) {
-        return authingService.authingUserPermission(community, userId, permission);
+        return authingService.authingUserPermission(community, code, permission);
     }
 }
