@@ -42,8 +42,8 @@ public class AuthingService {
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
-            userData.put("id", userId);
             userData.put("token", token);
+            userData.put("id_token", user.get("id_token").toString());
             userData.put("photo", user.get("picture").toString());
             userData.put("permissions", permissions);
             return result(HttpStatus.OK, "success", userData);
