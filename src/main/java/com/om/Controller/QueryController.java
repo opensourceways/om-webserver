@@ -251,6 +251,14 @@ public class QueryController {
     }
 
     @AuthingToken
+    @RequestMapping("/company/sigcontribute")
+    public String queryCompanySigcontribute(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
+                                        @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.queryCompanySigcontribute(community, company, contributeType, timeRange);
+        return res;
+    }
+
+    @AuthingToken
     @RequestMapping("/company/sigdetails")
     public String queryCompanySigDetails(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
                                @RequestParam(value = "timeRange") String timeRange) {
