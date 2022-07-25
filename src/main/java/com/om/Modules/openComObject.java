@@ -87,14 +87,14 @@ public class openComObject {
     protected String user_owns_sigs_Str;
     protected String tc_owner_url;
     protected String UserCountDetailsQueryStr;
-    protected String company_agg_sig_queryStr;
+    protected String group_agg_sig_queryStr;
 
-    public String getcompany_agg_sig_queryStr() {
-        return company_agg_sig_queryStr;
+    public String getgroup_agg_sig_queryStr() {
+        return group_agg_sig_queryStr;
     }
 
-    public void setcompany_agg_sig_queryStr(String company_agg_sig_queryStr) {
-        this.company_agg_sig_queryStr = company_agg_sig_queryStr;
+    public void setgroup_agg_sig_queryStr(String group_agg_sig_queryStr) {
+        this.group_agg_sig_queryStr = group_agg_sig_queryStr;
     }
 
     public String getUserCountDetailsQueryStr() {
@@ -871,27 +871,26 @@ public class openComObject {
         return queryStr;
     }
 
-    public String getAggCompanySigCountQueryStr(String queryJson, String contributeType, String timeRange,
-            String company) {
+     public String getAggGroupSigCountQueryStr(String queryJson, String contributeType, String timeRange, String group, String field) {
         String queryStr;    
         long currentTimeMillis = System.currentTimeMillis();
         long lastTimeMillis = getPastTime(timeRange);
 
         switch (contributeType.toLowerCase()) {
             case "pr":
-                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, company, "is_pull_state_merged");
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, field, group, "is_pull_state_merged");
                 break;
             case "issue":
-                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, company, "is_gitee_issue");
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, field, group, "is_gitee_issue");
                 break;
             case "comment":
-                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, company, "is_gitee_comment");
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, field, group, "is_gitee_comment");
                 break;
             default:
                 return null;
         }
         return queryStr;
-    }
+    }   
 
     public String getSigScoreQuery(String queryJson, String timeRange, String sig) {
         if (queryJson == null) {
