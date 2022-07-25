@@ -323,4 +323,11 @@ public class QueryController {
         String res = queryService.querySigsOfTCOwners(community);
         return res;
     }
+
+    @RequestMapping("/user/sigcontribute")
+    public String queryUserSigcontribute(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user, 
+                                        @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.queryUserSigcontribute(community, user, contributeType, timeRange);
+        return res;
+    }
 }

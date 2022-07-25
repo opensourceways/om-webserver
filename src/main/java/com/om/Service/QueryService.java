@@ -743,7 +743,7 @@ public class QueryService {
         if (result == null) {
             // 查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryCompanySigcontribute(community, company, contributeType, timeRange);
+                result = queryDao.queryGroupSigcontribute(community, company, "company", contributeType, timeRange);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -927,6 +927,27 @@ public class QueryService {
             boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
             if (set) {
             System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryUserSigcontribute(String community, String user, String contributeType,
+            String timeRange) {
+        String key = community.toLowerCase() + user + "sigtypecontribute_" + contributeType.toLowerCase() + timeRange.toLowerCase();
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryGroupSigcontribute(community, user, "user", contributeType, timeRange);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result,
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
             }
         }
         return result;
