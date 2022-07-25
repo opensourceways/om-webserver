@@ -86,6 +86,24 @@ public class openComObject {
     protected String sig_info_queryStr;
     protected String user_owns_sigs_Str;
     protected String tc_owner_url;
+    protected String UserCountDetailsQueryStr;
+    protected String group_agg_sig_queryStr;
+
+    public String getgroup_agg_sig_queryStr() {
+        return group_agg_sig_queryStr;
+    }
+
+    public void setgroup_agg_sig_queryStr(String group_agg_sig_queryStr) {
+        this.group_agg_sig_queryStr = group_agg_sig_queryStr;
+    }
+
+    public String getUserCountDetailsQueryStr() {
+        return UserCountDetailsQueryStr;
+    }
+
+    public void setUserCountDetailsQueryStr(String UserCountDetailsQueryStr) {
+        this.UserCountDetailsQueryStr = UserCountDetailsQueryStr;
+    }
 
     public String getuser_owns_sigs_Str() {
         return user_owns_sigs_Str;
@@ -853,6 +871,27 @@ public class openComObject {
         return queryStr;
     }
 
+     public String getAggGroupSigCountQueryStr(String queryJson, String contributeType, String timeRange, String group, String field) {
+        String queryStr;    
+        long currentTimeMillis = System.currentTimeMillis();
+        long lastTimeMillis = getPastTime(timeRange);
+
+        switch (contributeType.toLowerCase()) {
+            case "pr":
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, field, group, "is_pull_state_merged");
+                break;
+            case "issue":
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, field, group, "is_gitee_issue");
+                break;
+            case "comment":
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, field, group, "is_gitee_comment");
+                break;
+            default:
+                return null;
+        }
+        return queryStr;
+    }   
+
     public String getSigScoreQuery(String queryJson, String timeRange, String sig) {
         if (queryJson == null) {
             System.out.println("QueryStr is null...");
@@ -872,6 +911,28 @@ public class openComObject {
         long currentTimeMillis = System.currentTimeMillis();
         long lastTimeMillis = getPastTime(timeRange);
         String queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis);
+        return queryStr;
+    }
+
+    public String getAggUserCountQueryStr(String user, String contributeType, String timeRange) {
+        long currentTimeMillis = System.currentTimeMillis();
+        long lastTimeMillis = getPastTime(timeRange);
+        String queryJson = getUserCountDetailsQueryStr();
+        String queryStr;
+
+        switch (contributeType.toLowerCase()) {
+            case "pr":
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, user, "is_pull_state_merged", "pull_url", "pull_title");
+                break;
+            case "issue":
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, user, "is_gitee_issue", "issue_url", "issue_title");
+                break;
+            case "comment":
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, user, "is_gitee_comment", "comment_url", "body");
+                break;
+            default:
+                return null;
+        }
         return queryStr;
     }
 }
