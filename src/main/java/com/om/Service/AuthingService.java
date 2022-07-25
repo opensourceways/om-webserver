@@ -1,6 +1,8 @@
 package com.om.Service;
 
 import cn.authing.core.types.User;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.Dao.AuthingUserDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -9,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,30 +26,68 @@ public class AuthingService {
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
 
-    public ResponseEntity authingUserPermission(String community, String code, String permission) {
+    public ResponseEntity authingUserPermission(String community, String token) {
+        try {
+            DecodedJWT decode = JWT.decode(token);
+            String userId = decode.getAudience().get(0);
+            String permissionTemp = decode.getClaim("permission").asString();
+            String inputPermission = decode.getClaim("inputPermission").asString();
+
+            // 资源权限验证
+            String permissionInfo = env.getProperty(community + "." + inputPermission);
+            String permissionToken = new String(Base64.getDecoder().decode(permissionTemp.getBytes()));
+            ArrayList<String> permissions = new ArrayList<>();
+            if (permissionInfo != null && permissionInfo.equalsIgnoreCase(permissionToken))
+                permissions.add(inputPermission);
+
+            // 获取用户
+            User user = authingUserDao.getUser(userId);
+
+            // 返回结果
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("photo", user.getPhoto());
+            userData.put("permissions", permissions);
+            return result(HttpStatus.OK, "success", userData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+    }
+
+    public ResponseEntity logout(String token) {
+        try {
+            DecodedJWT decode = JWT.decode(token);
+            String idToken = decode.getClaim("subject").asString();
+
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("id_token", idToken);
+            return result(HttpStatus.OK, "success", userData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+    }
+
+
+    public ResponseEntity tokenApply(String community, String code, String permission) {
         try {
             // 通过code获取access_token，再通过access_token获取用户
             Map user = authingUserDao.getUserInfoByAccessToken(code);
             if (user == null) return result(HttpStatus.UNAUTHORIZED, "user not found", null);
             String userId = user.get("sub").toString();
+            String idToken = user.get("id_token").toString();
 
-            // 资源权限验证
+            // 资源权限
             String permissionInfo = env.getProperty(community + "." + permission);
-            String[] split = permissionInfo.split("->"); // groupCode resourceCode resourceAction
-            boolean hasActionPer = authingUserDao.checkUserPermission(userId, split[0], split[1], split[2]);
-            ArrayList<String> permissions = new ArrayList<>();
-            if (hasActionPer) permissions.add(permission);
 
             // 生成token
-            String token = jwtTokenCreateService.authingUserToken(userId, permissionInfo);
+            String token = jwtTokenCreateService.authingUserToken(userId, permissionInfo, permission, idToken);
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("token", token);
-            userData.put("id_token", user.get("id_token").toString());
-            userData.put("photo", user.get("picture").toString());
-            userData.put("permissions", permissions);
             return result(HttpStatus.OK, "success", userData);
+
         } catch (Exception e) {
             e.printStackTrace();
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
