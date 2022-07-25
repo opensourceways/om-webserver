@@ -18,6 +18,7 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.lang.reflect.Method;
+import java.util.Base64;
 import java.util.Date;
 
 
@@ -60,7 +61,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
                     DecodedJWT decode = JWT.decode(token);
                     userId = decode.getAudience().get(0);
                     expiresAt = decode.getExpiresAt();
-                    permission = decode.getClaim("permission").asString();
+                    String permissionTemp = decode.getClaim("permission").asString();
+                    permission = new String(Base64.getDecoder().decode(permissionTemp.getBytes()));
                 } catch (JWTDecodeException j) {
                     httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "unauthorized");
                     return false;

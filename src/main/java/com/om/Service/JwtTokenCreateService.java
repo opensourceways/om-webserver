@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Base64;
 import java.util.Date;
 
 @Service
@@ -64,7 +65,7 @@ public class JwtTokenCreateService {
                 .sign(Algorithm.HMAC256(user.getPassword() + basePassword));
     }
 
-    public String authingUserToken(String userId, String permission) {
+    public String authingUserToken(String userId, String permission, String inputPermission, String idToken) {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -77,11 +78,15 @@ public class JwtTokenCreateService {
         LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
 
+        String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes());
+
         return JWT.create()
                 .withAudience(userId) //谁接受签名
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(expireAt) //过期时间
-                .withClaim("permission", permission)
+                .withClaim("permission", permissionStr)
+                .withClaim("subject", idToken)
+                .withClaim("inputPermission", inputPermission)
                 .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));
     }
 }
