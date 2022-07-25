@@ -2086,6 +2086,9 @@ public class QueryDao {
             case "openlookeng":
                 index = openLookeng.getTracker_index();
                 break; 
+            case "test":
+                index = "test_tracker";
+                break; 
             default:
                 return "{\"code\":" + 404 + ",\"data\":{\"index: error!\"},\"msg\":\"not Found!\"}";
         }
@@ -2295,6 +2298,10 @@ public class QueryDao {
             Map<String, String> companyNameAlCn = companys.get(1);
             List<HashMap<String, Object>> companyNameList = new ArrayList<>();
             for (String company : companyList) {
+                // if (company.contains("软通动力") || company.contains("中软国际") ||
+                //         company.contains("易宝软件") || company.contains("华为合作方")) {
+                //     continue;
+                // }
                 HashMap<String, Object> nameMap = new HashMap<>();
                 String companyCn = companyNameAlCn.getOrDefault(company.trim(), company.trim());
                 String companyEn = companyNameCnEn.getOrDefault(company.trim(), companyCn);
@@ -3273,5 +3280,91 @@ public class QueryDao {
             userMap.put(user_en, user_cn);
         }
         return userMap;
+    }
+
+    public String queryGroupSigcontribute(String community, String group, String group_field, String contributeType, String timeRange) {
+        String index;
+        String queryjson;
+        String queryStr;
+        String field;
+        switch (group_field) {
+            case "user":
+                field = "user_login.keyword";
+                break;
+            case "company":
+                group = CompanyCN2Cla(community, group);
+                field = "tag_user_company.keyword";
+                break;
+            default:
+                return "";
+        }
+
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getGiteeAllIndex();
+                queryjson = openEuler.getgroup_agg_sig_queryStr();
+                queryStr = openEuler.getAggGroupSigCountQueryStr(queryjson, contributeType, timeRange, group, field);
+                break;
+            case "opengauss":
+                index = openGauss.getGiteeAllIndex();
+                queryjson = openGauss.getgroup_agg_sig_queryStr();
+                queryStr = openGauss.getAggGroupSigCountQueryStr(queryjson, contributeType, timeRange, group, field);
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+        System.out.println(queryStr);
+        if (queryStr == null) {
+            return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+            // 获取执行结果
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();       
+            double count = 0d;
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                long contribute = bucket.get("sum_field").get("value").asLong();
+                count += contribute;
+            }
+            System.out.println(count);
+
+            ArrayList<JsonNode> dataList = new ArrayList<>();
+            buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+            long rank = 1;
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                String sig_name = bucket.get("key").asText();
+                long contribute = bucket.get("sum_field").get("value").asLong();
+                double percent = contribute/count;
+
+                HashMap<String, Object> dataMap = new HashMap<>();
+                dataMap.put("sig_name", sig_name);
+                dataMap.put("contribute", contribute);
+                dataMap.put("percent", percent);
+                dataMap.put("rank", rank);
+                JsonNode resNode = objectMapper.valueToTree(dataMap);
+                dataList.add(resNode);
+                rank += 1;
+            }
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", dataList);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+
     }
 }
