@@ -8,6 +8,7 @@ import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.Dao.AuthingUserDao;
+import com.om.Dao.RedisDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.method.HandlerMethod;
@@ -25,6 +26,9 @@ import java.util.Date;
 public class AuthingInterceptor implements HandlerInterceptor {
     @Autowired
     AuthingUserDao authingUserDao;
+
+    @Autowired
+    RedisDao redisDao;
 
     @Value("${authing.token.base.password}")
     private String authingTokenBasePassword;
@@ -55,15 +59,25 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
                 // 解析token
                 String userId;
+                Date issuedAt;
                 Date expiresAt;
                 String permission;
                 try {
                     DecodedJWT decode = JWT.decode(token);
                     userId = decode.getAudience().get(0);
+                    issuedAt = decode.getIssuedAt();
                     expiresAt = decode.getExpiresAt();
                     String permissionTemp = decode.getClaim("permission").asString();
                     permission = new String(Base64.getDecoder().decode(permissionTemp.getBytes()));
                 } catch (JWTDecodeException j) {
+                    httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "unauthorized");
+                    return false;
+                }
+
+                // 退出登录后token失效
+                String redisKey = userId + issuedAt.toString();
+                String beforeToken = (String) redisDao.get(redisKey);
+                if (token.equalsIgnoreCase(beforeToken)) {
                     httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "unauthorized");
                     return false;
                 }
