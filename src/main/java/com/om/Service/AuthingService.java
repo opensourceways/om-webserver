@@ -4,16 +4,14 @@ import cn.authing.core.types.User;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.Dao.AuthingUserDao;
+import com.om.Dao.RedisDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class AuthingService {
@@ -22,6 +20,9 @@ public class AuthingService {
 
     @Autowired
     AuthingUserDao authingUserDao;
+
+    @Autowired
+    RedisDao redisDao;
 
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
@@ -58,6 +59,13 @@ public class AuthingService {
         try {
             DecodedJWT decode = JWT.decode(token);
             String idToken = decode.getClaim("subject").asString();
+            String userId = decode.getAudience().get(0);
+            Date issuedAt = decode.getIssuedAt();
+            String redisKey = userId + issuedAt.toString();
+            boolean set = redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
+            if (set) {
+                System.out.println(userId + " logout success");
+            }
 
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("id_token", idToken);
