@@ -339,10 +339,11 @@ public class QueryController {
 
     @RequestMapping("/user/contribute/details")
     public String queryUserContributeDetails(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user,
+                                      @RequestParam(value = "sig", required = false) String sig,
                                       @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange,
                                       @RequestParam(value = "lastCursor", required = false) String lastCursor,
                                       @RequestParam(value = "pageSize", required = false) String pageSize) {
-        String res = queryService.queryUserContributeDetails(community, user, contributeType, timeRange, lastCursor, pageSize);
+        String res = queryService.queryUserContributeDetails(community, user, sig, contributeType, timeRange, lastCursor, pageSize);
         return res;
     }
 }
