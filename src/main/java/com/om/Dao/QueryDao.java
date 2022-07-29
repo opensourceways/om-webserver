@@ -3422,7 +3422,7 @@ public class QueryDao {
         }
     }
 
-    public String queryUserContributeDetails(String community, String user, String contributeType, String timeRange,  String lastCursor, String pageSize, Environment env) {
+    public String queryUserContributeDetails(String community, String user, String sig, String contributeType, String timeRange,  String lastCursor, String pageSize, Environment env) {
         String index;
         ArrayList<Object> params;
         switch (community.toLowerCase()) {
@@ -3438,7 +3438,6 @@ public class QueryDao {
                 return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
         }
         index = index.substring(1);
-        System.out.println(index);
         if(params == null){
             return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"params error\"}";
         }
@@ -3454,6 +3453,6 @@ public class QueryDao {
         if (pageSize == null) {
             return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"pageSize error\"},\"msg\":\"pageSize error\"}";
         }
-        return esQueryUtils.esUserCountFromId(restHighLevelClient, lastCursor, Integer.parseInt(pageSize), index, user, params);
+        return esQueryUtils.esUserCountFromId(restHighLevelClient, lastCursor, Integer.parseInt(pageSize), index, user, sig, params);
     }
 }

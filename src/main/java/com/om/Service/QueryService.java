@@ -973,7 +973,7 @@ public class QueryService {
         return result;
     }
 
-    public String queryUserContributeDetails(String community, String user, String contributeType, String timeRange,  String lastCursor, String pageSize) {
+    public String queryUserContributeDetails(String community, String user, String sig, String contributeType, String timeRange,  String lastCursor, String pageSize) {
         String key = community.toLowerCase() + user + contributeType.toLowerCase() + timeRange.toLowerCase();
         String result;
         if (pageSize != null) {
@@ -984,7 +984,7 @@ public class QueryService {
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryUserContributeDetails(community, user, contributeType, timeRange, lastCursor, pageSize, env);
+                result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange, lastCursor, pageSize, env);
             } catch (Exception e) {
                 e.printStackTrace();
             }
