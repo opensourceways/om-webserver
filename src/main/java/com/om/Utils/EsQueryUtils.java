@@ -189,8 +189,8 @@ public class EsQueryUtils {
     }
 
 
-    public String esUserCountFromId(RestHighLevelClient client, String lastCursor, int pageSize, String indexname, String user,
-            ArrayList<Object> params) {
+    public String esUserCountFromId(RestHighLevelClient client, String lastCursor, int pageSize, String indexname,
+            String user, String sig, ArrayList<Object> params) {
         SearchRequest request = new SearchRequest(indexname);
         SearchSourceBuilder builder = new SearchSourceBuilder();
 
@@ -205,10 +205,11 @@ public class EsQueryUtils {
         String type_info = params.get(4).toString();
         String type_url = params.get(5).toString();
         String type_no = params.get(6).toString();
-       
+        sig = sig == null ? "*" : sig;
         boolQueryBuilder.must(QueryBuilders.rangeQuery("created_at").from(start).to(end));
         boolQueryBuilder.mustNot(QueryBuilders.matchQuery("is_removed", 1));
         boolQueryBuilder.must(QueryBuilders.termQuery("user_login.keyword", user));
+        boolQueryBuilder.must(QueryBuilders.wildcardQuery("sig_names.keyword", sig));
         boolQueryBuilder.must(QueryBuilders.matchQuery(feild, 1));
         builder.query(boolQueryBuilder);
 
@@ -240,15 +241,15 @@ public class EsQueryUtils {
                 String info = sourceAsMap.get(type_info).toString();
                 String time = sourceAsMap.get("created_at").toString();
                 String repo = sourceAsMap.get("gitee_repo").toString().substring(18);
-                             
+
                 HashMap<String, Object> datamap = new HashMap<>();
                 datamap.put("no", no);
-                datamap.put("info", info);               
+                datamap.put("info", info);
                 datamap.put("time", time);
                 datamap.put("repo", repo);
 
                 String url = sourceAsMap.get(type_url).toString();
-                switch(type.toLowerCase()){
+                switch (type.toLowerCase()) {
                     case "comment":
                         if (url.equals("issue_comment")) {
                             url = sourceAsMap.get("issue_url").toString() + "#note_" + sourceAsMap.get("id").toString()
@@ -259,11 +260,10 @@ public class EsQueryUtils {
                     case "pr":
                         String is_main_feature;
                         datamap.put("is_main_feature", 0);
-                    default:   
+                    default:
                 }
                 datamap.put("url", url);
                 list.add(datamap);
-                System.out.println(list.size());
             }
         } catch (Exception ex) {
             list.clear();
