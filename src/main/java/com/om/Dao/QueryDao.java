@@ -3365,6 +3365,95 @@ public class QueryDao {
             e.printStackTrace();
             return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
         }
+    }
 
+    public String queryUserOwnertype(String community, String user) {
+        String queryjson;
+        String queryStr;
+        String index;
+  
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                queryjson = openEuler.getuser_owner_type_queryStr();
+                index = openEuler.getSigs_index();
+                break;
+            case "opengauss":
+                queryjson = openGauss.getuser_owner_type_queryStr();
+                index = openGauss.getSigs_index();
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+        queryStr = String.format(queryjson, user);
+
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+
+            ArrayList<HashMap<String, Object>> dataMap = new ArrayList<>();
+            while(buckets.hasNext()){
+                JsonNode bucket = buckets.next();
+                String sig = bucket.get("key").asText();
+                Iterator<JsonNode> types = bucket.get("owner_type").get("buckets").elements();
+                ArrayList<String> typeList = new ArrayList<>();
+                while(types.hasNext()){
+                    JsonNode type = types.next();
+                    typeList.add(type.get("key").asText());
+                }
+                HashMap<String, Object> user_type = new HashMap<>();
+                user_type.put("sig", sig);
+                user_type.put("type", typeList);
+                dataMap.add(user_type);
+            }
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", dataMap);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
+
+    public String queryUserContributeDetails(String community, String user, String contributeType, String timeRange,  String lastCursor, String pageSize, Environment env) {
+        String index;
+        ArrayList<Object> params;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getGiteeAllIndex();
+                params = openEuler.getAggUserCountQueryParams(contributeType, timeRange);     
+                break;
+            case "opengauss":
+                index = openGauss.getGiteeAllIndex();
+                params = openGauss.getAggUserCountQueryParams(contributeType, timeRange); 
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+        index = index.substring(1);
+        System.out.println(index);
+        if(params == null){
+            return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"params error\"}";
+        }
+
+        String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
+        String host = env.getProperty("es.host");
+        int port = Integer.parseInt(env.getProperty("es.port", "9200"));
+        String scheme = env.getProperty("es.scheme");
+        String esUser = userpass[0];
+        String password = userpass[1];
+        RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
+        EsQueryUtils esQueryUtils = new EsQueryUtils();
+        if (pageSize == null) {
+            return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"pageSize error\"},\"msg\":\"pageSize error\"}";
+        }
+        return esQueryUtils.esUserCountFromId(restHighLevelClient, lastCursor, Integer.parseInt(pageSize), index, user, params);
     }
 }

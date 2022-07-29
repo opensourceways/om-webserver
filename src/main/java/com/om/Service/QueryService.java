@@ -953,5 +953,53 @@ public class QueryService {
         return result;
     }
 
+    public String queryUserOwnertype(String community, String user) {
+        String key = community.toLowerCase() + user + "ownertype";
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryUserOwnertype(community, user);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result,
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryUserContributeDetails(String community, String user, String contributeType, String timeRange,  String lastCursor, String pageSize) {
+        String key = community.toLowerCase() + user + contributeType.toLowerCase() + timeRange.toLowerCase();
+        String result;
+        if (pageSize != null) {
+            result = null;
+        } else {
+            result = (String) redisDao.get(key);
+        }
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryUserContributeDetails(community, user, contributeType, timeRange, lastCursor, pageSize, env);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set;
+            if (pageSize != null) {
+                set = false;
+            } else {
+                set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+            }
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
 }
 
