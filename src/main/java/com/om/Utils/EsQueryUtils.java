@@ -5,6 +5,8 @@ import org.elasticsearch.action.search.*;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.unit.TimeValue;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.MatchQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -14,6 +16,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Map;
 
 public class EsQueryUtils {
@@ -183,6 +186,100 @@ public class EsQueryUtils {
         }
         String s = objectMapper.valueToTree(list).toString();
         return "{\"code\":200,\"data\":" + s + ",\"cursor\":\"" + endCursor + "\",\"totalCount\":" + totalCount + ",\"msg\":\"ok\"}";
+    }
+
+
+    public String esUserCountFromId(RestHighLevelClient client, String lastCursor, int pageSize, String indexname, String user,
+            ArrayList<Object> params) {
+        SearchRequest request = new SearchRequest(indexname);
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+
+        builder.sort("created_at", SortOrder.ASC);
+        builder.sort("_id", SortOrder.ASC);
+
+        BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
+        String type = params.get(0).toString();
+        long start = Long.valueOf(params.get(1).toString());
+        long end = Long.valueOf(params.get(2).toString());
+        String feild = params.get(3).toString();
+        String type_info = params.get(4).toString();
+        String type_url = params.get(5).toString();
+        String type_no = params.get(6).toString();
+       
+        boolQueryBuilder.must(QueryBuilders.rangeQuery("created_at").from(start).to(end));
+        boolQueryBuilder.mustNot(QueryBuilders.matchQuery("is_removed", 1));
+        boolQueryBuilder.must(QueryBuilders.termQuery("user_login.keyword", user));
+        boolQueryBuilder.must(QueryBuilders.matchQuery(feild, 1));
+        builder.query(boolQueryBuilder);
+
+        if (pageSize <= 0 || pageSize > MAXPAGESIZE) {
+            pageSize = MAXPAGESIZE;
+        }
+        builder.size(pageSize);
+
+        if (lastCursor != null && !lastCursor.isEmpty()) {
+            builder.size(pageSize + 1);
+            String sortValueStr = new String(Base64.getDecoder().decode(lastCursor));
+            builder.searchAfter(sortValueStr.split(","));
+        }
+        request.source(builder);
+
+        ArrayList<Object> list = new ArrayList<>();
+        String endCursor = "";
+
+        long totalCount = 0;
+        try {
+            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            totalCount = response.getHits().getTotalHits().value;
+            for (SearchHit hit : response.getHits().getHits()) {
+                String s = Arrays.toString(hit.getSortValues()).replace("[", "").replace("]", "");
+                endCursor = Base64.getEncoder().encodeToString(s.getBytes());
+
+                Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+                String no = sourceAsMap.get(type_no).toString();
+                String info = sourceAsMap.get(type_info).toString();
+                String time = sourceAsMap.get("created_at").toString();
+                String repo = sourceAsMap.get("gitee_repo").toString().substring(18);
+                             
+                HashMap<String, Object> datamap = new HashMap<>();
+                datamap.put("no", no);
+                datamap.put("info", info);               
+                datamap.put("time", time);
+                datamap.put("repo", repo);
+
+                String url = sourceAsMap.get(type_url).toString();
+                switch(type.toLowerCase()){
+                    case "comment":
+                        if (url.equals("issue_comment")) {
+                            url = sourceAsMap.get("issue_url").toString() + "#note_" + sourceAsMap.get("id").toString()
+                                    + "_link";
+                        } else {
+                            url = sourceAsMap.get("comment_url").toString();
+                        }
+                    case "pr":
+                        String is_main_feature;
+                        datamap.put("is_main_feature", 0);
+                    default:   
+                }
+                datamap.put("url", url);
+                list.add(datamap);
+                System.out.println(list.size());
+            }
+        } catch (Exception ex) {
+            list.clear();
+            String s = objectMapper.valueToTree(list).toString();
+            return "{\"code\":200,\"data\":" + s + ",\"cursor\":\"" + endCursor + "\",\"msg\":\"query error\"}";
+        }
+
+        if (endCursor.equals(lastCursor)) {
+            list.clear();
+        }
+        if (list.size() > pageSize) {
+            list.remove(0);
+        }
+        String s = objectMapper.valueToTree(list).toString();
+        return "{\"code\":200,\"data\":" + s + ",\"cursor\":\"" + endCursor + "\",\"totalCount\":" + totalCount
+                + ",\"msg\":\"ok\"}";
     }
 }
 

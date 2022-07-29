@@ -330,4 +330,19 @@ public class QueryController {
         String res = queryService.queryUserSigcontribute(community, user, contributeType, timeRange);
         return res;
     }
+
+    @RequestMapping("/user/ownertype")
+    public String queryUserOwnertype(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user) {
+        String res = queryService.queryUserOwnertype(community, user);
+        return res;
+    }
+
+    @RequestMapping("/user/contribute/details")
+    public String queryUserContributeDetails(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user,
+                                      @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange,
+                                      @RequestParam(value = "lastCursor", required = false) String lastCursor,
+                                      @RequestParam(value = "pageSize", required = false) String pageSize) {
+        String res = queryService.queryUserContributeDetails(community, user, contributeType, timeRange, lastCursor, pageSize);
+        return res;
+    }
 }
