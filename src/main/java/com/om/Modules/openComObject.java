@@ -2,6 +2,7 @@ package com.om.Modules;
 
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -86,8 +87,16 @@ public class openComObject {
     protected String sig_info_queryStr;
     protected String user_owns_sigs_Str;
     protected String tc_owner_url;
-    protected String UserCountDetailsQueryStr;
     protected String group_agg_sig_queryStr;
+    protected String user_owner_type_queryStr;
+
+    public String getuser_owner_type_queryStr() {
+        return user_owner_type_queryStr;
+    }
+
+    public void setuser_owner_type_queryStr(String user_owner_type_queryStr) {
+        this.user_owner_type_queryStr = user_owner_type_queryStr;
+    }
 
     public String getgroup_agg_sig_queryStr() {
         return group_agg_sig_queryStr;
@@ -95,14 +104,6 @@ public class openComObject {
 
     public void setgroup_agg_sig_queryStr(String group_agg_sig_queryStr) {
         this.group_agg_sig_queryStr = group_agg_sig_queryStr;
-    }
-
-    public String getUserCountDetailsQueryStr() {
-        return UserCountDetailsQueryStr;
-    }
-
-    public void setUserCountDetailsQueryStr(String UserCountDetailsQueryStr) {
-        this.UserCountDetailsQueryStr = UserCountDetailsQueryStr;
     }
 
     public String getuser_owns_sigs_Str() {
@@ -914,26 +915,36 @@ public class openComObject {
         return queryStr;
     }
 
-    public String getAggUserCountQueryStr(String user, String contributeType, String timeRange) {
+    public ArrayList<Object> getAggUserCountQueryParams(String contributeType, String timeRange) {
         long currentTimeMillis = System.currentTimeMillis();
         long lastTimeMillis = getPastTime(timeRange);
-        String queryJson = getUserCountDetailsQueryStr();
-        String queryStr;
-
+        ArrayList<Object> list = new ArrayList<>();
+        list.add(contributeType);
+        list.add(lastTimeMillis);
+        list.add(currentTimeMillis);
         switch (contributeType.toLowerCase()) {
             case "pr":
-                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, user, "is_pull_state_merged", "pull_url", "pull_title");
+                list.add("is_pull_state_merged");
+                list.add("pull_title");
+                list.add("pull_url");
+                list.add("pull_id_in_repo");   
                 break;
             case "issue":
-                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, user, "is_gitee_issue", "issue_url", "issue_title");
+                list.add("is_gitee_issue");
+                list.add("issue_title");
+                list.add("issue_url");
+                list.add("issue_id_in_repo");
                 break;
             case "comment":
-                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, user, "is_gitee_comment", "comment_url", "body");
+                list.add("is_gitee_comment");
+                list.add("body");
+                list.add("sub_type");
+                list.add("id");                
                 break;
             default:
                 return null;
         }
-        return queryStr;
+        return list;
     }
 }
 
