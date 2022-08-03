@@ -3455,4 +3455,52 @@ public class QueryDao {
         }
         return esQueryUtils.esUserCountFromId(restHighLevelClient, lastCursor, Integer.parseInt(pageSize), index, user, sig, params);
     }
+
+    public String queryUserLists(String community, String group, String name) {
+        String queryjson;
+        String queryStr;
+        String index;
+        if (group.equals("company")) {
+            name = CompanyCN2Cla(community, name);
+        }       
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                queryjson = openEuler.getUserListQueryStr();
+                queryStr = openEuler.getAggUserListQueryStr(queryjson, group, name);
+                index = openEuler.getGiteeAllIndex();
+                break;
+            case "opengauss":
+                queryjson = openGauss.getUserListQueryStr();
+                queryStr = openGauss.getAggUserListQueryStr(queryjson, group, name);
+                index = openGauss.getGiteeAllIndex();
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+
+            ArrayList<String> dataMap = new ArrayList<>();
+            while(buckets.hasNext()){
+                JsonNode bucket = buckets.next();
+                String user = bucket.get("key").asText();
+                dataMap.add(user);
+            }
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", dataMap);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
 }
