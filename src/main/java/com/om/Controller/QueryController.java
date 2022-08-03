@@ -346,4 +346,11 @@ public class QueryController {
         String res = queryService.queryUserContributeDetails(community, user, sig, contributeType, timeRange, lastCursor, pageSize);
         return res;
     }
+
+    @RequestMapping("/userlist")
+    public String queryUserLists(@RequestParam(value = "community") String community, @RequestParam(value = "group") String group,
+                                      @RequestParam(value = "name") String name) {
+        String res = queryService.queryUserLists(community, group, name);
+        return res;
+    }
 }
