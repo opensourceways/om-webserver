@@ -89,6 +89,15 @@ public class openComObject {
     protected String tc_owner_url;
     protected String group_agg_sig_queryStr;
     protected String user_owner_type_queryStr;
+    protected String UserListQueryStr;
+
+    public String getUserListQueryStr() {
+        return UserListQueryStr;
+    }
+
+    public void setUserListQueryStr(String UserListQueryStr) {
+        this.UserListQueryStr = UserListQueryStr;
+    }
 
     public String getuser_owner_type_queryStr() {
         return user_owner_type_queryStr;
@@ -945,6 +954,21 @@ public class openComObject {
                 return null;
         }
         return list;
+    }
+
+    public String getAggUserListQueryStr(String queryJson, String group, String name) {
+        String queryStr;
+        switch (group) {
+            case "sig":
+                queryStr = String.format(queryJson, "sig_names.keyword", name);
+                break;
+            case "company":
+                queryStr = String.format(queryJson, "tag_user_company.keyword", name);
+                break;
+            default:
+                return null;
+        }
+        return queryStr;
     }
 }
 
