@@ -3451,7 +3451,7 @@ public class QueryDao {
         RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
         EsQueryUtils esQueryUtils = new EsQueryUtils();
         if (pageSize == null) {
-            return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"pageSize error\"},\"msg\":\"pageSize error\"}";
+            return esQueryUtils.esUserCount(restHighLevelClient, index, user, sig, params);
         }
         return esQueryUtils.esUserCountFromId(restHighLevelClient, lastCursor, Integer.parseInt(pageSize), index, user, sig, params);
     }
