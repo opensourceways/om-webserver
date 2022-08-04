@@ -974,11 +974,9 @@ public class QueryService {
     }
 
     public String queryUserContributeDetails(String community, String user, String sig, String contributeType, String timeRange,  String lastCursor, String pageSize) {
-        String key = community.toLowerCase() + user + contributeType.toLowerCase() + timeRange.toLowerCase();
-        String result;
-        if (pageSize != null) {
-            result = null;
-        } else {
+        String key = community.toLowerCase() + user + sig + contributeType.toLowerCase() + timeRange.toLowerCase();
+        String result = null;
+        if (pageSize == null) {
             result = (String) redisDao.get(key);
         }
         if (result == null) {
