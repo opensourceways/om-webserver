@@ -5,6 +5,9 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.parser.Feature;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
 import com.om.Utils.StringDesensitizationUtils;
@@ -973,25 +976,47 @@ public class QueryService {
         return result;
     }
 
-    public String queryUserContributeDetails(String community, String user, String sig, String contributeType, String timeRange,  String lastCursor, String pageSize) {
-        String key = community.toLowerCase() + user + sig + contributeType.toLowerCase() + timeRange.toLowerCase();
+    public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
+            String timeRange, String lastCursor, String pageSize) throws JsonMappingException, JsonProcessingException {
         String result = null;
+        Integer totalCount = 0;
         if (pageSize == null) {
-            result = (String) redisDao.get(key);
+            ObjectMapper objectMapper = new ObjectMapper();
+            String res = saveUserCountDetails(community, sig, contributeType, timeRange);
+            JsonNode all = objectMapper.readTree(res);
+            if (all.get("data").get(user) != null){
+                JsonNode userData = all.get("data").get(user);
+                totalCount = userData.size();
+                result = objectMapper.valueToTree(userData).toString();
+            }           
+            result = "{\"code\":200,\"data\":" + result + ",\"totalCount\":" + totalCount + ",\"msg\":\"ok\"}";
         }
         if (result == null) {
-            //查询数据库，更新redis 缓存。
+            // 查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange, lastCursor, pageSize, env);
+                result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange,
+                        lastCursor, pageSize, env);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set;
-            if (pageSize != null) {
-                set = false;
-            } else {
-                set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+        }
+        return result;
+    }
+
+    public String saveUserCountDetails(String community, String sig, String contributeType, String timeRange) {
+        String key = community.toLowerCase() + sig + contributeType.toLowerCase() + timeRange.toLowerCase();
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryUserContributeDetails(community, "*", sig, contributeType, timeRange, null, null,
+                        env);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+            boolean set = redisDao.set(key, result,
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }

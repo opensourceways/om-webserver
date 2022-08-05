@@ -1,6 +1,7 @@
 package com.om.Controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.om.Service.QueryService;
 import com.om.Vo.*;
 import com.om.authing.AuthingToken;
@@ -342,7 +343,7 @@ public class QueryController {
                                       @RequestParam(value = "sig", required = false) String sig,
                                       @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange,
                                       @RequestParam(value = "lastCursor", required = false) String lastCursor,
-                                      @RequestParam(value = "pageSize", required = false) String pageSize) {
+                                      @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
         String res = queryService.queryUserContributeDetails(community, user, sig, contributeType, timeRange, lastCursor, pageSize);
         return res;
     }
