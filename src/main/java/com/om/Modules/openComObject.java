@@ -90,6 +90,15 @@ public class openComObject {
     protected String group_agg_sig_queryStr;
     protected String user_owner_type_queryStr;
     protected String UserListQueryStr;
+    protected String SigRepoCommittersQueryStr;
+
+    public String getSigRepoCommittersQueryStr() {
+        return SigRepoCommittersQueryStr;
+    }
+
+    public void setSigRepoCommittersQueryStr(String SigRepoCommittersQueryStr) {
+        this.SigRepoCommittersQueryStr = SigRepoCommittersQueryStr;
+    }
 
     public String getUserListQueryStr() {
         return UserListQueryStr;
