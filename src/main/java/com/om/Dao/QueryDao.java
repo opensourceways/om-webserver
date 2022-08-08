@@ -3503,4 +3503,76 @@ public class QueryDao {
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
     }
+
+    public String querySigRepoCommitters(String community, String sig) {
+        String queryjson;
+        String queryStr;
+        String index;      
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                queryjson = openEuler.getSigRepoCommittersQueryStr();
+                index = openEuler.getSigs_index();
+                break;
+            case "opengauss":
+                queryjson = openGauss.getSigRepoCommittersQueryStr();
+                index = openGauss.getSigs_index();
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+        try {
+            queryStr = String.format(queryjson, sig);
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+          
+            ArrayList<Object> dataList = new ArrayList<>();
+            ArrayList<String> committerList = new ArrayList<>();
+            
+            while(buckets.hasNext()){
+                JsonNode bucket = buckets.next();
+                String repo = bucket.get("key").asText();
+                Iterator<JsonNode> user_buckets = bucket.get("user").get("buckets").elements();
+                ArrayList<String> userlist = new ArrayList<>();
+                while(user_buckets.hasNext()){
+                    JsonNode userBucket = user_buckets.next();
+                    String user = userBucket.get("key").asText();
+                    userlist.add(user);
+                    committerList.add(user);
+                }
+                HashMap<String, Object> dataMap = new HashMap<>();
+                dataMap.put("repo", repo);
+                dataMap.put("gitee_id", userlist);
+                dataList.add(dataMap);
+            }
+            Set<String> set = new HashSet<>();
+            set.addAll(committerList);
+            ArrayList<String> committers = new ArrayList<>();         
+            committers.addAll(set);
+
+            HashMap<String, Object> resData = new HashMap<>();
+            String siginfo = querySigInfo(community, sig);
+            JsonNode sigMaintainers = objectMapper.readTree(siginfo).get("data");
+            if (sigMaintainers.size() != 0) {
+                JsonNode maintainers =  sigMaintainers.get(0).get("maintainers");
+                resData.put("maintainers", maintainers);
+            }
+            resData.put("committers", committers);
+            resData.put("committerDetails", dataList);
+                                 
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", resData);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
 }
