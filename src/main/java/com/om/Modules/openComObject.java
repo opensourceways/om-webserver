@@ -91,6 +91,15 @@ public class openComObject {
     protected String user_owner_type_queryStr;
     protected String UserListQueryStr;
     protected String SigRepoCommittersQueryStr;
+    protected String all_user_owner_type_queryStr;
+
+    public String getall_user_owner_type_queryStr() {
+        return all_user_owner_type_queryStr;
+    }
+
+    public void setall_user_owner_type_queryStr(String all_user_owner_type_queryStr) {
+        this.all_user_owner_type_queryStr = all_user_owner_type_queryStr;
+    }
 
     public String getSigRepoCommittersQueryStr() {
         return SigRepoCommittersQueryStr;

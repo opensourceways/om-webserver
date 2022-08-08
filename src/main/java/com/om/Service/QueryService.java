@@ -956,14 +956,14 @@ public class QueryService {
         return result;
     }
 
-    public String queryUserOwnertype(String community, String user) {
-        String key = community.toLowerCase() + user + "ownertype";
+    public String queryUserOwnertype(String community, String user) throws JsonMappingException, JsonProcessingException {
+        String key = community.toLowerCase() + "all" + "ownertype";
         String result = null;
         result = (String) redisDao.get(key);
         if (result == null) {
             // 查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryUserOwnertype(community, user);
+                result = queryDao.queryAllUserOwnertype(community);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -973,6 +973,13 @@ public class QueryService {
                 System.out.println("update " + key + " success!");
             }
         }
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode all = objectMapper.readTree(result);
+        if (all.get("data").get(user) != null) {
+            JsonNode userData = all.get("data").get(user);
+            result = objectMapper.valueToTree(userData).toString();
+        }
+        result = "{\"code\":200,\"data\":" + result + ",\"msg\":\"ok\"}";
         return result;
     }
 
