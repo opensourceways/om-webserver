@@ -1044,5 +1044,24 @@ public class QueryService {
         return result;
     }
 
+    public String querySigRepoCommitters(String community, String sig) {
+        String key = community.toLowerCase() + sig + "committers";
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.querySigRepoCommitters(community, sig);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result,
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
 }
 

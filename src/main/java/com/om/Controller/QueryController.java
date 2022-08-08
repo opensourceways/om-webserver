@@ -354,4 +354,10 @@ public class QueryController {
         String res = queryService.queryUserLists(community, group, name);
         return res;
     }
+
+    @RequestMapping("/sig/repo/committers")
+    public String querySigRepoCommitters(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig) {
+        String res = queryService.querySigRepoCommitters(community, sig);
+        return res;
+    }
 }
