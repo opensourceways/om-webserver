@@ -1,5 +1,7 @@
 package com.om.authing;
 
+import cn.authing.core.auth.AuthenticationClient;
+import cn.authing.core.types.JwtTokenStatus;
 import cn.authing.core.types.User;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
@@ -33,6 +35,15 @@ public class AuthingInterceptor implements HandlerInterceptor {
     @Value("${authing.token.base.password}")
     private String authingTokenBasePassword;
 
+    @Value("${authing.app.fuxi.id}")
+    String omAppId;
+
+    @Value("${authing.app.fuxi.host}")
+    String omAppHost;
+
+    @Value("${authing.app.fuxi.secret}")
+    String omAppSecret;
+
     @Override
     public boolean preHandle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object object) throws Exception {
         ServletOutputStream sos = httpServletResponse.getOutputStream();
@@ -47,10 +58,11 @@ public class AuthingInterceptor implements HandlerInterceptor {
         HandlerMethod handlerMethod = (HandlerMethod) object;
         Method method = handlerMethod.getMethod();
         // 检查有没有需要用户权限的注解
-        if (method.isAnnotationPresent(AuthingToken.class)) {
+        if (method.isAnnotationPresent(AuthingToken.class) || method.isAnnotationPresent(AuthingUserToken.class)) {
             AuthingToken userLoginToken = method.getAnnotation(AuthingToken.class);
+            AuthingUserToken authingUserToken = method.getAnnotation(AuthingUserToken.class);
             // 执行认证
-            if (userLoginToken.required()) {
+            if ((userLoginToken != null && userLoginToken.required()) || (authingUserToken != null && authingUserToken.required())) {
                 // token 为空
                 if (token == null) {
                     httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "token miss");
@@ -107,12 +119,25 @@ public class AuthingInterceptor implements HandlerInterceptor {
                         return false;
                     }
 
-                    // token 页面请求权限验证
-                    String[] split = permission.split("->");
-                    boolean hasActionPer = authingUserDao.checkUserPermission(userId, split[0], split[1], split[2]);
-                    if (!hasActionPer) {
+                    // 判断用户在Authing端是否已经退出
+                    AuthenticationClient authentication = new AuthenticationClient(omAppId, omAppHost);
+                    authentication.setSecret(omAppSecret);
+                    authentication.setCurrentUser(user);
+                    JwtTokenStatus execute = authentication.checkLoginStatus().execute();
+                    Boolean status = execute.getStatus();
+                    if (!status) {
                         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "unauthorized");
                         return false;
+                    }
+
+                    // token 页面请求权限验证
+                    if (userLoginToken != null && userLoginToken.required()){
+                        String[] split = permission.split("->");
+                        boolean hasActionPer = authingUserDao.checkUserPermission(userId, split[0], split[1], split[2]);
+                        if (!hasActionPer) {
+                            httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "unauthorized");
+                            return false;
+                        }
                     }
                 } catch (Exception e) {
                     httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "unauthorized");
