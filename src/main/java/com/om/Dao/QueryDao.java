@@ -3422,6 +3422,71 @@ public class QueryDao {
         }
     }
 
+    public String queryAllUserOwnertype(String community) {
+        String queryStr;
+        String index;
+  
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                queryStr = openEuler.getall_user_owner_type_queryStr();
+                index = openEuler.getSigs_index();
+                break;
+            case "opengauss":
+                queryStr = openGauss.getall_user_owner_type_queryStr();
+                index = openGauss.getSigs_index();
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+
+            HashMap<String, ArrayList<Object>> userData = new HashMap<>();
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                String sig = bucket.get("key").asText();
+                Iterator<JsonNode> users = bucket.get("user").get("buckets").elements();
+                while (users.hasNext()) {
+                    JsonNode userBucket = users.next();
+                    String user = userBucket.get("key").asText();
+                    Iterator<JsonNode> types = userBucket.get("type").get("buckets").elements();
+                    ArrayList<String> typeList = new ArrayList<>();
+                    while (types.hasNext()) {
+                        JsonNode type = types.next();
+                        typeList.add(type.get("key").asText());
+                    }
+                    HashMap<String, Object> user_type = new HashMap<>();
+                    user_type.put("sig", sig);
+                    user_type.put("type", typeList);
+
+                    if (userData.containsKey(user.toLowerCase())) {
+                        userData.get(user.toLowerCase()).add(user_type);
+                    } else {
+                        ArrayList<Object> templist = new ArrayList<>();
+                        templist.add(user_type);
+                        userData.put(user.toLowerCase(), templist);
+                    }
+                }
+            }
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", userData);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
+
     public String queryUserContributeDetails(String community, String user, String sig, String contributeType, String timeRange,  String lastCursor, String pageSize, Environment env) {
         String index;
         ArrayList<Object> params;
@@ -3564,7 +3629,7 @@ public class QueryDao {
             }
             resData.put("committers", committers);
             resData.put("committerDetails", dataList);
-                                 
+
             HashMap<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
             resMap.put("data", resData);
