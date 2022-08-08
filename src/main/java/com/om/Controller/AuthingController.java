@@ -2,6 +2,7 @@ package com.om.Controller;
 
 import com.om.Service.AuthingService;
 import com.om.authing.AuthingToken;
+import com.om.authing.AuthingUserToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +19,7 @@ public class AuthingController {
         return authingService.logout(token);
     }
 
-    @AuthingToken
+    @AuthingUserToken
     @RequestMapping(value = "/user/permission")
     public ResponseEntity getUser(@RequestParam(value = "community") String community,
                                   @RequestHeader("token") String token) {
