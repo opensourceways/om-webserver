@@ -241,6 +241,7 @@ public class propertiesObj {
         bean.setgroup_agg_sig_queryStr(openconf.getProperty("group_agg_sig_queryStr"));
         bean.setuser_owner_type_queryStr(openconf.getProperty("user_owner_type_queryStr"));
         bean.setUserListQueryStr(openconf.getProperty("UserListQueryStr"));
+        bean.setSigRepoCommittersQueryStr(openconf.getProperty("SigRepoCommittersQueryStr"));
     }
 
     private static Properties readProperties(String path) throws IOException {
