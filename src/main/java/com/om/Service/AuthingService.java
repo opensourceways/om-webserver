@@ -35,11 +35,13 @@ public class AuthingService {
             String inputPermission = decode.getClaim("inputPermission").asString();
 
             // 资源权限验证
-            String permissionInfo = env.getProperty(community + "." + inputPermission);
             String permissionToken = new String(Base64.getDecoder().decode(permissionTemp.getBytes()));
             ArrayList<String> permissions = new ArrayList<>();
-            if (permissionInfo != null && permissionInfo.equalsIgnoreCase(permissionToken))
+            String[] split = permissionToken.split("->");
+            boolean hasActionPer = authingUserDao.checkUserPermission(userId, split[0], split[1], split[2]);
+            if (hasActionPer) {
                 permissions.add(inputPermission);
+            }
 
             // 获取用户
             User user = authingUserDao.getUser(userId);
