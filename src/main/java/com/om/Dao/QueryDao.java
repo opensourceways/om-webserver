@@ -2167,7 +2167,7 @@ public class QueryDao {
         }
     }
     
-    public String querySigInfo(String community, String sig) {
+    public String querySigInfo(String community, String sig, String repo, String user) {
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
@@ -2185,7 +2185,13 @@ public class QueryDao {
                 default:
                     return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
             }
-            String querystr = String.format(queryjson, sig);
+            sig = sig == null ? "*" : sig;
+            repo = repo == null ? "*" : "\\\"" + repo + "\\\"";
+            user = user == null ? "*" : user;
+            String querystr = String.format(queryjson, sig, repo, user);
+            if (repo.equals("*")) {
+                querystr = querystr.replace("AND repos.keyword:*", "");
+            }
             builder.setUrl(this.url + index + "/_search");
             builder.setBody(querystr);
             // 获取执行结果
@@ -2215,25 +2221,26 @@ public class QueryDao {
         }
     }
 
-    public String querySigRepo(String community, String sig, String timeRange) {
+    public String querySigRepo(String community, String sig) {
         String index;
         String queryStr;
+        sig = sig == null ? "*" : sig;
         switch (community.toLowerCase()) {
             case "openeuler":
-                index = openEuler.getGiteeAllIndex();
-                queryStr = openEuler.getAggSigRepoQueryStr(timeRange, sig);
+                index = openEuler.getSigs_index();
+                queryStr = openEuler.getAggSigRepoQueryStr(sig);
                 break;
             case "opengauss":
-                index = openGauss.getGiteeAllIndex();
-                queryStr = openGauss.getAggSigRepoQueryStr(timeRange, sig);
+                index = openGauss.getSigs_index();
+                queryStr = openGauss.getAggSigRepoQueryStr(sig);
                 break;
             case "openlookeng":
                 index = openLookeng.getGiteeAllIndex();
-                queryStr = openLookeng.getAggSigRepoQueryStr(timeRange, sig);
+                queryStr = openLookeng.getAggSigRepoQueryStr(sig);
                 break;
             case "mindspore":
-                index = mindSpore.getGiteeAllIndex();
-                queryStr = mindSpore.getAggSigRepoQueryStr(timeRange, sig);
+                index = mindSpore.getSigs_index();
+                queryStr = mindSpore.getAggSigRepoQueryStr(sig);
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
@@ -2251,19 +2258,16 @@ public class QueryDao {
             JsonNode dataNode = objectMapper.readTree(responseBody);
 
             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
-
-            HashMap<String, Object> dataMap = new HashMap<>();
             ArrayList<String> repoList = new ArrayList<>();
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 String repo = bucket.get("key").asText();
                 repoList.add(repo);
             }
-            dataMap.put(sig, repoList);
 
             HashMap<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
-            resMap.put("data", dataMap);
+            resMap.put("data", repoList);
             resMap.put("msg", "success");
             return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
@@ -3621,7 +3625,7 @@ public class QueryDao {
             committers.addAll(set);
 
             HashMap<String, Object> resData = new HashMap<>();
-            String siginfo = querySigInfo(community, sig);
+            String siginfo = querySigInfo(community, sig, null, null);
             JsonNode sigMaintainers = objectMapper.readTree(siginfo).get("data");
             if (sigMaintainers.size() != 0) {
                 JsonNode maintainers =  sigMaintainers.get(0).get("maintainers");
