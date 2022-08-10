@@ -822,7 +822,7 @@ public class openComObject {
         return c.getTimeInMillis();
     }
 
-    public String getAggSigRepoQueryStr(String timeRange, String sig) {
+    public String getAggSigRepoQueryStr(String sig) {
         String queryStr;
         String queryJson;
         queryJson = getSigRepoQueryStr();
