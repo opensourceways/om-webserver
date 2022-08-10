@@ -22,7 +22,7 @@ public class PageUtils {
      */
     public static Map getDataByPage(int currentPage, int pageSize, List data) {
         int datasize = data.size();
-        int totalPage = datasize / pageSize;
+        int totalPage = datasize / pageSize + 1;
 
         HashMap<Object, Object> resultMap = new HashMap<>();
         int startindex = (currentPage - 1) * pageSize;

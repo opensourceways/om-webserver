@@ -215,15 +215,22 @@ public class QueryController {
     }
 
     @RequestMapping("/sig/info")
-    public String querySigInfo(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig) {
-        String res = queryService.querySigInfo(community, sig);
+    public String querySigInfo(@RequestParam(value = "community") String community,
+            @RequestParam(value = "sig", required = false) String sig,
+            @RequestParam(value = "repo", required = false) String repo,
+            @RequestParam(value = "user", required = false) String user,
+            @RequestParam(value = "page", required = false) String page,
+            @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
+        String res = queryService.querySigInfo(community, sig, repo, user, page, pageSize);
         return res;
     }
 
     @RequestMapping("/sig/repo")
-    public String querySigRepo(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig,
-                                        @RequestParam(value = "timeRange") String timeRange) {
-        String res = queryService.querySigRepo(community, sig, timeRange);
+    public String querySigRepo(@RequestParam(value = "community") String community,
+            @RequestParam(value = "sig", required = false) String sig,
+            @RequestParam(value = "page", required = false) String page,
+            @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
+        String res = queryService.querySigRepo(community, sig, page, pageSize);
         return res;
     }
 
