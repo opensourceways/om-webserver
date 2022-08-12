@@ -1023,8 +1023,8 @@ public class QueryService {
         }
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode all = objectMapper.readTree(result);
-        if (all.get("data").get(user) != null) {
-            JsonNode userData = all.get("data").get(user);
+        if (all.get("data").get(user.toLowerCase()) != null) {
+            JsonNode userData = all.get("data").get(user.toLowerCase());
             result = objectMapper.valueToTree(userData).toString();
         }
         result = "{\"code\":200,\"data\":" + result + ",\"msg\":\"ok\"}";
