@@ -13,7 +13,7 @@ public class AuthingController {
     @Autowired
     AuthingService authingService;
 
-    @AuthingToken
+    @AuthingUserToken
     @RequestMapping(value = "/logout")
     public ResponseEntity logout(@RequestHeader("token") String token) {
         return authingService.logout(token);
