@@ -86,6 +86,7 @@ public class AuthingService {
             if (user == null) return result(HttpStatus.UNAUTHORIZED, "user not found", null);
             String userId = user.get("sub").toString();
             String idToken = user.get("id_token").toString();
+            String picture = user.get("picture").toString();
 
             // 资源权限
             String permissionInfo = env.getProperty(community + "." + permission);
@@ -96,6 +97,7 @@ public class AuthingService {
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("token", token);
+            userData.put("photo", picture);
             return result(HttpStatus.OK, "success", userData);
 
         } catch (Exception e) {
