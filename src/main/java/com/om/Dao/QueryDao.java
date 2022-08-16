@@ -2167,7 +2167,7 @@ public class QueryDao {
         }
     }
     
-    public String querySigInfo(String community, String sig, String repo, String user) {
+    public String querySigInfo(String community, String sig) {
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
@@ -2186,12 +2186,7 @@ public class QueryDao {
                     return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
             }
             sig = sig == null ? "*" : sig;
-            repo = repo == null ? "*" : "\\\"" + repo + "\\\"";
-            user = user == null ? "*" : user;
-            String querystr = String.format(queryjson, sig, repo, user);
-            if (repo.equals("*")) {
-                querystr = querystr.replace("AND repos.keyword:*", "");
-            }
+            String querystr = String.format(queryjson, sig);
             builder.setUrl(this.url + index + "/_search");
             builder.setBody(querystr);
             // 获取执行结果
@@ -3625,7 +3620,7 @@ public class QueryDao {
             committers.addAll(set);
 
             HashMap<String, Object> resData = new HashMap<>();
-            String siginfo = querySigInfo(community, sig, null, null);
+            String siginfo = querySigInfo(community, sig);
             JsonNode sigMaintainers = objectMapper.readTree(siginfo).get("data");
             if (sigMaintainers.size() != 0) {
                 JsonNode maintainers =  sigMaintainers.get(0).get("maintainers");
@@ -3643,5 +3638,17 @@ public class QueryDao {
             e.printStackTrace();
             return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
         }
+    }
+
+    public Boolean matchList(ArrayList<String> arrylist, String str) {
+        if (str == null) {
+            return true;
+        }
+        for (String list : arrylist) {
+            if (list.toLowerCase().contains(str.toLowerCase())) {
+                return true;
+            }
+        }
+        return false;
     }
 }
