@@ -646,41 +646,73 @@ public class QueryService {
         return result;
     }
 
-    public String querySigInfo(String community, String sig, String repo, String user, String page, String pageSize)
+    public String querySigInfo(String community, String sig, String repo, String user, String search, String page, String pageSize) 
             throws JsonMappingException, JsonProcessingException {
-        String key = community + sig + repo + user + "siginfo";
+        if (search != null && search.equals("fuzzy")){
+            return queryFuzzySigInfo(community, sig, repo, user, search, page, pageSize);
+        }
+        return querySigInfo(community, sig);
+    }
+
+    public String querySigInfo(String community, String sig) throws JsonMappingException, JsonProcessingException {
+        String key = community + sig + "siginfo";
         String result = null;
         result = (String) redisDao.get(key);
         if (result == null) {
             // 查询数据库，更新redis 缓存。
-            result = queryDao.querySigInfo(community, sig, repo, user);
+            result = queryDao.querySigInfo(community, sig);
             boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
         }
+        return result;
+    }
 
-        if (pageSize != null && page != null) {
-            ObjectMapper objectMapper = new ObjectMapper();
-            JsonNode all = objectMapper.readTree(result);
-            if (all.get("data") != null) {
-                JsonNode res = all.get("data");
-                ArrayList<HashMap<String, Object>> resList = objectMapper.convertValue(res,
-                        new TypeReference<ArrayList<HashMap<String, Object>>>() {
-                        });
-
-                int currentPage = Integer.parseInt(page);
-                int pagesize = Integer.parseInt(pageSize);
-                Map data = PageUtils.getDataByPage(currentPage, pagesize, resList);
-                ArrayList<HashMap<String, Object>> dataList = new ArrayList<>();
-                dataList.add((HashMap<String, Object>) data);
-                HashMap<String, Object> resMap = new HashMap<>();
-                resMap.put("code", 200);
-                resMap.put("data", dataList);
-                resMap.put("msg", "success");
-                result = objectMapper.valueToTree(dataList).toString();
+    public String queryFuzzySigInfo(String community, String sig, String repo, String user, String search, String page, String pageSize) 
+            throws JsonMappingException, JsonProcessingException {
+        String key = community + "allsiginfo";
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            result = queryDao.querySigInfo(community, null);
+            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            if (set) {
+                System.out.println("update " + key + " success!");
             }
         }
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode all = objectMapper.readTree(result);
+        if (all.get("code").asInt() != 200){
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+        JsonNode res = all.get("data");
+        ArrayList<HashMap<String, Object>> resList = objectMapper.convertValue(res,
+                new TypeReference<ArrayList<HashMap<String, Object>>>() {});      
+        ArrayList<HashMap<String, Object>> tempList = new ArrayList<>();
+        for (HashMap<String, Object> list : resList){
+            String sig_name = list.get("sig_name").toString();
+            ArrayList<String> repos = (ArrayList<String>) list.get("repos");
+            Boolean bool = sig != null && !sig_name.toLowerCase().contains(sig.toLowerCase()) ? false : true;
+            ArrayList<String> maintainers = (ArrayList<String>) list.get("maintainers");
+            if (bool && queryDao.matchList(repos, repo) && queryDao.matchList(maintainers, user)){
+                tempList.add(list);
+            }
+        }
+        if (pageSize != null && page != null) {
+            int currentPage = Integer.parseInt(page);
+            int pagesize = Integer.parseInt(pageSize);
+            Map data = PageUtils.getDataByPage(currentPage, pagesize, tempList);
+            ArrayList<HashMap<String, Object>> dataList = new ArrayList<>();
+            dataList.add((HashMap<String, Object>) data);
+            tempList = dataList;
+        }
+        HashMap<String, Object> resMap = new HashMap<>();
+        resMap.put("code", 200);
+        resMap.put("data", tempList);
+        resMap.put("msg", "success");
+        result = objectMapper.valueToTree(resMap).toString();
         return result;
     }
 

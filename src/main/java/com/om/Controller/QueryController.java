@@ -219,9 +219,10 @@ public class QueryController {
             @RequestParam(value = "sig", required = false) String sig,
             @RequestParam(value = "repo", required = false) String repo,
             @RequestParam(value = "user", required = false) String user,
+            @RequestParam(value = "search", required = false) String search,
             @RequestParam(value = "page", required = false) String page,
             @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
-        String res = queryService.querySigInfo(community, sig, repo, user, page, pageSize);
+        String res = queryService.querySigInfo(community, sig, repo, user, search, page, pageSize);
         return res;
     }
 
