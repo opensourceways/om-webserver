@@ -333,6 +333,7 @@ public class QueryController {
         return res;
     }
 
+    @AuthingToken
     @RequestMapping("/user/sigcontribute")
     public String queryUserSigcontribute(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user, 
                                         @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
@@ -346,6 +347,7 @@ public class QueryController {
         return res;
     }
 
+    @AuthingToken
     @RequestMapping("/user/contribute/details")
     public String queryUserContributeDetails(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user,
                                       @RequestParam(value = "sig", required = false) String sig,

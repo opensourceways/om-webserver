@@ -3597,6 +3597,7 @@ public class QueryDao {
           
             ArrayList<Object> dataList = new ArrayList<>();
             ArrayList<String> committerList = new ArrayList<>();
+            ArrayList<String> committerRepoList = new ArrayList<>();
             
             while(buckets.hasNext()){
                 JsonNode bucket = buckets.next();
@@ -3613,11 +3614,29 @@ public class QueryDao {
                 dataMap.put("repo", repo);
                 dataMap.put("gitee_id", userlist);
                 dataList.add(dataMap);
+                committerRepoList.add(repo);
             }
             Set<String> set = new HashSet<>();
             set.addAll(committerList);
             ArrayList<String> committers = new ArrayList<>();         
             committers.addAll(set);
+
+            String res = querySigRepo(community, sig);
+            JsonNode resNode = objectMapper.readTree(res);
+            if (resNode.get("code").asInt() == 200 && resNode.get("data").size() != 0) {
+                Iterator<JsonNode> repos = resNode.get("data").elements();
+                while (repos.hasNext()) {
+                    String repo = repos.next().asText();
+                    if (committerRepoList.contains(repo)) {
+                        continue;
+                    }
+                    HashMap<String, Object> dataMap = new HashMap<>();
+                    ArrayList<String> nulllist = new ArrayList<>();
+                    dataMap.put("repo", repo);
+                    dataMap.put("gitee_id", nulllist);
+                    dataList.add(dataMap);
+                }
+            }
 
             HashMap<String, Object> resData = new HashMap<>();
             String siginfo = querySigInfo(community, sig);
