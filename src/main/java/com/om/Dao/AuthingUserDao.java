@@ -1,13 +1,13 @@
 package com.om.Dao;
 
 import cn.authing.core.auth.AuthenticationClient;
+import cn.authing.core.graphql.GraphQLException;
 import cn.authing.core.mgmt.ManagementClient;
-import cn.authing.core.types.AuthorizedResource;
-import cn.authing.core.types.PaginatedAuthorizedResources;
-import cn.authing.core.types.User;
+import cn.authing.core.types.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -29,11 +29,22 @@ public class AuthingUserDao {
     @Value("${authing.app.fuxi.secret}")
     String omAppSecret;
 
+    public static ManagementClient managementClient;
+
+    public static AuthenticationClient authentication;
+
+    @PostConstruct
+    public void init() {
+        managementClient = new ManagementClient(userPoolId, secret);
+        authentication = new AuthenticationClient(omAppId, omAppHost);
+        authentication.setSecret(omAppSecret);
+    }
+
     public Map getUserInfoByAccessToken(String code) {
         try {
             // 初始化
-            AuthenticationClient authentication = new AuthenticationClient(omAppId, omAppHost);
-            authentication.setSecret(omAppSecret);
+//            AuthenticationClient authentication = new AuthenticationClient(omAppId, omAppHost);
+//            authentication.setSecret(omAppSecret);
 
             // code换access_token
             Map res = (Map) authentication.getAccessTokenByCode(code).execute();
@@ -51,9 +62,9 @@ public class AuthingUserDao {
 
     public User getUser(String userId) {
         try {
-            ManagementClient managementClient = new ManagementClient(userPoolId, secret);
+//            ManagementClient managementClient = new ManagementClient(userPoolId, secret);
             return managementClient.users().detail(userId, true, true).execute();
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
@@ -61,7 +72,7 @@ public class AuthingUserDao {
 
     public boolean checkUserPermission(String userId, String groupCode, String resourceCode, String resourceAction) {
         try {
-            ManagementClient managementClient = new ManagementClient(userPoolId, secret);
+//            ManagementClient managementClient = new ManagementClient(userPoolId, secret);
             PaginatedAuthorizedResources pars = managementClient.users().listAuthorizedResources(userId, groupCode).execute();
             if (pars.getTotalCount() <= 0) {
                 return false;
@@ -77,6 +88,17 @@ public class AuthingUserDao {
             }
 
             return false;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean checkLoginStatusOnAuthing(User user) {
+        try {
+            authentication.setCurrentUser(user);
+            JwtTokenStatus execute = authentication.checkLoginStatus().execute();
+            return execute.getStatus();
         } catch (Exception e) {
             e.printStackTrace();
             return false;
