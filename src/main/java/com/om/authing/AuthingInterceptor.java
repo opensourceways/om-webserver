@@ -120,11 +120,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
                     }
 
                     // 判断用户在Authing端是否已经退出
-                    AuthenticationClient authentication = new AuthenticationClient(omAppId, omAppHost);
-                    authentication.setSecret(omAppSecret);
-                    authentication.setCurrentUser(user);
-                    JwtTokenStatus execute = authentication.checkLoginStatus().execute();
-                    Boolean status = execute.getStatus();
+                    boolean status = authingUserDao.checkLoginStatusOnAuthing(user);
                     if (!status) {
                         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "unauthorized");
                         return false;
