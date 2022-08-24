@@ -79,10 +79,10 @@ public class AuthingService {
     }
 
 
-    public ResponseEntity tokenApply(String community, String code, String permission) {
+    public ResponseEntity tokenApply(String community, String code, String permission, String redirectUrl) {
         try {
             // 通过code获取access_token，再通过access_token获取用户
-            Map user = authingUserDao.getUserInfoByAccessToken(code);
+            Map user = authingUserDao.getUserInfoByAccessToken(code, redirectUrl);
             if (user == null) return result(HttpStatus.UNAUTHORIZED, "user not found", null);
             String userId = user.get("sub").toString();
             String idToken = user.get("id_token").toString();

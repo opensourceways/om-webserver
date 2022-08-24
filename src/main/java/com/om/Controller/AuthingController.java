@@ -29,7 +29,8 @@ public class AuthingController {
     @RequestMapping(value = "/token/apply")
     public ResponseEntity tokenApply(@RequestParam(value = "community") String community,
                                      @RequestParam(value = "code") String code,
-                                     @RequestParam(value = "permission") String permission) {
-        return authingService.tokenApply(community, code, permission);
+                                     @RequestParam(value = "permission") String permission,
+                                     @RequestParam(value = "redirect") String redirect) {
+        return authingService.tokenApply(community, code, permission, redirect);
     }
 }

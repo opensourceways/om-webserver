@@ -40,13 +40,14 @@ public class AuthingUserDao {
         authentication.setSecret(omAppSecret);
     }
 
-    public Map getUserInfoByAccessToken(String code) {
+    public Map getUserInfoByAccessToken(String code, String redirectUrl) {
         try {
             // 初始化
 //            AuthenticationClient authentication = new AuthenticationClient(omAppId, omAppHost);
 //            authentication.setSecret(omAppSecret);
 
             // code换access_token
+            authentication.setRedirectUri(redirectUrl);
             Map res = (Map) authentication.getAccessTokenByCode(code).execute();
             String access_token = res.get("access_token").toString();
 
@@ -55,6 +56,7 @@ public class AuthingUserDao {
             user.put("id_token", res.get("id_token").toString());
             return user;
         } catch (Exception ex) {
+            ex.printStackTrace();
             return null;
         }
 
