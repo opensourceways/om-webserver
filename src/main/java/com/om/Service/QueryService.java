@@ -5,8 +5,13 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.parser.Feature;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
+import com.om.Utils.PageUtils;
 import com.om.Utils.StringDesensitizationUtils;
 import com.om.Utils.StringValidationUtil;
 import com.om.Vo.*;
@@ -641,13 +646,21 @@ public class QueryService {
         return result;
     }
 
-    public String querySigInfo(String community, String sig) {
+    public String querySigInfo(String community, String sig, String repo, String user, String search, String page, String pageSize) 
+            throws JsonMappingException, JsonProcessingException {
+        if (search != null && search.equals("fuzzy")){
+            return queryFuzzySigInfo(community, sig, repo, user, search, page, pageSize);
+        }
+        return querySigInfo(community, sig);
+    }
+
+    public String querySigInfo(String community, String sig) throws JsonMappingException, JsonProcessingException {
         String key = community + sig + "siginfo";
-        String result;        
+        String result = null;
         result = (String) redisDao.get(key);
         if (result == null) {
-            //查询数据库，更新redis 缓存。
-            result = queryDao.querySigInfo(community, sig);           
+            // 查询数据库，更新redis 缓存。
+            result = queryDao.querySigInfo(community, sig);
             boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
             if (set) {
                 System.out.println("update " + key + " success!");
@@ -656,20 +669,90 @@ public class QueryService {
         return result;
     }
 
-    public String querySigRepo(String community, String sig, String timeRange) {
-        String key = community.toLowerCase() + sig + "repo" + timeRange.toLowerCase();
-        String result;
+    public String queryFuzzySigInfo(String community, String sig, String repo, String user, String search, String page, String pageSize) 
+            throws JsonMappingException, JsonProcessingException {
+        String key = community + "allsiginfo";
+        String result = null;
         result = (String) redisDao.get(key);
         if (result == null) {
-            //查询数据库，更新redis 缓存。
+            // 查询数据库，更新redis 缓存。
+            result = queryDao.querySigInfo(community, null);
+            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode all = objectMapper.readTree(result);
+        if (all.get("code").asInt() != 200){
+            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+        }
+        JsonNode res = all.get("data");
+        ArrayList<HashMap<String, Object>> resList = objectMapper.convertValue(res,
+                new TypeReference<ArrayList<HashMap<String, Object>>>() {});      
+        ArrayList<HashMap<String, Object>> tempList = new ArrayList<>();
+        for (HashMap<String, Object> list : resList){
+            String sig_name = list.get("sig_name").toString();
+            ArrayList<String> repos = (ArrayList<String>) list.get("repos");
+            Boolean bool = sig != null && !sig_name.toLowerCase().contains(sig.toLowerCase()) ? false : true;
+            ArrayList<String> maintainers = (ArrayList<String>) list.get("maintainers");
+            if (bool && queryDao.matchList(repos, repo) && queryDao.matchList(maintainers, user)){
+                tempList.add(list);
+            }
+        }
+        if (pageSize != null && page != null) {
+            int currentPage = Integer.parseInt(page);
+            int pagesize = Integer.parseInt(pageSize);
+            Map data = PageUtils.getDataByPage(currentPage, pagesize, tempList);
+            ArrayList<HashMap<String, Object>> dataList = new ArrayList<>();
+            dataList.add((HashMap<String, Object>) data);
+            tempList = dataList;
+        }
+        HashMap<String, Object> resMap = new HashMap<>();
+        resMap.put("code", 200);
+        resMap.put("data", tempList);
+        resMap.put("msg", "success");
+        result = objectMapper.valueToTree(resMap).toString();
+        return result;
+    }
+
+    public String querySigRepo(String community, String sig, String page, String pageSize)
+            throws JsonMappingException, JsonProcessingException {
+        String key = community.toLowerCase() + sig + "repo";
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
             try {
-                result = queryDao.querySigRepo(community, sig, timeRange);
+                result = queryDao.querySigRepo(community, sig);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            boolean set = redisDao.set(key, result,
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
+            }
+        }
+        if (pageSize != null && page != null) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode all = objectMapper.readTree(result);
+            if (all.get("data") != null) {
+                JsonNode res = all.get("data");
+                ArrayList<String> resList = objectMapper.convertValue(res,
+                        new TypeReference<ArrayList<String>>() {
+                        });
+
+                int currentPage = Integer.parseInt(page);
+                int pagesize = Integer.parseInt(pageSize);
+                Map data = PageUtils.getDataByPage(currentPage, pagesize, resList);
+                ArrayList<HashMap<String, Object>> dataList = new ArrayList<>();
+                dataList.add((HashMap<String, Object>) data);
+                HashMap<String, Object> resMap = new HashMap<>();
+                resMap.put("code", 200);
+                resMap.put("data", dataList);
+                resMap.put("msg", "success");
+                result = objectMapper.valueToTree(dataList).toString();
             }
         }
         return result;
@@ -716,13 +799,34 @@ public class QueryService {
 
     public String queryCompanyUsercontribute(String community, String company, String contributeType,
             String timeRange) {
-        String key = community.toLowerCase() + company + "usertypecontribute_" + contributeType + timeRange.toLowerCase();
+        String key = community.toLowerCase() + company + "usertypecontribute_" + contributeType.toLowerCase() + timeRange.toLowerCase();
         String result = null;
         result = (String) redisDao.get(key);
         if (result == null) {
             // 查询数据库，更新redis 缓存。
             try {
                 result = queryDao.queryGroupUserContributors(community, "company", company, contributeType, timeRange);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result,
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryCompanySigcontribute(String community, String company, String contributeType,
+            String timeRange) {
+        String key = community.toLowerCase() + company + "sigtypecontribute_" + contributeType.toLowerCase() + timeRange.toLowerCase();
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryGroupSigcontribute(community, company, "company", contributeType, timeRange);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -755,7 +859,7 @@ public class QueryService {
     }
 
     public String querySigUserTypeCount(String community, String sig, String contributeType, String timeRange) {
-        String key = community.toLowerCase() + sig + "usertypecontribute_" + contributeType + timeRange.toLowerCase();
+        String key = community.toLowerCase() + sig + "usertypecontribute_" + contributeType.toLowerCase()  + timeRange.toLowerCase();
         String result = null;      
         result = (String) redisDao.get(key);
         if (result == null) {
@@ -892,5 +996,159 @@ public class QueryService {
         return result;
     }
 
+    public String querySigsOfTCOwners(String community) {
+        String key = community.toLowerCase() + "sigs_of_tc_owners";
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.querySigsOfTCOwners(community);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+            System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryUserSigcontribute(String community, String user, String contributeType,
+            String timeRange) {
+        String key = community.toLowerCase() + user + "sigtypecontribute_" + contributeType.toLowerCase() + timeRange.toLowerCase();
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryGroupSigcontribute(community, user, "user", contributeType, timeRange);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result,
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryUserOwnertype(String community, String user) throws JsonMappingException, JsonProcessingException {
+        String key = community.toLowerCase() + "all" + "ownertype";
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryAllUserOwnertype(community);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result,
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode all = objectMapper.readTree(result);
+        if (all.get("data").get(user.toLowerCase()) != null) {
+            JsonNode userData = all.get("data").get(user.toLowerCase());
+            result = objectMapper.valueToTree(userData).toString();
+        }
+        result = "{\"code\":200,\"data\":" + result + ",\"msg\":\"ok\"}";
+        return result;
+    }
+
+    public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
+            String timeRange, String lastCursor, String pageSize) throws JsonMappingException, JsonProcessingException {
+        String result = null;
+        Integer totalCount = 0;
+        if (pageSize == null) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            String res = saveUserCountDetails(community, sig, contributeType, timeRange);
+            JsonNode all = objectMapper.readTree(res);
+            if (all.get("data").get(user) != null){
+                JsonNode userData = all.get("data").get(user);
+                totalCount = userData.size();
+                result = objectMapper.valueToTree(userData).toString();
+            }           
+            result = "{\"code\":200,\"data\":" + result + ",\"totalCount\":" + totalCount + ",\"msg\":\"ok\"}";
+        }
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange,
+                        lastCursor, pageSize, env);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return result;
+    }
+
+    public String saveUserCountDetails(String community, String sig, String contributeType, String timeRange) {
+        String key = community.toLowerCase() + sig + contributeType.toLowerCase() + timeRange.toLowerCase();
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryUserContributeDetails(community, "*", sig, contributeType, timeRange, null, null,
+                        env);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result,
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryUserLists(String community, String group, String name) {
+        String key = community.toLowerCase() + group + name + "userlist";
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryUserLists(community, group, name);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result,
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String querySigRepoCommitters(String community, String sig) {
+        String key = community.toLowerCase() + sig + "committers";
+        String result = null;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.querySigRepoCommitters(community, sig);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result,
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
 }
 
