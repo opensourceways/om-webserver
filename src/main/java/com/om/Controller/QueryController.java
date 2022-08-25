@@ -1,6 +1,7 @@
 package com.om.Controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.om.Service.QueryService;
 import com.om.Vo.*;
 import com.om.authing.AuthingToken;
@@ -214,15 +215,23 @@ public class QueryController {
     }
 
     @RequestMapping("/sig/info")
-    public String querySigInfo(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig) {
-        String res = queryService.querySigInfo(community, sig);
+    public String querySigInfo(@RequestParam(value = "community") String community,
+            @RequestParam(value = "sig", required = false) String sig,
+            @RequestParam(value = "repo", required = false) String repo,
+            @RequestParam(value = "user", required = false) String user,
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "page", required = false) String page,
+            @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
+        String res = queryService.querySigInfo(community, sig, repo, user, search, page, pageSize);
         return res;
     }
 
     @RequestMapping("/sig/repo")
-    public String querySigRepo(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig,
-                                        @RequestParam(value = "timeRange") String timeRange) {
-        String res = queryService.querySigRepo(community, sig, timeRange);
+    public String querySigRepo(@RequestParam(value = "community") String community,
+            @RequestParam(value = "sig", required = false) String sig,
+            @RequestParam(value = "page", required = false) String page,
+            @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
+        String res = queryService.querySigRepo(community, sig, page, pageSize);
         return res;
     }
 
@@ -242,6 +251,7 @@ public class QueryController {
         return res;
     }
 
+    @AuthingToken
     @RequestMapping("/company/usercontribute")
     public String queryCompanyUsercontribute(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
                                         @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
@@ -249,6 +259,15 @@ public class QueryController {
         return res;
     }
 
+    @AuthingToken
+    @RequestMapping("/company/sigcontribute")
+    public String queryCompanySigcontribute(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
+                                        @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.queryCompanySigcontribute(community, company, contributeType, timeRange);
+        return res;
+    }
+
+    @AuthingToken
     @RequestMapping("/company/sigdetails")
     public String queryCompanySigDetails(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
                                @RequestParam(value = "timeRange") String timeRange) {
@@ -264,6 +283,7 @@ public class QueryController {
         return res;
     }
 
+    @AuthingToken
     @RequestMapping("/company/users")
     public String queryCompanyUsers(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
                                @RequestParam(value = "timeRange") String timeRange) {
@@ -300,9 +320,54 @@ public class QueryController {
         return res;
     }
 
+    @AuthingToken
     @RequestMapping("/company/sigs")
     public String queryCompanySigs(@RequestParam(value = "community") String community, @RequestParam(value = "timeRange") String timeRange) {
         String res = queryService.queryCompanySigs(community, timeRange);
+        return res;
+    }
+
+    @RequestMapping("/TC/sigs")
+    public String querySigsOfTCOwners(@RequestParam(value = "community") String community) {
+        String res = queryService.querySigsOfTCOwners(community);
+        return res;
+    }
+
+    @AuthingToken
+    @RequestMapping("/user/sigcontribute")
+    public String queryUserSigcontribute(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user, 
+                                        @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
+        String res = queryService.queryUserSigcontribute(community, user, contributeType, timeRange);
+        return res;
+    }
+
+    @RequestMapping("/user/ownertype")
+    public String queryUserOwnertype(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user) throws JsonMappingException, JsonProcessingException {
+        String res = queryService.queryUserOwnertype(community, user);
+        return res;
+    }
+
+    @AuthingToken
+    @RequestMapping("/user/contribute/details")
+    public String queryUserContributeDetails(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user,
+                                      @RequestParam(value = "sig", required = false) String sig,
+                                      @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange,
+                                      @RequestParam(value = "lastCursor", required = false) String lastCursor,
+                                      @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
+        String res = queryService.queryUserContributeDetails(community, user, sig, contributeType, timeRange, lastCursor, pageSize);
+        return res;
+    }
+
+    @RequestMapping("/userlist")
+    public String queryUserLists(@RequestParam(value = "community") String community, @RequestParam(value = "group") String group,
+                                      @RequestParam(value = "name") String name) {
+        String res = queryService.queryUserLists(community, group, name);
+        return res;
+    }
+
+    @RequestMapping("/sig/repo/committers")
+    public String querySigRepoCommitters(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig) {
+        String res = queryService.querySigRepoCommitters(community, sig);
         return res;
     }
 }

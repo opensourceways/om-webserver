@@ -2,6 +2,7 @@ package com.om.Modules;
 
 import org.springframework.stereotype.Repository;
 
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -84,6 +85,69 @@ public class openComObject {
     protected String AllCompanySigsQueryStr;
     protected String all_sig_score_queryStr;
     protected String sig_info_queryStr;
+    protected String user_owns_sigs_Str;
+    protected String tc_owner_url;
+    protected String group_agg_sig_queryStr;
+    protected String user_owner_type_queryStr;
+    protected String UserListQueryStr;
+    protected String SigRepoCommittersQueryStr;
+    protected String all_user_owner_type_queryStr;
+
+    public String getall_user_owner_type_queryStr() {
+        return all_user_owner_type_queryStr;
+    }
+
+    public void setall_user_owner_type_queryStr(String all_user_owner_type_queryStr) {
+        this.all_user_owner_type_queryStr = all_user_owner_type_queryStr;
+    }
+
+    public String getSigRepoCommittersQueryStr() {
+        return SigRepoCommittersQueryStr;
+    }
+
+    public void setSigRepoCommittersQueryStr(String SigRepoCommittersQueryStr) {
+        this.SigRepoCommittersQueryStr = SigRepoCommittersQueryStr;
+    }
+
+    public String getUserListQueryStr() {
+        return UserListQueryStr;
+    }
+
+    public void setUserListQueryStr(String UserListQueryStr) {
+        this.UserListQueryStr = UserListQueryStr;
+    }
+
+    public String getuser_owner_type_queryStr() {
+        return user_owner_type_queryStr;
+    }
+
+    public void setuser_owner_type_queryStr(String user_owner_type_queryStr) {
+        this.user_owner_type_queryStr = user_owner_type_queryStr;
+    }
+
+    public String getgroup_agg_sig_queryStr() {
+        return group_agg_sig_queryStr;
+    }
+
+    public void setgroup_agg_sig_queryStr(String group_agg_sig_queryStr) {
+        this.group_agg_sig_queryStr = group_agg_sig_queryStr;
+    }
+
+    public String getuser_owns_sigs_Str() {
+        return user_owns_sigs_Str;
+    }
+
+    public void setuser_owns_sigs_Str(String user_owns_sigs_Str) {
+        this.user_owns_sigs_Str = user_owns_sigs_Str;
+    }
+ 
+    public String gettc_owner_url() {
+        return tc_owner_url;
+    }
+
+    public void settc_owner_url(String tc_owner_url) {
+        this.tc_owner_url = tc_owner_url;
+    }
 
     public String getall_sig_score_queryStr() {
         return all_sig_score_queryStr;
@@ -758,7 +822,7 @@ public class openComObject {
         return c.getTimeInMillis();
     }
 
-    public String getAggSigRepoQueryStr(String timeRange, String sig) {
+    public String getAggSigRepoQueryStr(String sig) {
         String queryStr;
         String queryJson;
         queryJson = getSigRepoQueryStr();
@@ -835,6 +899,27 @@ public class openComObject {
         return queryStr;
     }
 
+     public String getAggGroupSigCountQueryStr(String queryJson, String contributeType, String timeRange, String group, String field) {
+        String queryStr;    
+        long currentTimeMillis = System.currentTimeMillis();
+        long lastTimeMillis = getPastTime(timeRange);
+
+        switch (contributeType.toLowerCase()) {
+            case "pr":
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, field, group, "is_pull_state_merged");
+                break;
+            case "issue":
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, field, group, "is_gitee_issue");
+                break;
+            case "comment":
+                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, field, group, "is_gitee_comment");
+                break;
+            default:
+                return null;
+        }
+        return queryStr;
+    }   
+
     public String getSigScoreQuery(String queryJson, String timeRange, String sig) {
         if (queryJson == null) {
             System.out.println("QueryStr is null...");
@@ -854,6 +939,53 @@ public class openComObject {
         long currentTimeMillis = System.currentTimeMillis();
         long lastTimeMillis = getPastTime(timeRange);
         String queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis);
+        return queryStr;
+    }
+
+    public ArrayList<Object> getAggUserCountQueryParams(String contributeType, String timeRange) {
+        long currentTimeMillis = System.currentTimeMillis();
+        long lastTimeMillis = getPastTime(timeRange);
+        ArrayList<Object> list = new ArrayList<>();
+        list.add(contributeType);
+        list.add(lastTimeMillis);
+        list.add(currentTimeMillis);
+        switch (contributeType.toLowerCase()) {
+            case "pr":
+                list.add("is_pull_state_merged");
+                list.add("pull_title");
+                list.add("pull_url");
+                list.add("pull_id_in_repo");   
+                break;
+            case "issue":
+                list.add("is_gitee_issue");
+                list.add("issue_title");
+                list.add("issue_url");
+                list.add("issue_id_in_repo");
+                break;
+            case "comment":
+                list.add("is_gitee_comment");
+                list.add("body");
+                list.add("sub_type");
+                list.add("id");                
+                break;
+            default:
+                return null;
+        }
+        return list;
+    }
+
+    public String getAggUserListQueryStr(String queryJson, String group, String name) {
+        String queryStr;
+        switch (group) {
+            case "sig":
+                queryStr = String.format(queryJson, "sig_names.keyword", name);
+                break;
+            case "company":
+                queryStr = String.format(queryJson, "tag_user_company.keyword", name);
+                break;
+            default:
+                return null;
+        }
         return queryStr;
     }
 }
