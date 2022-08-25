@@ -73,6 +73,9 @@ public class QueryDao {
     @Value("${company.name.yaml}")
     String companyNameYaml;
 
+    @Value("${company.name.local.yaml}")
+    String companyNameLocalYaml;
+
     @Value("${community.partners.yaml}")
     String communityPartnersYaml;
 
@@ -1457,7 +1460,7 @@ public class QueryDao {
 
         try {
             List<String> claCompanys = queryClaCompany(claIndex);
-            List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml);
+            List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml, companyNameLocalYaml);
             Map<String, String> companyNameCnEn = companys.get(0);
             Map<String, String> companyNameAlCn = companys.get(1);
 
@@ -1686,9 +1689,10 @@ public class QueryDao {
         return companys;
     }
 
-    private List<Map<String, String>> getCompanyNameCnEn(String yamlFile) {
+    private List<Map<String, String>> getCompanyNameCnEn(String yamlFile, String localYamlPath) throws Exception {
         YamlUtil yamlUtil = new YamlUtil();
-        CompanyYaml companies = yamlUtil.readUrlYaml(yamlFile, CompanyYaml.class);
+        String localFile = yamlUtil.wget(yamlFile, localYamlPath);
+        CompanyYaml companies = yamlUtil.readLocalYaml(localFile, CompanyYaml.class);
         System.out.println(companies);
 
         HashMap<String, String> company_enMap = new HashMap<>();
@@ -2295,7 +2299,7 @@ public class QueryDao {
             HashMap<String, Object> dataMap = new HashMap<>();
             List<String> companyList = new ArrayList<>();
             companyList = queryClaCompany(index);
-            List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml);
+            List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml, companyNameLocalYaml);
             Map<String, String> companyNameCnEn = companys.get(0);
             Map<String, String> companyNameAlCn = companys.get(1);
             List<HashMap<String, Object>> companyNameList = new ArrayList<>();
@@ -3161,7 +3165,7 @@ public class QueryDao {
 
         try {
             List<String> claCompanys = queryClaCompany(claIndex);
-            List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml);
+            List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml, companyNameLocalYaml);
             Map<String, String> companyNameCnEn = companys.get(0);
             Map<String, String> companyNameAlCn = companys.get(1);
 

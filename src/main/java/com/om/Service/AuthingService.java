@@ -50,6 +50,7 @@ public class AuthingService {
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("photo", user.getPhoto());
             userData.put("permissions", permissions);
+            userData.put("username", user.getUsername());
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             e.printStackTrace();
@@ -87,6 +88,7 @@ public class AuthingService {
             String userId = user.get("sub").toString();
             String idToken = user.get("id_token").toString();
             String picture = user.get("picture").toString();
+            String username = user.get("username").toString();
 
             // 资源权限
             String permissionInfo = env.getProperty(community + "." + permission);
@@ -98,6 +100,7 @@ public class AuthingService {
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("token", token);
             userData.put("photo", picture);
+            userData.put("username", username);
             return result(HttpStatus.OK, "success", userData);
 
         } catch (Exception e) {

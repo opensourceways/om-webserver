@@ -2,6 +2,9 @@ package com.om.Dao;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.TreeNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.elasticsearch.common.inject.spi.PrivateElements;
@@ -28,6 +31,8 @@ public class RedisDao {
     @Autowired
     protected StringRedisTemplate redisTemplate;
 
+    static ObjectMapper objectMapper = new ObjectMapper();
+
     /**
      * 功能描述: <br>
      * 〈设置key的有效期〉
@@ -42,6 +47,7 @@ public class RedisDao {
     public boolean set(final String key, String value, Long expire) {
         boolean result = false;
         try {
+            if (!checkValue(value)) return false;
             redisTemplate.setValueSerializer(new GzipSerializer(getJsonserializer()));
             ValueOperations operations = redisTemplate.opsForValue();
             operations.set(key, value);
@@ -114,7 +120,8 @@ public class RedisDao {
         }
         return result;
     }
-     class GzipSerializer implements RedisSerializer<Object> {
+
+    class GzipSerializer implements RedisSerializer<Object> {
 
         public static final int BUFFER_SIZE = 4096;
         // 这里组合方式，使用到了一个序列化器
@@ -182,12 +189,25 @@ public class RedisDao {
             }
         }
     }
-    private RedisSerializer getJsonserializer(){
+
+    private RedisSerializer getJsonserializer() {
         Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);
         ObjectMapper om = new ObjectMapper();
         om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
         om.enableDefaultTyping(ObjectMapper.DefaultTyping.NON_FINAL);
         jackson2JsonRedisSerializer.setObjectMapper(om);
         return jackson2JsonRedisSerializer;
+    }
+
+    private boolean checkValue(String value) {
+        JsonNode dataNode;
+        try {
+            dataNode = objectMapper.readTree(value);
+            int code = dataNode.get("code").intValue();
+            return code == 200;
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }
