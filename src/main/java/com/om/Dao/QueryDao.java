@@ -2090,7 +2090,7 @@ public class QueryDao {
                 index = "test_tracker";
                 break; 
             default:
-                return "{\"code\":" + 404 + ",\"data\":{\"index: error!\"},\"msg\":\"not Found!\"}";
+                return "{\"code\":" + 404 + ",\"community\":" + community + ",\"data\":{\"index: error!\"},\"msg\":\"not Found!\"}";
         }
         String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
         String host = env.getProperty("es.host");
@@ -2111,11 +2111,14 @@ public class QueryDao {
         resMap.put("created_at", nowStr);
         request.add(new IndexRequest(index, "_doc", id).source(resMap));
 
-        if (request.requests().size() != 0)
+        if (request.requests().size() != 0){
+            System.out.println(community);
+            System.out.println(resMap);
             restHighLevelClient.bulk(request, RequestOptions.DEFAULT);
+        }         
         restHighLevelClient.close();
 
-        String res = "{\"code\":200,\"track_id\":" + id + ",\"msg\":\"collect over\"}";
+        String res = "{\"code\":200,\"track_id\":" + id + ",\"community\":" + community + ",\"msg\":\"collect over\"}";
         return res;
     }
 
