@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.*;
 
 @Service
@@ -83,7 +85,7 @@ public class AuthingService {
     public ResponseEntity tokenApply(String community, String code, String permission, String redirectUrl) {
         try {
             // 通过code获取access_token，再通过access_token获取用户
-            Map user = authingUserDao.getUserInfoByAccessToken(code, redirectUrl);
+            Map user = authingUserDao.getUserInfoByAccessToken(code, URLDecoder.decode(redirectUrl, "UTF-8"));
             if (user == null) return result(HttpStatus.UNAUTHORIZED, "user not found", null);
             String userId = user.get("sub").toString();
             String idToken = user.get("id_token").toString();
