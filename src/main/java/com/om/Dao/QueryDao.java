@@ -82,6 +82,12 @@ public class QueryDao {
     @Value("${skip.robot.user}")
     String robotUser;
 
+    @Value("${producer.topic.tracker}")
+    String topicTracker;
+
+    @Autowired
+    KafkaDao kafkaDao;
+
     static ObjectMapper objectMapper = new ObjectMapper();
     @Autowired
     openEuler openEuler;
@@ -2096,14 +2102,15 @@ public class QueryDao {
             default:
                 return "{\"code\":" + 404 + ",\"community\":" + community + ",\"data\":{\"index: error!\"},\"msg\":\"not Found!\"}";
         }
-        String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
+        /*String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
         String host = env.getProperty("es.host");
         int port = Integer.parseInt(env.getProperty("es.port", "9200"));
         String scheme = env.getProperty("es.scheme");
         String esUser = userpass[0];
         String password = userpass[1];
         RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
-        BulkRequest request = new BulkRequest();
+        BulkRequest request = new BulkRequest();*/
+
         String sdata = new String(Base64.getDecoder().decode(data));
         JsonNode userVo = objectMapper.readTree(sdata);
         Date now = new Date();
@@ -2113,14 +2120,17 @@ public class QueryDao {
 
         HashMap<String, Object> resMap = objectMapper.convertValue(userVo, HashMap.class);
         resMap.put("created_at", nowStr);
-        request.add(new IndexRequest(index, "_doc", id).source(resMap));
+        resMap.put("community", community);
 
+        kafkaDao.sendMess(topicTracker, id, objectMapper.valueToTree(resMap).toString());
+
+        /*request.add(new IndexRequest(index, "_doc", id).source(resMap));
         if (request.requests().size() != 0){
             System.out.println(community);
             System.out.println(resMap);
             restHighLevelClient.bulk(request, RequestOptions.DEFAULT);
         }         
-        restHighLevelClient.close();
+        restHighLevelClient.close();*/
 
         String res = "{\"code\":200,\"track_id\":" + id + ",\"community\":" + community + ",\"msg\":\"collect over\"}";
         return res;
