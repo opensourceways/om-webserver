@@ -202,6 +202,7 @@ public class RedisDao {
     private boolean checkValue(String value) {
         JsonNode dataNode;
         try {
+            if (!value.startsWith("{")) return true;
             dataNode = objectMapper.readTree(value);
             int code = dataNode.get("code").intValue();
             return code == 200;
