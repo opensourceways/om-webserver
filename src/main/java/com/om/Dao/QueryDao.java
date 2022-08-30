@@ -1495,7 +1495,7 @@ public class QueryDao {
 //                    continue;
 //                }
                 if (!claCompanys.contains(company) || contribute == 0 ||
-                        company.contains("软通动力") ||
+//                        company.contains("软通动力") ||
                         company.contains("中软国际") ||
                         company.contains("易宝软件") ||
                         company.contains("华为合作方")) {
@@ -3192,8 +3192,11 @@ public class QueryDao {
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 String company = bucket.get("key").asText();
-                if (!claCompanys.contains(company) || company.contains("软通动力") || company.contains("中软国际") ||
-                        company.contains("易宝软件") || company.contains("华为合作方")) {
+                if (!claCompanys.contains(company) ||
+//                        company.contains("软通动力") ||
+                        company.contains("中软国际") ||
+                        company.contains("易宝软件") ||
+                        company.contains("华为合作方")) {
                     continue;
                 }
                 Iterator<JsonNode> its = bucket.get("sigs").get("buckets").elements();
