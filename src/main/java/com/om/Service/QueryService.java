@@ -685,7 +685,7 @@ public class QueryService {
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode all = objectMapper.readTree(result);
         if (all.get("code").asInt() != 200){
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
         JsonNode res = all.get("data");
         ArrayList<HashMap<String, Object>> resList = objectMapper.convertValue(res,
@@ -700,6 +700,15 @@ public class QueryService {
                 tempList.add(list);
             }
         }
+
+        Collections.sort(tempList, new Comparator<HashMap<String, Object>>() {
+            @Override
+            public int compare(HashMap<String, Object> t1, HashMap<String, Object> t2) {
+                return t1.get("sig_name").toString().toLowerCase()
+                        .compareTo(t2.get("sig_name").toString().toLowerCase());
+            }
+        });
+
         if (pageSize != null && page != null) {
             int currentPage = Integer.parseInt(page);
             int pagesize = Integer.parseInt(pageSize);
