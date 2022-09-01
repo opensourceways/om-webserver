@@ -2180,7 +2180,7 @@ public class QueryDao {
 
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
     
@@ -2229,7 +2229,7 @@ public class QueryDao {
 
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
 
@@ -2255,7 +2255,7 @@ public class QueryDao {
                 queryStr = mindSpore.getAggSigRepoQueryStr(sig);
                 break;
             default:
-                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
 
         try {
@@ -2284,7 +2284,7 @@ public class QueryDao {
             return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
 
@@ -2335,7 +2335,7 @@ public class QueryDao {
 
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
 
@@ -2361,7 +2361,7 @@ public class QueryDao {
                 queryStr = mindSpore.getAggCompanyUserQueryStr(timeRange, company);
                 break;
             default:
-                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
 
         try {
@@ -2402,7 +2402,7 @@ public class QueryDao {
             return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
 
@@ -2422,13 +2422,13 @@ public class QueryDao {
         }
         HashMap<String, ArrayList<Integer>> sigMetricsList = commonCompany(gitee_index, queryStrs);
         if (sigMetricsList == null) {
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
         Iterator<String> sigAll = sigMetricsList.keySet().iterator();
 
         HashMap<String, Integer> companyContriList = queryCompanyContribute(community, company, timeRange);
         if (companyContriList == null) {
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"queryCompanyContribute error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"queryCompanyContribute error\"}";
         }
         Set<String> sigCon = companyContriList.keySet();
         while (sigAll.hasNext()) {
@@ -2442,7 +2442,7 @@ public class QueryDao {
 
         HashMap<String, ArrayList<Integer>> companyMeetingList = queryCompanyMeetings(community, company, timeRange);
         if (companyMeetingList == null) {
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"queryCompanyMeetings error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"queryCompanyMeetings error\"}";
         }
         Set<String> sigMeeting = companyMeetingList.keySet();
         sigAll = sigMetricsList.keySet().iterator();
@@ -2460,7 +2460,7 @@ public class QueryDao {
 
         HashMap<String, Integer> maintainersList = queryCompanyMaintainers(community, company, timeRange);
         if (maintainersList==null){
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"queryCompanyMaintainers error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"queryCompanyMaintainers error\"}";
         }
         Set<String> sigMain = maintainersList.keySet();
         sigAll = sigMetricsList.keySet().iterator();
@@ -2722,7 +2722,7 @@ public class QueryDao {
                 queryJson = openGauss.getAllSigsOwnerType();
                 break;
             default:
-                System.out.println("{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}");
+                System.out.println("{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}");
                 return null;
         }
         if (queryJson == null) {
@@ -2774,7 +2774,7 @@ public class QueryDao {
             return resNode;
         } catch (Exception e) {
             e.printStackTrace();
-            System.out.println("{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}");
+            System.out.println("{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}");
             return null;
         }
     }
@@ -2935,7 +2935,7 @@ public class QueryDao {
                 index = openGauss.getGiteeAllIndex();
                 break;
             default:
-                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }       
 
         try {
@@ -2967,7 +2967,7 @@ public class QueryDao {
             return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
 
@@ -2992,7 +2992,7 @@ public class QueryDao {
                 index = mindSpore.getContributors_index();
                 break;
             default:
-                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
 
         try {
@@ -3021,7 +3021,7 @@ public class QueryDao {
 
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
 
@@ -3049,7 +3049,7 @@ public class QueryDao {
                 }
                 break;
             default:
-                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
 
         try {
@@ -3086,7 +3086,7 @@ public class QueryDao {
             return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
 
@@ -3103,7 +3103,7 @@ public class QueryDao {
                 index = openEuler.getsig_score_index();
                 break;
             default:
-                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
 
         try {
@@ -3147,7 +3147,7 @@ public class QueryDao {
             return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
 
@@ -3170,7 +3170,7 @@ public class QueryDao {
                 index = openGauss.getGiteeAllIndex();
                 break;
             default:
-                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
 
         try {
@@ -3222,7 +3222,7 @@ public class QueryDao {
             return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
 
@@ -3242,7 +3242,7 @@ public class QueryDao {
                 yamlFile = openGauss.gettc_owner_url();
                 break;
             default:
-                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
         JsonNode TC_owners = querySigOwnerTypeCount(community, "TC");
         Map<String, String> userName = getUserNameCnEn(yamlFile);
@@ -3277,7 +3277,7 @@ public class QueryDao {
                 
             } catch (Exception e) {
                 e.printStackTrace();
-                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
             }
         }
         HashMap<String, Object> resMap = new HashMap<>();
@@ -3401,7 +3401,7 @@ public class QueryDao {
                 index = openGauss.getSigs_index();
                 break;
             default:
-                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
         queryStr = String.format(queryjson, user);
 
@@ -3437,7 +3437,7 @@ public class QueryDao {
             return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
 
@@ -3455,7 +3455,7 @@ public class QueryDao {
                 index = openGauss.getSigs_index();
                 break;
             default:
-                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
 
         try {
@@ -3502,7 +3502,7 @@ public class QueryDao {
             return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
 
@@ -3559,7 +3559,7 @@ public class QueryDao {
                 index = openGauss.getGiteeAllIndex();
                 break;
             default:
-                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
@@ -3584,7 +3584,7 @@ public class QueryDao {
             return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
 
@@ -3602,7 +3602,7 @@ public class QueryDao {
                 index = openGauss.getSigs_index();
                 break;
             default:
-                return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
         try {
             queryStr = String.format(queryjson, sig);
@@ -3675,7 +3675,7 @@ public class QueryDao {
             return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"query error\"},\"msg\":\"query error\"}";
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
 
