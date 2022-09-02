@@ -13,17 +13,42 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class EsQueryUtils {
     private static final int MAXSIZE = 10000;
     private static final int MAXPAGESIZE = 5000;
     private static final ObjectMapper objectMapper = new ObjectMapper();
 
+    public HashMap<String, HashSet<String>>  queryBlueUserEmails(RestHighLevelClient client, String indexname) {
+        SearchRequest request = new SearchRequest(indexname);
+        request.scroll(TimeValue.timeValueMinutes(1));
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        builder.size(MAXSIZE);
+        builder.query(QueryBuilders.matchAllQuery());
+        request.source(builder);
+
+        HashMap<String, HashSet<String>> id2emails = new HashMap<>();
+        try {
+            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            String scrollId = response.getScrollId();
+            for (SearchHit hit : response.getHits().getHits()) {
+                Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+                String id = hit.getId();
+                ArrayList<String> emails = (ArrayList<String>) sourceAsMap.get("emails");
+                HashSet<String> emailSet = new HashSet<>(emails);
+                id2emails.put(id, emailSet);
+            }
+
+            ClearScrollRequest clearScrollRequest = new ClearScrollRequest();
+            clearScrollRequest.addScrollId(scrollId);
+            ClearScrollResponse clearScrollResponse = client.clearScroll(clearScrollRequest, RequestOptions.DEFAULT);
+        } catch (Exception e) {
+            return id2emails;
+        }
+
+        return id2emails;
+    }
 
     public String esScroll(RestHighLevelClient client, String item, String indexname) {
         SearchRequest request = new SearchRequest(indexname);

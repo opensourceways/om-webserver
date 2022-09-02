@@ -923,6 +923,7 @@ public class QueryDao {
     }
 
     public String putBlueZoneUser(BlueZoneUserVo userVo, String item, Environment env) throws NoSuchAlgorithmException, KeyManagementException, IOException {
+        EsQueryUtils esQueryUtils = new EsQueryUtils();
         String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
         String host = env.getProperty("es.host");
         int port = Integer.parseInt(env.getProperty("es.port", "9200"));
@@ -937,6 +938,8 @@ public class QueryDao {
 
         String index = blueZone.getBlueZoneUsersIndex();
         List<BlueZoneUser> users = userVo.getUsers();
+        HashMap<String, HashSet<String>> id2emails = esQueryUtils.queryBlueUserEmails(restHighLevelClient, index);
+
         for (BlueZoneUser user : users) {
             String id;
             if (StringUtils.isNotBlank(user.getGitee_id())) id = user.getGitee_id();
@@ -945,7 +948,18 @@ public class QueryDao {
 
             Map resMap = objectMapper.convertValue(user, Map.class);
             resMap.put("created_at", nowStr);
-            resMap.put("emails", user.getEmail());
+            String email = user.getEmail();
+            List<String> inputEmails = Arrays.asList(email.split(";"));
+
+            HashSet<String> emails = id2emails.getOrDefault(id, new HashSet<>());
+            emails.addAll(inputEmails);
+            ArrayList<String> newEmails = new ArrayList<>(emails);
+
+            if (id2emails.containsKey(id)) {
+                HashSet<String> originalEmails = id2emails.get(id);
+                originalEmails.addAll(inputEmails);
+            }
+            resMap.put("emails", newEmails);
             resMap.remove("email");
             request.add(new IndexRequest(index, "_doc", id).source(resMap));
         }
