@@ -294,13 +294,13 @@ public class QueryDao {
                 index = openEuler.getUsers_index();
                 queryjson = openEuler.getUsers_queryStr();
 
-                String[] indexs = index.split(";");
+                // String[] indexs = index.split(";");
                 String[] queryjsons = queryjson.split(";");
                 double user_count = 0d;
                 int statusCode = 500;
                 String statusText = "请求内部错误";
-                for (int i = 0; i < indexs.length; i++) {
-                    index = indexs[i];
+                for (int i = 0; i < queryjsons.length; i++) {
+                    // index = indexs[i];
                     queryjson = queryjsons[i];
 
                     builder.setUrl(this.url + index + "/_search");
