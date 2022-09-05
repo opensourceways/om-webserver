@@ -966,7 +966,7 @@ public class openComObject {
                 list.add("is_gitee_comment");
                 list.add("body");
                 list.add("sub_type");
-                list.add("id");                
+                list.add("id");              
                 break;
             default:
                 return null;
