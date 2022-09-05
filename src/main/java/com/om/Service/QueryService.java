@@ -1075,18 +1075,7 @@ public class QueryService {
     public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
             String timeRange, String lastCursor, String pageSize) throws JsonMappingException, JsonProcessingException {
         String result = null;
-        Integer totalCount = 0;
-        if (pageSize == null) {
-            ObjectMapper objectMapper = new ObjectMapper();
-            String res = saveUserCountDetails(community, sig, contributeType, timeRange);
-            JsonNode all = objectMapper.readTree(res);
-            if (all.get("data").get(user) != null){
-                JsonNode userData = all.get("data").get(user);
-                totalCount = userData.size();
-                result = objectMapper.valueToTree(userData).toString();
-            }           
-            result = "{\"code\":200,\"data\":" + result + ",\"totalCount\":" + totalCount + ",\"msg\":\"ok\"}";
-        }
+
         if (result == null) {
             // 查询数据库，更新redis 缓存。
             try {
