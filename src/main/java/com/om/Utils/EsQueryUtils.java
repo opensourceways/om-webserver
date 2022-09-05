@@ -339,6 +339,12 @@ public class EsQueryUtils {
                     } else {
                         url = sourceAsMap.get("comment_url").toString();
                     }
+                    Object invalid = sourceAsMap.get("is_invalid_comment");
+                    if (invalid != null) {
+                        datamap.put("is_invalid_comment", 1);
+                    } else {
+                        datamap.put("is_invalid_comment", 0);
+                    }
                 case "pr":
                     String is_main_feature;
                     datamap.put("is_main_feature", 0);
