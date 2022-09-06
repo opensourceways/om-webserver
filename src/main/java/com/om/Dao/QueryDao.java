@@ -1713,7 +1713,7 @@ public class QueryDao {
         YamlUtil yamlUtil = new YamlUtil();
         String localFile = yamlUtil.wget(yamlFile, localYamlPath);
         CompanyYaml companies = yamlUtil.readLocalYaml(localFile, CompanyYaml.class);
-        System.out.println(companies);
+        // System.out.println(companies);
 
         HashMap<String, String> company_enMap = new HashMap<>();
         HashMap<String, String> company_cnMap = new HashMap<>();
@@ -1738,7 +1738,7 @@ public class QueryDao {
     private Map<String, Integer> getCommunityPartners(String yamlFile) {
         YamlUtil yamlUtil = new YamlUtil();
         CommunityPartnersYaml communities = yamlUtil.readUrlYaml(yamlFile, CommunityPartnersYaml.class);
-        System.out.println(communities);
+        // System.out.println(communities);
 
         HashMap<String, Integer> resMap = new HashMap<>();
         for (CommunityPartnersYamlInfo community : communities.getCommunity()) {
@@ -2424,12 +2424,13 @@ public class QueryDao {
     public String queryCompanySigDetails(String community, String company, String timeRange) {
         String gitee_index;
         String[] queryStrs;
-        company = CompanyCN2Cla(community, company);
+        // String companystr = CompanyCN2Cla(community, company);
+        String companystr = getcompanyNames(company);
         switch (community.toLowerCase()) {
             case "openeuler":
                 gitee_index = openEuler.getGiteeAllIndex();
                 String queryjson = openEuler.getCompanySigsQueryStr();
-                queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);
+                queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, companystr);
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"community error\"},\"msg\":\"community error\"}";
@@ -2440,7 +2441,7 @@ public class QueryDao {
         }
         Iterator<String> sigAll = sigMetricsList.keySet().iterator();
 
-        HashMap<String, Integer> companyContriList = queryCompanyContribute(community, company, timeRange);
+        HashMap<String, Integer> companyContriList = queryCompanyContribute(community, companystr, timeRange);
         if (companyContriList == null) {
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"queryCompanyContribute error\"}";
         }
@@ -2454,7 +2455,7 @@ public class QueryDao {
             }
         }
 
-        HashMap<String, ArrayList<Integer>> companyMeetingList = queryCompanyMeetings(community, company, timeRange);
+        HashMap<String, ArrayList<Integer>> companyMeetingList = queryCompanyMeetings(community, companystr, timeRange);
         if (companyMeetingList == null) {
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"queryCompanyMeetings error\"}";
         }
@@ -2472,7 +2473,7 @@ public class QueryDao {
             }
         }
 
-        HashMap<String, Integer> maintainersList = queryCompanyMaintainers(community, company, timeRange);
+        HashMap<String, Integer> maintainersList = queryCompanyMaintainers(community, companystr, timeRange);
         if (maintainersList==null){
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"queryCompanyMaintainers error\"}";
         }
@@ -2793,6 +2794,33 @@ public class QueryDao {
         }
     }
 
+    public String getcompanyNames(String name){
+        ArrayList<String> res = new ArrayList<>();
+        res.add(name);
+        YamlUtil yamlUtil = new YamlUtil();
+        CompanyYaml companies = yamlUtil.readUrlYaml(companyNameYaml, CompanyYaml.class);
+        for (CompanyYamlInfo companyinfo : companies.getCompanies()) {
+            String cnCompany = companyinfo.getCompany_cn().trim();
+            String enCompany = companyinfo.getCompany_en().trim();
+            if (name.equals(cnCompany) || name.equals(enCompany)){
+                res.add(enCompany);
+                res.add(cnCompany);
+                List<String> aliases = companyinfo.getAliases();
+                if (aliases != null) {
+                    for (String alias : aliases){
+                        res.add(alias);
+                    }
+                }
+            }
+        }
+        String names = "(";
+        for (String r: res){
+            names = names + "\\\"" + r +  "\\\",";
+        }
+        names = names + ")";
+        return names;
+    }
+
     public String CompanyCN2Cla(String community, String company) {
         String resCompany = "";
         YamlUtil yamlUtil = new YamlUtil();
@@ -2830,13 +2858,13 @@ public class QueryDao {
                 ownerType = querySigOwnerTypeCount(community, group);
                 break;
             case "company":
-                group = CompanyCN2Cla(community, group);
+                // group = CompanyCN2Cla(community, group);
+                group = getcompanyNames(group);
                 ownerType = queryOwnerTypeCount(community, group);
                 break;
             default:
                 return "";
         }
-        System.out.println(ownerType);
         
         Iterator<String> users = ownerType.fieldNames();
         HashMap<String, String> data = new HashMap<>();
@@ -2936,7 +2964,8 @@ public class QueryDao {
         String queryjsons;
         String index;
         String[] queryStrs;
-        company = CompanyCN2Cla(community,company);
+        // company = CompanyCN2Cla(community,company);
+        company = getcompanyNames(company);
         switch (community.toLowerCase()) {
             case "openeuler":
                 queryjsons = openEuler.getComapnyUsers();
@@ -2961,7 +2990,6 @@ public class QueryDao {
                 // 获取执行结果
                 builder.setUrl(this.url + index + "/_search");
                 builder.setBody(queryStrs[i]);
-                System.out.println(queryStrs[i]);
 
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
                 String responseBody = f.get().getResponseBody(UTF_8);
@@ -2970,7 +2998,7 @@ public class QueryDao {
                 companyUsersList.add(value);
             }
             HashMap<String, Object> dataMap = new HashMap<>();
-            dataMap.put(company, companyUsersList);
+            dataMap.put("value", companyUsersList);
             List<String> metrics = Arrays.asList(new String[] { "D0", "D1", "D2" });
             dataMap.put("metrics", metrics);
 
@@ -3260,8 +3288,7 @@ public class QueryDao {
         }
         JsonNode TC_owners = querySigOwnerTypeCount(community, "TC");
         Map<String, String> userName = getUserNameCnEn(yamlFile);
-        System.out.println(userName);
-        
+
         Iterator<String> users = TC_owners.fieldNames();
         ArrayList<HashMap<String, Object>> res = new ArrayList<>();
         while (users.hasNext()) {
@@ -3304,7 +3331,6 @@ public class QueryDao {
     public Map<String, String> getUserNameCnEn(String yamlFile) {
         YamlUtil yamlUtil = new YamlUtil();
         UserNameYaml users = yamlUtil.readUrlYaml(yamlFile, UserNameYaml.class);
-        System.out.println(users);
 
         HashMap<String, String> userMap = new HashMap<>();
         for (UserInfoYaml user : users.getUsers()) {
@@ -3325,7 +3351,8 @@ public class QueryDao {
                 field = "user_login.keyword";
                 break;
             case "company":
-                group = CompanyCN2Cla(community, group);
+                // group = CompanyCN2Cla(community, group);
+                group = getcompanyNames(group);
                 field = "tag_user_company.keyword";
                 break;
             default:
@@ -3346,7 +3373,6 @@ public class QueryDao {
             default:
                 return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
         }
-        System.out.println(queryStr);
         if (queryStr == null) {
             return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
         }
@@ -3369,7 +3395,6 @@ public class QueryDao {
                 long contribute = bucket.get("sum_field").get("value").asLong();
                 count += contribute;
             }
-            System.out.println(count);
 
             ArrayList<JsonNode> dataList = new ArrayList<>();
             buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
@@ -3559,7 +3584,8 @@ public class QueryDao {
         String queryStr;
         String index;
         if (group.equals("company")) {
-            name = CompanyCN2Cla(community, name);
+            // name = CompanyCN2Cla(community, name);
+            name = getcompanyNames(name);
         }       
         switch (community.toLowerCase()) {
             case "openeuler":
