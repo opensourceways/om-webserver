@@ -268,7 +268,7 @@ public class EsQueryUtils {
         sig = sig == null ? "*" : sig;
         boolQueryBuilder.must(QueryBuilders.rangeQuery("created_at").from(start).to(end));
         boolQueryBuilder.mustNot(QueryBuilders.matchQuery("is_removed", 1));
-        boolQueryBuilder.must(QueryBuilders.wildcardQuery("user_login.keyword", "*"));
+        boolQueryBuilder.must(QueryBuilders.wildcardQuery("user_login.keyword", user));
         boolQueryBuilder.must(QueryBuilders.wildcardQuery("sig_names.keyword", sig));
         boolQueryBuilder.must(QueryBuilders.matchQuery(feild, 1));
         builder.query(boolQueryBuilder);
