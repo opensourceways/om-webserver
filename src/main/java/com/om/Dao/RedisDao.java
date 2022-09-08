@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.elasticsearch.common.inject.spi.PrivateElements;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
@@ -74,6 +75,37 @@ public class RedisDao {
         try {
             ValueOperations operations = redisTemplate.opsForValue();
             result = operations.get(key);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return result;
+    }
+
+    /**
+     * redis hash
+     */
+    public boolean set(final String key, String feild, String value, Long expire) {
+        boolean result = false;
+        try {
+            if (!checkValue(value))
+                return false;
+            redisTemplate.setValueSerializer(new GzipSerializer(getJsonserializer()));
+            HashOperations<String, String, String> map = redisTemplate.opsForHash();
+            map.put(key, feild, value);
+            redisTemplate.expire(key, expire, TimeUnit.SECONDS);
+            result = true;
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return result;
+    }
+
+    public Object get(final String key, String feild) {
+        Object result = null;
+        redisTemplate.setValueSerializer(new GzipSerializer(getJsonserializer()));
+        try {
+            HashOperations<String, String, String> hashOperations = redisTemplate.opsForHash();
+            result = hashOperations.get(key, feild);
         } catch (Exception e) {
             System.out.println(e);
         }
