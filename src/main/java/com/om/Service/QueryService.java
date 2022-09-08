@@ -1074,8 +1074,9 @@ public class QueryService {
 
     public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
             String timeRange, String lastCursor, String pageSize) throws JsonMappingException, JsonProcessingException {
+        String key = community.toLowerCase() + sig + contributeType.toLowerCase() + timeRange.toLowerCase();
         String result = null;
-
+        result = (String) redisDao.get(key, user);
         if (result == null) {
             // 查询数据库，更新redis 缓存。
             try {
@@ -1084,26 +1085,10 @@ public class QueryService {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }
-        return result;
-    }
-
-    public String saveUserCountDetails(String community, String sig, String contributeType, String timeRange) {
-        String key = community.toLowerCase() + sig + contributeType.toLowerCase() + timeRange.toLowerCase();
-        String result = null;
-        result = (String) redisDao.get(key);
-        if (result == null) {
-            // 查询数据库，更新redis 缓存。
-            try {
-                result = queryDao.queryUserContributeDetails(community, "*", sig, contributeType, timeRange, null, null,
-                        env);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-            boolean set = redisDao.set(key, result,
+            boolean set = redisDao.set(key, user, result,
                     Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
             if (set) {
-                System.out.println("update " + key + " success!");
+                System.out.println("update " + key + " " + user + " hash success!");
             }
         }
         return result;
