@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class AuthingService {
@@ -84,8 +86,19 @@ public class AuthingService {
 
     public ResponseEntity tokenApply(String community, String code, String permission, String redirectUrl) {
         try {
+            // 将URL中的中文转码，因为@RequestParam会自动解码，而我们需要未解码的参数
+            String url = redirectUrl;
+            Matcher matcher = Pattern.compile("[\\u4e00-\\u9fa5]+").matcher(redirectUrl);
+            String tmp = "";
+            while (matcher.find()) {
+                tmp = matcher.group();
+                System.out.println(tmp);
+                url = url.replaceAll(tmp, URLEncoder.encode(tmp, "UTF-8"));
+            }
+
             // 通过code获取access_token，再通过access_token获取用户
-            Map user = authingUserDao.getUserInfoByAccessToken(code, URLDecoder.decode(redirectUrl, "UTF-8"));
+            // Map user = authingUserDao.getUserInfoByAccessToken(code, URLDecoder.decode(redirectUrl, "UTF-8"));
+            Map user = authingUserDao.getUserInfoByAccessToken(code, url);
             if (user == null) return result(HttpStatus.UNAUTHORIZED, "user not found", null);
             String userId = user.get("sub").toString();
             String idToken = user.get("id_token").toString();
