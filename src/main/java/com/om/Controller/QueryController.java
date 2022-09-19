@@ -305,7 +305,7 @@ public class QueryController {
         return res;
     }
 
-    @AuthingToken
+    //@AuthingToken
     @RequestMapping("/sig/scoreAll")
     public String querySigScoreAll(@RequestParam(value = "community") String community) {
         String res = queryService.querySigScoreAll(community);
@@ -320,7 +320,7 @@ public class QueryController {
         return res;
     }
 
-    @AuthingToken
+    //@AuthingToken
     @RequestMapping("/company/sigs")
     public String queryCompanySigs(@RequestParam(value = "community") String community, @RequestParam(value = "timeRange") String timeRange) {
         String res = queryService.queryCompanySigs(community, timeRange);
