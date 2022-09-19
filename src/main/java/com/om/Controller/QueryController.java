@@ -235,7 +235,7 @@ public class QueryController {
         return res;
     }
 
-    @AuthingToken
+    // @AuthingToken
     @RequestMapping("sig/company/contribute")
     public String querySigCompanyContributors(@RequestParam(value = "community") String community,
                                            @RequestParam(value = "contributeType") String contributeType,
