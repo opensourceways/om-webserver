@@ -291,7 +291,7 @@ public class QueryController {
         return res;
     }
 
-    //@RequestMapping("/community/repos")
+    @RequestMapping("/community/repos")
     public String queryRepos(@RequestParam(value = "community") String community) {
         String repos = queryService.queryCommunityRepos(community);
         return repos;
@@ -341,7 +341,7 @@ public class QueryController {
         return res;
     }
 
-    //@RequestMapping("/user/ownertype")
+    @RequestMapping("/user/ownertype")
     public String queryUserOwnertype(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user) throws JsonMappingException, JsonProcessingException {
         String res = queryService.queryUserOwnertype(community, user);
         return res;
