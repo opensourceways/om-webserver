@@ -4,6 +4,9 @@ import cn.authing.core.auth.AuthenticationClient;
 import cn.authing.core.graphql.GraphQLException;
 import cn.authing.core.mgmt.ManagementClient;
 import cn.authing.core.types.*;
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
+import com.mashape.unirest.http.Unirest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
@@ -96,11 +99,36 @@ public class AuthingUserDao {
         }
     }
 
+    // TODO 此接口废弃 使用通过userID校验登录状态
     public boolean checkLoginStatusOnAuthing(User user) {
         try {
             authentication.setCurrentUser(user);
             JwtTokenStatus execute = authentication.checkLoginStatus().execute();
             return execute.getStatus();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean checkLoginStatusOnAuthing(String userId) {
+        try {
+            String managementTokenBody = String.format("{\"userPoolId\":\"%s\",\"secret\":\"%s\"}", userPoolId, secret);
+            HttpResponse<JsonNode> response = Unirest.post("https://core.authing.cn/api/v2/userpools/access-token")
+                    .header("Content-Type", "application/json")
+                    .body(managementTokenBody)
+                    .asJson();
+            String token = response.getBody().getObject().get("accessToken").toString();
+
+            String loginStatusBody = String.format("{\"userId\":\"%s\",\"appId\":\"%s\"}", userId, omAppId);
+            HttpResponse<JsonNode> response1 = Unirest.post("https://core.authing.cn/api/v2/users/login/session-status")
+                    .header("Content-Type", "application/json")
+                    .header("x-authing-userpool-id", userPoolId)
+                    .header("authorization", token)
+                    .body(loginStatusBody)
+                    .asJson();
+
+            return response1.getBody().getObject().getJSONObject("data").getBoolean("active");
         } catch (Exception e) {
             e.printStackTrace();
             return false;
