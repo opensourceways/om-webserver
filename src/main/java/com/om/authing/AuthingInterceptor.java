@@ -112,15 +112,16 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
                 // token 用户和权限验证
                 try {
+                    /* TODO 使用userid校验用户登录状态，不需要获取用户信息
                     User user = authingUserDao.getUser(userId);
                     // token 签名接受者有误
                     if (user == null) {
                         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "unauthorized");
                         return false;
-                    }
+                    }*/
 
-                    // 判断用户在Authing端是否已经退出
-                    boolean status = authingUserDao.checkLoginStatusOnAuthing(user);
+                    // 判断用户在Authing端是否是登录状态
+                    boolean status = authingUserDao.checkLoginStatusOnAuthing(userId);
                     if (!status) {
                         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "unauthorized");
                         return false;
