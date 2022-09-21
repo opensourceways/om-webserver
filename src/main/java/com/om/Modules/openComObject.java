@@ -976,12 +976,19 @@ public class openComObject {
 
     public String getAggUserListQueryStr(String queryJson, String group, String name) {
         String queryStr;
+        if (group == null || name == null) {
+            group = "*";
+            name = "*";
+        }
         switch (group) {
             case "sig":
                 queryStr = String.format(queryJson, "sig_names.keyword", name);
                 break;
             case "company":
                 queryStr = String.format(queryJson, "tag_user_company.keyword", name);
+                break;
+            case "*":
+                queryStr = String.format(queryJson, "user_login.keyword", name);
                 break;
             default:
                 return null;

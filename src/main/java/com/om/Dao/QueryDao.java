@@ -3583,8 +3583,7 @@ public class QueryDao {
         String queryjson;
         String queryStr;
         String index;
-        if (group.equals("company")) {
-            // name = CompanyCN2Cla(community, name);
+        if (group != null && group.equals("company")) {
             name = getcompanyNames(name);
         }       
         switch (community.toLowerCase()) {
