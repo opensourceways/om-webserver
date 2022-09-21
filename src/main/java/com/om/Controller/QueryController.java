@@ -359,8 +359,9 @@ public class QueryController {
     }
 
     @RequestMapping("/userlist")
-    public String queryUserLists(@RequestParam(value = "community") String community, @RequestParam(value = "group") String group,
-                                      @RequestParam(value = "name") String name) {
+    public String queryUserLists(@RequestParam(value = "community") String community,
+            @RequestParam(value = "group", required = false) String group,
+            @RequestParam(value = "name", required = false) String name) {
         String res = queryService.queryUserLists(community, group, name);
         return res;
     }
