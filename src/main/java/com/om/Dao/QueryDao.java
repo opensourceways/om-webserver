@@ -710,7 +710,10 @@ public class QueryDao {
         String index = "";
         String queryjson = "";
         String valueField = "";
-        String queryDockerHubjson = "";
+
+        int count = 0;
+        int statusCode = 500;
+        String statusText = "请求内部错误";
 
         switch (community.toLowerCase()) {
             case "openeuler":
@@ -723,8 +726,6 @@ public class QueryDao {
             case "mindspore":
                 index = mindSpore.getDownloadQueryIndex();
                 queryjson = mindSpore.getDownloadQueryStr();
-                valueField = "all_download";
-                queryDockerHubjson = mindSpore.getDownloadDockerHubQueryStr();
                 break;
             default:
                 return "";
@@ -733,17 +734,24 @@ public class QueryDao {
         builder.setBody(queryjson);
         // 获取执行结果
         ListenableFuture<Response> f = client.executeRequest(builder.build());
-
-        // mindspore多个下载需要加起来
-        ListenableFuture<Response> fDockerHub = null;
-        if (StringUtils.isNotBlank(queryDockerHubjson)) {
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryDockerHubjson);
-            // 获取执行结果
-            fDockerHub = client.executeRequest(builder.build());
+        try {
+            Response response = f.get();
+            statusCode = response.getStatusCode();
+            statusText = response.getStatusText();
+            String responseBody = response.getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets").elements();
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                count += bucket.get("count").get("value").asInt();        
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-        return getDownload(f, valueField, fDockerHub, item);
+        return "{\"code\":" + statusCode + ",\"data\":{\"" + item + "\":" + count + "},\"msg\":\"" + statusText
+                + "\"}";
+
     }
 
     public String getDownload(ListenableFuture<Response> f, String valueField, ListenableFuture<Response> fDockerHub, String dataflage) {
