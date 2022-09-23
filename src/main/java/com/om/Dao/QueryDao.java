@@ -741,9 +741,13 @@ public class QueryDao {
             String responseBody = response.getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets").elements();
-            while (buckets.hasNext()) {
+            if (community.toLowerCase().equals("mindspore") && buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
-                count += bucket.get("count").get("value").asInt();        
+                count = bucket.get("count").get("value").asInt(); 
+            }
+            if (community.toLowerCase().equals("opengauss") && buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                count = bucket.get("doc_count").asInt(); 
             }
         } catch (Exception e) {
             e.printStackTrace();
