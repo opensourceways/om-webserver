@@ -1,7 +1,6 @@
 package com.om.Controller;
 
 import com.om.Service.AuthingService;
-import com.om.authing.AuthingToken;
 import com.om.authing.AuthingUserToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -32,5 +31,12 @@ public class AuthingController {
                                      @RequestParam(value = "permission") String permission,
                                      @RequestParam(value = "redirect") String redirect) {
         return authingService.tokenApply(community, code, permission, redirect);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/personal/center/user")
+    public ResponseEntity userInfo(@RequestParam(value = "community") String community,
+                                   @RequestHeader("token") String token) {
+        return authingService.personalCenterUserInfo(community, token);
     }
 }
