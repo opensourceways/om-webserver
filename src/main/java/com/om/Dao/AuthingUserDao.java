@@ -1,17 +1,16 @@
 package com.om.Dao;
 
 import cn.authing.core.auth.AuthenticationClient;
-import cn.authing.core.graphql.GraphQLException;
 import cn.authing.core.mgmt.ManagementClient;
 import cn.authing.core.types.*;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
 import javax.annotation.PostConstruct;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -45,10 +44,6 @@ public class AuthingUserDao {
 
     public Map getUserInfoByAccessToken(String code, String redirectUrl) {
         try {
-            // 初始化
-//            AuthenticationClient authentication = new AuthenticationClient(omAppId, omAppHost);
-//            authentication.setSecret(omAppSecret);
-
             // code换access_token
             authentication.setRedirectUri(redirectUrl);
             Map res = (Map) authentication.getAccessTokenByCode(code).execute();
@@ -62,12 +57,11 @@ public class AuthingUserDao {
             ex.printStackTrace();
             return null;
         }
-
     }
 
+    // 获取用户基本信息
     public User getUser(String userId) {
         try {
-//            ManagementClient managementClient = new ManagementClient(userPoolId, secret);
             return managementClient.users().detail(userId, true, true).execute();
         } catch (Exception e) {
             e.printStackTrace();
@@ -75,9 +69,24 @@ public class AuthingUserDao {
         }
     }
 
+    // 获取用户详细信息
+    public JSONObject getUserById(String userId) {
+        try {
+            String token = getManagementToken();
+            HttpResponse<JsonNode> response = Unirest.get("https://core.authing.cn/api/v2/users/" + userId)
+                    .header("Authorization", token)
+                    .header("x-authing-userpool-id", userPoolId)
+                    .asJson();
+            return response.getBody().getObject().getJSONObject("data");
+        } catch (Exception e) {
+            System.out.println("User Get Error");
+            return null;
+        }
+    }
+
+    // 用户资源和操作权限
     public boolean checkUserPermission(String userId, String groupCode, String resourceCode, String resourceAction) {
         try {
-//            ManagementClient managementClient = new ManagementClient(userPoolId, secret);
             PaginatedAuthorizedResources pars = managementClient.users().listAuthorizedResources(userId, groupCode).execute();
             if (pars.getTotalCount() <= 0) {
                 return false;
@@ -113,13 +122,7 @@ public class AuthingUserDao {
 
     public boolean checkLoginStatusOnAuthing(String userId) {
         try {
-            String managementTokenBody = String.format("{\"userPoolId\":\"%s\",\"secret\":\"%s\"}", userPoolId, secret);
-            HttpResponse<JsonNode> response = Unirest.post("https://core.authing.cn/api/v2/userpools/access-token")
-                    .header("Content-Type", "application/json")
-                    .body(managementTokenBody)
-                    .asJson();
-            String token = response.getBody().getObject().get("accessToken").toString();
-
+            String token = getManagementToken();
             String loginStatusBody = String.format("{\"userId\":\"%s\",\"appId\":\"%s\"}", userId, omAppId);
             HttpResponse<JsonNode> response1 = Unirest.post("https://core.authing.cn/api/v2/users/login/session-status")
                     .header("Content-Type", "application/json")
@@ -134,4 +137,19 @@ public class AuthingUserDao {
             return false;
         }
     }
+
+    private String getManagementToken() {
+        try {
+            String body = String.format("{\"userPoolId\":\"%s\",\"secret\":\"%s\"}", userPoolId, secret);
+            HttpResponse<JsonNode> response = Unirest.post("https://core.authing.cn/api/v2/userpools/access-token")
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .asJson();
+            return response.getBody().getObject().get("accessToken").toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
+
 }
