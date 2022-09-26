@@ -5,13 +5,14 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -122,6 +123,108 @@ public class AuthingService {
             e.printStackTrace();
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
+    }
+
+    public ResponseEntity personalCenterUserInfo(String community, String token) {
+        try {
+            String userId = getUserIdFromToken(token);
+            JSONObject userObj = authingUserDao.getUserById(userId);
+            HashMap<String, Object> userData = parseAuthingUser(userObj);
+            // 返回结果
+            return result(HttpStatus.OK, "success", userData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+
+    }
+
+    // 获取自定义token中的user id
+    private String getUserIdFromToken(String token) {
+        DecodedJWT decode = JWT.decode(token);
+        return decode.getAudience().get(0);
+    }
+
+    // 解析authing user
+    private HashMap<String, Object> parseAuthingUser(JSONObject userObj) {
+        HashMap<String, Object> userData = new HashMap<>();
+
+        userData.put("userName", jsonObjStringValue(userObj, "username"));
+        userData.put("email", jsonObjStringValue(userObj, "email"));
+        userData.put("phone", jsonObjStringValue(userObj, "phone"));
+        userData.put("signedUp", jsonObjStringValue(userObj, "signedUp"));
+        userData.put("nickName", jsonObjStringValue(userObj, "nickname"));
+        userData.put("company", jsonObjStringValue(userObj, "company"));
+        ArrayList<Map<String, Object>> identities = authingUserIdentity(userObj);
+        userData.put("identities", identities);
+
+        return userData;
+    }
+
+    // identities 解析（包括gitee,github,wechat）
+    private ArrayList<Map<String, Object>> authingUserIdentity(JSONObject userObj) {
+        ArrayList<Map<String, Object>> res = new ArrayList<>();
+        HashMap<String, Map<String, Object>> map = new HashMap<>();
+        try {
+            JSONArray jsonArray = userObj.getJSONArray("identities");
+            for (Object o : jsonArray) {
+                JSONObject obj = (JSONObject) o;
+                authingUserIdentityIdp(obj, map);
+            }
+            res.addAll(map.values());
+        } catch (Exception ex) {
+            System.out.println("Identities Get Error");
+        }
+        return res;
+    }
+
+    // identities -> userInfoInIdp 解析（包括gitee,github,wechat）
+    private void authingUserIdentityIdp(JSONObject identityObj, HashMap<String, Map<String, Object>> map) {
+        HashMap<String, Object> res = new HashMap<>();
+
+        JSONObject userInfoInIdpObj = identityObj.getJSONObject("userInfoInIdp");
+        String accessToken = jsonObjStringValue(identityObj, "accessToken");
+        String provider = jsonObjStringValue(identityObj, "provider");
+        switch (provider) {
+            case "github":
+                String github_login = jsonObjStringValue(userInfoInIdpObj, "profile").replace("https://api.github.com/users/", "");
+                res.put("identity", "github");
+                res.put("login_name", github_login);
+                res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "username"));
+                res.put("accessToken", accessToken);
+                map.put(provider, res);
+                break;
+            case "oauth2":
+                String gitee_login = userInfoInIdpObj.getJSONObject("customData").getString("giteeLogin");
+                res.put("identity", "gitee");
+                res.put("login_name", gitee_login);
+                res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "name"));
+                res.put("accessToken", accessToken);
+                map.put(provider, res);
+                break;
+            case "wechat":
+                res.put("identity", "wechat");
+                res.put("login_name", "");
+                res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "nickname"));
+                res.put("accessToken", accessToken);
+                map.put(provider, res);
+                break;
+            default:
+                break;
+        }
+    }
+
+    // JSONObject获取单个node的值
+    private String jsonObjStringValue(JSONObject jsonObj, String nodeName) {
+        String res = "";
+        try {
+            if (jsonObj.isNull(nodeName)) return res;
+            Object obj = jsonObj.get(nodeName);
+            if (obj != null) res = obj.toString();
+        } catch (Exception ex) {
+            System.out.println(nodeName + "Get Error");
+        }
+        return res;
     }
 
     private ResponseEntity result(HttpStatus status, String msg, Object data) {
