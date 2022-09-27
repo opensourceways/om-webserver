@@ -3,15 +3,18 @@ package com.om.Dao;
 import cn.authing.core.auth.AuthenticationClient;
 import cn.authing.core.mgmt.ManagementClient;
 import cn.authing.core.types.*;
-
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
+import com.obs.services.ObsClient;
+import com.obs.services.model.PutObjectResult;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.DigestUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
 import java.util.List;
@@ -19,6 +22,8 @@ import java.util.Map;
 
 @Repository
 public class AuthingUserDao {
+    private final static String AUTHINGAPIHOST = "https://core.authing.cn/api/v2";
+
     @Value("${authing.userPoolId}")
     String userPoolId;
 
@@ -34,15 +39,31 @@ public class AuthingUserDao {
     @Value("${authing.app.fuxi.secret}")
     String omAppSecret;
 
+    @Value("${datastat.img.ak}")
+    String datastatImgAk;
+
+    @Value("${datastat.img.sk}")
+    String datastatImgSk;
+
+    @Value("${datastat.img.endpoint}")
+    String datastatImgEndpoint;
+
+    @Value("${datastat.img.bucket.name}")
+    String datastatImgBucket;
+
+
     public static ManagementClient managementClient;
 
     public static AuthenticationClient authentication;
+
+    public static ObsClient obsClient;
 
     @PostConstruct
     public void init() {
         managementClient = new ManagementClient(userPoolId, secret);
         authentication = new AuthenticationClient(omAppId, omAppHost);
         authentication.setSecret(omAppSecret);
+        obsClient = new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint);
     }
 
     public Map getUserInfoByAccessToken(String code, String redirectUrl) {
@@ -72,11 +93,19 @@ public class AuthingUserDao {
         }
     }
 
+    // 获取用户基本信息
+    public User getUserInfo(String token) {
+        DecodedJWT decode = JWT.decode(token);
+        String userId = decode.getAudience().get(0);
+        User user = getUser(userId);
+        return user;
+    }
+
     // 获取用户详细信息
     public JSONObject getUserById(String userId) {
         try {
             String token = getManagementToken();
-            HttpResponse<JsonNode> response = Unirest.get("https://core.authing.cn/api/v2/users/" + userId)
+            HttpResponse<JsonNode> response = Unirest.get(AUTHINGAPIHOST + "/users/" + userId)
                     .header("Authorization", token)
                     .header("x-authing-userpool-id", userPoolId)
                     .asJson();
@@ -127,7 +156,7 @@ public class AuthingUserDao {
         try {
             String token = getManagementToken();
             String loginStatusBody = String.format("{\"userId\":\"%s\",\"appId\":\"%s\"}", userId, omAppId);
-            HttpResponse<JsonNode> response1 = Unirest.post("https://core.authing.cn/api/v2/users/login/session-status")
+            HttpResponse<JsonNode> response1 = Unirest.post(AUTHINGAPIHOST + "/users/login/session-status")
                     .header("Content-Type", "application/json")
                     .header("x-authing-userpool-id", userPoolId)
                     .header("authorization", token)
@@ -141,28 +170,7 @@ public class AuthingUserDao {
         }
     }
 
-    private String getManagementToken() {
-        try {
-            String body = String.format("{\"userPoolId\":\"%s\",\"secret\":\"%s\"}", userPoolId, secret);
-            HttpResponse<JsonNode> response = Unirest.post("https://core.authing.cn/api/v2/userpools/access-token")
-                    .header("Content-Type", "application/json")
-                    .body(body)
-                    .asJson();
-            return response.getBody().getObject().get("accessToken").toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "";
-        }
-    }
-
-    public User getUserInfo(String token) {
-        DecodedJWT decode = JWT.decode(token);
-        String userId = decode.getAudience().get(0);
-        User user = getUser(userId);    
-        return user;
-    }
-
-    public boolean sendCode(String account, String type, String field){
+    public boolean sendCode(String account, String type, String field) {
         try {
             switch (type.toLowerCase()) {
                 case "email":
@@ -188,7 +196,7 @@ public class AuthingUserDao {
         return true;
     }
 
-    public boolean changePassword(String account, String code, String newPassword, String type){
+    public boolean changePassword(String account, String code, String newPassword, String type) {
         try {
             switch (type.toLowerCase()) {
                 case "email":
@@ -200,13 +208,13 @@ public class AuthingUserDao {
                 default:
                     return false;
             }
-        } catch (Exception e) {            
+        } catch (Exception e) {
             return false;
         }
-        return  true;
+        return true;
     }
 
-    public boolean updateAccount(String token, String account, String code, String type){
+    public boolean updateAccount(String token, String account, String code, String type) {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
@@ -220,13 +228,13 @@ public class AuthingUserDao {
                 default:
                     return false;
             }
-        } catch (Exception e) {            
+        } catch (Exception e) {
             return false;
         }
-        return  true;
+        return true;
     }
 
-    public boolean unbindAccount(String token, String type){       
+    public boolean unbindAccount(String token, String type) {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
@@ -242,13 +250,13 @@ public class AuthingUserDao {
                     return false;
             }
         } catch (Exception e) {
-            System.out.println(e.getMessage());         
+            System.out.println(e.getMessage());
             return false;
         }
-        return  true;
+        return true;
     }
 
-    public boolean bindAccount(String token, String account, String code, String type){       
+    public boolean bindAccount(String token, String account, String code, String type) {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
@@ -263,35 +271,92 @@ public class AuthingUserDao {
                     return false;
             }
         } catch (Exception e) {
-            System.out.println(e.getMessage());         
+            System.out.println(e.getMessage());
             return false;
         }
-        return  true;
+        return true;
     }
 
-    public boolean linkAccount(String token, String secondtoken){       
+    public boolean linkAccount(String token, String secondtoken) {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
             authentication.linkAccount(token, secondtoken).execute();
         } catch (Exception e) {
-            System.out.println(e.getMessage());         
+            System.out.println(e.getMessage());
             return false;
         }
-        return  true;
+        return true;
     }
 
-    public boolean unLinkAccount(String token, String platform){       
+    public boolean unLinkAccount(String token, String platform) {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
             UnLinkAccountParam unlink = new UnLinkAccountParam(token, ProviderType.valueOf(platform));
             authentication.unLinkAccount(unlink).execute();
         } catch (Exception e) {
-            System.out.println(e.getMessage());         
+            System.out.println(e.getMessage());
             return false;
         }
-        return  true;
+        return true;
     }
 
+    public boolean updateUserBaseInfo(String token, String item, String inputValue) {
+        try {
+            User user = getUserInfo(token);
+            authentication.setCurrentUser(user);
+            UpdateUserInput updateUserInput = new UpdateUserInput();
+            switch (item.toLowerCase()) {
+                case "nickname":
+                    updateUserInput.withNickname(inputValue);
+                    break;
+                case "company":
+                    updateUserInput.withCompany(inputValue);
+                    break;
+                default:
+                    return false;
+            }
+            authentication.updateProfile(updateUserInput).execute();
+            return true;
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    public boolean updatePhoto(String token, MultipartFile file) {
+        try {
+            User user = getUserInfo(token);
+            authentication.setCurrentUser(user);
+
+            // 重命名文件
+            String fileName = file.getOriginalFilename();
+            String extension = fileName.substring(fileName.lastIndexOf("."));
+            String objectName = String.format("%s-%s%s", user.getId(), DigestUtils.md5DigestAsHex(fileName.getBytes()), extension);
+
+            //上传文件到OBS
+            PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, file.getInputStream());
+            String objectUrl = putObjectResult.getObjectUrl();
+
+            // 修改用户头像
+            authentication.updateProfile(new UpdateUserInput().withPhoto(objectUrl)).execute();
+            return true;
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    private String getManagementToken() {
+        try {
+            String body = String.format("{\"userPoolId\":\"%s\",\"secret\":\"%s\"}", userPoolId, secret);
+            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST + "/userpools/access-token")
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .asJson();
+            return response.getBody().getObject().get("accessToken").toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+    }
 }
