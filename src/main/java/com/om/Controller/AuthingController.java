@@ -94,6 +94,7 @@ public class AuthingController {
         return authingService.updateUserBaseInfo(token, item, input);
     }
 
+    @AuthingUserToken
     @RequestMapping(value = "/update/photo", method = RequestMethod.POST)
     public ResponseEntity upload(@RequestHeader(value = "token") String token,
                                  @RequestParam(value = "file") MultipartFile file) {
