@@ -236,45 +236,61 @@ public class AuthingService {
     }
 
    
-    public String sendCode(String account, String type, String field) {
-        String res = authingUserDao.sendCode(account, type, field);
-        return res;
+    public ResponseEntity sendCode(String account, String type, String field) {
+        boolean res = authingUserDao.sendCode(account, type, field);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        return result(HttpStatus.OK, "success", null);
     }
 
     // 未使用
-    public String resetPassword(String account, String code, String ps, String type) {       
-        String res = authingUserDao.changePassword(account, code, ps, type);
-        return res;
+    public ResponseEntity resetPassword(String account, String code, String ps, String type) {       
+        boolean res = authingUserDao.changePassword(account, code, ps, type);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        return result(HttpStatus.OK, "success", null);
     }
 
-    public String updateAccount(String token, String account, String code, String type) {       
-        String res = authingUserDao.updateAccount(token, account, code, type);
-        return res;
+    public ResponseEntity updateAccount(String token, String account, String code, String type) {       
+        boolean res = authingUserDao.updateAccount(token, account, code, type);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        return result(HttpStatus.OK, "success", null);
     }
 
-    public String unbindAccount(String token, String type) {       
-        String res = authingUserDao.unbindAccount(token, type);
-        return res;
+    public ResponseEntity unbindAccount(String token, String type) {       
+        boolean res = authingUserDao.unbindAccount(token, type);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        return result(HttpStatus.OK, "success", null);
     }
 
-    public String bindAccount(String token, String account, String code,String type) {       
-        String res = authingUserDao.bindAccount(token, account, code, type);
-        return res;
+    public ResponseEntity bindAccount(String token, String account, String code,String type) {       
+        boolean res = authingUserDao.bindAccount(token, account, code, type);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        return result(HttpStatus.OK, "success", null);
     }
 
-    public String linkAccount(String token, String secondtoken) {       
-        String res = authingUserDao.linkAccount(token, secondtoken);
-        return res;
+    public ResponseEntity linkAccount(String token, String secondtoken) {       
+        boolean res = authingUserDao.linkAccount(token, secondtoken);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        return result(HttpStatus.OK, "success", null);
     }
 
-    public String unLinkAccount(String token, String platform) {       
-        String res = authingUserDao.linkAccount(token, platform);
-        return res;
-    }
-
-    public String login(String account, String ps) {       
-        String res = authingUserDao.login(account, ps);
-        return res;
+    public ResponseEntity unLinkAccount(String token, String platform) {       
+        boolean res = authingUserDao.unLinkAccount(token, platform);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        return result(HttpStatus.OK, "success", null);
     }
 
 }
