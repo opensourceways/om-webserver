@@ -12,6 +12,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.net.URLEncoder;
 import java.util.*;
@@ -125,7 +126,7 @@ public class AuthingService {
         }
     }
 
-    public ResponseEntity personalCenterUserInfo(String community, String token) {
+    public ResponseEntity personalCenterUserInfo(String token) {
         try {
             String userId = getUserIdFromToken(token);
             JSONObject userObj = authingUserDao.getUserById(userId);
@@ -137,6 +138,75 @@ public class AuthingService {
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
 
+    }
+
+    public ResponseEntity sendCode(String account, String type, String field) {
+        boolean res = authingUserDao.sendCode(account, type, field);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        return result(HttpStatus.OK, "success", null);
+    }
+
+    // 未使用
+    public ResponseEntity resetPassword(String account, String code, String ps, String type) {
+        boolean res = authingUserDao.changePassword(account, code, ps, type);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        return result(HttpStatus.OK, "success", null);
+    }
+
+    public ResponseEntity updateAccount(String token, String account, String code, String type) {
+        boolean res = authingUserDao.updateAccount(token, account, code, type);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        return result(HttpStatus.OK, "success", null);
+    }
+
+    public ResponseEntity unbindAccount(String token, String type) {
+        boolean res = authingUserDao.unbindAccount(token, type);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        return result(HttpStatus.OK, "success", null);
+    }
+
+    public ResponseEntity bindAccount(String token, String account, String code, String type) {
+        boolean res = authingUserDao.bindAccount(token, account, code, type);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        return result(HttpStatus.OK, "success", null);
+    }
+
+    public ResponseEntity linkAccount(String token, String secondtoken) {
+        boolean res = authingUserDao.linkAccount(token, secondtoken);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        return result(HttpStatus.OK, "success", null);
+    }
+
+    public ResponseEntity unLinkAccount(String token, String platform) {
+        boolean res = authingUserDao.unLinkAccount(token, platform);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        return result(HttpStatus.OK, "success", null);
+    }
+
+    public ResponseEntity updateUserBaseInfo(String token, String item, String inputValue) {
+        boolean res = authingUserDao.updateUserBaseInfo(token, item, inputValue);
+        if (res) return result(HttpStatus.OK, "update " + item + "success", null);
+        else return result(HttpStatus.UNAUTHORIZED, "update " + item + "fail", null);
+    }
+
+    public ResponseEntity updatePhoto(String token, MultipartFile file) {
+        boolean res = authingUserDao.updatePhoto(token, file);
+        if (res) return result(HttpStatus.OK, "update photo success", null);
+        else return result(HttpStatus.UNAUTHORIZED, "update photo fail", null);
     }
 
     // 获取自定义token中的user id
@@ -155,6 +225,7 @@ public class AuthingService {
         userData.put("signedUp", jsonObjStringValue(userObj, "signedUp"));
         userData.put("nickName", jsonObjStringValue(userObj, "nickname"));
         userData.put("company", jsonObjStringValue(userObj, "company"));
+        userData.put("photo", jsonObjStringValue(userObj, "photo"));
         ArrayList<Map<String, Object>> identities = authingUserIdentity(userObj);
         userData.put("identities", identities);
 
@@ -233,64 +304,6 @@ public class AuthingService {
         res.put("data", data);
         res.put("msg", msg);
         return new ResponseEntity<>(res, status);
-    }
-
-   
-    public ResponseEntity sendCode(String account, String type, String field) {
-        boolean res = authingUserDao.sendCode(account, type, field);
-        if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-        return result(HttpStatus.OK, "success", null);
-    }
-
-    // 未使用
-    public ResponseEntity resetPassword(String account, String code, String ps, String type) {       
-        boolean res = authingUserDao.changePassword(account, code, ps, type);
-        if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-        return result(HttpStatus.OK, "success", null);
-    }
-
-    public ResponseEntity updateAccount(String token, String account, String code, String type) {       
-        boolean res = authingUserDao.updateAccount(token, account, code, type);
-        if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-        return result(HttpStatus.OK, "success", null);
-    }
-
-    public ResponseEntity unbindAccount(String token, String type) {       
-        boolean res = authingUserDao.unbindAccount(token, type);
-        if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-        return result(HttpStatus.OK, "success", null);
-    }
-
-    public ResponseEntity bindAccount(String token, String account, String code,String type) {       
-        boolean res = authingUserDao.bindAccount(token, account, code, type);
-        if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-        return result(HttpStatus.OK, "success", null);
-    }
-
-    public ResponseEntity linkAccount(String token, String secondtoken) {       
-        boolean res = authingUserDao.linkAccount(token, secondtoken);
-        if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-        return result(HttpStatus.OK, "success", null);
-    }
-
-    public ResponseEntity unLinkAccount(String token, String platform) {       
-        boolean res = authingUserDao.unLinkAccount(token, platform);
-        if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-        return result(HttpStatus.OK, "success", null);
     }
 
 }
