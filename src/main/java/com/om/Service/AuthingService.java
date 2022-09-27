@@ -235,4 +235,46 @@ public class AuthingService {
         return new ResponseEntity<>(res, status);
     }
 
+   
+    public String sendCode(String account, String type, String field) {
+        String res = authingUserDao.sendCode(account, type, field);
+        return res;
+    }
+
+    // 未使用
+    public String resetPassword(String account, String code, String ps, String type) {       
+        String res = authingUserDao.changePassword(account, code, ps, type);
+        return res;
+    }
+
+    public String updateAccount(String token, String account, String code, String type) {       
+        String res = authingUserDao.updateAccount(token, account, code, type);
+        return res;
+    }
+
+    public String unbindAccount(String token, String type) {       
+        String res = authingUserDao.unbindAccount(token, type);
+        return res;
+    }
+
+    public String bindAccount(String token, String account, String code,String type) {       
+        String res = authingUserDao.bindAccount(token, account, code, type);
+        return res;
+    }
+
+    public String linkAccount(String token, String secondtoken) {       
+        String res = authingUserDao.linkAccount(token, secondtoken);
+        return res;
+    }
+
+    public String unLinkAccount(String token, String platform) {       
+        String res = authingUserDao.linkAccount(token, platform);
+        return res;
+    }
+
+    public String login(String account, String ps) {       
+        String res = authingUserDao.login(account, ps);
+        return res;
+    }
+
 }
