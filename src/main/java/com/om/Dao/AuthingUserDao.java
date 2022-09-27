@@ -162,7 +162,7 @@ public class AuthingUserDao {
         return user;
     }
 
-    public String sendCode(String account, String type, String field){
+    public boolean sendCode(String account, String type, String field){
         try {
             switch (type.toLowerCase()) {
                 case "email":
@@ -179,33 +179,34 @@ public class AuthingUserDao {
                     authentication.sendSmsCode(account).execute();
                     break;
                 default:
-                    return "{\"code\":400, \"msg\":\"Type error!\"}";
+                    return false;
             }
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
-        return "{\"code\":200, \"msg\":\"Send successfully!\"}";
+        return true;
     }
 
-    public String changePassword(String account, String code, String newPassword, String type){
+    public boolean changePassword(String account, String code, String newPassword, String type){
         try {
             switch (type.toLowerCase()) {
                 case "email":
                     authentication.resetPasswordByEmailCode(account, code, newPassword).execute();
                     break;
                 case "phone":
-                authentication.resetPasswordByPhoneCode(account, code, newPassword).execute();
-                break;
+                    authentication.resetPasswordByPhoneCode(account, code, newPassword).execute();
+                    break;
                 default:
-                return "{\"code\":400, \"msg\":\"Type error!\"}";
+                    return false;
             }
         } catch (Exception e) {            
-            return "{\"code\":400, \"msg\":\"Reset password error!\"}";
+            return false;
         }
-        return  "{\"code\":200, \"msg\":\"Reset password successfully!\"}";
+        return  true;
     }
 
-    public String updateAccount(String token, String account, String code, String type){
+    public boolean updateAccount(String token, String account, String code, String type){
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
@@ -214,22 +215,21 @@ public class AuthingUserDao {
                     authentication.updateEmail(account, code).execute();
                     break;
                 case "phone":
-                authentication.updatePhone(account, code).execute();
-                break;
+                    authentication.updatePhone(account, code).execute();
+                    break;
                 default:
-                return "{\"code\":400, \"msg\":\"Type error!\"}";
+                    return false;
             }
         } catch (Exception e) {            
-            return "{\"code\":400, \"msg\":\"Update error!\"}";
+            return false;
         }
-        return  "{\"code\":200, \"msg\":\"Update successfully!\"}";
+        return  true;
     }
 
-    public String unbindAccount(String token, String type){       
+    public boolean unbindAccount(String token, String type){       
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
-            // User u = authentication.getCurrentUser().execute();
             System.out.println(us.getEmail());
             switch (type.toLowerCase()) {
                 case "email":
@@ -237,18 +237,18 @@ public class AuthingUserDao {
                     break;
                 case "phone":
                     authentication.unbindPhone().execute();
-                break;
+                    break;
                 default:
-                return "{\"code\":400, \"msg\":\"Type error!\"}";
+                    return false;
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());         
-            return "{\"code\":400, \"msg\":\"Unbind error!\"}";
+            return false;
         }
-        return  "{\"code\":200, \"msg\":\"Unbind successfully!\"}";
+        return  true;
     }
 
-    public String bindAccount(String token, String account, String code, String type){       
+    public boolean bindAccount(String token, String account, String code, String type){       
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
@@ -258,30 +258,30 @@ public class AuthingUserDao {
                     break;
                 case "phone":
                     authentication.bindPhone(account, code).execute();
-                break;
+                    break;
                 default:
-                return "{\"code\":400, \"msg\":\"Type error!\"}";
+                    return false;
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());         
-            return "{\"code\":400, \"msg\":\"Bind error!\"}";
+            return false;
         }
-        return  "{\"code\":200, \"msg\":\"Bind successfully!\"}";
+        return  true;
     }
 
-    public String linkAccount(String token, String secondtoken){       
+    public boolean linkAccount(String token, String secondtoken){       
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
             authentication.linkAccount(token, secondtoken).execute();
         } catch (Exception e) {
             System.out.println(e.getMessage());         
-            return "{\"code\":400, \"msg\":\"Link second account error!\"}";
+            return false;
         }
-        return  "{\"code\":200, \"msg\":\"Link second account successfully!\"}";
+        return  true;
     }
 
-    public String unLinkAccount(String token, String platform){       
+    public boolean unLinkAccount(String token, String platform){       
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
@@ -289,19 +289,9 @@ public class AuthingUserDao {
             authentication.unLinkAccount(unlink).execute();
         } catch (Exception e) {
             System.out.println(e.getMessage());         
-            return "{\"code\":400, \"msg\":\"Link second account error!\"}";
+            return false;
         }
-        return  "{\"code\":200, \"msg\":\"Link second account successfully!\"}";
-    }
-
-    public String login(String email, String ps){
-        try {
-            authentication.loginByEmail(new LoginByEmailInput(email, ps)).execute();
-            User user = authentication.updateProfile(new UpdateUserInput().withNickname("nick")).execute();          
-        } catch (Exception e) {            
-            return "{\"code\":400, \"msg\":\"Login error!\"}";
-        }
-        return  "{\"code\":200, \"msg\":\"Login successfully!\"}";
+        return  true;
     }
 
 }
