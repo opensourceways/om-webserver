@@ -39,4 +39,50 @@ public class AuthingController {
                                    @RequestHeader("token") String token) {
         return authingService.personalCenterUserInfo(community, token);
     }
+
+    @RequestMapping(value = "/sendcode")
+    public String sendCode(@RequestParam(value = "account") String account,
+                           @RequestParam(value = "field") String field,
+                           @RequestParam(value = "type") String type) {
+        return authingService.sendCode(account, type, field);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/update/account")
+    public String updateAccount(@RequestHeader(value = "token") String token,
+                                @RequestParam(value = "account") String account,
+                                @RequestParam(value = "code") String code,
+                                @RequestParam(value = "type") String type) {
+        return authingService.updateAccount(token, account, code, type);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/unbind/account")
+    public String unbindAccount(@RequestHeader(value = "token") String token,
+                                @RequestParam(value = "type") String type) {
+        return authingService.unbindAccount(token, type);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/bind/account")
+    public String bindAccount(@RequestHeader(value = "token") String token,
+                              @RequestParam(value = "account") String account,
+                              @RequestParam(value = "code") String code,
+                              @RequestParam(value = "type") String type) {
+        return authingService.bindAccount(token, account, code, type);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/link/account")
+    public String linkAccount(@RequestHeader(value = "token") String token,
+                              @RequestParam(value = "secondtoken") String secondtoken) {
+        return authingService.linkAccount(token, secondtoken);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/unlink/account")
+    public String unLinkAccount(@RequestHeader(value = "token") String token,
+                                @RequestParam(value = "platform") String platform) {
+        return authingService.unLinkAccount(token, platform);
+    }
 }
