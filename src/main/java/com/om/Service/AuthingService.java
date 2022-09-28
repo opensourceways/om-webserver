@@ -206,8 +206,8 @@ public class AuthingService {
 
     public ResponseEntity updateUserBaseInfo(String token, String item, String inputValue) {
         boolean res = authingUserDao.updateUserBaseInfo(token, item, inputValue);
-        if (res) return result(HttpStatus.OK, "update " + item + "success", null);
-        else return result(HttpStatus.UNAUTHORIZED, "update " + item + "fail", null);
+        if (res) return result(HttpStatus.OK, "update " + item + " success", null);
+        else return result(HttpStatus.UNAUTHORIZED, "update " + item + " fail", null);
     }
 
     public ResponseEntity updatePhoto(String token, MultipartFile file) {
