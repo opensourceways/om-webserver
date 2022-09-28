@@ -140,6 +140,13 @@ public class AuthingService {
 
     }
 
+    public ResponseEntity deleteUser(String token) {
+        String userId = getUserIdFromToken(token);
+        boolean res = authingUserDao.deleteUserById(userId);
+        if (res) return result(HttpStatus.OK, "delete user success", null);
+        else return result(HttpStatus.UNAUTHORIZED, "delete user fail", null);
+    }
+
     public ResponseEntity sendCode(String account, String type, String field) {
         boolean res = authingUserDao.sendCode(account, type, field);
         if (!res) {

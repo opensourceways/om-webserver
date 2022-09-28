@@ -40,6 +40,12 @@ public class AuthingController {
         return authingService.personalCenterUserInfo(token);
     }
 
+    @AuthingUserToken
+    @RequestMapping(value = "/delete/user")
+    public ResponseEntity deleteUser(@RequestHeader("token") String token) {
+        return authingService.deleteUser(token);
+    }
+
     @RequestMapping(value = "/sendcode")
     public ResponseEntity sendCode(@RequestParam(value = "account") String account,
                                    @RequestParam(value = "field") String field,
