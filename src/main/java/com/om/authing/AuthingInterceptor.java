@@ -120,12 +120,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
                         return false;
                     }*/
 
-                    // 判断用户在Authing端是否是登录状态
+                    /*// 判断用户在Authing端是否是登录状态
                     boolean status = authingUserDao.checkLoginStatusOnAuthing(userId);
                     if (!status) {
                         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "unauthorized");
                         return false;
-                    }
+                    }*/
 
                     // token 页面请求权限验证
                     if (userLoginToken != null && userLoginToken.required()){
