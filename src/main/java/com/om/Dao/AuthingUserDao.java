@@ -116,6 +116,22 @@ public class AuthingUserDao {
         }
     }
 
+    // 删除用户
+    public boolean deleteUserById(String userId) {
+        try {
+            String token = getManagementToken();
+            HttpResponse<JsonNode> response = Unirest.delete(AUTHINGAPIHOST + "/users/" + userId)
+                    .header("Authorization", token)
+                    .header("x-authing-userpool-id", userPoolId)
+                    .asJson();
+            int code = response.getBody().getObject().getInt("code");
+            return code == 200;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     // 用户资源和操作权限
     public boolean checkUserPermission(String userId, String groupCode, String resourceCode, String resourceAction) {
         try {
