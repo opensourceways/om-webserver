@@ -318,20 +318,25 @@ public class AuthingUserDao {
         return true;
     }
 
-    public boolean updateUserBaseInfo(String token, String item, String inputValue) {
+    public boolean updateUserBaseInfo(String token, Map<String, Object> map) {
         try {
             User user = getUserInfo(token);
             authentication.setCurrentUser(user);
             UpdateUserInput updateUserInput = new UpdateUserInput();
-            switch (item.toLowerCase()) {
-                case "nickname":
-                    updateUserInput.withNickname(inputValue);
-                    break;
-                case "company":
-                    updateUserInput.withCompany(inputValue);
-                    break;
-                default:
-                    return false;
+
+            for (Map.Entry<String, Object> entry : map.entrySet()) {
+                String item = entry.getKey();
+                String inputValue = entry.getValue() == null ? "" : entry.getValue().toString();
+                switch (item.toLowerCase()) {
+                    case "nickname":
+                        updateUserInput.withNickname(inputValue);
+                        break;
+                    case "company":
+                        updateUserInput.withCompany(inputValue);
+                        break;
+                    default:
+                        break;
+                }
             }
             authentication.updateProfile(updateUserInput).execute();
             return true;
