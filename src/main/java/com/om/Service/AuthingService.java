@@ -204,10 +204,10 @@ public class AuthingService {
         return result(HttpStatus.OK, "success", null);
     }
 
-    public ResponseEntity updateUserBaseInfo(String token, String item, String inputValue) {
-        boolean res = authingUserDao.updateUserBaseInfo(token, item, inputValue);
-        if (res) return result(HttpStatus.OK, "update " + item + " success", null);
-        else return result(HttpStatus.UNAUTHORIZED, "update " + item + " fail", null);
+    public ResponseEntity updateUserBaseInfo(String token, Map<String, Object> map) {
+        boolean res = authingUserDao.updateUserBaseInfo(token, map);
+        if (res) return result(HttpStatus.OK, "update base info success", null);
+        else return result(HttpStatus.UNAUTHORIZED, "update base info fail", null);
     }
 
     public ResponseEntity updatePhoto(String token, MultipartFile file) {
