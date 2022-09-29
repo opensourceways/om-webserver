@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Map;
+
 @RequestMapping(value = "/authing")
 @RestController
 public class AuthingController {
@@ -93,11 +95,10 @@ public class AuthingController {
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/update/baseInfo")
+    @RequestMapping(value = "/update/baseInfo", method = RequestMethod.POST)
     public ResponseEntity updateUserBaseInfo(@RequestHeader(value = "token") String token,
-                                             @RequestParam(value = "item") String item,
-                                             @RequestParam(value = "input") String input) {
-        return authingService.updateUserBaseInfo(token, item, input);
+                                             @RequestBody Map<String, Object> map) {
+        return authingService.updateUserBaseInfo(token, map);
     }
 
     @AuthingUserToken
