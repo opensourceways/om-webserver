@@ -230,7 +230,7 @@ public class AuthingUserDao {
         return true;
     }
 
-    public boolean updateAccount(String token, String oldaccount, String oldcode, String account, String code, String type) {
+    public String updateAccount(String token, String oldaccount, String oldcode, String account, String code, String type) {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
@@ -242,16 +242,15 @@ public class AuthingUserDao {
                     authentication.updatePhone(account, code, oldaccount, oldcode).execute();
                     break;
                 default:
-                    return false;
+                    return "false";
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+        } catch (Exception e) { 
+            return e.getMessage();
         }
-        return true;
+        return "true";
     }
 
-    public boolean unbindAccount(String token, String type) {
+    public String unbindAccount(String token, String type) {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
@@ -264,16 +263,15 @@ public class AuthingUserDao {
                     authentication.unbindPhone().execute();
                     break;
                 default:
-                    return false;
+                    return "false";
             }
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
+        } catch (Exception e) {           
+            return e.getMessage();
         }
-        return true;
+        return "true";
     }
 
-    public boolean bindAccount(String token, String account, String code, String type) {
+    public String bindAccount(String token, String account, String code, String type) {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
@@ -285,28 +283,26 @@ public class AuthingUserDao {
                     authentication.bindPhone(account, code).execute();
                     break;
                 default:
-                    return false;
+                    return "false";
             }
         } catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
+            return e.getMessage();
         }
-        return true;
+        return "true";
     }
 
-    public boolean linkAccount(String token, String secondtoken) {
+    public String linkAccount(String token, String secondtoken) {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
             authentication.linkAccount(token, secondtoken).execute();
         } catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
+            return e.getMessage();
         }
-        return true;
+        return "true";
     }
 
-    public boolean unLinkAccount(String token, String platform) {
+    public String unLinkAccount(String token, String platform) {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
@@ -317,17 +313,17 @@ public class AuthingUserDao {
                     break;
                 case "gitee":
                     // pt = ProviderType.GITHUB;
-                    return false;
+                    return "false";
                 default :
-                    return false;
+                    return "false";
             }
             UnLinkAccountParam unlink = new UnLinkAccountParam(token, pt);
             authentication.unLinkAccount(unlink).execute();
         } catch (Exception e) {
             System.out.println(e.getMessage());
-            return false;
+            return e.getMessage();
         }
-        return true;
+        return "true";
     }
 
     public boolean updateUserBaseInfo(String token, Map<String, Object> map) {

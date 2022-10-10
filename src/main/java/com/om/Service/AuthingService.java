@@ -3,6 +3,9 @@ package com.om.Service;
 import cn.authing.core.types.User;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
 import org.json.JSONArray;
@@ -165,43 +168,28 @@ public class AuthingService {
     }
 
     public ResponseEntity updateAccount(String token, String oldaccount, String oldcode, String account, String code, String type) {
-        boolean res = authingUserDao.updateAccount(token, oldaccount, oldcode, account, code, type);
-        if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-        return result(HttpStatus.OK, "success", null);
+        String res = authingUserDao.updateAccount(token, oldaccount, oldcode, account, code, type);
+        return message(res);
     }
 
     public ResponseEntity unbindAccount(String token, String type) {
-        boolean res = authingUserDao.unbindAccount(token, type);
-        if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-        return result(HttpStatus.OK, "success", null);
+        String res = authingUserDao.unbindAccount(token, type);
+        return message(res);
     }
 
     public ResponseEntity bindAccount(String token, String account, String code, String type) {
-        boolean res = authingUserDao.bindAccount(token, account, code, type);
-        if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-        return result(HttpStatus.OK, "success", null);
+        String res = authingUserDao.bindAccount(token, account, code, type);
+        return message(res);
     }
 
     public ResponseEntity linkAccount(String token, String secondtoken) {
-        boolean res = authingUserDao.linkAccount(token, secondtoken);
-        if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-        return result(HttpStatus.OK, "success", null);
+        String res = authingUserDao.linkAccount(token, secondtoken);
+        return message(res);
     }
 
     public ResponseEntity unLinkAccount(String token, String platform) {
-        boolean res = authingUserDao.unLinkAccount(token, platform);
-        if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-        return result(HttpStatus.OK, "success", null);
+        String res = authingUserDao.unLinkAccount(token, platform);
+        return message(res);
     }
 
     public ResponseEntity updateUserBaseInfo(String token, Map<String, Object> map) {
@@ -313,4 +301,26 @@ public class AuthingService {
         return new ResponseEntity<>(res, status);
     }
 
+    private ResponseEntity message(String res) {
+        switch (res) {
+            case "true":
+                return result(HttpStatus.OK, "success", null);
+            case "false":
+                return result(HttpStatus.BAD_REQUEST, "Account error", null);
+            default:
+                ObjectMapper objectMapper = new ObjectMapper();
+                String message = "faild";
+                try {
+                    res = res.substring(14);
+                    Iterator<JsonNode> buckets = objectMapper.readTree(res).iterator();
+                    if (buckets.hasNext()) {
+                        message = buckets.next().get("message").get("message").asText();                      
+                    }
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                    message =  e.getMessage();
+                }
+                return result(HttpStatus.BAD_REQUEST, message, null);
+        }
+    }
 }
