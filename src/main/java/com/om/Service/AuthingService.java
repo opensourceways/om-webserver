@@ -164,8 +164,8 @@ public class AuthingService {
         return result(HttpStatus.OK, "success", null);
     }
 
-    public ResponseEntity updateAccount(String token, String account, String code, String type) {
-        boolean res = authingUserDao.updateAccount(token, account, code, type);
+    public ResponseEntity updateAccount(String token, String oldaccount, String oldcode, String account, String code, String type) {
+        boolean res = authingUserDao.updateAccount(token, oldaccount, oldcode, account, code, type);
         if (!res) {
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
