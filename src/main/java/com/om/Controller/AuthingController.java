@@ -58,10 +58,12 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/update/account")
     public ResponseEntity updateAccount(@RequestHeader(value = "token") String token,
+                                        @RequestParam(value = "oldaccount") String oldaccount,
+                                        @RequestParam(value = "oldcode") String oldcode,
                                         @RequestParam(value = "account") String account,
                                         @RequestParam(value = "code") String code,
                                         @RequestParam(value = "account_type") String account_type) {
-        return authingService.updateAccount(token, account, code, account_type);
+        return authingService.updateAccount(token, oldaccount, oldcode, account, code, account_type);
     }
 
     @AuthingUserToken
