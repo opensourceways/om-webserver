@@ -230,21 +230,22 @@ public class AuthingUserDao {
         return true;
     }
 
-    public boolean updateAccount(String token, String account, String code, String type) {
+    public boolean updateAccount(String token, String oldaccount, String oldcode, String account, String code, String type) {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
             switch (type.toLowerCase()) {
                 case "email":
-                    authentication.updateEmail(account, code).execute();
+                    authentication.updateEmail(account, code, oldaccount, oldcode).execute();
                     break;
                 case "phone":
-                    authentication.updatePhone(account, code).execute();
+                    authentication.updatePhone(account, code, oldaccount, oldcode).execute();
                     break;
                 default:
                     return false;
             }
         } catch (Exception e) {
+            e.printStackTrace();
             return false;
         }
         return true;
@@ -309,7 +310,18 @@ public class AuthingUserDao {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
-            UnLinkAccountParam unlink = new UnLinkAccountParam(token, ProviderType.valueOf(platform));
+            ProviderType pt;
+            switch (platform) {
+                case "github":
+                    pt = ProviderType.GITHUB;
+                    break;
+                case "gitee":
+                    // pt = ProviderType.GITHUB;
+                    return false;
+                default :
+                    return false;
+            }
+            UnLinkAccountParam unlink = new UnLinkAccountParam(token, pt);
             authentication.unLinkAccount(unlink).execute();
         } catch (Exception e) {
             System.out.println(e.getMessage());
