@@ -276,6 +276,14 @@ public class AuthingService {
         return result(HttpStatus.OK, "success", null);
     }
 
+    public ResponseEntity linkConnList(String token) {
+        List<Map<String, String>> res = authingUserDao.linkConnList(token);
+        if (res == null) {
+            return result(HttpStatus.UNAUTHORIZED, "get connections fail", null);
+        }
+        return result(HttpStatus.OK, "get connections success", res);
+    }
+
     public ResponseEntity linkAccount(String token, String secondtoken) {
         boolean res = authingUserDao.linkAccount(token, secondtoken);
         if (!res) {
@@ -287,9 +295,9 @@ public class AuthingService {
     public ResponseEntity unLinkAccount(String token, String platform) {
         boolean res = authingUserDao.unLinkAccount(token, platform);
         if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+            return result(HttpStatus.UNAUTHORIZED, "unlink account fail", null);
         }
-        return result(HttpStatus.OK, "success", null);
+        return result(HttpStatus.OK, "unlink account success", null);
     }
 
     public ResponseEntity updateUserBaseInfo(String token, Map<String, Object> map) {

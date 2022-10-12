@@ -17,6 +17,8 @@ import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +53,23 @@ public class AuthingUserDao {
     @Value("${datastat.img.bucket.name}")
     String datastatImgBucket;
 
+    @Value("${social.extIdpId.github}")
+    String socialExtIdpIdGithub;
+
+    @Value("${social.identifier.github}")
+    String socialIdentifierGithub;
+
+    @Value("${social.authorizationUrl.github}")
+    String socialAuthUrlGithub;
+
+    @Value("${enterprise.extIdpId.gitee}")
+    String enterExtIdpIdGitee;
+
+    @Value("${enterprise.identifier.gitee}")
+    String enterIdentifieGitee;
+
+    @Value("${enterprise.authorizationUrl.gitee}")
+    String enterAuthUrlGitee;
 
     public static ManagementClient managementClient;
 
@@ -300,6 +319,42 @@ public class AuthingUserDao {
         return true;
     }
 
+    public List<Map<String, String>> linkConnList(String token) {
+        try {
+            User user = getUserInfo(token);
+            String userToken = user.getToken();
+            List<Map<String, String>> list = new ArrayList<>();
+
+            HashMap<String, String> mapGithub = new HashMap<>();
+            String authGithub = String.format(socialAuthUrlGithub, socialIdentifierGithub, omAppId, userToken);
+            mapGithub.put("name", "social_github");
+            mapGithub.put("authorizationUrl", authGithub);
+
+            HashMap<String, String> mapGitee = new HashMap<>();
+            String authGitee = String.format(enterAuthUrlGitee, omAppId, enterIdentifieGitee, userToken);
+            mapGitee.put("name", "enterprise_gitee");
+            mapGitee.put("authorizationUrl", authGitee);
+
+            list.add(mapGithub);
+            list.add(mapGitee);
+            return list;
+
+            /*TODO 该接口因为Cookie参数获取不到，所以无法使用
+            HttpResponse<JsonNode> response = Unirest.get("https://core.authing.cn/api/v2/users/identity/conn-list")
+                    .header("Cookie", "_ga=GA1.1.560461360.1664331900; MEIQIA_TRACK_ID=2FNUiFcUexFF1btNQaCspj4gm6g; MEIQIA_VISIT_ID=2FNUiG00E6mfTWWZcfD832ufY91; utm_term=; utm_source=; utm_campaign=; utm_medium=; c__utmc=962341070.1574253902; Hm_lvt_cea7e2531f79a7b9f6516cb1d523c41b=1664359022,1665193555; _authing_lang=zh-CN; c__utma=962341070.1574253902.2950744787608099153.1665197658.1665304883.5; Hm_lpvt_cea7e2531f79a7b9f6516cb1d523c41b=1665304886; ssxmod_itna=eqUxBDuii=KYqDK40dD=wgD7wzhGaKoz7qDgi=D0y0ReGzDAxn40iDt==54=PgjD+x4f4+0y4=i7aERbG3OZhBRzIIDB3DEx0=etjQxiiyDCeDIDWeDiDGbODXx50OD7qiOD7O=DLDWH1DjKDh2c8qDGdYGYeUx0WDCvFD7KDng7Qq4DOyxGCLxDryxG18x07yZAsDY9dz45DEBKeDG5ey4r=iD8804MzrbgpORgv89EFwSojfe51B6KDo2pEYSIu915j/Wh3tW2eZBGxTjGWq7GothGKGN0Ds0hKqnneNiGouTiohvrBDDcDGDKS2DeD===; ssxmod_itna2=eqUxBDuii=KYqDK40dD=wgD7wzhGaKoz7qDgiDnFSRPDsqi8eDLQebuQjB+iMBLiXsI/xxK63ocB44=D6QGIKqYsU0FaENd3nHWjrjt0h=IkwOqrTAhLKpFreICZjjKsYFMnhKkefTfkjht/I866QBNHW33P1GvR+fYSiT21KRtpiAfX90KzCSfmBxUNc7GDVEK5DmNp9AURii3qfG=ECA09/hoBz4xpC0x9D9ohe1vzdFizjnj+LgqIExx+13YIt9Nh08hCyT6p1bUkPQvLh3YvhfGj3U+RwK8rPItTL/9wPWMjFCFvWhwDv8GoBWK5WpmadIYExoeocvfP3zOiEB5=CdMiAsWfCoAx3Y7gLKcfCmfvWbUZIbRXSnAxBqxff=3eBGPtGmdW6cBq5DdDxbA1UxBP8CQDaw6xwRjnxhW7B5ASDEjnN7wP1cjcw8WiDpGsBukoikWI72ECmajmvkZpcUIAjPUgdoKyPpbnjcvGf9hPktw9Pe=bG8ep=PR3e2GlIPGPUlUAWBxPxDPxc=nKgycl=ADEmi5qB7ND37CcZI5+Pq=79CxmboOuf4DQ9rD08DiQYYD=; _ga_HYWQJL22JQ=GS1.1.1665304885.5.0.1665304897.0.0.0; authing_session=s:gJ5jLVCO5maRDJv9BuBrSjez5iRBmI2U.3g5IWS3ZJs9V1hGBHYxgkH1uoe7RgfZ8GZDEydTpgLg; sensorsdata2015jssdkcross={\"distinct_id\":\"18381e96346ec-019cb0b4ebb3de-26021c51-3686400-18381e9634767\",\"first_id\":\"\",\"props\":{\"$latest_traffic_source_type\":\"引荐流量\",\"$latest_search_keyword\":\"未取到值\",\"$latest_referrer\":\"https://openeuler-doc-zh2.test.osinfra.cn/\"},\"identities\":\"eyIkaWRlbnRpdHlfY29va2llX2lkIjoiMTgzODFlOTYzNDZlYy0wMTljYjBiNGViYjNkZS0yNjAyMWM1MS0zNjg2NDAwLTE4MzgxZTk2MzQ3NjcifQ==\",\"history_login_id\":{\"name\":\"\",\"value\":\"\"},\"$device_id\":\"18381e96346ec-019cb0b4ebb3de-26021c51-3686400-18381e9634767\"}; _ga_83W797MG3H=GS1.1.1665487191.50.1.1665488982.0.0.0; _ga_B1XMPFE9RK=GS1.1.1665545157.48.1.1665546878.0.0.0; _ga_5XE1T3D4BC=GS1.1.1665555007.35.1.1665555012.0.0.0")
+                    .header("DNT", "1")
+                    .header("x-authing-app-id", omAppId)
+                    .header("x-authing-request-from", "userPortal")
+                    .header("x-authing-userpool-id", userPoolId)
+                    .asJson();
+            JSONObject object = response.getBody().getObject();
+            JSONArray jsonArray = response.getBody().getObject().getJSONObject("data").getJSONArray("list");*/
+        } catch (Exception e) {
+            return null;
+        }
+
+    }
+
     public boolean linkAccount(String token, String secondtoken) {
         try {
             User us = getUserInfo(token);
@@ -313,27 +368,36 @@ public class AuthingUserDao {
     }
 
     public boolean unLinkAccount(String token, String platform) {
+        String identifier;
+        String extIdpId;
         try {
-            User us = getUserInfo(token);
-            authentication.setCurrentUser(us);
-            ProviderType pt;
-            switch (platform) {
+            switch (platform.toLowerCase()) {
                 case "github":
-                    pt = ProviderType.GITHUB;
+                    identifier = socialIdentifierGithub;
+                    extIdpId = socialExtIdpIdGithub;
                     break;
                 case "gitee":
-                    // pt = ProviderType.GITHUB;
-                    return false;
-                default :
+                    identifier = enterIdentifieGitee;
+                    extIdpId = enterExtIdpIdGitee;
+                    break;
+                default:
                     return false;
             }
-            UnLinkAccountParam unlink = new UnLinkAccountParam(token, pt);
-            authentication.unLinkAccount(unlink).execute();
+
+            User us = getUserInfo(token);
+            String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", identifier, extIdpId);
+            Unirest.setTimeouts(0, 0);
+            HttpResponse<JsonNode> response = Unirest.post("https://core.authing.cn/api/v2/users/identity/unlinkByUser")
+                    .header("Authorization", us.getToken())
+                    .header("x-authing-userpool-id", userPoolId)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .asJson();
+            return response.getBody().getObject().getInt("code") == 200;
         } catch (Exception e) {
             System.out.println(e.getMessage());
             return false;
         }
-        return true;
     }
 
     public boolean updateUserBaseInfo(String token, Map<String, Object> map) {
