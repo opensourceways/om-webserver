@@ -251,26 +251,32 @@ public class AuthingUserDao {
         return true;
     }
 
-    public boolean unbindAccount(String token, String type) {
+    public String unbindAccount(String token, String account, String type) {
+        String resFail = "unbind fail";
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
-            System.out.println(us.getEmail());
             switch (type.toLowerCase()) {
                 case "email":
+                    String email = us.getEmail();
+                    if (!account.equals(email)) return resFail;
                     authentication.unbindEmail().execute();
                     break;
                 case "phone":
+                    String phone = us.getPhone();
+                    if (!account.equals(phone)) return resFail;
                     authentication.unbindPhone().execute();
                     break;
                 default:
-                    return false;
+                    return resFail;
             }
         } catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
+            String message = e.getMessage();
+            System.out.println(message);
+            if (message.contains("没有配置其他登录方式")) return resFail + ",only one login account";
+            else return resFail;
         }
-        return true;
+        return "unbind success";
     }
 
     public boolean bindAccount(String token, String account, String code, String type) {
