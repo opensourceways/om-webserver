@@ -249,7 +249,7 @@ public class AuthingUserDao {
         return true;
     }
 
-    public boolean updateAccount(String token, String oldaccount, String oldcode, String account, String code, String type) {
+    public String updateAccount(String token, String oldaccount, String oldcode, String account, String code, String type) {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
@@ -261,13 +261,12 @@ public class AuthingUserDao {
                     authentication.updatePhone(account, code, oldaccount, oldcode).execute();
                     break;
                 default:
-                    return false;
+                    return "false";
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+            return e.getMessage();
         }
-        return true;
+        return "true";
     }
 
     public String unbindAccount(String token, String account, String type) {
@@ -298,7 +297,7 @@ public class AuthingUserDao {
         return "unbind success";
     }
 
-    public boolean bindAccount(String token, String account, String code, String type) {
+    public String bindAccount(String token, String account, String code, String type) {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
@@ -310,13 +309,12 @@ public class AuthingUserDao {
                     authentication.bindPhone(account, code).execute();
                     break;
                 default:
-                    return false;
+                    return "false";
             }
         } catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
+            return e.getMessage();
         }
-        return true;
+        return "true";
     }
 
     public List<Map<String, String>> linkConnList(String token) {
@@ -354,16 +352,15 @@ public class AuthingUserDao {
         }
     }
 
-    public boolean linkAccount(String token, String secondtoken) {
+    public String linkAccount(String token, String secondtoken) {
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
             authentication.linkAccount(token, secondtoken).execute();
         } catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
+            return e.getMessage();
         }
-        return true;
+        return "true";
     }
 
     public boolean unLinkAccount(String token, String platform) {
