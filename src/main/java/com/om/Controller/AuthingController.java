@@ -56,6 +56,13 @@ public class AuthingController {
     }
 
     @AuthingUserToken
+    @RequestMapping(value = "/sendcode/unbind")
+    public ResponseEntity sendCodeUnbind(@RequestParam(value = "account") String account,
+                                         @RequestParam(value = "account_type") String account_type) {
+        return authingService.sendCodeUnbind(account, account_type);
+    }
+
+    @AuthingUserToken
     @RequestMapping(value = "/update/account")
     public ResponseEntity updateAccount(@RequestHeader(value = "token") String token,
                                         @RequestParam(value = "oldaccount") String oldaccount,
@@ -69,8 +76,10 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/unbind/account")
     public ResponseEntity unbindAccount(@RequestHeader(value = "token") String token,
+                                        @RequestParam(value = "account") String account,
+                                        @RequestParam(value = "code") String code,
                                         @RequestParam(value = "account_type") String account_type) {
-        return authingService.unbindAccount(token, account_type);
+        return authingService.unbindAccount(token, account, code, account_type);
     }
 
     @AuthingUserToken
