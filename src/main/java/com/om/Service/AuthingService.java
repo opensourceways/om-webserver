@@ -3,21 +3,28 @@ package com.om.Service;
 import cn.authing.core.types.User;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
+import com.mashape.unirest.http.Unirest;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
+import com.om.Utils.CodeUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.annotation.PostConstruct;
 import java.net.URLEncoder;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -34,7 +41,17 @@ public class AuthingService {
     RedisDao redisDao;
 
     @Autowired
+    JavaMailSender mailSender;
+
+    @Autowired
     JwtTokenCreateService jwtTokenCreateService;
+
+    private static CodeUtil codeUtil;
+
+    @PostConstruct
+    public void init() {
+        codeUtil = new CodeUtil();
+    }
 
     public ResponseEntity authingUserPermission(String community, String token) {
         try {
@@ -158,6 +175,66 @@ public class AuthingService {
         return result(HttpStatus.OK, "success", null);
     }
 
+    public ResponseEntity sendCodeUnbind(String account, String type) {
+        try {
+            // 限制1分钟只能发送一次
+            String codeOld = (String) redisDao.get(account);
+            if (codeOld != null) {
+                return result(HttpStatus.UNAUTHORIZED, "sent one code within 1 minute", null);
+            }
+
+            String resMsg = "send code fail";
+            long codeExpire = 60L;
+
+            // 生成验证码
+            String code = codeUtil.randomNumBuilder();
+
+            switch (type.toLowerCase()) {
+                case "email":
+                    codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
+                    // 邮件服务器
+                    String from = env.getProperty("spring.mail.username");
+                    // 邮件信息
+                    String[] info = codeUtil.buildEmailUnbindInfo(account, code);
+                    // 发送验证码
+                    resMsg = codeUtil.sendSimpleMail(mailSender, from, account, info[0], info[1]);
+                    break;
+                case "phone":
+                    codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", "60"));
+                    // 短信发送服务器
+                    String msgsms_app_key = env.getProperty("msgsms.app_key");
+                    String msgsms_app_secret = env.getProperty("msgsms.app_secret");
+                    String msgsms_url = env.getProperty("msgsms.url");
+                    String msgsms_signature = env.getProperty("msgsms.signature");
+                    String msgsms_sender = env.getProperty("msgsms.sender");
+                    String msgsms_template_id = env.getProperty("msgsms.template.id");
+                    // 短信发送请求
+                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    String format = dtf.format(LocalDateTime.now());
+                    String[] split = format.split(" ");
+                    String templateParas = String.format("[\"%s\",\"%s\",\"%s\"]", code, split[0], split[1]);
+                    String wsseHeader = codeUtil.buildWsseHeader(msgsms_app_key, msgsms_app_secret);
+                    String body = codeUtil.buildSmsBody(msgsms_sender, account, msgsms_template_id, templateParas, "", msgsms_signature);
+                    // 发送验证码
+                    HttpResponse<JsonNode> response = Unirest.post(msgsms_url)
+                            .header("Content-Type", "application/x-www-form-urlencoded")
+                            .header("Authorization", CodeUtil.AUTH_HEADER_VALUE)
+                            .header("X-WSSE", wsseHeader)
+                            .body(body)
+                            .asJson();
+                    if (response.getStatus() == 200) resMsg = "send sms code success";
+                    break;
+                default:
+                    break;
+            }
+            System.out.println("***** codeExpire: " + codeExpire);
+            redisDao.set(account + "_CodeUnbind", code, codeExpire);
+            return result(HttpStatus.OK, resMsg, null);
+        } catch (Exception ex) {
+            return result(HttpStatus.UNAUTHORIZED, "send code fail", null);
+        }
+    }
+
     // 未使用
     public ResponseEntity resetPassword(String account, String code, String ps, String type) {
         boolean res = authingUserDao.changePassword(account, code, ps, type);
@@ -172,14 +249,35 @@ public class AuthingService {
         return message(res);
     }
 
-    public ResponseEntity unbindAccount(String token, String type) {
-        String res = authingUserDao.unbindAccount(token, type);
-        return message(res);
+    public ResponseEntity unbindAccount(String token, String account, String code, String type) {
+        String redisKey = account + "_CodeUnbind";
+        String codeTemp = (String) redisDao.get(redisKey);
+        if (codeTemp == null) {
+            return result(HttpStatus.UNAUTHORIZED, "code invalid or expired", null);
+        }
+        if (!codeTemp.equals(code)) {
+            return result(HttpStatus.UNAUTHORIZED, "code error", null);
+        }
+        String res = authingUserDao.unbindAccount(token, account, type);
+
+        if (res.equals("unbind success")) {
+            redisDao.remove(redisKey);
+            return result(HttpStatus.OK, res, null);
+        }
+        return result(HttpStatus.UNAUTHORIZED, res, null);
     }
 
     public ResponseEntity bindAccount(String token, String account, String code, String type) {
         String res = authingUserDao.bindAccount(token, account, code, type);
         return message(res);
+    }
+
+    public ResponseEntity linkConnList(String token) {
+        List<Map<String, String>> res = authingUserDao.linkConnList(token);
+        if (res == null) {
+            return result(HttpStatus.UNAUTHORIZED, "get connections fail", null);
+        }
+        return result(HttpStatus.OK, "get connections success", res);
     }
 
     public ResponseEntity linkAccount(String token, String secondtoken) {
@@ -188,8 +286,11 @@ public class AuthingService {
     }
 
     public ResponseEntity unLinkAccount(String token, String platform) {
-        String res = authingUserDao.unLinkAccount(token, platform);
-        return message(res);
+        boolean res = authingUserDao.unLinkAccount(token, platform);
+        if (!res) {
+            return result(HttpStatus.UNAUTHORIZED, "unlink account fail", null);
+        }
+        return result(HttpStatus.OK, "unlink account success", null);
     }
 
     public ResponseEntity updateUserBaseInfo(String token, Map<String, Object> map) {
@@ -249,7 +350,7 @@ public class AuthingService {
         HashMap<String, Object> res = new HashMap<>();
 
         JSONObject userInfoInIdpObj = identityObj.getJSONObject("userInfoInIdp");
-        String accessToken = jsonObjStringValue(identityObj, "accessToken");
+//        String accessToken = jsonObjStringValue(identityObj, "accessToken");
         String provider = jsonObjStringValue(identityObj, "provider");
         switch (provider) {
             case "github":
@@ -257,7 +358,7 @@ public class AuthingService {
                 res.put("identity", "github");
                 res.put("login_name", github_login);
                 res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "username"));
-                res.put("accessToken", accessToken);
+                res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
                 map.put(provider, res);
                 break;
             case "oauth2":
@@ -265,14 +366,14 @@ public class AuthingService {
                 res.put("identity", "gitee");
                 res.put("login_name", gitee_login);
                 res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "name"));
-                res.put("accessToken", accessToken);
+                res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
                 map.put(provider, res);
                 break;
             case "wechat":
                 res.put("identity", "wechat");
                 res.put("login_name", "");
                 res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "nickname"));
-                res.put("accessToken", accessToken);
+                res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
                 map.put(provider, res);
                 break;
             default:
@@ -312,9 +413,9 @@ public class AuthingService {
                 String message = "faild";
                 try {
                     res = res.substring(14);
-                    Iterator<JsonNode> buckets = objectMapper.readTree(res).iterator();
+                    Iterator<com.fasterxml.jackson.databind.JsonNode> buckets = objectMapper.readTree(res).iterator();
                     if (buckets.hasNext()) {
-                        message = buckets.next().get("message").get("message").asText();                      
+                        message = buckets.next().get("message").get("message").asText();
                     }
                 } catch (JsonProcessingException e) {
                     e.printStackTrace();
