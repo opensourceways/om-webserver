@@ -48,6 +48,7 @@ public class AuthingController {
         return authingService.deleteUser(token);
     }
 
+    @AuthingUserToken
     @RequestMapping(value = "/sendcode")
     public ResponseEntity sendCode(@RequestParam(value = "account") String account,
                                    @RequestParam(value = "field") String field,
@@ -89,6 +90,13 @@ public class AuthingController {
                                       @RequestParam(value = "code") String code,
                                       @RequestParam(value = "account_type") String account_type) {
         return authingService.bindAccount(token, account, code, account_type);
+    }
+
+
+    @AuthingUserToken
+    @RequestMapping(value = "/conn/list")
+    public ResponseEntity linkConnList(@RequestHeader(value = "token") String token) {
+        return authingService.linkConnList(token);
     }
 
     @AuthingUserToken
