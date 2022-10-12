@@ -17,6 +17,8 @@ import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +53,23 @@ public class AuthingUserDao {
     @Value("${datastat.img.bucket.name}")
     String datastatImgBucket;
 
+    @Value("${social.extIdpId.github}")
+    String socialExtIdpIdGithub;
+
+    @Value("${social.identifier.github}")
+    String socialIdentifierGithub;
+
+    @Value("${social.authorizationUrl.github}")
+    String socialAuthUrlGithub;
+
+    @Value("${enterprise.extIdpId.gitee}")
+    String enterExtIdpIdGitee;
+
+    @Value("${enterprise.identifier.gitee}")
+    String enterIdentifieGitee;
+
+    @Value("${enterprise.authorizationUrl.gitee}")
+    String enterAuthUrlGitee;
 
     public static ManagementClient managementClient;
 
@@ -244,31 +263,38 @@ public class AuthingUserDao {
                 default:
                     return "false";
             }
-        } catch (Exception e) { 
+        } catch (Exception e) {
             return e.getMessage();
         }
         return "true";
     }
 
-    public String unbindAccount(String token, String type) {
+    public String unbindAccount(String token, String account, String type) {
+        String resFail = "unbind fail";
         try {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
-            System.out.println(us.getEmail());
             switch (type.toLowerCase()) {
                 case "email":
+                    String email = us.getEmail();
+                    if (!account.equals(email)) return resFail;
                     authentication.unbindEmail().execute();
                     break;
                 case "phone":
+                    String phone = us.getPhone();
+                    if (!account.equals(phone)) return resFail;
                     authentication.unbindPhone().execute();
                     break;
                 default:
-                    return "false";
+                    return resFail;
             }
-        } catch (Exception e) {           
-            return e.getMessage();
+        } catch (Exception e) {
+            String message = e.getMessage();
+            System.out.println(message);
+            if (message.contains("没有配置其他登录方式")) return resFail + ",only one login account";
+            else return resFail;
         }
-        return "true";
+        return "unbind success";
     }
 
     public String bindAccount(String token, String account, String code, String type) {
@@ -291,6 +317,41 @@ public class AuthingUserDao {
         return "true";
     }
 
+    public List<Map<String, String>> linkConnList(String token) {
+        try {
+            User user = getUserInfo(token);
+            String userToken = user.getToken();
+            List<Map<String, String>> list = new ArrayList<>();
+
+            HashMap<String, String> mapGithub = new HashMap<>();
+            String authGithub = String.format(socialAuthUrlGithub, socialIdentifierGithub, omAppId, userToken);
+            mapGithub.put("name", "social_github");
+            mapGithub.put("authorizationUrl", authGithub);
+
+            HashMap<String, String> mapGitee = new HashMap<>();
+            String authGitee = String.format(enterAuthUrlGitee, omAppId, enterIdentifieGitee, userToken);
+            mapGitee.put("name", "enterprise_gitee");
+            mapGitee.put("authorizationUrl", authGitee);
+
+            list.add(mapGithub);
+            list.add(mapGitee);
+            return list;
+
+            /*TODO 该接口因为Cookie参数获取不到，所以无法使用
+            HttpResponse<JsonNode> response = Unirest.get("https://core.authing.cn/api/v2/users/identity/conn-list")
+                    .header("Cookie", "")
+                    .header("DNT", "1")
+                    .header("x-authing-app-id", omAppId)
+                    .header("x-authing-request-from", "userPortal")
+                    .header("x-authing-userpool-id", userPoolId)
+                    .asJson();
+            JSONObject object = response.getBody().getObject();
+            JSONArray jsonArray = response.getBody().getObject().getJSONObject("data").getJSONArray("list");*/
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public String linkAccount(String token, String secondtoken) {
         try {
             User us = getUserInfo(token);
@@ -302,28 +363,37 @@ public class AuthingUserDao {
         return "true";
     }
 
-    public String unLinkAccount(String token, String platform) {
+    public boolean unLinkAccount(String token, String platform) {
+        String identifier;
+        String extIdpId;
         try {
-            User us = getUserInfo(token);
-            authentication.setCurrentUser(us);
-            ProviderType pt;
-            switch (platform) {
+            switch (platform.toLowerCase()) {
                 case "github":
-                    pt = ProviderType.GITHUB;
+                    identifier = socialIdentifierGithub;
+                    extIdpId = socialExtIdpIdGithub;
                     break;
                 case "gitee":
-                    // pt = ProviderType.GITHUB;
-                    return "false";
-                default :
-                    return "false";
+                    identifier = enterIdentifieGitee;
+                    extIdpId = enterExtIdpIdGitee;
+                    break;
+                default:
+                    return false;
             }
-            UnLinkAccountParam unlink = new UnLinkAccountParam(token, pt);
-            authentication.unLinkAccount(unlink).execute();
+
+            User us = getUserInfo(token);
+            String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", identifier, extIdpId);
+            Unirest.setTimeouts(0, 0);
+            HttpResponse<JsonNode> response = Unirest.post("https://core.authing.cn/api/v2/users/identity/unlinkByUser")
+                    .header("Authorization", us.getToken())
+                    .header("x-authing-userpool-id", userPoolId)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .asJson();
+            return response.getBody().getObject().getInt("code") == 200;
         } catch (Exception e) {
             System.out.println(e.getMessage());
-            return e.getMessage();
+            return false;
         }
-        return "true";
     }
 
     public boolean updateUserBaseInfo(String token, Map<String, Object> map) {
