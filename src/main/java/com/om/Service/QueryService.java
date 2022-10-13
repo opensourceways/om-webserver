@@ -1073,15 +1073,14 @@ public class QueryService {
     }
 
     public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
-            String timeRange, String lastCursor, String pageSize) throws JsonMappingException, JsonProcessingException {
+            String timeRange, String page, String pageSize) throws JsonMappingException, JsonProcessingException {
         String key = community.toLowerCase() + sig + contributeType.toLowerCase() + timeRange.toLowerCase();
         String result = null;
         result = (String) redisDao.get(key, user);
         if (result == null) {
             // 查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange,
-                        lastCursor, pageSize, env);
+                result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange, env);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1090,6 +1089,22 @@ public class QueryService {
             if (set) {
                 System.out.println("update " + key + " " + user + " hash success!");
             }
+        }
+        if (pageSize != null) {
+            ObjectMapper objectMapper = new ObjectMapper();
+            JsonNode all = objectMapper.readTree(result);
+            Iterator<JsonNode> buckets = all.get("data").get(user).iterator();
+            ArrayList<JsonNode> usercount = new ArrayList<>();
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                usercount.add(bucket);
+            }
+            Map map = PageUtils.getDataByPage(Integer.parseInt(page), Integer.parseInt(pageSize), usercount);
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", map);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
         }
         return result;
     }
