@@ -124,6 +124,19 @@
             <artifactId>esdk-obs-java-bundle</artifactId>
             <version>3.21.8</version>
         </dependency>
+
+        <!-- geoip -->        
+        <dependency>
+            <groupId>com.maxmind.geoip2</groupId>
+            <artifactId>geoip2</artifactId>
+            <version>2.16.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.11.0</version>
+        </dependency>
     </dependencies>
     <build>
 
