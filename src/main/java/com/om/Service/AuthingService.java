@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
+import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.CodeUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -164,23 +165,24 @@ public class AuthingService {
         String userId = getUserIdFromToken(token);
         boolean res = authingUserDao.deleteUserById(userId);
         if (res) return result(HttpStatus.OK, "delete user success", null);
-        else return result(HttpStatus.UNAUTHORIZED, "delete user fail", null);
+        else return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
     }
 
     public ResponseEntity sendCode(String account, String type, String field) {
         boolean res = authingUserDao.sendCode(account, type, field);
         if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+            return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
         }
         return result(HttpStatus.OK, "success", null);
     }
 
     public ResponseEntity sendCodeUnbind(String account, String type) {
+        String redisKey = account + "_CodeUnbind";
         try {
             // 限制1分钟只能发送一次
-            String codeOld = (String) redisDao.get(account);
+            String codeOld = (String) redisDao.get(redisKey);
             if (codeOld != null) {
-                return result(HttpStatus.UNAUTHORIZED, "sent one code within 1 minute", null);
+                return result(HttpStatus.BAD_REQUEST, null, "一分钟之内已发送过验证码", null);
             }
 
             String resMsg = "send code fail";
@@ -228,10 +230,10 @@ public class AuthingService {
                     break;
             }
             System.out.println("***** codeExpire: " + codeExpire);
-            redisDao.set(account + "_CodeUnbind", code, codeExpire);
+            redisDao.set(redisKey, code, codeExpire);
             return result(HttpStatus.OK, resMsg, null);
         } catch (Exception ex) {
-            return result(HttpStatus.UNAUTHORIZED, "send code fail", null);
+            return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
         }
     }
 
@@ -253,10 +255,10 @@ public class AuthingService {
         String redisKey = account + "_CodeUnbind";
         String codeTemp = (String) redisDao.get(redisKey);
         if (codeTemp == null) {
-            return result(HttpStatus.UNAUTHORIZED, "code invalid or expired", null);
+            return result(HttpStatus.BAD_REQUEST, null, "验证码无效或已过期", null);
         }
         if (!codeTemp.equals(code)) {
-            return result(HttpStatus.UNAUTHORIZED, "code error", null);
+            return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
         }
         String res = authingUserDao.unbindAccount(token, account, type);
 
@@ -264,7 +266,7 @@ public class AuthingService {
             redisDao.remove(redisKey);
             return result(HttpStatus.OK, res, null);
         }
-        return result(HttpStatus.UNAUTHORIZED, res, null);
+        return result(HttpStatus.BAD_REQUEST, null, res, null);
     }
 
     public ResponseEntity bindAccount(String token, String account, String code, String type) {
@@ -288,7 +290,7 @@ public class AuthingService {
     public ResponseEntity unLinkAccount(String token, String platform) {
         boolean res = authingUserDao.unLinkAccount(token, platform);
         if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unlink account fail", null);
+            return result(HttpStatus.BAD_REQUEST, null, "解绑三方账号失败", null);
         }
         return result(HttpStatus.OK, "unlink account success", null);
     }
@@ -296,13 +298,13 @@ public class AuthingService {
     public ResponseEntity updateUserBaseInfo(String token, Map<String, Object> map) {
         boolean res = authingUserDao.updateUserBaseInfo(token, map);
         if (res) return result(HttpStatus.OK, "update base info success", null);
-        else return result(HttpStatus.UNAUTHORIZED, "update base info fail", null);
+        else return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
     }
 
     public ResponseEntity updatePhoto(String token, MultipartFile file) {
         boolean res = authingUserDao.updatePhoto(token, file);
         if (res) return result(HttpStatus.OK, "update photo success", null);
-        else return result(HttpStatus.UNAUTHORIZED, "update photo fail", null);
+        else return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
     }
 
     // 获取自定义token中的user id
@@ -402,12 +404,79 @@ public class AuthingService {
         return new ResponseEntity<>(res, status);
     }
 
+    private ResponseEntity result(HttpStatus status, MessageCodeConfig msgCode, String msg, Object data) {
+        HashMap<String, Object> res = new HashMap<>();
+        res.put("code", status.value());
+        res.put("data", data);
+        res.put("msg", msg);
+
+        if (status.value() == 400 && msgCode == null) {
+            if (msg.contains("验证码已失效") || msg.contains("验证码无效或已过期")) {
+                msgCode = MessageCodeConfig.E0001;
+            }
+            if (msg.contains("验证码不正确")) {
+                msgCode = MessageCodeConfig.E0002;
+            }
+            if (msg.contains("该手机号已被绑定")) {
+                msgCode = MessageCodeConfig.E0003;
+            }
+            if (msg.contains("该邮箱已被绑定") || msg.contains("Duplicate entry")) {
+                msgCode = MessageCodeConfig.E0004;
+            }
+            if (msg.contains("没有配置其他登录方式")) {
+                msgCode = MessageCodeConfig.E0005;
+            }
+            if (msg.contains("解绑三方账号失败")) {
+                msgCode = MessageCodeConfig.E0006;
+            }
+            if (msg.contains("更新失败")) {
+                msgCode = MessageCodeConfig.E0007;
+            }
+            if (msg.contains("验证码发送失败")) {
+                msgCode = MessageCodeConfig.E0008;
+            }
+            if (msg.contains("一分钟之内已发送过验证码")) {
+                msgCode = MessageCodeConfig.E0009;
+            }
+            if (msg.contains("注销用户失败")) {
+                msgCode = MessageCodeConfig.E00010;
+            }
+            if (msg.contains("旧手机号非用户账号绑定的手机号")) {
+                msgCode = MessageCodeConfig.E00011;
+            }
+            if (msg.contains("请求异常")) {
+                msgCode = MessageCodeConfig.E00012;
+            }
+            if (msg.contains("新邮箱和旧邮箱一样")) {
+                msgCode = MessageCodeConfig.E00013;
+            }
+            if (msg.contains("新手机号和旧手机号一样")) {
+                msgCode = MessageCodeConfig.E00014;
+            }
+            if (msg.contains("已绑定手机号")) {
+                msgCode = MessageCodeConfig.E00015;
+            }
+            if (msg.contains("已绑定邮箱")) {
+                msgCode = MessageCodeConfig.E00016;
+            }
+        }
+
+        if (msgCode != null) {
+            HashMap<String, Object> msgMap = new HashMap<>();
+            msgMap.put("code", msgCode.getCode());
+            msgMap.put("message_en", msgCode.getMsgEn());
+            msgMap.put("message_zh", msgCode.getMsgZh());
+            res.put("msg", msgMap);
+        }
+        return new ResponseEntity<>(res, status);
+    }
+
     private ResponseEntity message(String res) {
         switch (res) {
             case "true":
                 return result(HttpStatus.OK, "success", null);
             case "false":
-                return result(HttpStatus.BAD_REQUEST, "Account error", null);
+                return result(HttpStatus.BAD_REQUEST, null, "操作异常", null);
             default:
                 ObjectMapper objectMapper = new ObjectMapper();
                 String message = "faild";
@@ -421,7 +490,7 @@ public class AuthingService {
                     e.printStackTrace();
                     message =  e.getMessage();
                 }
-                return result(HttpStatus.BAD_REQUEST, message, null);
+                return result(HttpStatus.BAD_REQUEST, null, message, null);
         }
     }
 }
