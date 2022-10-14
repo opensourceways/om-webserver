@@ -1073,14 +1073,14 @@ public class QueryService {
     }
 
     public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
-            String timeRange, String page, String pageSize) throws JsonMappingException, JsonProcessingException {
-        String key = community.toLowerCase() + sig + contributeType.toLowerCase() + timeRange.toLowerCase();
+            String timeRange, String page, String pageSize, String comment_type) throws JsonMappingException, JsonProcessingException {
+        String key = community.toLowerCase() + sig + contributeType.toLowerCase() + timeRange.toLowerCase() + comment_type;
         String result = null;
         result = (String) redisDao.get(key, user);
         if (result == null) {
             // 查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange, env);
+                result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange, env, comment_type);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1146,6 +1146,17 @@ public class QueryService {
                 System.out.println("update " + key + " success!");
             }
         }
+        return result;
+    }
+
+    public String getIPLocation(String ip) {
+        String result = null;
+        // 查询数据库，更新redis 缓存。
+        try {
+            result = queryDao.getIPLocation(ip);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }  
         return result;
     }
 }

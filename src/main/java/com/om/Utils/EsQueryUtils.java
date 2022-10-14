@@ -275,11 +275,11 @@ public class EsQueryUtils {
                 + ",\"msg\":\"ok\"}";
     }
 
-    public String esUserCount(RestHighLevelClient client, String indexname, String user, String sig, ArrayList<Object> params) {
+    public String esUserCount(RestHighLevelClient client, String indexname, String user, String sig, ArrayList<Object> params, String comment_type) {
         SearchRequest request = new SearchRequest(indexname);
         SearchSourceBuilder builder = new SearchSourceBuilder();
         request.scroll(TimeValue.timeValueMinutes(1));
-        builder.sort("created_at", SortOrder.ASC);
+        builder.sort("created_at", SortOrder.DESC);
         builder.sort("_id", SortOrder.ASC);
 
         BoolQueryBuilder boolQueryBuilder = new BoolQueryBuilder();
@@ -296,6 +296,14 @@ public class EsQueryUtils {
         boolQueryBuilder.must(QueryBuilders.wildcardQuery("user_login.keyword", user));
         boolQueryBuilder.must(QueryBuilders.wildcardQuery("sig_names.keyword", sig));
         boolQueryBuilder.must(QueryBuilders.matchQuery(feild, 1));
+        if (type.equals("comment") && comment_type != null) {
+            if (comment_type.equals("command")) {
+                boolQueryBuilder.must(QueryBuilders.matchQuery("is_invalid_comment", 1));
+            }
+            if (comment_type.equals("normal")) {
+                boolQueryBuilder.mustNot(QueryBuilders.matchQuery("is_invalid_comment", 1));
+            }               
+        }
         builder.query(boolQueryBuilder);
         builder.size(MAXSIZE);
         request.source(builder);
