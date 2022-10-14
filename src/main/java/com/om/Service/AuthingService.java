@@ -49,9 +49,12 @@ public class AuthingService {
 
     private static CodeUtil codeUtil;
 
+    private static Map<String, MessageCodeConfig> error2code;
+
     @PostConstruct
     public void init() {
         codeUtil = new CodeUtil();
+        error2code = authingUserDao.getErrorCode();
     }
 
     public ResponseEntity authingUserPermission(String community, String token) {
@@ -411,53 +414,11 @@ public class AuthingService {
         res.put("msg", msg);
 
         if (status.value() == 400 && msgCode == null) {
-            if (msg.contains("验证码已失效") || msg.contains("验证码无效或已过期")) {
-                msgCode = MessageCodeConfig.E0001;
-            }
-            if (msg.contains("验证码不正确")) {
-                msgCode = MessageCodeConfig.E0002;
-            }
-            if (msg.contains("该手机号已被绑定")) {
-                msgCode = MessageCodeConfig.E0003;
-            }
-            if (msg.contains("该邮箱已被绑定") || msg.contains("Duplicate entry")) {
-                msgCode = MessageCodeConfig.E0004;
-            }
-            if (msg.contains("没有配置其他登录方式")) {
-                msgCode = MessageCodeConfig.E0005;
-            }
-            if (msg.contains("解绑三方账号失败")) {
-                msgCode = MessageCodeConfig.E0006;
-            }
-            if (msg.contains("更新失败")) {
-                msgCode = MessageCodeConfig.E0007;
-            }
-            if (msg.contains("验证码发送失败")) {
-                msgCode = MessageCodeConfig.E0008;
-            }
-            if (msg.contains("一分钟之内已发送过验证码")) {
-                msgCode = MessageCodeConfig.E0009;
-            }
-            if (msg.contains("注销用户失败")) {
-                msgCode = MessageCodeConfig.E00010;
-            }
-            if (msg.contains("旧手机号非用户账号绑定的手机号")) {
-                msgCode = MessageCodeConfig.E00011;
-            }
-            if (msg.contains("请求异常")) {
-                msgCode = MessageCodeConfig.E00012;
-            }
-            if (msg.contains("新邮箱和旧邮箱一样")) {
-                msgCode = MessageCodeConfig.E00013;
-            }
-            if (msg.contains("新手机号和旧手机号一样")) {
-                msgCode = MessageCodeConfig.E00014;
-            }
-            if (msg.contains("已绑定手机号")) {
-                msgCode = MessageCodeConfig.E00015;
-            }
-            if (msg.contains("已绑定邮箱")) {
-                msgCode = MessageCodeConfig.E00016;
+            for (Map.Entry<String, MessageCodeConfig> entry : error2code.entrySet()) {
+                if (msg.contains(entry.getKey())) {
+                    msgCode = entry.getValue();
+                    break;
+                }
             }
         }
 
