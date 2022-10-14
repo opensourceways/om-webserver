@@ -291,8 +291,9 @@ public class AuthingUserDao {
         } catch (Exception e) {
             String message = e.getMessage();
             System.out.println(message);
-            if (message.contains("没有配置其他登录方式")) return resFail + ",only one login account";
-            else return resFail;
+            /*if (message.contains("没有配置其他登录方式")) return resFail + ",only one login account";
+            else */
+            return message;
         }
         return "unbind success";
     }
