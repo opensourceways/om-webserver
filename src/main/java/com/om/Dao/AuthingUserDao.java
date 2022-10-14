@@ -10,6 +10,7 @@ import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
+import com.om.Modules.MessageCodeConfig;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
@@ -458,5 +459,28 @@ public class AuthingUserDao {
             e.printStackTrace();
             return "";
         }
+    }
+
+    public Map<String, MessageCodeConfig> getErrorCode() {
+        HashMap<String, MessageCodeConfig> map = new HashMap<>();
+        map.put("验证码已失效", MessageCodeConfig.E0001);
+        map.put("验证码无效或已过期", MessageCodeConfig.E0001);
+        map.put("验证码不正确", MessageCodeConfig.E0002);
+        map.put("该手机号已被绑定", MessageCodeConfig.E0003);
+        map.put("该邮箱已被绑定", MessageCodeConfig.E0004);
+        map.put("Duplicate entry", MessageCodeConfig.E0004);
+        map.put("没有配置其他登录方式", MessageCodeConfig.E0005);
+        map.put("解绑三方账号失败", MessageCodeConfig.E0006);
+        map.put("更新失败", MessageCodeConfig.E0007);
+        map.put("验证码发送失败", MessageCodeConfig.E0008);
+        map.put("一分钟之内已发送过验证码", MessageCodeConfig.E0009);
+        map.put("注销用户失败", MessageCodeConfig.E00010);
+        map.put("旧手机号非用户账号绑定的手机号", MessageCodeConfig.E00011);
+        map.put("请求异常", MessageCodeConfig.E00012);
+        map.put("新邮箱和旧邮箱一样", MessageCodeConfig.E00013);
+        map.put("新手机号和旧手机号一样", MessageCodeConfig.E00014);
+        map.put("已绑定手机号", MessageCodeConfig.E00015);
+        map.put("已绑定邮箱", MessageCodeConfig.E00016);
+        return map;
     }
 }
