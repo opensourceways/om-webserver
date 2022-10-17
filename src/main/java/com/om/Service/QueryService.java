@@ -1073,14 +1073,20 @@ public class QueryService {
     }
 
     public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
-            String timeRange, String page, String pageSize) throws JsonMappingException, JsonProcessingException {
-        String key = community.toLowerCase() + sig + contributeType.toLowerCase() + timeRange.toLowerCase();
+            String timeRange, String page, String pageSize, String comment_type, String filter) throws JsonMappingException, JsonProcessingException {
+        String key = community.toLowerCase() + sig + contributeType.toLowerCase() + timeRange.toLowerCase() + comment_type;
         String result = null;
         result = (String) redisDao.get(key, user);
+        // if (filter == null){
+        //     result = (String) redisDao.get(key, user);
+        // } else {
+        //     result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange, env, comment_type, filter);
+        // }
+
         if (result == null) {
             // 查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange, env);
+                result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange, env, comment_type, filter);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1090,16 +1096,26 @@ public class QueryService {
                 System.out.println("update " + key + " " + user + " hash success!");
             }
         }
-        if (pageSize != null) {
+        if (page != null && pageSize != null) {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode all = objectMapper.readTree(result);
+            if (all.get("data").get(user) == null) {
+                return result;
+            }
             Iterator<JsonNode> buckets = all.get("data").get(user).iterator();
             ArrayList<JsonNode> usercount = new ArrayList<>();
+            ArrayList<JsonNode> filterRes = new ArrayList<>();
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
-                usercount.add(bucket);
+                if (filter == null) {
+                    usercount.add(bucket);
+                }               
+                if (filter != null && bucket.get("info").toString().contains(filter)) {
+                    filterRes.add(bucket);
+                }
             }
-            Map map = PageUtils.getDataByPage(Integer.parseInt(page), Integer.parseInt(pageSize), usercount);
+            ArrayList<JsonNode> resList = filter == null ? usercount : filterRes;
+            Map map = PageUtils.getDataByPage(Integer.parseInt(page), Integer.parseInt(pageSize), resList);
             HashMap<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
             resMap.put("data", map);
@@ -1146,6 +1162,17 @@ public class QueryService {
                 System.out.println("update " + key + " success!");
             }
         }
+        return result;
+    }
+
+    public String getIPLocation(String ip) {
+        String result = null;
+        // 查询数据库，更新redis 缓存。
+        try {
+            result = queryDao.getIPLocation(ip);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }  
         return result;
     }
 }

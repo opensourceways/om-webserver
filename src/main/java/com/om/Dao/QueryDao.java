@@ -6,6 +6,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.maxmind.geoip2.DatabaseReader;
+import com.maxmind.geoip2.exception.GeoIp2Exception;
+import com.maxmind.geoip2.model.CityResponse;
 import com.om.Modules.*;
 import com.om.Modules.yaml.CommunityPartnersYaml;
 import com.om.Modules.yaml.CommunityPartnersYamlInfo;
@@ -19,6 +22,8 @@ import com.om.Modules.yaml.GroupYamlInfo;
 import com.om.Utils.*;
 import com.om.Vo.*;
 import io.netty.util.internal.StringUtil;
+
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.util.Lists;
 import org.asynchttpclient.*;
@@ -37,7 +42,14 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Repository;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.InetAddress;
+import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
@@ -84,6 +96,9 @@ public class QueryDao {
 
     @Value("${producer.topic.tracker}")
     String topicTracker;
+
+    @Value("${ip.database.path}")
+    String ipDatabasePath;
 
     @Autowired
     KafkaDao kafkaDao;
@@ -3557,7 +3572,8 @@ public class QueryDao {
         }
     }
 
-    public String queryUserContributeDetails(String community, String user, String sig, String contributeType, String timeRange, Environment env) {
+    public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
+            String timeRange, Environment env, String comment_type, String filter) {
         String index;
         ArrayList<Object> params;
         switch (community.toLowerCase()) {
@@ -3586,7 +3602,7 @@ public class QueryDao {
         RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
         EsQueryUtils esQueryUtils = new EsQueryUtils();
 
-        return esQueryUtils.esUserCount(restHighLevelClient, index, user, sig, params);
+        return esQueryUtils.esUserCount(restHighLevelClient, index, user, sig, params, comment_type, filter);
     }
 
     public String queryUserLists(String community, String group, String name) {
@@ -3738,5 +3754,63 @@ public class QueryDao {
             }
         }
         return false;
+    }
+    
+    public String getIPLocation(String ip) {       
+        String localPath = "/home/path";
+        int code = downloadFileFromUrl(ipDatabasePath, localPath);
+        if (code == 0) {
+            return null;
+        }
+
+        try {
+            File database = new File(localPath);
+            DatabaseReader reader = new DatabaseReader.Builder(database).build();
+            InetAddress ipAddress = InetAddress.getByName(ip);
+            CityResponse response = reader.city(ipAddress);
+
+            String continent_name = response.getContinent().getName();
+            String region_iso_code = response.getMostSpecificSubdivision().getName();
+            String city_name = response.getCity().getName();
+            String country_iso_code =response.getCountry().getIsoCode();
+            Double lon = response.getLocation().getLatitude();
+            Double lat = response.getLocation().getLongitude();
+
+            HashMap<String, Object> location = new HashMap<>();
+            location.put("lon", lon);
+            location.put("lat", lat);
+
+            HashMap<String, Object> loc = new HashMap<>();
+            loc.put("continent_name", continent_name);
+            loc.put("region_iso_code", region_iso_code);
+            loc.put("city_name", city_name);
+            loc.put("country_iso_code", country_iso_code);
+            loc.put("location", location);
+
+            HashMap<String, Object> res = new HashMap<>();
+            res.put("ip", ip);
+            res.put("geoip", loc);
+
+            String result = objectMapper.valueToTree(res).toString();
+            return result;
+        } catch (FileNotFoundException e1) {
+            e1.printStackTrace();
+        } catch (GeoIp2Exception | IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public static int downloadFileFromUrl(String url, String localFilePath) {
+
+        try {
+            URL httpUrl = new URL(url);
+            File f = new File(localFilePath);
+            FileUtils.copyURLToFile(httpUrl, f);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+        return 1;
     }
 }
