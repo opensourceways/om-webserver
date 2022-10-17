@@ -3572,7 +3572,8 @@ public class QueryDao {
         }
     }
 
-    public String queryUserContributeDetails(String community, String user, String sig, String contributeType, String timeRange, Environment env, String comment_type) {
+    public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
+            String timeRange, Environment env, String comment_type, String filter) {
         String index;
         ArrayList<Object> params;
         switch (community.toLowerCase()) {
@@ -3601,7 +3602,7 @@ public class QueryDao {
         RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
         EsQueryUtils esQueryUtils = new EsQueryUtils();
 
-        return esQueryUtils.esUserCount(restHighLevelClient, index, user, sig, params, comment_type);
+        return esQueryUtils.esUserCount(restHighLevelClient, index, user, sig, params, comment_type, filter);
     }
 
     public String queryUserLists(String community, String group, String name) {

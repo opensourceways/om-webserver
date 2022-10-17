@@ -1073,14 +1073,19 @@ public class QueryService {
     }
 
     public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
-            String timeRange, String page, String pageSize, String comment_type) throws JsonMappingException, JsonProcessingException {
+            String timeRange, String page, String pageSize, String comment_type, String filter) throws JsonMappingException, JsonProcessingException {
         String key = community.toLowerCase() + sig + contributeType.toLowerCase() + timeRange.toLowerCase() + comment_type;
         String result = null;
-        result = (String) redisDao.get(key, user);
+        if (filter == null){
+            result = (String) redisDao.get(key, user);
+        } else {
+            result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange, env, comment_type, filter);
+        }
+
         if (result == null) {
             // 查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange, env, comment_type);
+                result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange, env, comment_type, filter);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1093,6 +1098,9 @@ public class QueryService {
         if (pageSize != null) {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode all = objectMapper.readTree(result);
+            if (all.get("data").get(user) == null) {
+                return result;
+            }
             Iterator<JsonNode> buckets = all.get("data").get(user).iterator();
             ArrayList<JsonNode> usercount = new ArrayList<>();
             while (buckets.hasNext()) {

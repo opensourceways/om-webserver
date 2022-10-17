@@ -275,7 +275,8 @@ public class EsQueryUtils {
                 + ",\"msg\":\"ok\"}";
     }
 
-    public String esUserCount(RestHighLevelClient client, String indexname, String user, String sig, ArrayList<Object> params, String comment_type) {
+    public String esUserCount(RestHighLevelClient client, String indexname, String user, String sig, 
+            ArrayList<Object> params, String comment_type, String filter) {
         SearchRequest request = new SearchRequest(indexname);
         SearchSourceBuilder builder = new SearchSourceBuilder();
         request.scroll(TimeValue.timeValueMinutes(1));
@@ -302,7 +303,11 @@ public class EsQueryUtils {
             }
             if (comment_type.equals("normal")) {
                 boolQueryBuilder.mustNot(QueryBuilders.matchQuery("is_invalid_comment", 1));
-            }               
+            }          
+        }
+        if (filter != null) {
+            boolQueryBuilder.must(QueryBuilders.matchPhraseQuery(type_info, filter));
+                       
         }
         builder.query(boolQueryBuilder);
         builder.size(MAXSIZE);
