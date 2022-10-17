@@ -1076,11 +1076,12 @@ public class QueryService {
             String timeRange, String page, String pageSize, String comment_type, String filter) throws JsonMappingException, JsonProcessingException {
         String key = community.toLowerCase() + sig + contributeType.toLowerCase() + timeRange.toLowerCase() + comment_type;
         String result = null;
-        if (filter == null){
-            result = (String) redisDao.get(key, user);
-        } else {
-            result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange, env, comment_type, filter);
-        }
+        result = (String) redisDao.get(key, user);
+        // if (filter == null){
+        //     result = (String) redisDao.get(key, user);
+        // } else {
+        //     result = queryDao.queryUserContributeDetails(community, user, sig, contributeType, timeRange, env, comment_type, filter);
+        // }
 
         if (result == null) {
             // 查询数据库，更新redis 缓存。
@@ -1095,7 +1096,7 @@ public class QueryService {
                 System.out.println("update " + key + " " + user + " hash success!");
             }
         }
-        if (pageSize != null) {
+        if (page != null && pageSize != null) {
             ObjectMapper objectMapper = new ObjectMapper();
             JsonNode all = objectMapper.readTree(result);
             if (all.get("data").get(user) == null) {
@@ -1103,11 +1104,18 @@ public class QueryService {
             }
             Iterator<JsonNode> buckets = all.get("data").get(user).iterator();
             ArrayList<JsonNode> usercount = new ArrayList<>();
+            ArrayList<JsonNode> filterRes = new ArrayList<>();
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
-                usercount.add(bucket);
+                if (filter == null) {
+                    usercount.add(bucket);
+                }               
+                if (filter != null && bucket.get("info").toString().contains(filter)) {
+                    filterRes.add(bucket);
+                }
             }
-            Map map = PageUtils.getDataByPage(Integer.parseInt(page), Integer.parseInt(pageSize), usercount);
+            ArrayList<JsonNode> resList = filter == null ? usercount : filterRes;
+            Map map = PageUtils.getDataByPage(Integer.parseInt(page), Integer.parseInt(pageSize), resList);
             HashMap<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
             resMap.put("data", map);
