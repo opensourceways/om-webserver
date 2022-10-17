@@ -352,10 +352,11 @@ public class QueryController {
     public String queryUserContributeDetails(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user,
                                       @RequestParam(value = "sig", required = false) String sig,
                                       @RequestParam(value = "comment_type", required = false) String comment_type,
+                                      @RequestParam(value = "filter", required = false) String filter,
                                       @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange,
                                       @RequestParam(value = "page", required = false) String page,
                                       @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
-        String res = queryService.queryUserContributeDetails(community, user, sig, contributeType, timeRange, page, pageSize, comment_type);
+        String res = queryService.queryUserContributeDetails(community, user, sig, contributeType, timeRange, page, pageSize, comment_type, filter);
         return res;
     }
 
