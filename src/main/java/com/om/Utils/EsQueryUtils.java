@@ -305,10 +305,9 @@ public class EsQueryUtils {
                 boolQueryBuilder.mustNot(QueryBuilders.matchQuery("is_invalid_comment", 1));
             }          
         }
-        if (filter != null) {
-            boolQueryBuilder.must(QueryBuilders.matchPhraseQuery(type_info, filter));
-                       
-        }
+        // if (filter != null) {
+        //     boolQueryBuilder.must(QueryBuilders.matchPhraseQuery(type_info, filter));
+        // }
         builder.query(boolQueryBuilder);
         builder.size(MAXSIZE);
         request.source(builder);
