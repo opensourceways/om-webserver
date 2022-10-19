@@ -298,14 +298,14 @@ public class EsQueryUtils {
         boolQueryBuilder.must(QueryBuilders.wildcardQuery("sig_names.keyword", sig));
         boolQueryBuilder.must(QueryBuilders.matchQuery(feild, 1));
         if (type.equals("comment") && comment_type != null) {
-            switch (comment_type) {
+            switch (comment_type.toLowerCase()) {
                 case "command":
                     boolQueryBuilder.must(QueryBuilders.matchQuery("is_invalid_comment", 1));
                     break;
                 case "normal":
                     boolQueryBuilder.mustNot(QueryBuilders.matchQuery("is_invalid_comment", 1));
                     break;
-                case "Nonetype":
+                case "nonetype":
                     return "{\"code\":200,\"data\": {},\"totalCount\":0,\"msg\":\"ok\"}";
                 default:                   
             }         
