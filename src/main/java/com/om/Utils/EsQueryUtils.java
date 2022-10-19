@@ -298,12 +298,17 @@ public class EsQueryUtils {
         boolQueryBuilder.must(QueryBuilders.wildcardQuery("sig_names.keyword", sig));
         boolQueryBuilder.must(QueryBuilders.matchQuery(feild, 1));
         if (type.equals("comment") && comment_type != null) {
-            if (comment_type.equals("command")) {
-                boolQueryBuilder.must(QueryBuilders.matchQuery("is_invalid_comment", 1));
-            }
-            if (comment_type.equals("normal")) {
-                boolQueryBuilder.mustNot(QueryBuilders.matchQuery("is_invalid_comment", 1));
-            }          
+            switch (comment_type) {
+                case "command":
+                    boolQueryBuilder.must(QueryBuilders.matchQuery("is_invalid_comment", 1));
+                    break;
+                case "normal":
+                    boolQueryBuilder.mustNot(QueryBuilders.matchQuery("is_invalid_comment", 1));
+                    break;
+                case "Nonetype":
+                    return "{\"code\":200,\"data\": {},\"totalCount\":0,\"msg\":\"ok\"}";
+                default:                   
+            }         
         }
         // if (filter != null) {
         //     boolQueryBuilder.must(QueryBuilders.matchPhraseQuery(type_info, filter));
