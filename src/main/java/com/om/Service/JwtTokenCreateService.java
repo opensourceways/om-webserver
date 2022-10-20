@@ -3,11 +3,14 @@ package com.om.Service;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.om.Modules.*;
+import com.om.Utils.RSAUtil;
 import com.om.Vo.TokenUser;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.security.interfaces.RSAPublicKey;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Base64;
@@ -29,6 +32,9 @@ public class JwtTokenCreateService {
 
     @Value("${authing.token.base.password}")
     private String authingTokenBasePassword;
+
+    @Value("${rsa.authing.publicKey}")
+    private String rsaAuthingPublicKey;
 
     public String getToken(TokenUser user) {
         openComObject communityObj;
@@ -65,7 +71,7 @@ public class JwtTokenCreateService {
                 .sign(Algorithm.HMAC256(user.getPassword() + basePassword));
     }
 
-    public String authingUserToken(String userId, String permission, String inputPermission, String idToken) {
+    public String[] authingUserToken(String userId, String permission, String inputPermission, String idToken) {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -80,13 +86,23 @@ public class JwtTokenCreateService {
 
         String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes());
 
-        return JWT.create()
+        String verifyToken = RandomStringUtils.randomAlphanumeric(64);
+
+        String token = JWT.create()
                 .withAudience(userId) //谁接受签名
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(expireAt) //过期时间
                 .withClaim("permission", permissionStr)
                 .withClaim("subject", idToken)
                 .withClaim("inputPermission", inputPermission)
+                .withClaim("verifyToken", verifyToken)
                 .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));
+        try {
+            RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
+            return new String[]{RSAUtil.publicEncrypt(token, publicKey), verifyToken};
+        } catch (Exception e) {
+            System.out.println("RSA Encrypt error");
+            return new String[]{token, verifyToken};
+        }
     }
 }
