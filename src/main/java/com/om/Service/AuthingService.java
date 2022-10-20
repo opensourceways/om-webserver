@@ -12,6 +12,8 @@ import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.CodeUtil;
+import com.om.Utils.HttpClientUtils;
+import com.om.Utils.RSAUtil;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +25,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
+import javax.crypto.NoSuchPaddingException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.net.URLEncoder;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.InvalidKeySpecException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -51,14 +60,18 @@ public class AuthingService {
 
     private static Map<String, MessageCodeConfig> error2code;
 
+    private static HashMap<String, Boolean> domain2secure;
+
     @PostConstruct
     public void init() {
         codeUtil = new CodeUtil();
         error2code = authingUserDao.getErrorCode();
+        domain2secure = HttpClientUtils.getConfigCookieInfo(Objects.requireNonNull(env.getProperty("cookie.token.domains")), Objects.requireNonNull(env.getProperty("cookie.token.secures")));
     }
 
     public ResponseEntity authingUserPermission(String community, String token) {
         try {
+            token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             String permissionTemp = decode.getClaim("permission").asString();
@@ -88,8 +101,9 @@ public class AuthingService {
         }
     }
 
-    public ResponseEntity logout(String token) {
+    public ResponseEntity logout(HttpServletResponse servletResponse, String token) {
         try {
+            token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String idToken = decode.getClaim("subject").asString();
             String userId = decode.getAudience().get(0);
@@ -102,6 +116,9 @@ public class AuthingService {
 
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("id_token", idToken);
+
+            HttpClientUtils.deleteCookie(servletResponse, env.getProperty("cookie.token.name"), "/");
+
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             e.printStackTrace();
@@ -110,7 +127,8 @@ public class AuthingService {
     }
 
 
-    public ResponseEntity tokenApply(String community, String code, String permission, String redirectUrl) {
+    public ResponseEntity tokenApply(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse,
+                                     String community, String code, String permission, String redirectUrl) {
         try {
             // 将URL中的中文转码，因为@RequestParam会自动解码，而我们需要未解码的参数
             String url = redirectUrl;
@@ -123,7 +141,6 @@ public class AuthingService {
             }
 
             // 通过code获取access_token，再通过access_token获取用户
-            // Map user = authingUserDao.getUserInfoByAccessToken(code, URLDecoder.decode(redirectUrl, "UTF-8"));
             Map user = authingUserDao.getUserInfoByAccessToken(code, url);
             if (user == null) return result(HttpStatus.UNAUTHORIZED, "user not found", null);
             String userId = user.get("sub").toString();
@@ -135,11 +152,18 @@ public class AuthingService {
             String permissionInfo = env.getProperty(community + "." + permission);
 
             // 生成token
-            String token = jwtTokenCreateService.authingUserToken(userId, permissionInfo, permission, idToken);
+            String[] tokens = jwtTokenCreateService.authingUserToken(userId, permissionInfo, permission, idToken);
+            String token = tokens[0];
+            String verifyToken = tokens[1];
+
+            // 写cookie
+            String cookieTokenName = env.getProperty("cookie.token.name");
+            int maxAge = Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
+            HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
-            userData.put("token", token);
+            userData.put("token", verifyToken);
             userData.put("photo", picture);
             userData.put("username", username);
             return result(HttpStatus.OK, "success", userData);
@@ -165,10 +189,14 @@ public class AuthingService {
     }
 
     public ResponseEntity deleteUser(String token) {
-        String userId = getUserIdFromToken(token);
-        boolean res = authingUserDao.deleteUserById(userId);
-        if (res) return result(HttpStatus.OK, "delete user success", null);
-        else return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
+        try {
+            String userId = getUserIdFromToken(token);
+            boolean res = authingUserDao.deleteUserById(userId);
+            if (res) return result(HttpStatus.OK, "delete user success", null);
+            else return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
+        } catch (Exception e) {
+            return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
+        }
     }
 
     public ResponseEntity sendCode(String account, String type, String field) {
@@ -311,9 +339,15 @@ public class AuthingService {
     }
 
     // 获取自定义token中的user id
-    private String getUserIdFromToken(String token) {
-        DecodedJWT decode = JWT.decode(token);
+    private String getUserIdFromToken(String token) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
+        DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
         return decode.getAudience().get(0);
+    }
+
+    // 解密RSA加密过的token
+    private String rsaDecryptToken(String token) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
+        RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
+        return RSAUtil.privateDecrypt(token, privateKey);
     }
 
     // 解析authing user
@@ -449,7 +483,7 @@ public class AuthingService {
                     }
                 } catch (JsonProcessingException e) {
                     e.printStackTrace();
-                    message =  e.getMessage();
+                    message = e.getMessage();
                 }
                 return result(HttpStatus.BAD_REQUEST, null, message, null);
         }

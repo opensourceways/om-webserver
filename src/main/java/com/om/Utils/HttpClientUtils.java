@@ -1,5 +1,6 @@
 package com.om.Utils;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpHost;
@@ -25,10 +26,15 @@ import org.elasticsearch.client.RestHighLevelClient;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.Serializable;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class HttpClientUtils implements Serializable {
     static PoolingHttpClientConnectionManager connectionManager;
@@ -132,5 +138,69 @@ public class HttpClientUtils implements Serializable {
             e.printStackTrace();
         }
         return client;
+    }
+
+    public static HashMap<String, Boolean> getConfigCookieInfo(String domainsStr, String securesStr) {
+        HashMap<String, Boolean> res = new HashMap<>();
+        String[] domains = domainsStr.split(";");
+        String[] secures = securesStr.split(";");
+
+        for (int i = 0; i < domains.length; i++) {
+            String domain = domains[i];
+            String secure = "true";
+            try {
+                secure = secures[i];
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            res.put(domain, Boolean.valueOf(secure));
+        }
+        return res;
+    }
+
+    public static void setCookie(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String name, String value,
+                                 boolean isHttpOnly, int maxAge, String path, HashMap<String, Boolean> domain2Secure) {
+        String serverName = httpServletRequest.getServerName();
+        String referer = httpServletRequest.getHeader("referer");
+        if (StringUtils.isNotBlank(referer)) {
+            int end = referer.indexOf("/", 8);
+            serverName = end == -1 ? referer : referer.substring(0, end);
+        }
+
+        String domain = null;
+        boolean secure = true;
+        for (Map.Entry<String, Boolean> entry : domain2Secure.entrySet()) {
+            String key = entry.getKey();
+            if (serverName.endsWith(key)) {
+                domain = entry.getKey();
+                secure = entry.getValue();
+                break;
+            }
+        }
+        if (domain == null) return;
+        if (StringUtils.isBlank(path)) path = "/";
+
+        Cookie cookie = new Cookie(name, value);
+        cookie.setDomain(domain);
+        cookie.setHttpOnly(isHttpOnly);
+        cookie.setSecure(secure);
+        cookie.setMaxAge(maxAge);
+        cookie.setPath(path);
+        servletResponse.addCookie(cookie);
+    }
+
+    public static void deleteCookie(HttpServletResponse servletResponse, String name, String path) {
+        if (StringUtils.isBlank(path)) path = "/";
+        Cookie cookie = new Cookie(name, "");
+        cookie.setMaxAge(0);
+        cookie.setPath(path);
+        servletResponse.addCookie(cookie);
+    }
+
+    public static void deleteCookie(HttpServletResponse servletResponse, Cookie cookie, String path) {
+        if (StringUtils.isBlank(path)) path = "/";
+        cookie.setMaxAge(0);
+        cookie.setPath(path);
+        servletResponse.addCookie(cookie);
     }
 }

@@ -11,6 +11,7 @@ import com.mashape.unirest.http.Unirest;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
+import com.om.Utils.RSAUtil;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
@@ -18,6 +19,11 @@ import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
+import javax.crypto.NoSuchPaddingException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -72,6 +78,9 @@ public class AuthingUserDao {
     @Value("${enterprise.authorizationUrl.gitee}")
     String enterAuthUrlGitee;
 
+    @Value("${rsa.authing.privateKey}")
+    String rsaAuthingPrivateKey;
+
     public static ManagementClient managementClient;
 
     public static AuthenticationClient authentication;
@@ -114,7 +123,9 @@ public class AuthingUserDao {
     }
 
     // 获取用户基本信息
-    public User getUserInfo(String token) {
+    public User getUserInfo(String token) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
+        RSAPrivateKey privateKey = RSAUtil.getPrivateKey(rsaAuthingPrivateKey);
+        token = RSAUtil.privateDecrypt(token, privateKey);
         DecodedJWT decode = JWT.decode(token);
         String userId = decode.getAudience().get(0);
         User user = getUser(userId);
