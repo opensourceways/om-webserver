@@ -280,7 +280,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
     }
 
     private void tokenError(HttpServletResponse httpServletResponse, Cookie tokenCookie, String message) throws IOException {
-        HttpClientUtils.deleteCookie(httpServletResponse, tokenCookie, "/");
+        HttpClientUtils.deleteCookie(httpServletResponse, allowDomains, tokenCookie, "/");
         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
     }
 }
