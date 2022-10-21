@@ -117,8 +117,6 @@ public class AuthingService {
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("id_token", idToken);
 
-            HttpClientUtils.deleteCookie(servletResponse, env.getProperty("cookie.token.domains"), env.getProperty("cookie.token.name"), "/");
-
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             e.printStackTrace();
