@@ -192,25 +192,13 @@ public class HttpClientUtils implements Serializable {
     public static void deleteCookie(HttpServletResponse servletResponse, String domainStr, String name, String path) {
         String[] domains = domainStr == null ? new String[]{} : domainStr.split(";");
         if (StringUtils.isBlank(path)) path = "/";
-        Cookie cookie = new Cookie(name, "");
-        cookie.setMaxAge(0);
-        cookie.setPath(path);
-        for (String domain : domains) {
-            cookie.setDomain(domain);
-            servletResponse.addCookie(cookie);
-        }
-        servletResponse.addCookie(cookie);
-    }
 
-    public static void deleteCookie(HttpServletResponse servletResponse, String domainStr, Cookie cookie, String path) {
-        String[] domains = domainStr == null ? new String[]{} : domainStr.split(";");
-        if (StringUtils.isBlank(path)) path = "/";
-        cookie.setMaxAge(0);
-        cookie.setPath(path);
         for (String domain : domains) {
+            Cookie cookie = new Cookie(name, "");
+            cookie.setMaxAge(0);
+            cookie.setPath(path);
             cookie.setDomain(domain);
             servletResponse.addCookie(cookie);
         }
-        servletResponse.addCookie(cookie);
     }
 }

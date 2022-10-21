@@ -1,13 +1,9 @@
 package com.om.authing;
 
-import cn.authing.core.auth.AuthenticationClient;
-import cn.authing.core.types.JwtTokenStatus;
-import cn.authing.core.types.User;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTDecodeException;
-import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
@@ -20,7 +16,6 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -107,7 +102,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             RSAPrivateKey privateKey = RSAUtil.getPrivateKey(rsaAuthingPrivateKey);
             token = RSAUtil.privateDecrypt(token, privateKey);
         } catch (Exception e) {
-            tokenError(httpServletResponse, tokenCookie, "unauthorized");
+            httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "unauthorized");
             return false;
         }
 
@@ -126,21 +121,21 @@ public class AuthingInterceptor implements HandlerInterceptor {
             permission = new String(Base64.getDecoder().decode(permissionTemp.getBytes()));
             verifyToken = decode.getClaim("verifyToken").asString();
         } catch (JWTDecodeException j) {
-            tokenError(httpServletResponse, tokenCookie, "unauthorized");
+            httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "unauthorized");
             return false;
         }
 
         // 校验token
         String verifyTokenMsg = verifyToken(headerToken, token, verifyToken, userId, issuedAt, expiresAt, permission);
         if (!verifyTokenMsg.equals("success")) {
-            tokenError(httpServletResponse, tokenCookie, verifyTokenMsg);
+            httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, verifyTokenMsg);
             return false;
         }
 
         // token 用户和权限验证
         String verifyUserMsg = verifyUser(userLoginToken, userId, permission);
         if (!verifyUserMsg.equals("success")) {
-            tokenError(httpServletResponse, tokenCookie, verifyUserMsg);
+            httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, verifyUserMsg);
             return false;
         }
 
@@ -280,7 +275,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
     }
 
     private void tokenError(HttpServletResponse httpServletResponse, Cookie tokenCookie, String message) throws IOException {
-        HttpClientUtils.deleteCookie(httpServletResponse, allowDomains, tokenCookie, "/");
+        HttpClientUtils.deleteCookie(httpServletResponse, allowDomains, tokenCookie.getName(), "/");
         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
     }
 }
