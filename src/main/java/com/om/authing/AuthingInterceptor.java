@@ -132,7 +132,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // token 用户和权限验证
+        // token 权限验证
         String verifyUserMsg = verifyUser(userLoginToken, userId, permission);
         if (!verifyUserMsg.equals("success")) {
             httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, verifyUserMsg);
@@ -165,12 +165,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
      */
     private String verifyUser(AuthingToken userLoginToken, String userId, String permission) {
         try {
-            // 判断用户在Authing端是否是登录状态
-            boolean status = authingUserDao.checkLoginStatusOnAuthing(userId);
-            if (!status) {
-                return "not logged in";
-            }
-
             // token 页面请求权限验证
             if (userLoginToken != null && userLoginToken.required()) {
                 String[] split = permission.split("->");
