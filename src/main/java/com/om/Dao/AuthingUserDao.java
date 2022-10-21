@@ -28,6 +28,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Repository
 public class AuthingUserDao {
@@ -80,6 +82,15 @@ public class AuthingUserDao {
 
     @Value("${rsa.authing.privateKey}")
     String rsaAuthingPrivateKey;
+
+    // -- temporary (解决gitee多身份源解绑问题) -- TODO
+    @Value("${temp.extIdpIds}")
+    String extIdpIds;
+    @Value("${temp.identifiers}")
+    String identifiers;
+    @Value("${temp.users}")
+    String users;
+    // -- temporary -- TODO
 
     public static ManagementClient managementClient;
 
@@ -394,6 +405,13 @@ public class AuthingUserDao {
             }
 
             User us = getUserInfo(token);
+
+            // -- temporary (解决gitee多身份源解绑问题) -- TODO
+            List<String> userIds = Stream.of(users.split(";")).collect(Collectors.toList());
+            if (platform.toLowerCase().equals("gitee") && userIds.contains(us.getId())) {
+                return unLinkAccountTemp(us, identifiers, extIdpIds);
+            } // -- temporary -- TODO
+
             String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", identifier, extIdpId);
             Unirest.setTimeouts(0, 0);
             HttpResponse<JsonNode> response = Unirest.post("https://core.authing.cn/api/v2/users/identity/unlinkByUser")
@@ -407,6 +425,29 @@ public class AuthingUserDao {
             System.out.println(e.getMessage());
             return false;
         }
+    }
+
+    // -- temporary (解决gitee多身份源解绑问题) -- TODO
+    public boolean unLinkAccountTemp(User us, String identifiers, String extIdpIds) {
+        boolean flag = false;
+
+        String[] split = identifiers.split(";");
+        String[] split1 = extIdpIds.split(";");
+        for (int i = 0; i < split.length; i++) {
+            try {
+                String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", split[i], split1[i]);
+                Unirest.setTimeouts(0, 0);
+                HttpResponse<JsonNode> response = Unirest.post("https://core.authing.cn/api/v2/users/identity/unlinkByUser")
+                        .header("Authorization", us.getToken())
+                        .header("x-authing-userpool-id", userPoolId)
+                        .header("Content-Type", "application/json")
+                        .body(body)
+                        .asJson();
+                if (response.getBody().getObject().getInt("code") == 200) flag = true;
+            } catch (Exception ignored) {
+            }
+        }
+        return flag;
     }
 
     public boolean updateUserBaseInfo(String token, Map<String, Object> map) {
