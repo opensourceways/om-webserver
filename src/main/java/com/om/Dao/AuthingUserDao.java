@@ -210,6 +210,7 @@ public class AuthingUserDao {
         }
     }
 
+    // TODO 使用自己的个人中心后不再需要判断authing端的登录状态
     public boolean checkLoginStatusOnAuthing(String userId) {
         try {
             String token = getManagementToken();
