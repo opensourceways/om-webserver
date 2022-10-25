@@ -71,7 +71,7 @@ public class JwtTokenCreateService {
                 .sign(Algorithm.HMAC256(user.getPassword() + basePassword));
     }
 
-    public String[] authingUserToken(String userId, String permission, String inputPermission, String idToken) {
+    public String[] authingUserToken(String userId, String permission, String inputPermission) {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -93,7 +93,6 @@ public class JwtTokenCreateService {
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(expireAt) //过期时间
                 .withClaim("permission", permissionStr)
-                .withClaim("subject", idToken)
                 .withClaim("inputPermission", inputPermission)
                 .withClaim("verifyToken", verifyToken)
                 .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));

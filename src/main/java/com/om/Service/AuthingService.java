@@ -101,27 +101,35 @@ public class AuthingService {
         }
     }
 
-    public ResponseEntity logout(HttpServletResponse servletResponse, String token) {
+    public ResponseEntity logout(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String token) {
+        boolean res;
+        String userId;
+        Date issuedAt;
         try {
+            // 解析token
             token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
-            String idToken = decode.getClaim("subject").asString();
-            String userId = decode.getAudience().get(0);
-            Date issuedAt = decode.getIssuedAt();
-            String redisKey = userId + issuedAt.toString();
-            boolean set = redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
-            if (set) {
-                System.out.println(userId + " logout success");
-            }
+            userId = decode.getAudience().get(0);
+            issuedAt = decode.getIssuedAt();
 
-            HashMap<String, Object> userData = new HashMap<>();
-            userData.put("id_token", idToken);
-
-            return result(HttpStatus.OK, "success", userData);
+            // 获取用户token
+            User user = authingUserDao.getUser(userId);
+            res = authingUserDao.logout(user.getToken());
         } catch (Exception e) {
-            e.printStackTrace();
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+            return result(HttpStatus.BAD_REQUEST, null, "退出登录失败", null);
         }
+
+        if (res) {
+            // 退出登录，该token失效
+            String redisKey = userId + issuedAt.toString();
+            redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
+
+            // 退出登录，删除cookie
+            String cookieTokenName = env.getProperty("cookie.token.name");
+            HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
+        }
+
+        return result(HttpStatus.OK, "logout success", null);
     }
 
 
@@ -150,7 +158,7 @@ public class AuthingService {
             String permissionInfo = env.getProperty(community + "." + permission);
 
             // 生成token
-            String[] tokens = jwtTokenCreateService.authingUserToken(userId, permissionInfo, permission, idToken);
+            String[] tokens = jwtTokenCreateService.authingUserToken(userId, permissionInfo, permission);
             String token = tokens[0];
             String verifyToken = tokens[1];
 
