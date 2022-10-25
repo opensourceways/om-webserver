@@ -92,6 +92,24 @@ public class openComObject {
     protected String UserListQueryStr;
     protected String SigRepoCommittersQueryStr;
     protected String all_user_owner_type_queryStr;
+    protected String repo_info_index;
+    protected String repo_info_QuerStr;
+
+    public String getrepo_info_index() {
+        return repo_info_index;
+    }
+
+    public void setrepo_info_index(String repo_info_index) {
+        this.repo_info_index = repo_info_index;
+    }
+
+    public String getrepo_info_QuerStr() {
+        return repo_info_QuerStr;
+    }
+
+    public void setrepo_info_QuerStr(String repo_info_QuerStr) {
+        this.repo_info_QuerStr = repo_info_QuerStr;
+    }
 
     public String getall_user_owner_type_queryStr() {
         return all_user_owner_type_queryStr;
