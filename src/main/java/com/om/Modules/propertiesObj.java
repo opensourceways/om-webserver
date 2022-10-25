@@ -243,6 +243,8 @@ public class propertiesObj {
         bean.setUserListQueryStr(openconf.getProperty("UserListQueryStr"));
         bean.setSigRepoCommittersQueryStr(openconf.getProperty("SigRepoCommittersQueryStr"));
         bean.setall_user_owner_type_queryStr(openconf.getProperty("all_user_owner_type_queryStr"));
+        bean.setrepo_info_index(openconf.getProperty("repo_info_index"));
+        bean.setrepo_info_QuerStr(openconf.getProperty("repo_info_QuerStr"));
     }
 
     private static Properties readProperties(String path) throws IOException {
