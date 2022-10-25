@@ -1197,7 +1197,7 @@ public class QueryService {
     public String getRepoInfo(String community, String repo) {
         String key = community.toLowerCase() + repo + "ecosysteminfo";
         String result = null;
-        // result = (String) redisDao.get(key);
+        result = (String) redisDao.get(key);
         if (result == null) {
             // 查询数据库，更新redis 缓存。
             try {
