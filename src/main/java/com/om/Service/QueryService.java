@@ -619,7 +619,7 @@ public class QueryService {
     }
 
     public String putUserActionsinfo(String community, String data) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String result = "{\"code\":500, \"data\":\"bad request\"},\"msg\":\"bad request\"}";
+        String result = "{\"code\":500, \"data\":\"bad request\",\"msg\":\"bad request\"}";
         if (!is_valid(community)) {
             return result;
         }
