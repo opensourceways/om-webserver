@@ -97,11 +97,11 @@ public class QueryDao {
     @Value("${producer.topic.tracker}")
     String topicTracker;
 
-    @Value("${ip.database.path}")
-    String ipDatabasePath;
-
     @Autowired
     KafkaDao kafkaDao;
+
+    @Autowired
+    ObsDao ObsDao;
 
     static ObjectMapper objectMapper = new ObjectMapper();
     @Autowired
@@ -149,7 +149,7 @@ public class QueryDao {
                     HashMap<String, String> it = new HashMap<>();
                     String name = item.getName();
                     it.put("group", group);
-                    it.put("name", name);
+                    it.put("feature", name);
                     resData.put(sig, it);
                 }
             }
@@ -2141,7 +2141,7 @@ public class QueryDao {
                 index = "test_tracker";
                 break; 
             default:
-                return "{\"code\":" + 404 + ",\"community\":" + community + ",\"data\":{\"index: error!\"},\"msg\":\"not Found!\"}";
+                return "{\"code\":" + 404 + ",\"community\":" + community + ",\"data\":\"index: error!\",\"msg\":\"not Found!\"}";
         }
         /*String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
         String host = env.getProperty("es.host");
@@ -2529,7 +2529,7 @@ public class QueryDao {
             String feature = "";
             String group = "";
             if (sigInfo != null) {
-                feature = sigInfo.get("name");
+                feature = sigInfo.get("feature");
                 group = sigInfo.get("group");
             }           
             item.put("sig", s);
@@ -3140,7 +3140,7 @@ public class QueryDao {
                 String feature = "";
                 String group = "";
                 if (sigInfo != null){
-                    feature = sigInfo.get("name");
+                    feature = sigInfo.get("feature");
                     group = sigInfo.get("group");
                 }
                 data.put("feature", feature);
@@ -3168,9 +3168,9 @@ public class QueryDao {
                 index = openEuler.getsig_score_index();
                 break;
             case "opengauss":
-                queryjson = openGauss.getall_sig_score_queryStr();
-                index = openEuler.getsig_score_index();
-                break;
+                // queryjson = openGauss.getall_sig_score_queryStr();
+                // index = openEuler.getsig_score_index();
+                return getSigGroups(community);
             default:
                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
@@ -3200,7 +3200,7 @@ public class QueryDao {
                 String feature = "";
                 String group = "";
                 if (sigInfo != null){
-                    feature = sigInfo.get("name");
+                    feature = sigInfo.get("feature");
                     group = sigInfo.get("group");
                 }
                 data.put("feature", feature);
@@ -3218,6 +3218,22 @@ public class QueryDao {
             e.printStackTrace();
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
+    }
+
+    public String getSigGroups(String community) {
+        HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
+        ArrayList<HashMap<String, String>> sigList = new ArrayList<>();
+        Set<String> keys = sigfeatures.keySet();
+        for (String key:keys) {
+            HashMap<String, String> data = sigfeatures.get(key);
+            data.put("sig_names", key);
+            sigList.add(data);
+        }
+        HashMap<String, Object> resMap = new HashMap<>();
+        resMap.put("code", 200);
+        resMap.put("data", sigList);
+        resMap.put("msg", "success");
+        return objectMapper.valueToTree(resMap).toString();
     }
 
     public String queryCompanySigs(String community, String timeRange) {
@@ -3757,14 +3773,9 @@ public class QueryDao {
     }
     
     public String getIPLocation(String ip) {       
-        String localPath = "/home/path";
-        int code = downloadFileFromUrl(ipDatabasePath, localPath);
-        if (code == 0) {
-            return null;
-        }
+        InputStream database = ObsDao.getData();
 
         try {
-            File database = new File(localPath);
             DatabaseReader reader = new DatabaseReader.Builder(database).build();
             InetAddress ipAddress = InetAddress.getByName(ip);
             CityResponse response = reader.city(ipAddress);
@@ -3812,5 +3823,45 @@ public class QueryDao {
             return 0;
         }
         return 1;
+    }
+
+    public String getRepoInfo(String community, String repo) {
+        String queryjson;
+        String queryStr;
+        String index;
+        switch (community.toLowerCase()) {
+            case "mindspore":
+                index = mindSpore.getrepo_info_index();
+                queryjson = mindSpore.getrepo_info_QuerStr();
+                
+                break;
+            default:
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+        }
+        try {
+            queryStr = String.format(queryjson, repo);
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
+           
+            if (buckets.hasNext()){
+                JsonNode bucket = buckets.next();
+                JsonNode res = bucket.get("_source");
+                HashMap<String, Object> resMap = new HashMap<>();
+                resMap.put("code", 200);
+                resMap.put("data", res);
+                resMap.put("msg", "success");
+                return objectMapper.valueToTree(resMap).toString();
+            }
+            return "{\"code\":404,\"data\":\"query error\",\"msg\":\"Not Founf repo\"}";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+        }
     }
 }
