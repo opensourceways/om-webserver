@@ -19,8 +19,8 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/logout")
-    public ResponseEntity logout(HttpServletResponse servletResponse, @CookieValue("_Y_G_") String token) {
-        return authingService.logout(servletResponse, token);
+    public ResponseEntity logout(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, @CookieValue("_Y_G_") String token) {
+        return authingService.logoutOld(httpServletRequest, servletResponse, token);
     }
 
     @AuthingUserToken

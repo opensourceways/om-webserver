@@ -2,6 +2,7 @@ package com.om.Service;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.om.Dao.RedisDao;
 import com.om.Modules.*;
 import com.om.Utils.RSAUtil;
 import com.om.Vo.TokenUser;
@@ -26,6 +27,8 @@ public class JwtTokenCreateService {
     private openLookeng openlookeng;
     @Autowired
     private mindSpore mindspore;
+    @Autowired
+    RedisDao redisDao;
 
     @Value("${authing.token.expire.seconds}")
     private String authingTokenExpireSeconds;
@@ -75,7 +78,7 @@ public class JwtTokenCreateService {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
-        int expireSeconds = 60;
+        long expireSeconds = 60;
         try {
             expireSeconds = Integer.parseInt(authingTokenExpireSeconds);
         } catch (Exception e) {
@@ -86,14 +89,14 @@ public class JwtTokenCreateService {
 
         String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes());
 
-        String verifyToken = RandomStringUtils.randomAlphanumeric(64);
+        String verifyToken = RandomStringUtils.randomAlphanumeric(32);
+        redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
 
         String token = JWT.create()
                 .withAudience(userId) //谁接受签名
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(expireAt) //过期时间
                 .withClaim("permission", permissionStr)
-                .withClaim("subject", idToken)
                 .withClaim("inputPermission", inputPermission)
                 .withClaim("verifyToken", verifyToken)
                 .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));
