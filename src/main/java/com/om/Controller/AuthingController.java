@@ -20,7 +20,7 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/logout")
     public ResponseEntity logout(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, @CookieValue("_Y_G_") String token) {
-        return authingService.logout(httpServletRequest, servletResponse, token);
+        return authingService.logoutOld(httpServletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
