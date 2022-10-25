@@ -97,9 +97,6 @@ public class QueryDao {
     @Value("${producer.topic.tracker}")
     String topicTracker;
 
-    @Value("${ip.database.path}")
-    String ipDatabasePath;
-
     @Autowired
     KafkaDao kafkaDao;
 
