@@ -378,4 +378,9 @@ public class QueryController {
     public String getIPLocation(@RequestParam(value = "ip") String ip) {
         return queryService.getIPLocation(ip);
     }
+
+    @RequestMapping(value = "/repo/info")
+    public String getRepoinfo(@RequestParam(value = "community") String community, @RequestParam(value = "repo") String repo) {
+        return queryService.getRepoInfo(community, repo);
+    }
 }

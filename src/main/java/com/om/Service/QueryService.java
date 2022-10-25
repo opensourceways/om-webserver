@@ -619,16 +619,34 @@ public class QueryService {
     }
 
     public String putUserActionsinfo(String community, String data) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String result = "{\"code\":500, \"bad request\"},\"msg\":\"bad request\"}";
+        String result = "{\"code\":500, \"data\":\"bad request\"},\"msg\":\"bad request\"}";
+        if (!is_valid(community)) {
+            return result;
+        }
         try {
             result = queryDao.putUserActionsinfo(community, data, env);
-        } catch (SocketTimeoutException ex) {
-            ex.printStackTrace();
-            return "{\"code\":504, \"Socket Timeout\"},\"msg\":\"60 seconds timeout on connection\"}";
         } catch (Exception e) {
             e.printStackTrace();
         }
         return result;
+    }
+
+    private static boolean is_valid(String charString) {
+        boolean res = true;
+        charString = charString.toLowerCase();
+        if (charString.contains("<") || charString.contains(">") || charString.contains("script")) {
+            res = false;
+        }
+        return res;
+        // value = value.replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+        // value = value.replaceAll("%3C", "&lt;").replaceAll("%3E", "&gt;");
+        // value = value.replaceAll("\\(", "&#40;").replaceAll("\\)", "&#41;");
+        // value = value.replaceAll("%28", "&#40;").replaceAll("%29", "&#41;");
+        // value = value.replaceAll("'", "&#39;");
+        // value = value.replaceAll("eval\\((.*)\\)", "");
+        // value = value.replaceAll("[\\\"\\\'][\\s]*javascript:(.*)[\\\"\\\']", "\"\"");
+        // value = value.replaceAll("script", "");
+        // return value;
     }
 
     public String querySigName(String community) throws InterruptedException, ExecutionException, JsonProcessingException {
@@ -1173,6 +1191,26 @@ public class QueryService {
         } catch (Exception e) {
             e.printStackTrace();
         }  
+        return result;
+    }
+
+    public String getRepoInfo(String community, String repo) {
+        String key = community.toLowerCase() + repo + "ecosysteminfo";
+        String result = null;
+        // result = (String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.getRepoInfo(community, repo);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result,
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
         return result;
     }
 }
