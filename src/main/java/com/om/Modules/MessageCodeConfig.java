@@ -23,6 +23,7 @@ public enum MessageCodeConfig {
     E00014("E00014", "the new phone is the same as the old phone", "新手机号和旧手机号一样"),
     E00015("E00015", "the account has been bound phone ", "已绑定手机号"),
     E00016("E00016", "the account has been bound mailbox", "已绑定邮箱"),
+    E00017("E00017", "failed to logout", "退出登录失败"),
     ;
 
     private String code;

@@ -101,18 +101,22 @@ public class AuthingService {
         }
     }
 
-    public ResponseEntity logout(HttpServletResponse servletResponse, String token) {
+    public ResponseEntity logoutOld(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String token) {
         try {
+            String headerToken = httpServletRequest.getHeader("token");
+            String idToken = (String) redisDao.get("idToken_" + headerToken);
+
             token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
-            String idToken = decode.getClaim("subject").asString();
             String userId = decode.getAudience().get(0);
             Date issuedAt = decode.getIssuedAt();
             String redisKey = userId + issuedAt.toString();
-            boolean set = redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
-            if (set) {
-                System.out.println(userId + " logout success");
-            }
+            redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
+
+            // 退出登录，删除cookie，删除idToken
+            String cookieTokenName = env.getProperty("cookie.token.name");
+            HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
+            redisDao.remove(headerToken);
 
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("id_token", idToken);
@@ -122,6 +126,42 @@ public class AuthingService {
             e.printStackTrace();
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
+    }
+
+    // 后端退出，目前有误 TODO
+    public ResponseEntity logout(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String token) {
+        boolean res;
+        String userId;
+        Date issuedAt;
+        String headerToken;
+        try {
+            // 解析token
+            token = rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(token);
+            userId = decode.getAudience().get(0);
+            issuedAt = decode.getIssuedAt();
+
+            // 获取用户idToken
+            headerToken = httpServletRequest.getHeader("token");
+            String idToken = (String) redisDao.get("idToken_" + headerToken);
+
+            res = authingUserDao.logout(idToken, userId);
+        } catch (Exception e) {
+            return result(HttpStatus.BAD_REQUEST, null, "退出登录失败", null);
+        }
+
+        if (res) {
+            // 退出登录，该token失效
+            String redisKey = userId + issuedAt.toString();
+            redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
+
+            // 退出登录，删除cookie
+            String cookieTokenName = env.getProperty("cookie.token.name");
+            HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
+            redisDao.remove(headerToken);
+        }
+
+        return result(HttpStatus.OK, "logout success", null);
     }
 
 

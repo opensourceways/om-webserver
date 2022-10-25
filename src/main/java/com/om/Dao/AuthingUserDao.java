@@ -33,7 +33,9 @@ import java.util.stream.Stream;
 
 @Repository
 public class AuthingUserDao {
-    private final static String AUTHINGAPIHOST = "https://core.authing.cn/api/v2";
+    private final static String AUTHINGAPIHOST = "https://core.authing.cn";
+
+    private final static String AUTHINGAPIHOST_V2 = AUTHINGAPIHOST + "/api/v2";
 
     @Value("${authing.userPoolId}")
     String userPoolId;
@@ -123,6 +125,19 @@ public class AuthingUserDao {
         }
     }
 
+    public boolean logout(String idToken, String userId) {
+        try {
+            HttpResponse<JsonNode> response = Unirest.get(String.format(AUTHINGAPIHOST + "/logout?appId=%s&userId=%s", omAppId, userId))
+                    .header("Authorization", idToken)
+                    .header("x-authing-userpool-id", userPoolId)
+                    .asJson();
+            int code = response.getBody().getObject().getInt("code");
+            return code == 200;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     // 获取用户基本信息
     public User getUser(String userId) {
         try {
@@ -147,7 +162,7 @@ public class AuthingUserDao {
     public JSONObject getUserById(String userId) {
         try {
             String token = getManagementToken();
-            HttpResponse<JsonNode> response = Unirest.get(AUTHINGAPIHOST + "/users/" + userId)
+            HttpResponse<JsonNode> response = Unirest.get(AUTHINGAPIHOST_V2 + "/users/" + userId)
                     .header("Authorization", token)
                     .header("x-authing-userpool-id", userPoolId)
                     .asJson();
@@ -162,7 +177,7 @@ public class AuthingUserDao {
     public boolean deleteUserById(String userId) {
         try {
             String token = getManagementToken();
-            HttpResponse<JsonNode> response = Unirest.delete(AUTHINGAPIHOST + "/users/" + userId)
+            HttpResponse<JsonNode> response = Unirest.delete(AUTHINGAPIHOST_V2 + "/users/" + userId)
                     .header("Authorization", token)
                     .header("x-authing-userpool-id", userPoolId)
                     .asJson();
@@ -215,7 +230,7 @@ public class AuthingUserDao {
         try {
             String token = getManagementToken();
             String loginStatusBody = String.format("{\"userId\":\"%s\",\"appId\":\"%s\"}", userId, omAppId);
-            HttpResponse<JsonNode> response1 = Unirest.post(AUTHINGAPIHOST + "/users/login/session-status")
+            HttpResponse<JsonNode> response1 = Unirest.post(AUTHINGAPIHOST_V2 + "/users/login/session-status")
                     .header("Content-Type", "application/json")
                     .header("x-authing-userpool-id", userPoolId)
                     .header("authorization", token)
@@ -363,7 +378,7 @@ public class AuthingUserDao {
             return list;
 
             /*TODO 该接口因为Cookie参数获取不到，所以无法使用
-            HttpResponse<JsonNode> response = Unirest.get("https://core.authing.cn/api/v2/users/identity/conn-list")
+            HttpResponse<JsonNode> response = Unirest.get(AUTHINGAPIHOST_V2 + "/users/identity/conn-list")
                     .header("Cookie", "")
                     .header("DNT", "1")
                     .header("x-authing-app-id", omAppId)
@@ -415,7 +430,7 @@ public class AuthingUserDao {
 
             String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", identifier, extIdpId);
             Unirest.setTimeouts(0, 0);
-            HttpResponse<JsonNode> response = Unirest.post("https://core.authing.cn/api/v2/users/identity/unlinkByUser")
+            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V2 + "/users/identity/unlinkByUser")
                     .header("Authorization", us.getToken())
                     .header("x-authing-userpool-id", userPoolId)
                     .header("Content-Type", "application/json")
@@ -438,7 +453,7 @@ public class AuthingUserDao {
             try {
                 String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", split[i], split1[i]);
                 Unirest.setTimeouts(0, 0);
-                HttpResponse<JsonNode> response = Unirest.post("https://core.authing.cn/api/v2/users/identity/unlinkByUser")
+                HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V2 + "/users/identity/unlinkByUser")
                         .header("Authorization", us.getToken())
                         .header("x-authing-userpool-id", userPoolId)
                         .header("Content-Type", "application/json")
@@ -503,7 +518,7 @@ public class AuthingUserDao {
     private String getManagementToken() {
         try {
             String body = String.format("{\"userPoolId\":\"%s\",\"secret\":\"%s\"}", userPoolId, secret);
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST + "/userpools/access-token")
+            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V2 + "/userpools/access-token")
                     .header("Content-Type", "application/json")
                     .body(body)
                     .asJson();
@@ -534,6 +549,7 @@ public class AuthingUserDao {
         map.put("新手机号和旧手机号一样", MessageCodeConfig.E00014);
         map.put("已绑定手机号", MessageCodeConfig.E00015);
         map.put("已绑定邮箱", MessageCodeConfig.E00016);
+        map.put("退出登录失败", MessageCodeConfig.E00017);
         return map;
     }
 }
