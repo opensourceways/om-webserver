@@ -8,6 +8,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
@@ -120,6 +121,19 @@ public class AuthingUserDao {
         } catch (Exception ex) {
             ex.printStackTrace();
             return null;
+        }
+    }
+
+    public boolean logout(String userToken) {
+        try {
+            HttpResponse<JsonNode> response = Unirest.get("https://core.authing.cn/api/v2/logout?app_id=" + omAppId)
+                    .header("Authorization", userToken)
+                    .header("x-authing-userpool-id", userPoolId)
+                    .asJson();
+            int code = response.getBody().getObject().getInt("code");
+            return code == 200;
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -534,6 +548,7 @@ public class AuthingUserDao {
         map.put("新手机号和旧手机号一样", MessageCodeConfig.E00014);
         map.put("已绑定手机号", MessageCodeConfig.E00015);
         map.put("已绑定邮箱", MessageCodeConfig.E00016);
+        map.put("退出登录失败", MessageCodeConfig.E00017);
         return map;
     }
 }
