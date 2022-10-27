@@ -620,33 +620,12 @@ public class QueryService {
 
     public String putUserActionsinfo(String community, String data) throws InterruptedException, ExecutionException, JsonProcessingException {
         String result = "{\"code\":500, \"data\":\"bad request\",\"msg\":\"bad request\"}";
-        if (!is_valid(community)) {
-            return result;
-        }
         try {
             result = queryDao.putUserActionsinfo(community, data, env);
         } catch (Exception e) {
             e.printStackTrace();
         }
         return result;
-    }
-
-    private static boolean is_valid(String charString) {
-        boolean res = true;
-        charString = charString.toLowerCase();
-        if (charString.contains("<") || charString.contains(">") || charString.contains("script")) {
-            res = false;
-        }
-        return res;
-        // value = value.replaceAll("<", "&lt;").replaceAll(">", "&gt;");
-        // value = value.replaceAll("%3C", "&lt;").replaceAll("%3E", "&gt;");
-        // value = value.replaceAll("\\(", "&#40;").replaceAll("\\)", "&#41;");
-        // value = value.replaceAll("%28", "&#40;").replaceAll("%29", "&#41;");
-        // value = value.replaceAll("'", "&#39;");
-        // value = value.replaceAll("eval\\((.*)\\)", "");
-        // value = value.replaceAll("[\\\"\\\'][\\s]*javascript:(.*)[\\\"\\\']", "\"\"");
-        // value = value.replaceAll("script", "");
-        // return value;
     }
 
     public String querySigName(String community) throws InterruptedException, ExecutionException, JsonProcessingException {
@@ -1194,14 +1173,16 @@ public class QueryService {
         return result;
     }
 
-    public String getRepoInfo(String community, String repo) {
-        String key = community.toLowerCase() + repo + "ecosysteminfo";
+    public String getEcosystemRepoInfo(String community, String ecosystem_type,
+            String sort_type, String sort_order,
+            String page, String pageSize) throws JsonMappingException, JsonProcessingException {
+        String key = community.toLowerCase() + ecosystem_type.toLowerCase() + "ecosysteminfo" + sort_order;
         String result = null;
         result = (String) redisDao.get(key);
         if (result == null) {
             // 查询数据库，更新redis 缓存。
             try {
-                result = queryDao.getRepoInfo(community, repo);
+                result = queryDao.getEcosystemRepoInfo(community, ecosystem_type, sort_order);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1211,7 +1192,60 @@ public class QueryService {
                 System.out.println("update " + key + " success!");
             }
         }
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode all = objectMapper.readTree(result);
+        if (all.get("code").asInt() != 200) {
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+        }
+        JsonNode res = all.get("data");
+        ArrayList<HashMap<String, Object>> resList = objectMapper.convertValue(res,
+                new TypeReference<ArrayList<HashMap<String, Object>>>() {
+                });
+
+        if (sort_type.equals("repo")) {
+            resList = sortbytype(resList, sort_type, sort_order);
+        }
+
+        if (pageSize != null && page != null) {
+            int currentPage = Integer.parseInt(page);
+            int pagesize = Integer.parseInt(pageSize);
+            Map data = PageUtils.getDataByPage(currentPage, pagesize, resList);
+            ArrayList<HashMap<String, Object>> dataList = new ArrayList<>();
+            dataList.add((HashMap<String, Object>) data);
+            resList = dataList;
+        }
+        HashMap<String, Object> resMap = new HashMap<>();
+        resMap.put("code", 200);
+        resMap.put("data", resList);
+        resMap.put("msg", "success");
+        result = objectMapper.valueToTree(resMap).toString();
         return result;
+    }
+
+    public ArrayList<HashMap<String, Object>> sortbytype(ArrayList<HashMap<String, Object>> dataList, String type, String order) {
+        switch (order.toLowerCase()) {
+            case "desc":
+                Collections.sort(dataList, new Comparator<HashMap<String, Object>>() {
+                    @Override
+                    public int compare(HashMap<String, Object> t1, HashMap<String, Object> t2) {
+                        return t1.get(type).toString().toLowerCase()
+                                .compareTo(t2.get(type).toString().toLowerCase());
+                    }
+                });
+                return dataList;
+            case "asc":
+                Collections.sort(dataList, new Comparator<HashMap<String, Object>>() {
+                    @Override
+                    public int compare(HashMap<String, Object> t1, HashMap<String, Object> t2) {
+                        return t2.get(type).toString().toLowerCase()
+                                .compareTo(t1.get(type).toString().toLowerCase());
+                    }
+                });
+                return dataList;
+            default:
+                return null;
+        }
+        
     }
 }
 
