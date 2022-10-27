@@ -1224,7 +1224,7 @@ public class QueryService {
 
     public ArrayList<HashMap<String, Object>> sortbytype(ArrayList<HashMap<String, Object>> dataList, String type, String order) {
         switch (order.toLowerCase()) {
-            case "desc":
+            case "asc":
                 Collections.sort(dataList, new Comparator<HashMap<String, Object>>() {
                     @Override
                     public int compare(HashMap<String, Object> t1, HashMap<String, Object> t2) {
@@ -1233,7 +1233,7 @@ public class QueryService {
                     }
                 });
                 return dataList;
-            case "asc":
+            case "desc":
                 Collections.sort(dataList, new Comparator<HashMap<String, Object>>() {
                     @Override
                     public int compare(HashMap<String, Object> t1, HashMap<String, Object> t2) {
