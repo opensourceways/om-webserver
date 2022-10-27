@@ -3821,6 +3821,7 @@ public class QueryDao {
             default:
                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
+        sort_order = sort_order == null ? "desc" : sort_order;
         try {
             queryStr = String.format(queryjson, ecosystem_type, sort_order);
             AsyncHttpClient client = AsyncHttpUtil.getClient();
