@@ -1202,7 +1202,7 @@ public class QueryService {
                 new TypeReference<ArrayList<HashMap<String, Object>>>() {
                 });
 
-        if (sort_type.equals("repo")) {
+        if (sort_type != null && sort_type.equals("repo")) {
             resList = sortbytype(resList, sort_type, sort_order);
         }
 
