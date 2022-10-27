@@ -379,8 +379,13 @@ public class QueryController {
         return queryService.getIPLocation(ip);
     }
 
-    @RequestMapping(value = "/repo/info")
-    public String getRepoinfo(@RequestParam(value = "community") String community, @RequestParam(value = "repo") String repo) {
-        return queryService.getRepoInfo(community, repo);
+    @RequestMapping(value = "ecosystem/repo/info")
+    public String getEcosystemRepoInfo(@RequestParam(value = "community") String community,
+            @RequestParam(value = "ecosystem_type") String ecosystem_type,
+            @RequestParam(value = "sort_type") String sort_type,
+            @RequestParam(value = "sort_order") String sort_order,
+            @RequestParam(value = "page") String page,
+            @RequestParam(value = "pageSize") String pageSize) throws JsonMappingException, JsonProcessingException {
+        return queryService.getEcosystemRepoInfo(community, ecosystem_type, sort_type, sort_order, page, pageSize);
     }
 }

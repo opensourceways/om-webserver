@@ -42,12 +42,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Repository;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.URL;
 import java.security.KeyManagementException;
@@ -101,7 +99,7 @@ public class QueryDao {
     KafkaDao kafkaDao;
 
     @Autowired
-    ObsDao ObsDao;
+    ObsDao obsDao;
 
     static ObjectMapper objectMapper = new ObjectMapper();
     @Autowired
@@ -2141,7 +2139,7 @@ public class QueryDao {
                 index = "test_tracker";
                 break; 
             default:
-                return "{\"code\":" + 404 + ",\"community\":" + community + ",\"data\":\"index: error!\",\"msg\":\"not Found!\"}";
+                return "{\"code\":" + 404 + ",\"data\":\"index: error!\",\"msg\":\"not Found!\"}";
         }
         /*String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
         String host = env.getProperty("es.host");
@@ -2173,7 +2171,7 @@ public class QueryDao {
         }         
         restHighLevelClient.close();*/
 
-        String res = "{\"code\":200,\"track_id\":" + id + ",\"community\":" + community + ",\"msg\":\"collect over\"}";
+        String res = "{\"code\":200,\"track_id\":" + id + ",\"msg\":\"collect over\"}";
         return res;
     }
 
@@ -3772,9 +3770,8 @@ public class QueryDao {
         return false;
     }
     
-    public String getIPLocation(String ip) {       
-        InputStream database = ObsDao.getData();
-
+    public String getIPLocation(String ip) {
+        InputStream database = obsDao.getData();
         try {
             DatabaseReader reader = new DatabaseReader.Builder(database).build();
             InetAddress ipAddress = InetAddress.getByName(ip);
@@ -3812,20 +3809,7 @@ public class QueryDao {
         return null;
     }
 
-    public static int downloadFileFromUrl(String url, String localFilePath) {
-
-        try {
-            URL httpUrl = new URL(url);
-            File f = new File(localFilePath);
-            FileUtils.copyURLToFile(httpUrl, f);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return 0;
-        }
-        return 1;
-    }
-
-    public String getRepoInfo(String community, String repo) {
+    public String getEcosystemRepoInfo(String community, String ecosystem_type, String sort_order) {
         String queryjson;
         String queryStr;
         String index;
@@ -3833,13 +3817,12 @@ public class QueryDao {
             case "mindspore":
                 index = mindSpore.getrepo_info_index();
                 queryjson = mindSpore.getrepo_info_QuerStr();
-                
                 break;
             default:
                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
         try {
-            queryStr = String.format(queryjson, repo);
+            queryStr = String.format(queryjson, ecosystem_type, sort_order);
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             builder.setUrl(this.url + index + "/_search");
@@ -3849,16 +3832,17 @@ public class QueryDao {
             JsonNode dataNode = objectMapper.readTree(responseBody);
             Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
            
-            if (buckets.hasNext()){
+            ArrayList<JsonNode> resList = new ArrayList<>();
+            while (buckets.hasNext()){
                 JsonNode bucket = buckets.next();
                 JsonNode res = bucket.get("_source");
-                HashMap<String, Object> resMap = new HashMap<>();
-                resMap.put("code", 200);
-                resMap.put("data", res);
-                resMap.put("msg", "success");
-                return objectMapper.valueToTree(resMap).toString();
+                resList.add(res);
             }
-            return "{\"code\":404,\"data\":\"query error\",\"msg\":\"Not Founf repo\"}";
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", resList);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
             e.printStackTrace();
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
