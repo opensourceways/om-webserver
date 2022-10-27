@@ -382,10 +382,10 @@ public class QueryController {
     @RequestMapping(value = "ecosystem/repo/info")
     public String getEcosystemRepoInfo(@RequestParam(value = "community") String community,
             @RequestParam(value = "ecosystem_type") String ecosystem_type,
-            @RequestParam(value = "sort_type") String sort_type,
-            @RequestParam(value = "sort_order") String sort_order,
-            @RequestParam(value = "page") String page,
-            @RequestParam(value = "pageSize") String pageSize) throws JsonMappingException, JsonProcessingException {
+            @RequestParam(value = "sort_type", required = false) String sort_type,
+            @RequestParam(value = "sort_order", required = false) String sort_order,
+            @RequestParam(value = "page", required = false) String page,
+            @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
         return queryService.getEcosystemRepoInfo(community, ecosystem_type, sort_type, sort_order, page, pageSize);
     }
 }
