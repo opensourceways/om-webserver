@@ -269,7 +269,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
     private boolean checkDomain(String[] domains, String input) {
         if (StringUtils.isBlank(input)) return true;
-        int end = input.indexOf("/", 8);
+        int fromIndex = input.startsWith("http://") ? 7 : 8;
+        int endIndex = input.indexOf(":", fromIndex);
+        int end = endIndex == -1 ? input.indexOf("/", fromIndex) : endIndex;
         String substring = end == -1 ? input : input.substring(0, end);
         for (String domain : domains) {
             if (substring.endsWith(domain)) return true;
