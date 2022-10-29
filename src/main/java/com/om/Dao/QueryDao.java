@@ -1165,8 +1165,8 @@ public class QueryDao {
         }
         indexName = indexName.substring(1);
 
-        String[] userpass = Objects.requireNonNull(env.getProperty("secure.userpass")).split(":");
-        String host = env.getProperty("es.secure.host");
+        String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
+        String host = env.getProperty("es.host");
         int port = Integer.parseInt(env.getProperty("es.port", "9200"));
         String scheme = env.getProperty("es.scheme");
         String esUser = userpass[0];
