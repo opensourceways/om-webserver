@@ -14,6 +14,7 @@ import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -62,11 +63,125 @@ public class AuthingService {
 
     private static HashMap<String, Boolean> domain2secure;
 
+    private static final String PHONEREGEX = "^[a-z0-9]{11}$";
+
+    private static final String EMAILREGEX = "^[A-Za-z0-9-_\\u4e00-\\u9fa5]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$";
+
     @PostConstruct
     public void init() {
         codeUtil = new CodeUtil();
         error2code = authingUserDao.getErrorCode();
         domain2secure = HttpClientUtils.getConfigCookieInfo(Objects.requireNonNull(env.getProperty("cookie.token.domains")), Objects.requireNonNull(env.getProperty("cookie.token.secures")));
+    }
+
+    public ResponseEntity accountExists(String userName, String account) {
+        if (StringUtils.isNotBlank(userName)) {
+            boolean username = authingUserDao.isUserExists(userName, "username");
+            if (username) return result(HttpStatus.BAD_REQUEST, null, "用户名已存在", null);
+        } else if (StringUtils.isNotBlank(account)) {
+            String accountType = checkPhoneAndEmail(account);
+            if (!accountType.equals("email") && !accountType.equals("phone"))
+                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        }
+        return result(HttpStatus.OK, "success", null);
+    }
+
+    public ResponseEntity sendCodeV3(String account, String channel) {
+        if (!channel.equalsIgnoreCase("channel_login") && !channel.equalsIgnoreCase("channel_register")) {
+            return result(HttpStatus.BAD_REQUEST, null, "仅登录和注册使用", null);
+        }
+
+        String accountType = getAccountType(account);
+        String msg = "";
+        if (accountType.equals("email"))
+            msg = authingUserDao.sendEmailCodeV3(account, channel);
+        else if (accountType.equals("phone"))
+            msg = authingUserDao.sendPhoneCodeV3(account, channel);
+        else
+            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+
+        if (!msg.equals("success")) return result(HttpStatus.BAD_REQUEST, null, msg, null);
+        else return result(HttpStatus.OK, "success", null);
+    }
+
+    public ResponseEntity register(String userName, String account, String code) {
+        // 用户名校验
+        if (StringUtils.isBlank(userName))
+            return result(HttpStatus.BAD_REQUEST, null, "用户名不能为空", null);
+        if (authingUserDao.isUserExists(userName, "username"))
+            return result(HttpStatus.BAD_REQUEST, null, "用户名已存在", null);
+
+        if (StringUtils.isBlank(account))
+            return result(HttpStatus.BAD_REQUEST, null, "手机号或者邮箱不能为空", null);
+
+        // 邮箱 OR 手机号校验
+        String accountType = checkPhoneAndEmail(account);
+
+        String msg;
+        if (accountType.equals("email")) {
+            // 邮箱注册
+            msg = authingUserDao.registerByEmail(account, code, userName);
+        } else if (accountType.equals("phone")) {
+            // 手机注册
+            msg = authingUserDao.registerByPhone(account, code, userName);
+        } else {
+            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        }
+        if (!msg.equals("success")) return result(HttpStatus.BAD_REQUEST, null, msg, null);
+
+        return result(HttpStatus.OK, "success", null);
+    }
+
+    public ResponseEntity login(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse,
+                                String community, String permission, String account, String code) {
+        String accountType = getAccountType(account);
+
+        Object msg = null;
+        if (accountType.equals("email")) {
+            msg = authingUserDao.loginByEmailCode(account, code);
+        } else if (accountType.equals("phone")) {
+            msg = authingUserDao.loginByPhoneCode(account, code);
+        } else {
+            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        }
+
+        String idToken;
+        if (msg instanceof JSONObject) {
+            JSONObject user = (JSONObject) msg;
+            idToken = user.getString("id_token");
+        } else {
+            return result(HttpStatus.BAD_REQUEST, null, (String) msg, null);
+        }
+
+        String userId;
+        User user;
+        try {
+            DecodedJWT decode = JWT.decode(idToken);
+            userId = decode.getSubject();
+            user = authingUserDao.getUser(userId);
+        } catch (Exception e) {
+            return result(HttpStatus.BAD_REQUEST, null, "登录失败", null);
+        }
+
+        // 资源权限
+        String permissionInfo = env.getProperty(community + "." + permission);
+
+        // 生成token
+        String[] tokens = jwtTokenCreateService.authingUserToken(userId, permissionInfo, permission, idToken);
+        String token = tokens[0];
+        String verifyToken = tokens[1];
+
+        // 写cookie
+        String cookieTokenName = env.getProperty("cookie.token.name");
+        int maxAge = Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
+        HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
+
+        // 返回结果
+        HashMap<String, Object> userData = new HashMap<>();
+        userData.put("token", verifyToken);
+        userData.put("photo", user.getPhoto());
+        userData.put("username", user.getUsername());
+        return result(HttpStatus.OK, "success", userData);
     }
 
     public ResponseEntity authingUserPermission(String community, String token) {
@@ -525,5 +640,28 @@ public class AuthingService {
                 }
                 return result(HttpStatus.BAD_REQUEST, null, message, null);
         }
+    }
+
+    private String getAccountType(String account) {
+        String accountType;
+        if (account.matches(EMAILREGEX))
+            accountType = "email";
+        else if (account.matches(PHONEREGEX))
+            accountType = "phone";
+        else
+            accountType = "请输入正确的手机号或者邮箱";
+
+        return accountType;
+    }
+
+    private String checkPhoneAndEmail(String account) {
+        String accountType = getAccountType(account);
+        if (!accountType.equals("email") && !accountType.equals("phone"))
+            return accountType;
+
+        if (authingUserDao.isUserExists(account, accountType))
+            return "该账号已注册";
+        else
+            return accountType;
     }
 }
