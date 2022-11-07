@@ -24,6 +24,18 @@ public enum MessageCodeConfig {
     E00015("E00015", "the account has been bound phone ", "已绑定手机号"),
     E00016("E00016", "the account has been bound mailbox", "已绑定邮箱"),
     E00017("E00017", "failed to logout", "退出登录失败"),
+    E00018("E00018", "username must be not empty", "用户名不能为空"),
+    E00019("E00019", "username already exists", "用户名已存在"),
+    E00020("E00020", "phone or mailbox must be not empty", "手机号或者邮箱不能为空"),
+    E00021("E00021", "please enter the correct phone or mailbox", "请输入正确的手机号或者邮箱"),
+    E00022("E00022", "the account is already registered", "该账号已注册"),
+    E00023("E00023", "too frequent requests, please try again later", "请求过于频繁，请稍后再试"),
+    E00024("E00024", "register failed", "注册失败"),
+    E00025("E00025", "sent one code within 1 minute,please try again later", "该手机号 1 分钟内已发送过验证码，请稍后再试"),
+    E00026("E00026", "code invalid or expired,please get it again", "验证码已失效，请重新获取验证码"),
+    E00027("E00027", "failed to login", "登录失败"),
+    E00028("E00028", "the number of sms messages sent from a single mobile number every day exceeds the upper limit", "手机号每天发送的验证次数超过上限"),
+    E00029("E00029", "login and register use only", "仅登录和注册使用"),
     ;
 
     private String code;
