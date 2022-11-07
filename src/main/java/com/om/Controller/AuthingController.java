@@ -17,6 +17,35 @@ public class AuthingController {
     @Autowired
     AuthingService authingService;
 
+    @RequestMapping(value = "/account/exists")
+    public ResponseEntity accountExists(@RequestParam(value = "userName", required = false) String userName,
+                                        @RequestParam(value = "account", required = false) String account) {
+        return authingService.accountExists(userName, account);
+    }
+
+    @RequestMapping(value = "/v3/sendCode")
+    public ResponseEntity sendCodeV3(@RequestParam(value = "account") String account,
+                                     @RequestParam(value = "channel") String channel) {
+        return authingService.sendCodeV3(account, channel);
+    }
+
+    @RequestMapping(value = "/register")
+    public ResponseEntity register(@RequestParam(value = "userName") String userName,
+                                   @RequestParam(value = "account") String account,
+                                   @RequestParam(value = "code") String code) {
+        return authingService.register(userName, account, code);
+    }
+
+    @RequestMapping(value = "/login")
+    public ResponseEntity login(HttpServletRequest httpServletRequest,
+                                HttpServletResponse servletResponse,
+                                @RequestParam(value = "community") String community,
+                                @RequestParam(value = "permission") String permission,
+                                @RequestParam(value = "account") String account,
+                                @RequestParam(value = "code") String code) {
+        return authingService.login(httpServletRequest, servletResponse, community, permission, account, code);
+    }
+
     @AuthingUserToken
     @RequestMapping(value = "/logout")
     public ResponseEntity logout(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, @CookieValue("_Y_G_") String token) {
