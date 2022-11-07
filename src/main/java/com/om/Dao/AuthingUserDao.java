@@ -37,6 +37,8 @@ public class AuthingUserDao {
 
     private final static String AUTHINGAPIHOST_V2 = AUTHINGAPIHOST + "/api/v2";
 
+    private final static String AUTHINGAPIHOST_V3 = "https://api.authing.cn/api/v3";
+
     @Value("${authing.userPoolId}")
     String userPoolId;
 
@@ -106,6 +108,146 @@ public class AuthingUserDao {
         authentication = new AuthenticationClient(omAppId, omAppHost);
         authentication.setSecret(omAppSecret);
         obsClient = new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint);
+    }
+
+    public String sendPhoneCodeV3(String account, String channel) {
+        String msg = "success";
+        try {
+            String body = String.format("{\"phoneNumber\": \"%s\",\"channel\": \"%s\"}", account, channel.toUpperCase());
+            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/send-sms")
+                    .header("x-authing-app-id", omAppId)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .asJson();
+
+            JSONObject resObj = response.getBody().getObject();
+            int statusCode = resObj.getInt("statusCode");
+            if (statusCode != 200) msg = resObj.getString("message");
+
+            return msg;
+        } catch (Exception e) {
+            return "验证码发送失败";
+        }
+    }
+
+    public String sendEmailCodeV3(String account, String channel) {
+        String msg = "success";
+        try {
+            String body = String.format("{\"email\": \"%s\",\"channel\": \"%s\"}", account, channel.toUpperCase());
+            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/send-email")
+                    .header("x-authing-app-id", omAppId)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .asJson();
+
+            JSONObject resObj = response.getBody().getObject();
+            int statusCode = resObj.getInt("statusCode");
+            if (statusCode != 200) msg = resObj.getString("message");
+
+            return msg;
+        } catch (Exception e) {
+            return "验证码发送失败";
+        }
+    }
+
+    // 邮箱注册
+    public String registerByEmail(String email, String code, String name) {
+        String msg = "success";
+        try {
+            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},\"profile\":{\"username\":\"%s\"}}", email, code, name);
+            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signup")
+                    .header("x-authing-app-id", omAppId)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .asJson();
+
+            JSONObject resObj = response.getBody().getObject();
+            int statusCode = resObj.getInt("statusCode");
+            if (statusCode != 200) msg = resObj.getString("message");
+
+            return msg;
+        } catch (Exception e) {
+            return "注册失败";
+        }
+
+    }
+
+    // 手机号注册
+    public String registerByPhone(String phone, String code, String name) {
+        String msg = "success";
+        try {
+            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"},\"profile\":{\"name\":\"%s\"}}", phone, code, name);
+            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signup")
+                    .header("x-authing-app-id", omAppId)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .asJson();
+
+            JSONObject resObj = response.getBody().getObject();
+            int statusCode = resObj.getInt("statusCode");
+            if (statusCode != 200) msg = resObj.getString("message");
+
+            return msg;
+        } catch (Exception e) {
+            return "注册失败";
+        }
+    }
+
+    // 校验用户是否存在（用户名 or 邮箱 or 手机号）
+    public boolean isUserExists(String account, String accountType) {
+        try {
+            switch (accountType.toLowerCase()) {
+                case "username":
+                    return authentication.isUserExists(account, null, null, null).execute();
+                case "email":
+                    return authentication.isUserExists(null, account, null, null).execute();
+                case "phone":
+                    return authentication.isUserExists(null, null, account, null).execute();
+                default:
+                    return true;
+            }
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    public Object loginByEmailCode(String email, String code) {
+        String msg = "登录失败";
+        try {
+            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", email, code, omAppId, omAppSecret);
+            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
+                    .header("x-authing-app-id", omAppId)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .asJson();
+
+            JSONObject resObj = response.getBody().getObject();
+            int statusCode = resObj.getInt("statusCode");
+            if (statusCode != 200) msg = resObj.getString("message");
+            else return resObj.get("data");
+        } catch (Exception ignored) {
+        }
+        return msg;
+    }
+
+    public Object loginByPhoneCode(String phone, String code) {
+        String msg = "登录失败";
+        try {
+            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, omAppId, omAppSecret);
+            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
+                    .header("x-authing-app-id", omAppId)
+                    .header("Content-Type", "application/json")
+                    .body(body)
+                    .asJson();
+
+            JSONObject resObj = response.getBody().getObject();
+            int statusCode = resObj.getInt("statusCode");
+            if (statusCode != 200) msg = resObj.getString("message");
+            else return resObj.get("data");
+        } catch (Exception ignored) {
+        }
+
+        return msg;
     }
 
     public Map getUserInfoByAccessToken(String code, String redirectUrl) {
@@ -550,6 +692,19 @@ public class AuthingUserDao {
         map.put("已绑定手机号", MessageCodeConfig.E00015);
         map.put("已绑定邮箱", MessageCodeConfig.E00016);
         map.put("退出登录失败", MessageCodeConfig.E00017);
+        map.put("用户名不能为空", MessageCodeConfig.E00018);
+        map.put("用户名已存在", MessageCodeConfig.E00019);
+        map.put("手机号或者邮箱不能为空", MessageCodeConfig.E00020);
+        map.put("请输入正确的手机号或者邮箱", MessageCodeConfig.E00021);
+        map.put("该账号已注册", MessageCodeConfig.E00022);
+        map.put("请求过于频繁", MessageCodeConfig.E00023);
+        map.put("注册失败", MessageCodeConfig.E00024);
+        map.put("该手机号 1 分钟内已发送过验证码", MessageCodeConfig.E00025);
+        map.put("验证码已失效，请重新获取验证码", MessageCodeConfig.E00026);
+        map.put("登录失败", MessageCodeConfig.E00027);
+        map.put("mobile number every day exceeds the upper limit", MessageCodeConfig.E00028);
+        map.put("仅登录和注册使用", MessageCodeConfig.E00029);
+
         return map;
     }
 }
