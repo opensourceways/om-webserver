@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import java.net.SocketTimeoutException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -41,6 +42,9 @@ public class QueryService {
 
     @Autowired
     private Environment env;
+
+    @Autowired
+    private ErrorAlertService errorAlertService;
 
     public String queryContributors(String community) {
         String key = community + "contributors";
@@ -216,19 +220,49 @@ public class QueryService {
     public String queryAll(String community) throws InterruptedException, ExecutionException, JsonProcessingException {
         String key = community.toLowerCase() + "all";
         String result;
+        JsonNode old_data = null;
+        JsonNode new_data = null;
         result = (String) redisDao.get(key);
-        if (result == null) {
-            //查询数据库，更新redis 缓存。
+
+        Boolean is_flush = false;
+        ObjectMapper objectMapper = new ObjectMapper();
+
+        if (result != null) {
+            JsonNode all = objectMapper.readTree(result);
+            String update_at = all.get("update_at").asText();
+            old_data = all.get("data");
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
             try {
-                result = queryDao.queryAll(community);
-            } catch (NoSuchAlgorithmException e) {
-                e.printStackTrace();
-            } catch (KeyManagementException e) {
+                Date update_date = sdf.parse(update_at);
+                Date now = new Date();
+                long diffs = (now.getTime() - update_date.getTime());
+                if (diffs >  Long.valueOf(env.getProperty("redis.flush.interval"))) {
+                    is_flush = true;
+                }
+            } catch (ParseException e) {
                 e.printStackTrace();
             }
-            boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.key.expire")));
-            if (set) {
-                System.out.println("update " + key + " success!");
+        }
+
+        if (is_flush || result == null) {
+            // 查询数据库，更新redis 缓存。
+            Boolean flag = false;
+            try {
+                String result_new = queryDao.queryAll(community);
+                JsonNode all_new = objectMapper.readTree(result_new);
+                new_data = all_new.get("data");
+                if (old_data != null) {
+                    flag = errorAlertService.errorAlert(community, old_data, new_data);
+                }
+                if (!flag) {
+                    boolean set = redisDao.set(key, result_new, -1l);
+                    if (set) {
+                        System.out.println("update " + key + " success!");
+                    }
+                    result = result_new;
+                }
+            } catch (NoSuchAlgorithmException | KeyManagementException e) {
+                e.printStackTrace();
             }
         }
         return result;
@@ -1247,5 +1281,6 @@ public class QueryService {
         }
         
     }
+
 }
 
