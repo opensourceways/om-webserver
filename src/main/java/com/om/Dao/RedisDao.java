@@ -3,11 +3,9 @@ package com.om.Dao;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.TreeNode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
-import org.elasticsearch.common.inject.spi.PrivateElements;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -52,7 +50,10 @@ public class RedisDao {
             redisTemplate.setValueSerializer(new GzipSerializer(getJsonserializer()));
             ValueOperations operations = redisTemplate.opsForValue();
             operations.set(key, value);
-            redisTemplate.expire(key, expire, TimeUnit.SECONDS);
+            if (expire < 1)
+                redisTemplate.persist(key);
+            else
+                redisTemplate.expire(key, expire, TimeUnit.SECONDS);
             result = true;
         } catch (Exception e) {
             System.out.println(e);
@@ -84,14 +85,14 @@ public class RedisDao {
     /**
      * redis hash
      */
-    public boolean set(final String key, String feild, String value, Long expire) {
+    public boolean set(final String key, String field, String value, Long expire) {
         boolean result = false;
         try {
             if (!checkValue(value))
                 return false;
             redisTemplate.setValueSerializer(new GzipSerializer(getJsonserializer()));
             HashOperations<String, String, String> map = redisTemplate.opsForHash();
-            map.put(key, feild, value);
+            map.put(key, field, value);
             redisTemplate.expire(key, expire, TimeUnit.SECONDS);
             result = true;
         } catch (Exception e) {
@@ -100,12 +101,12 @@ public class RedisDao {
         return result;
     }
 
-    public Object get(final String key, String feild) {
+    public Object get(final String key, String field) {
         Object result = null;
         redisTemplate.setValueSerializer(new GzipSerializer(getJsonserializer()));
         try {
             HashOperations<String, String, String> hashOperations = redisTemplate.opsForHash();
-            result = hashOperations.get(key, feild);
+            result = hashOperations.get(key, field);
         } catch (Exception e) {
             System.out.println(e);
         }
