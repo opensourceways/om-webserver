@@ -12,6 +12,7 @@ import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.RSAUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
@@ -623,6 +624,10 @@ public class AuthingUserDao {
                         break;
                     case "company":
                         updateUserInput.withCompany(inputValue);
+                        break;
+                    case "username":
+                        if (StringUtils.isNotBlank(user.getUsername()) || isUserExists(inputValue, "username")) return false;
+                        updateUserInput.withUsername(inputValue);
                         break;
                     default:
                         break;
