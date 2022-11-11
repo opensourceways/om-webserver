@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.om.Dao.AuthingUserDao;
+import com.om.Dao.RedisDao;
 import com.om.Utils.CodeUtil;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.Unirest;
@@ -25,6 +26,9 @@ public class ErrorAlertService {
 
     @Autowired
     AuthingUserDao authingUserDao;
+
+    @Autowired
+    RedisDao redisDao;
 
     private static CodeUtil codeUtil;
     public String msgsms_app_key;
@@ -98,7 +102,8 @@ public class ErrorAlertService {
                     sendMsg(account, community, label, null);
                 }
                 flag = true;
-            } else if (old_value.asInt() > new_value.asInt()) {
+            } else if (old_value.asInt() > new_value.asInt()
+                    && ((old_value.asInt() - new_value.asInt()) > old_value.asInt() * 0.005)) {
                 for (String account : accounts) {
                     sendMsg(account, community, label, new_value.asText());
                 }
@@ -109,10 +114,15 @@ public class ErrorAlertService {
     }
 
     public void sendMsg(String account, String community, String field, String value) {
+        String redisKey = account + community + field + "_alert";
+        String msg = (String) redisDao.get(redisKey);
+        if (msg != null) {
+            return;
+        }
 
         // 短信发送服务器
         String template = "%s %s = %s";
-        String msg = String.format(template, community, field, value);
+        msg = String.format(template, community, field, value);
         String resMsg = "send code fail";
 
         // 短信发送请求
@@ -138,6 +148,8 @@ public class ErrorAlertService {
         } catch (UnirestException e) {
             e.printStackTrace();
         }
+        long msgExpire = Long.valueOf(env.getProperty("redis.flush.interval"));
+        redisDao.set(redisKey, msg, msgExpire);
         System.out.println(resMsg);
     }
 }
