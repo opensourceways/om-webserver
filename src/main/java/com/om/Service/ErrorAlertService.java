@@ -115,14 +115,14 @@ public class ErrorAlertService {
 
     public void sendMsg(String account, String community, String field, String value) {
         String redisKey = account + community + field + "_alert";
-        String msg = (String) redisDao.get(redisKey);
-        if (msg != null) {
+        String msgOld = (String) redisDao.get(redisKey);
+        if (msgOld != null) {
             return;
         }
 
         // 短信发送服务器
         String template = "%s %s = %s";
-        msg = String.format(template, community, field, value);
+        String msg = String.format(template, community, field, value);
         String resMsg = "send code fail";
 
         // 短信发送请求
