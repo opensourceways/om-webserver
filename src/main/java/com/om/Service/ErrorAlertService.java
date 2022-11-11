@@ -51,12 +51,16 @@ public class ErrorAlertService {
         Boolean flag = false;
         switch (community.toLowerCase()) {
             case "openeuler":
+                community = "E";
                 break;
             case "opengauss":
+                community = "G";
                 break;
             case "openlookeng":
+                community = "L";
                 break;
             case "mindspore":
+                community = "M";
                 break;
             default:
                 return flag;
@@ -65,16 +69,38 @@ public class ErrorAlertService {
         Iterator<String> fieldNames = old_data.fieldNames();
         while (fieldNames.hasNext()) {
             String fieldName = fieldNames.next();
+            String label;
+            switch (fieldName) {
+                case "comments":
+                    label = "C";  
+                    break;
+                case "contributors":
+                    label = "D";  
+                    break;
+                case "issues":
+                case "prs":
+                case "users":
+                case "partners":
+                case "sigs":
+                case "repos":
+                    label = fieldName;
+                    break;
+                default:
+                    label = null;
+            }
+            if (label == null) {
+                continue;
+            }
             JsonNode old_value = old_data.get(fieldName);
             JsonNode new_value = new_data.get(fieldName);
             if (old_value == null || new_value == null) {
                 for (String account : accounts) {
-                    sendMsg(account, community, fieldName, null);
+                    sendMsg(account, community, label, null);
                 }
                 flag = true;
             } else if (old_value.asInt() > new_value.asInt()) {
                 for (String account : accounts) {
-                    sendMsg(account, community, fieldName, new_value.asText());
+                    sendMsg(account, community, label, new_value.asText());
                 }
                 flag = true;
             }
