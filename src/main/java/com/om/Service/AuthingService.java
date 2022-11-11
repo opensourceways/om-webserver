@@ -65,7 +65,7 @@ public class AuthingService {
 
     private static final String PHONEREGEX = "^[a-z0-9]{11}$";
 
-    private static final String EMAILREGEX = "^[A-Za-z0-9-_\\u4e00-\\u9fa5]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$";
+    private static final String EMAILREGEX = "^[A-Za-z0-9-._\\u4e00-\\u9fa5]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$";
 
     @PostConstruct
     public void init() {
