@@ -235,8 +235,6 @@ public class QueryService {
             try {
                 Date update_date = sdf.parse(update_at);
                 Date now = new Date();
-                System.out.println(update_date);
-                System.out.println(now);
                 long diffs = (now.getTime() - update_date.getTime());
                 if (diffs >  Long.valueOf(env.getProperty("redis.flush.interval"))) {
                     is_flush = true;
