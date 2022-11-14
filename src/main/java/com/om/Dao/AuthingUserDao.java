@@ -709,6 +709,9 @@ public class AuthingUserDao {
         map.put("登录失败", MessageCodeConfig.E00027);
         map.put("mobile number every day exceeds the upper limit", MessageCodeConfig.E00028);
         map.put("仅登录和注册使用", MessageCodeConfig.E00029);
+        map.put("失败次数过多，请稍后重试", MessageCodeConfig.E00030);
+        map.put("新邮箱与已绑定邮箱相同", MessageCodeConfig.E00031);
+        map.put("新手机号与已绑定手机号相同", MessageCodeConfig.E00032);
 
         return map;
     }

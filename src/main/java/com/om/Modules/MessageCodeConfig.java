@@ -36,6 +36,9 @@ public enum MessageCodeConfig {
     E00027("E00027", "failed to login", "登录失败"),
     E00028("E00028", "the number of sms messages sent from a single mobile number every day exceeds the upper limit", "手机号每天发送的验证次数超过上限"),
     E00029("E00029", "login and register use only", "仅登录和注册使用"),
+    E00030("E00030", "failed limit reached,please try again later", "失败次数过多，请稍后重试"),
+    E00031("E00031", "new mailbox is same as the old", "新邮箱与已绑定邮箱相同"),
+    E00032("E00032", "new phone number is same as the old", "新手机号与已绑定手机号相同"),
     ;
 
     private String code;
