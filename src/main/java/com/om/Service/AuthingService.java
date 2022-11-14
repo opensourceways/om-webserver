@@ -92,7 +92,7 @@ public class AuthingService {
         Object v = redisDao.get(loginErrorCountKey);
         int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
         if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.count", "6")))
-            return result(HttpStatus.BAD_REQUEST, null, "账号已锁定，请稍后尝试", null);
+            return result(HttpStatus.BAD_REQUEST, null, "失败次数过多，请稍后重试", null);
 
         if (!channel.equalsIgnoreCase("channel_login") && !channel.equalsIgnoreCase("channel_register")) {
             return result(HttpStatus.BAD_REQUEST, null, "仅登录和注册使用", null);
