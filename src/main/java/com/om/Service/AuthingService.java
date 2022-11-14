@@ -87,6 +87,13 @@ public class AuthingService {
     }
 
     public ResponseEntity sendCodeV3(String account, String channel) {
+        // 限制一分钟登录失败次数
+        String loginErrorCountKey = account + "loginCount";
+        Object v = redisDao.get(loginErrorCountKey);
+        int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
+        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.count", "6")))
+            return result(HttpStatus.BAD_REQUEST, null, "账号已锁定，请稍后尝试", null);
+
         if (!channel.equalsIgnoreCase("channel_login") && !channel.equalsIgnoreCase("channel_register")) {
             return result(HttpStatus.BAD_REQUEST, null, "仅登录和注册使用", null);
         }
@@ -134,8 +141,15 @@ public class AuthingService {
 
     public ResponseEntity login(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse,
                                 String community, String permission, String account, String code) {
-        String accountType = getAccountType(account);
+        // 限制一分钟登录失败次数
+        String loginErrorCountKey = account + "loginCount";
+        Object v = redisDao.get(loginErrorCountKey);
+        int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
+        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.count", "6")))
+            return result(HttpStatus.BAD_REQUEST, null, "失败次数过多，请稍后重试", null);
 
+        // 登录
+        String accountType = getAccountType(account);
         Object msg = null;
         if (accountType.equals("email")) {
             msg = authingUserDao.loginByEmailCode(account, code);
@@ -150,6 +164,9 @@ public class AuthingService {
             JSONObject user = (JSONObject) msg;
             idToken = user.getString("id_token");
         } else {
+            long codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
+            loginErrorCount += 1;
+            redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
             return result(HttpStatus.BAD_REQUEST, null, (String) msg, null);
         }
 
@@ -160,8 +177,14 @@ public class AuthingService {
             userId = decode.getSubject();
             user = authingUserDao.getUser(userId);
         } catch (Exception e) {
+            long codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
+            loginErrorCount += 1;
+            redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
             return result(HttpStatus.BAD_REQUEST, null, "登录失败", null);
         }
+
+        //登录成功解除登录失败次数限制
+        redisDao.remove(loginErrorCountKey);
 
         // 资源权限
         String permissionInfo = env.getProperty(community + "." + permission);
@@ -373,7 +396,7 @@ public class AuthingService {
             long codeExpire = 60L;
 
             // 生成验证码
-            String code = codeUtil.randomNumBuilder();
+            String code = codeUtil.randomNumBuilder(Integer.parseInt(env.getProperty("code.length", "6")));
 
             switch (type.toLowerCase()) {
                 case "email":
@@ -431,6 +454,11 @@ public class AuthingService {
     }
 
     public ResponseEntity updateAccount(String token, String oldaccount, String oldcode, String account, String code, String type) {
+        if (type.toLowerCase().equals("email") && oldaccount.equals(account))
+            return result(HttpStatus.BAD_REQUEST, null, "新邮箱与已绑定邮箱相同", null);
+        else if (type.toLowerCase().equals("phone") && oldaccount.equals(account))
+            return result(HttpStatus.BAD_REQUEST, null, "新手机号与已绑定手机号相同", null);
+
         String res = authingUserDao.updateAccount(token, oldaccount, oldcode, account, code, type);
         return message(res);
     }
@@ -624,7 +652,7 @@ public class AuthingService {
             case "true":
                 return result(HttpStatus.OK, "success", null);
             case "false":
-                return result(HttpStatus.BAD_REQUEST, null, "操作异常", null);
+                return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
             default:
                 ObjectMapper objectMapper = new ObjectMapper();
                 String message = "faild";

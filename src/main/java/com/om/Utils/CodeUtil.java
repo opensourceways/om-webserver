@@ -132,13 +132,13 @@ public class CodeUtil {
     }
 
     /**
-     * 随机生成4位验证码
+     * 随机生成验证码
      *
      * @return 验证码
      */
-    public String randomNumBuilder() {
+    public String randomNumBuilder(int codeLength) {
         StringBuilder result = new StringBuilder();
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < codeLength; i++) {
             result.append(Math.round(Math.random() * 9));
         }
         return result.toString();
