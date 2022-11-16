@@ -280,6 +280,7 @@ public class AuthingUserDao {
             // access_token换user
             Map user = (Map) authentication.getUserInfoByAccessToken(access_token).execute();
             user.put("id_token", res.get("id_token").toString());
+            System.out.println("*** getAccessTokenByCode:" + res.get("id_token").toString());
             return user;
         } catch (Exception ex) {
             ex.printStackTrace();

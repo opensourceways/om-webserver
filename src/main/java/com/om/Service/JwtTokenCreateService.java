@@ -111,7 +111,11 @@ public class JwtTokenCreateService {
             verifyToken = RandomStringUtils.randomAlphanumeric(32);
             e.printStackTrace();
         }
-        redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
+        System.out.println("*** redisDao set key: " + "idToken_" + verifyToken);
+        System.out.println("*** redisDao set value: " + idToken);
+        boolean set = redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
+        System.out.println("*** redisDao set: " + set);
+
 
         String token = JWT.create()
                 .withAudience(userId) //谁接受签名
