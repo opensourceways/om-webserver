@@ -1,3 +1,14 @@
+/* This project is licensed under the Mulan PSL v2.
+ You can use this software according to the terms and conditions of the Mulan PSL v2.
+ You may obtain a copy of Mulan PSL v2 at:
+     http://license.coscl.org.cn/MulanPSL2
+ THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+ PURPOSE.
+ See the Mulan PSL v2 for more details.
+ Create: 2022
+*/
+
 package com.om.Service;
 
 import com.auth0.jwt.JWT;
@@ -6,11 +17,6 @@ import com.om.Dao.RedisDao;
 import com.om.Modules.*;
 import com.om.Utils.RSAUtil;
 import com.om.Vo.TokenUser;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
 import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -19,6 +25,11 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Base64;
 import java.util.Date;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
 
 @Service
 public class JwtTokenCreateService {

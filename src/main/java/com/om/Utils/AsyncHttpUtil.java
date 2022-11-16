@@ -1,13 +1,18 @@
+/* This project is licensed under the Mulan PSL v2.
+ You can use this software according to the terms and conditions of the Mulan PSL v2.
+ You may obtain a copy of Mulan PSL v2 at:
+     http://license.coscl.org.cn/MulanPSL2
+ THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+ PURPOSE.
+ See the Mulan PSL v2 for more details.
+ Create: 2022
+*/
+
 package com.om.Utils;
 
 import io.netty.handler.ssl.ClientAuth;
 import io.netty.handler.ssl.JdkSslContext;
-import org.asynchttpclient.*;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Service;
-
-import javax.net.ssl.*;
 import java.net.Socket;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -16,6 +21,12 @@ import java.security.cert.X509Certificate;
 import java.util.Base64;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import javax.net.ssl.*;
+import org.asynchttpclient.*;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
+import org.springframework.stereotype.Service;
+
 
 @Service
 public class AsyncHttpUtil {
