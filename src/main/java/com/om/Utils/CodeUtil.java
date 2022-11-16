@@ -5,6 +5,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 
 import java.net.URLEncoder;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Date;
@@ -136,10 +138,11 @@ public class CodeUtil {
      *
      * @return 验证码
      */
-    public String randomNumBuilder(int codeLength) {
+    public String randomNumBuilder(int codeLength) throws NoSuchAlgorithmException {
         StringBuilder result = new StringBuilder();
+        SecureRandom instance = SecureRandom.getInstanceStrong();
         for (int i = 0; i < codeLength; i++) {
-            result.append(Math.round(Math.random() * 9));
+            result.append(instance.nextInt(9));
         }
         return result.toString();
     }

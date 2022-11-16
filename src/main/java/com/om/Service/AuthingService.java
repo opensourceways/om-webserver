@@ -112,19 +112,17 @@ public class AuthingService {
     }
 
     public ResponseEntity register(String userName, String account, String code) {
+        String msg;
         // 用户名校验
-        if (StringUtils.isBlank(userName))
-            return result(HttpStatus.BAD_REQUEST, null, "用户名不能为空", null);
-        if (authingUserDao.isUserExists(userName, "username"))
-            return result(HttpStatus.BAD_REQUEST, null, "用户名已存在", null);
-
+        msg = authingUserDao.checkUsername(userName);
+        if (!msg.equals("success"))
+            return result(HttpStatus.BAD_REQUEST, null, msg, null);
         if (StringUtils.isBlank(account))
             return result(HttpStatus.BAD_REQUEST, null, "手机号或者邮箱不能为空", null);
 
         // 邮箱 OR 手机号校验
         String accountType = checkPhoneAndEmail(account);
 
-        String msg;
         if (accountType.equals("email")) {
             // 邮箱注册
             msg = authingUserDao.registerByEmail(account, code, userName);
@@ -242,7 +240,8 @@ public class AuthingService {
     public ResponseEntity logoutOld(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String token) {
         try {
             String headerToken = httpServletRequest.getHeader("token");
-            String idToken = (String) redisDao.get("idToken_" + headerToken);
+            String idTokenKey = "idToken_" + headerToken;
+            String idToken = (String) redisDao.get(idTokenKey);
 
             token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
@@ -254,7 +253,7 @@ public class AuthingService {
             // 退出登录，删除cookie，删除idToken
             String cookieTokenName = env.getProperty("cookie.token.name");
             HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
-            redisDao.remove(headerToken);
+            redisDao.remove(idTokenKey);
 
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("id_token", idToken);
@@ -508,9 +507,9 @@ public class AuthingService {
     }
 
     public ResponseEntity updateUserBaseInfo(String token, Map<String, Object> map) {
-        boolean res = authingUserDao.updateUserBaseInfo(token, map);
-        if (res) return result(HttpStatus.OK, "update base info success", null);
-        else return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
+        String res = authingUserDao.updateUserBaseInfo(token, map);
+        if (res.equals("success")) return result(HttpStatus.OK, "update base info success", null);
+        else return result(HttpStatus.BAD_REQUEST, null, res, null);
     }
 
     public ResponseEntity updatePhoto(String token, MultipartFile file) {

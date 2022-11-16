@@ -39,6 +39,8 @@ public enum MessageCodeConfig {
     E00030("E00030", "failed limit reached,please try again later", "失败次数过多，请稍后重试"),
     E00031("E00031", "new mailbox is same as the old", "新邮箱与已绑定邮箱相同"),
     E00032("E00032", "new phone number is same as the old", "新手机号与已绑定手机号相同"),
+    E00033("E00033", "username is unique and cannot be modified", "用户名唯一，不可修改"),
+    E00034("E00034", "username not exists", "用户不存在"),
     ;
 
     private String code;
