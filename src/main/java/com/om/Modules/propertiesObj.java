@@ -181,6 +181,7 @@ public class propertiesObj {
         bean.setTokenUserPassword(openconf.getProperty("token.user.password"));
         bean.setTokenBasePassword(openconf.getProperty("token.base.password"));
         bean.setTokenExpireSeconds(openconf.getProperty("token.expire.seconds"));
+        bean.setUserTagIndex(openconf.getProperty("user.tag.index"));
         bean.setGiteeAllIndex(openconf.getProperty("giteeall_index"));
         bean.setGiteeAll_qIssueStrBymil(openconf.getProperty("giteeall_qIssueStrBymil"));
         bean.setGiteeAllQueryAllstr(openconf.getProperty("giteeall_queryallddpirstr"));
