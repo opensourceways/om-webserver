@@ -7,6 +7,7 @@ import com.om.Vo.*;
 import com.om.authing.AuthingToken;
 import com.om.token.UserLoginToken;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.concurrent.ExecutionException;
@@ -387,5 +388,11 @@ public class QueryController {
             @RequestParam(value = "page", required = false) String page,
             @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
         return queryService.getEcosystemRepoInfo(community, ecosystem_type, sort_type, sort_order, page, pageSize);
+    }
+
+    @RequestMapping(value = "/reviewer/recommend", method = RequestMethod.POST)
+    public ResponseEntity queryReviewerRecommend(@RequestBody PrReviewerVo input) {
+        ResponseEntity res = queryService.queryReviewerRecommend(input);
+        return res;
     }
 }
