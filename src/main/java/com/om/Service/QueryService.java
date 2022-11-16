@@ -18,6 +18,7 @@ import com.om.Vo.*;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.net.SocketTimeoutException;
@@ -1280,6 +1281,25 @@ public class QueryService {
                 return null;
         }
         
+    }
+
+    public ResponseEntity queryReviewerRecommend(PrReviewerVo input) {
+        String key =  "reviewer_recommend_" + input.getCommunity(); //community.toLowerCase() + contributeType + "committers";
+        ResponseEntity result = null;
+        result = null; //(String) redisDao.get(key);
+        if (result == null) {
+            // 查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryReviewerRecommend(input, env);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = true; //redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
     }
 
 }

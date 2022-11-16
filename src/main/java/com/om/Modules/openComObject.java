@@ -12,6 +12,7 @@ import java.util.Date;
  */
 @Repository
 public class openComObject {
+    protected String userTagIndex;
     protected String extOs_index;
     protected String extOs_queryStr;
     protected String businessOsv_index;
@@ -134,6 +135,14 @@ public class openComObject {
 
     public void setSigRepoCommittersQueryStr(String SigRepoCommittersQueryStr) {
         this.SigRepoCommittersQueryStr = SigRepoCommittersQueryStr;
+    }
+
+    public String getUserTagIndex() {
+        return userTagIndex;
+    }
+
+    public void setUserTagIndex(String userTagIndex) {
+        this.userTagIndex = userTagIndex;
     }
 
     public String getUserListQueryStr() {

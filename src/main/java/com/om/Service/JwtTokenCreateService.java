@@ -11,6 +11,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.math.BigInteger;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -89,7 +92,14 @@ public class JwtTokenCreateService {
 
         String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes());
 
-        String verifyToken = RandomStringUtils.randomAlphanumeric(32);
+        String verifyToken;
+        try {
+            SecureRandom random = SecureRandom.getInstanceStrong();
+            verifyToken = new BigInteger(160, random).toString(32);
+        } catch (NoSuchAlgorithmException e) {
+            verifyToken = RandomStringUtils.randomAlphanumeric(32);
+            e.printStackTrace();
+        }
         redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
 
         String token = JWT.create()
