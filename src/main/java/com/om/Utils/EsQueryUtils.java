@@ -275,7 +275,7 @@ public class EsQueryUtils {
                 + ",\"msg\":\"ok\"}";
     }
 
-    public String esUserCount(RestHighLevelClient client, String indexname, String user, String sig, 
+    public String esUserCount(String community, RestHighLevelClient client, String indexname, String user, String sig, 
             ArrayList<Object> params, String comment_type, String filter) {
         SearchRequest request = new SearchRequest(indexname);
         SearchSourceBuilder builder = new SearchSourceBuilder();
@@ -295,8 +295,17 @@ public class EsQueryUtils {
         boolQueryBuilder.must(QueryBuilders.rangeQuery("created_at").from(start).to(end));
         boolQueryBuilder.mustNot(QueryBuilders.matchQuery("is_removed", 1));
         boolQueryBuilder.must(QueryBuilders.wildcardQuery("user_login.keyword", user));
-        boolQueryBuilder.must(QueryBuilders.wildcardQuery("sig_names.keyword", sig));
         boolQueryBuilder.must(QueryBuilders.matchQuery(feild, 1));
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                boolQueryBuilder.must(QueryBuilders.wildcardQuery("sig_names.keyword", sig));     
+                break;
+            case "opengauss":
+                boolQueryBuilder.must(QueryBuilders.wildcardQuery("tag_sig_names.keyword", sig));
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"" + type + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
         if (type.equals("comment") && comment_type != null) {
             switch (comment_type.toLowerCase()) {
                 case "command":

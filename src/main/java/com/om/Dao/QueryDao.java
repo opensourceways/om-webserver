@@ -1485,6 +1485,8 @@ public class QueryDao {
                 claIndex = openEuler.getClaCorporationIndex();
                 break;
             case "opengauss":
+                if (null != sig)
+                    sig = querySiglabel(community, sig);
                 index = openGauss.getGiteeAllIndex();
                 queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
                 claIndex = openGauss.getClaCorporationIndex();
@@ -2905,6 +2907,7 @@ public class QueryDao {
                 queryStr = openEuler.getAggGroupCountQueryStr(group_field, group, contributeType, timeRange, community);
                 break;
             case "opengauss":
+                group = querySiglabel(community, group);
                 index = openGauss.getGiteeAllIndex();
                 queryStr = openGauss.getAggGroupCountQueryStr(group_field, group, contributeType, timeRange, community);
                 break;
@@ -3598,6 +3601,8 @@ public class QueryDao {
             case "opengauss":
                 index = openGauss.getGiteeAllIndex();
                 params = openGauss.getAggUserCountQueryParams(contributeType, timeRange); 
+                if (null != sig)
+                    sig = querySiglabel(community, sig);
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
@@ -3616,7 +3621,7 @@ public class QueryDao {
         RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
         EsQueryUtils esQueryUtils = new EsQueryUtils();
 
-        return esQueryUtils.esUserCount(restHighLevelClient, index, user, sig, params, comment_type, filter);
+        return esQueryUtils.esUserCount(community, restHighLevelClient, index, user, sig, params, comment_type, filter);
     }
 
     public String queryUserLists(String community, String group, String name) {
@@ -3847,6 +3852,42 @@ public class QueryDao {
         } catch (Exception e) {
             e.printStackTrace();
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+        }
+    }
+
+    public String querySiglabel(String community, String sig) {
+        String queryjson;
+        String queryStr;
+        String index;
+        switch (community.toLowerCase()) {
+            case "opengauss":
+                index = openGauss.getSigs_index();
+                queryjson = openGauss.getsig_label_queryStr();
+                break;
+            default:
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+        }
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            queryStr = String.format(queryjson, sig);
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+            String label = sig;
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                label = bucket.get("key").asText();
+                String[] labels = label.split("/");
+                label = labels[1];
+            }
+            return label;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return sig;
         }
     }
 }
