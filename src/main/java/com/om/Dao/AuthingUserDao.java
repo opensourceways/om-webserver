@@ -287,7 +287,7 @@ public class AuthingUserDao {
     }
 
     public HttpResponse<JsonNode> getAccessTokenByCode(String code, String appId, String grantType, String appSecret, String redirectUri) throws UnirestException {
-        HttpResponse<JsonNode> jsonNodeHttpResponse = Unirest.post("https://core.authing.cn/oidc/token")
+        HttpResponse<JsonNode> jsonNodeHttpResponse = Unirest.post("")
                 .field("client_id", appId)
                 .field("client_secret", appSecret)
                 .field("grant_type", "authorization_code")
@@ -296,20 +296,10 @@ public class AuthingUserDao {
                 .asJson();
         return jsonNodeHttpResponse;
 
-        //        int status = jsonNodeHttpResponse.getStatus();
-//        if (status != 200)
-//            return jsonNodeHttpResponse.getBody().getObject();
-//        else
-//            return jsonNodeHttpResponse.getBody().getObject();
-
-        /*AuthenticationClient authentication = new AuthenticationClient(appId, appHost);
-        authentication.setSecret(appSecret);
-        authentication.setRedirectUri(redirectUri);
-        return authentication.getAccessTokenByCode(code).execute();*/
     }
 
     public Object getUserByAccessToken(String accessToken) throws UnirestException {
-        HttpResponse<JsonNode> authorization = Unirest.get("https://core.authing.cn/oidc/me")
+        HttpResponse<JsonNode> authorization = Unirest.get("")
                 .header("Authorization", accessToken)
                 .asJson();
         return authorization;
