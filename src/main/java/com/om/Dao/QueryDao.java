@@ -3158,7 +3158,6 @@ public class QueryDao {
                 String group = "";
                 String en_feature = "";
                 String en_group = "";
-                if (sigInfo != null){
                 if (sigInfo != null) {
                     feature = sigInfo.get("feature");
                     group = sigInfo.get("group");
@@ -3225,7 +3224,6 @@ public class QueryDao {
                 String group = "";
                 String en_feature = "";
                 String en_group = "";
-                if (sigInfo != null){
                 if (sigInfo != null) {
                     feature = sigInfo.get("feature");
                     group = sigInfo.get("group");
