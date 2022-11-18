@@ -140,14 +140,18 @@ public class QueryDao {
         HashMap<String, HashMap<String, String>> resData = new HashMap<>();
         for (GroupYamlInfo feature : features) {
             String group = feature.getgroup();
+            String en_group = feature.getEngroup();
             List<SigYamlInfo> groupInfo = feature.getgroup_list();
             for (SigYamlInfo item : groupInfo) {
                 List<String> sigs = item.getSigs();
                 for (String sig : sigs) {
                     HashMap<String, String> it = new HashMap<>();
                     String name = item.getName();
+                    String en_name = item.getEnName();
                     it.put("group", group);
                     it.put("feature", name);
+                    it.put("en_group", en_group);
+                    it.put("en_feature", en_name);
                     resData.put(sig, it);
                 }
             }
@@ -2528,14 +2532,20 @@ public class QueryDao {
             HashMap<String, String> sigInfo = sigfeatures.get(s);
             String feature = "";
             String group = "";
+            String en_feature = "";
+            String en_group = "";
             if (sigInfo != null) {
                 feature = sigInfo.get("feature");
                 group = sigInfo.get("group");
+                en_feature = sigInfo.get("en_feature");
+                en_group = sigInfo.get("en_group");
             }           
             item.put("sig", s);
             item.put("value", value);
             item.put("feature", feature);
             item.put("group", group);
+            item.put("en_feature", en_feature);
+            item.put("en_group", en_group);
             itemList.add(item);
         }
         List<String> metrics=Arrays.asList(new String[]{"D0","D1","D2","Company","PR_Merged","PR_Review","Issue_update","Issue_Closed","Issue_Comment","Contribute","Meeting","Attebdee","Maintainer"});
@@ -3140,12 +3150,18 @@ public class QueryDao {
                 HashMap<String, String> sigInfo = sigfeatures.get(sig);
                 String feature = "";
                 String group = "";
+                String en_feature = "";
+                String en_group = "";
                 if (sigInfo != null){
                     feature = sigInfo.get("feature");
                     group = sigInfo.get("group");
+                    en_feature = sigInfo.get("en_feature");
+                    en_group = sigInfo.get("en_group");
                 }
                 data.put("feature", feature);
                 data.put("group", group);
+                data.put("en_feature", en_feature);
+                data.put("en_group", en_group);
                 sigList.add(data);
             }
 
@@ -3200,12 +3216,18 @@ public class QueryDao {
                 HashMap<String, String> sigInfo = sigfeatures.get(sig);
                 String feature = "";
                 String group = "";
+                String en_feature = "";
+                String en_group = "";
                 if (sigInfo != null){
                     feature = sigInfo.get("feature");
                     group = sigInfo.get("group");
+                    en_feature = sigInfo.get("en_feature");
+                    en_group = sigInfo.get("en_group");
                 }
                 data.put("feature", feature);
                 data.put("group", group);
+                data.put("en_feature", en_feature);
+                data.put("en_group", en_group);
                 data.remove("value");
                 sigList.add(data);
             }
@@ -3889,5 +3911,43 @@ public class QueryDao {
             e.printStackTrace();
             return sig;
         }
+    }
+
+    public String queryUserCompany(String community, String user) {
+        String queryjson;
+        String queryStr;
+        String index;
+        String company = "independent";
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getaccount_org_index();
+                queryjson = openEuler.getaccount_org_query();
+                break;
+            default:
+                return company;
+        }
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            queryStr = String.format(queryjson, user);
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                Iterator<JsonNode> orgBuckets = bucket.get("2").get("buckets").elements();
+                if (orgBuckets.hasNext()) {
+                    JsonNode orgBucket = orgBuckets.next();
+                    company = orgBucket.get("key").asText();
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return company;
     }
 }

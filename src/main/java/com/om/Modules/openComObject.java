@@ -95,6 +95,25 @@ public class openComObject {
     protected String repo_info_index;
     protected String repo_info_QuerStr;
     protected String sig_label_queryStr;
+    protected String account_org_index;
+    protected String account_org_query;
+
+    public String getaccount_org_index() {
+        return account_org_index;
+    }
+
+    public void setaccount_org_index(String account_org_index) {
+        this.account_org_index = account_org_index;
+    }
+
+    public String getaccount_org_query() {
+        return account_org_query;
+    }
+
+    public void setaccount_org_query(String account_org_query) {
+        this.account_org_query = account_org_query;
+    }
+
 
     public String getsig_label_queryStr() {
         return sig_label_queryStr;

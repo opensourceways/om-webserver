@@ -4,6 +4,7 @@ import java.util.List;
 
 public class SigYamlInfo {
     public String name;
+    public String en_name;
     public List<String> sigs;
 
     public String getName() {
@@ -12,6 +13,14 @@ public class SigYamlInfo {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public String getEnName() {
+        return en_name;
+    }
+
+    public void setEnName(String en_name) {
+        this.en_name = en_name;
     }
 
     public List<String> getSigs() {

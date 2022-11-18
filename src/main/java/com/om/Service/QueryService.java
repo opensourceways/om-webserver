@@ -4,14 +4,18 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.parser.Feature;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.Dao.AuthingUserDao;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
 import com.om.Utils.PageUtils;
+import com.om.Utils.RSAUtil;
 import com.om.Utils.StringDesensitizationUtils;
 import com.om.Utils.StringValidationUtil;
 import com.om.Vo.*;
@@ -23,6 +27,7 @@ import org.springframework.stereotype.Service;
 import java.net.SocketTimeoutException;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPrivateKey;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -45,6 +50,9 @@ public class QueryService {
 
     @Autowired
     private ErrorAlertService errorAlertService;
+
+    @Autowired
+    AuthingUserDao authingUserDao;
 
     public String queryContributors(String community) {
         String key = community + "contributors";
@@ -838,8 +846,13 @@ public class QueryService {
     }
 
     public String queryCompanyUsercontribute(String community, String company, String contributeType,
-            String timeRange) {
-        String key = community.toLowerCase() + company + "usertypecontribute_" + contributeType.toLowerCase() + timeRange.toLowerCase();
+            String timeRange, String token) {
+        Boolean per = getPermission(token, community, company);
+        if (!per) {
+            return "{\"code\":400,\"msg\":\"No Permission!\"}";
+        }
+        String key = community.toLowerCase() + company + "usertypecontribute_" + contributeType.toLowerCase()
+                + timeRange.toLowerCase();
         String result = null;
         result = (String) redisDao.get(key);
         if (result == null) {
@@ -859,7 +872,11 @@ public class QueryService {
     }
 
     public String queryCompanySigcontribute(String community, String company, String contributeType,
-            String timeRange) {
+            String timeRange, String token) {
+        Boolean per = getPermission(token, community, company);
+        if (!per) {
+            return "{\"code\":400,\"msg\":\"No Permission!\"}";
+        }
         String key = community.toLowerCase() + company + "sigtypecontribute_" + contributeType.toLowerCase() + timeRange.toLowerCase();
         String result = null;
         result = (String) redisDao.get(key);
@@ -879,7 +896,11 @@ public class QueryService {
         return result;
     }
 
-    public String queryCompanySigDetails(String community, String company, String timeRange) {
+    public String queryCompanySigDetails(String community, String company, String timeRange, String token) {
+        Boolean per = getPermission(token, community, company);
+        if (!per) {
+            return "{\"code\":400,\"msg\":\"No Permission!\"}";
+        }
         String key = community.toLowerCase() + company + "sig" + timeRange.toLowerCase();
         String result;
         result = (String) redisDao.get(key);
@@ -917,7 +938,11 @@ public class QueryService {
         return result;
     }
 
-    public String queryCompanyUsers(String community, String company, String timeRange) {
+    public String queryCompanyUsers(String community, String company, String timeRange, String token) {
+        Boolean per = getPermission(token, community, company);
+        if (!per) {
+            return "{\"code\":400,\"msg\":\"No Permission!\"}";
+        }
         String key = community.toLowerCase() + company + "companyusers" + timeRange.toLowerCase();
         String result = null;      
         result = (String) redisDao.get(key);
@@ -1280,6 +1305,59 @@ public class QueryService {
                 return null;
         }
         
+    }
+
+    private Boolean getPermission(String token, String community, String company) {
+        try {
+            RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
+            DecodedJWT decode = JWT.decode(RSAUtil.privateDecrypt(token, privateKey));
+            String userId = decode.getAudience().get(0);
+            org.json.JSONObject userObj = authingUserDao.getUserById(userId);
+            HashMap<String, Map<String, Object>> map = new HashMap<>();
+            org.json.JSONArray jsonArray = userObj.getJSONArray("identities");
+            for (Object o : jsonArray) {
+                org.json.JSONObject obj = (org.json.JSONObject) o;
+                authingUserIdentityIdp(obj, map);
+            }
+            if (null != map.get("oauth2") && null != map.get("oauth2").get("login_name")) {
+                String login = map.get("oauth2").get("login_name").toString();
+                String org = queryDao.queryUserCompany(community, login);
+                if (org.equals(company))
+                    return true;
+            }
+        } catch (Exception ex) {
+            System.out.println("Identities Get Error");
+        }
+        return false;
+    }
+
+    private void authingUserIdentityIdp(org.json.JSONObject identityObj, HashMap<String, Map<String, Object>> map) {
+        HashMap<String, Object> res = new HashMap<>();
+        org.json.JSONObject userInfoInIdpObj = identityObj.getJSONObject("userInfoInIdp");
+        String provider = jsonObjStringValue(identityObj, "provider");
+        switch (provider) {
+            case "oauth2":
+                String gitee_login = userInfoInIdpObj.getJSONObject("customData").getString("giteeLogin");
+                res.put("login_name", gitee_login);
+                map.put(provider, res);
+                break;
+            default:
+                break;
+        }
+    }
+
+    private String jsonObjStringValue(org.json.JSONObject jsonObj, String nodeName) {
+        String res = "";
+        try {
+            if (jsonObj.isNull(nodeName))
+                return res;
+            Object obj = jsonObj.get(nodeName);
+            if (obj != null)
+                res = obj.toString();
+        } catch (Exception ex) {
+            System.out.println(nodeName + "Get Error");
+        }
+        return res;
     }
 
 }
