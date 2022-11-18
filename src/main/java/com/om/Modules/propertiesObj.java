@@ -258,6 +258,8 @@ public class propertiesObj {
         bean.setrepo_info_index(openconf.getProperty("repo_info_index"));
         bean.setrepo_info_QuerStr(openconf.getProperty("repo_info_QuerStr"));
         bean.setsig_label_queryStr(openconf.getProperty("sig_label_queryStr"));
+        bean.setaccount_org_index(openconf.getProperty("account_org_index"));
+        bean.setaccount_org_query(openconf.getProperty("account_org_query"));
     }
 
     private static Properties readProperties(String path) throws IOException {

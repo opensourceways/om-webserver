@@ -44,7 +44,7 @@ public class ObsDao {
 
     @PostConstruct
     public void init() {
-        obsClient = new ObsClient(IPAk, IPSk, IPEndpoint);      
+        obsClient = new ObsClient(IPAk, IPSk, IPEndpoint);
     }
 
     public void putData() {
