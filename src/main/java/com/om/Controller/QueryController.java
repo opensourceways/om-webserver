@@ -265,25 +265,33 @@ public class QueryController {
 
     @AuthingToken
     @RequestMapping("/company/usercontribute")
-    public String queryCompanyUsercontribute(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
-                                        @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
-        String res = queryService.queryCompanyUsercontribute(community, company, contributeType, timeRange);
+    public String queryCompanyUsercontribute(@RequestParam(value = "community") String community, 
+                                             @RequestParam(value = "company") String company, 
+                                             @RequestParam(value = "contributeType") String contributeType, 
+                                             @RequestParam(value = "timeRange") String timeRange,
+                                             @CookieValue("_Y_G_") String token) {
+        String res = queryService.queryCompanyUsercontribute(community, company, contributeType, timeRange, token);
         return res;
     }
 
     @AuthingToken
     @RequestMapping("/company/sigcontribute")
-    public String queryCompanySigcontribute(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
-                                        @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
-        String res = queryService.queryCompanySigcontribute(community, company, contributeType, timeRange);
+    public String queryCompanySigcontribute(@RequestParam(value = "community") String community, 
+                                            @RequestParam(value = "company") String company, 
+                                            @RequestParam(value = "contributeType") String contributeType, 
+                                            @RequestParam(value = "timeRange") String timeRange,
+                                            @CookieValue("_Y_G_") String token) {
+        String res = queryService.queryCompanySigcontribute(community, company, contributeType, timeRange, token);
         return res;
     }
 
     @AuthingToken
     @RequestMapping("/company/sigdetails")
-    public String queryCompanySigDetails(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
-                               @RequestParam(value = "timeRange") String timeRange) {
-        String res = queryService.queryCompanySigDetails(community, company, timeRange);
+    public String queryCompanySigDetails(@RequestParam(value = "community") String community, 
+                                         @RequestParam(value = "company") String company, 
+                                         @RequestParam(value = "timeRange") String timeRange,
+                                         @CookieValue("_Y_G_") String token) {
+        String res = queryService.queryCompanySigDetails(community, company, timeRange, token);
         return res;
     }
 
@@ -297,9 +305,11 @@ public class QueryController {
 
     @AuthingToken
     @RequestMapping("/company/users")
-    public String queryCompanyUsers(@RequestParam(value = "community") String community, @RequestParam(value = "company") String company, 
-                               @RequestParam(value = "timeRange") String timeRange) {
-        String res = queryService.queryCompanyUsers(community, company, timeRange);
+    public String queryCompanyUsers(@RequestParam(value = "community") String community, 
+                                    @RequestParam(value = "company") String company, 
+                                    @RequestParam(value = "timeRange") String timeRange,
+                                    @CookieValue("_Y_G_") String token) {
+        String res = queryService.queryCompanyUsers(community, company, timeRange, token);
         return res;
     }
 
@@ -311,8 +321,9 @@ public class QueryController {
     
     @AuthingToken
     @RequestMapping("/sig/score")
-    public String querySigScore(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
-                               @RequestParam(value = "timeRange") String timeRange) {
+    public String querySigScore(@RequestParam(value = "community") String community, 
+                                @RequestParam(value = "sig") String sig, 
+                                @RequestParam(value = "timeRange") String timeRange) {
         String res = queryService.querySigScore(community, sig, timeRange);
         return res;
     }
