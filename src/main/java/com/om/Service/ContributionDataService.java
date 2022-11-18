@@ -1,3 +1,14 @@
+/* This project is licensed under the Mulan PSL v2.
+ You can use this software according to the terms and conditions of the Mulan PSL v2.
+ You may obtain a copy of Mulan PSL v2 at:
+     http://license.coscl.org.cn/MulanPSL2
+ THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+ PURPOSE.
+ See the Mulan PSL v2 for more details.
+ Create: 2022
+*/
+
 package com.om.Service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -11,22 +22,19 @@ import com.om.Modules.openGauss;
 import com.om.Modules.openLookeng;
 import com.om.Result.Constant;
 import com.om.Utils.AsyncHttpUtil;
-import com.om.Utils.ContributionCompatorByComments;
-import com.om.Utils.ContributionCompatorByIssue;
-import com.om.Utils.ContributionCompatorByPr;
 import com.om.Vo.ContributionResultVo;
 import com.om.Vo.ContributionResultVoPie;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
-import java.security.KeyManagementException;
-import java.security.NoSuchAlgorithmException;
-import java.util.*;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 /**
  * @author xiazhonghai

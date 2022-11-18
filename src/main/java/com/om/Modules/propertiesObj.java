@@ -1,12 +1,17 @@
+/* This project is licensed under the Mulan PSL v2.
+ You can use this software according to the terms and conditions of the Mulan PSL v2.
+ You may obtain a copy of Mulan PSL v2 at:
+     http://license.coscl.org.cn/MulanPSL2
+ THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+ PURPOSE.
+ See the Mulan PSL v2 for more details.
+ Create: 2022
+*/
+
 package com.om.Modules;
 
 import com.om.Service.ContributionDataService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.annotation.DependsOn;
-import org.springframework.stereotype.Repository;
-import org.springframework.util.DigestUtils;
-
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,6 +19,12 @@ import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.DependsOn;
+import org.springframework.stereotype.Repository;
+import org.springframework.util.DigestUtils;
+
 
 /**
  * @author zhxia
@@ -181,6 +192,7 @@ public class propertiesObj {
         bean.setTokenUserPassword(openconf.getProperty("token.user.password"));
         bean.setTokenBasePassword(openconf.getProperty("token.base.password"));
         bean.setTokenExpireSeconds(openconf.getProperty("token.expire.seconds"));
+        bean.setUserTagIndex(openconf.getProperty("user.tag.index"));
         bean.setGiteeAllIndex(openconf.getProperty("giteeall_index"));
         bean.setGiteeAll_qIssueStrBymil(openconf.getProperty("giteeall_qIssueStrBymil"));
         bean.setGiteeAllQueryAllstr(openconf.getProperty("giteeall_queryallddpirstr"));
