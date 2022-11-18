@@ -1370,6 +1370,8 @@ public class QueryService {
             System.out.println(nodeName + "Get Error");
         }
         return res;
+    }
+    
     public ResponseEntity queryReviewerRecommend(PrReviewerVo input) {
         String key =  "reviewer_recommend_" + input.getCommunity(); //community.toLowerCase() + contributeType + "committers";
         ResponseEntity result = null;
