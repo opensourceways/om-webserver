@@ -1,3 +1,14 @@
+/* This project is licensed under the Mulan PSL v2.
+ You can use this software according to the terms and conditions of the Mulan PSL v2.
+ You may obtain a copy of Mulan PSL v2 at:
+     http://license.coscl.org.cn/MulanPSL2
+ THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+ PURPOSE.
+ See the Mulan PSL v2 for more details.
+ Create: 2022
+*/
+
 package com.om.Dao;
 
 import cn.authing.core.auth.AuthenticationClient;
@@ -12,6 +23,15 @@ import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.RSAUtil;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.InvalidKeySpecException;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import javax.annotation.PostConstruct;
+import javax.crypto.NoSuchPaddingException;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,18 +39,6 @@ import org.springframework.stereotype.Repository;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.annotation.PostConstruct;
-import javax.crypto.NoSuchPaddingException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Repository
 public class AuthingUserDao {
@@ -88,6 +96,10 @@ public class AuthingUserDao {
     @Value("${rsa.authing.privateKey}")
     String rsaAuthingPrivateKey;
 
+
+    @Value("${username.reserved}")
+    String usernameReserved;
+
     // -- temporary (解决gitee多身份源解绑问题) -- TODO
     @Value("${temp.extIdpIds}")
     String extIdpIds;
@@ -103,12 +115,17 @@ public class AuthingUserDao {
 
     public static ObsClient obsClient;
 
+    private static final String USERNAMEREGEX = "^[0-9a-zA-Z_]{3,20}$";
+
+    private static List<String> reservedUsernames;
+
     @PostConstruct
     public void init() {
         managementClient = new ManagementClient(userPoolId, secret);
         authentication = new AuthenticationClient(omAppId, omAppHost);
         authentication.setSecret(omAppSecret);
         obsClient = new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint);
+        reservedUsernames = getUsernameReserved();
     }
 
     public String sendPhoneCodeV3(String account, String channel) {
@@ -215,6 +232,7 @@ public class AuthingUserDao {
     public Object loginByEmailCode(String email, String code) {
         String msg = "登录失败";
         try {
+            if (!isUserExists(email, "email")) return "用户不存在";
             String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", email, code, omAppId, omAppSecret);
             HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
                     .header("x-authing-app-id", omAppId)
@@ -234,6 +252,7 @@ public class AuthingUserDao {
     public Object loginByPhoneCode(String phone, String code) {
         String msg = "登录失败";
         try {
+            if (!isUserExists(phone, "phone")) return "用户不存在";
             String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, omAppId, omAppSecret);
             HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
                     .header("x-authing-app-id", omAppId)
@@ -261,6 +280,7 @@ public class AuthingUserDao {
             // access_token换user
             Map user = (Map) authentication.getUserInfoByAccessToken(access_token).execute();
             user.put("id_token", res.get("id_token").toString());
+            System.out.println("*** getAccessTokenByCode:" + res.get("id_token").toString());
             return user;
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -609,7 +629,8 @@ public class AuthingUserDao {
         return flag;
     }
 
-    public boolean updateUserBaseInfo(String token, Map<String, Object> map) {
+    public String updateUserBaseInfo(String token, Map<String, Object> map) {
+        String msg = "success";
         try {
             User user = getUserInfo(token);
             authentication.setCurrentUser(user);
@@ -626,7 +647,9 @@ public class AuthingUserDao {
                         updateUserInput.withCompany(inputValue);
                         break;
                     case "username":
-                        if (StringUtils.isNotBlank(user.getUsername()) || isUserExists(inputValue, "username")) return false;
+                        msg = checkUsername(inputValue);
+                        if (!msg.equals("success")) return msg;
+                        if (StringUtils.isNotBlank(user.getUsername())) return "用户名唯一，不可修改";
                         updateUserInput.withUsername(inputValue);
                         break;
                     default:
@@ -634,9 +657,9 @@ public class AuthingUserDao {
                 }
             }
             authentication.updateProfile(updateUserInput).execute();
-            return true;
+            return msg;
         } catch (Exception ex) {
-            return false;
+            return "更新失败";
         }
     }
 
@@ -676,6 +699,23 @@ public class AuthingUserDao {
         }
     }
 
+    public String checkUsername(String userName) {
+        String msg = "success";
+        if (StringUtils.isBlank(userName))
+            msg = "用户名不能为空";
+        else if (!userName.matches(USERNAMEREGEX))
+            msg = "请输入3到20个字符，由字母、数字、下划线(_)组成";
+        else if (reservedUsernames.contains(userName) || isUserExists(userName, "username"))
+            msg = "用户名已存在";
+
+        return msg;
+    }
+
+    private List<String> getUsernameReserved() {
+        if (StringUtils.isBlank(usernameReserved)) return null;
+        return Arrays.stream(usernameReserved.split(",")).map(String::trim).collect(Collectors.toList());
+    }
+
     public Map<String, MessageCodeConfig> getErrorCode() {
         HashMap<String, MessageCodeConfig> map = new HashMap<>();
         map.put("验证码已失效", MessageCodeConfig.E0001);
@@ -712,6 +752,8 @@ public class AuthingUserDao {
         map.put("失败次数过多，请稍后重试", MessageCodeConfig.E00030);
         map.put("新邮箱与已绑定邮箱相同", MessageCodeConfig.E00031);
         map.put("新手机号与已绑定手机号相同", MessageCodeConfig.E00032);
+        map.put("用户名唯一，不可修改", MessageCodeConfig.E00033);
+        map.put("用户不存在", MessageCodeConfig.E00034);
 
         return map;
     }

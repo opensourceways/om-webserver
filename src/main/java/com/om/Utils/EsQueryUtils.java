@@ -1,19 +1,34 @@
+/* This project is licensed under the Mulan PSL v2.
+ You can use this software according to the terms and conditions of the Mulan PSL v2.
+ You may obtain a copy of Mulan PSL v2 at:
+     http://license.coscl.org.cn/MulanPSL2
+ THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+ PURPOSE.
+ See the Mulan PSL v2 for more details.
+ Create: 2022
+*/
+
 package com.om.Utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.Modules.UserTagInfo;
+import com.om.Vo.PrReviewerVo;
+import java.io.IOException;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import org.apache.commons.lang3.StringUtils;
 import org.elasticsearch.action.search.*;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.common.unit.TimeValue;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.MatchQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHit;
+import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 
-import java.io.IOException;
-import java.util.*;
 
 public class EsQueryUtils {
     private static final int MAXSIZE = 10000;
@@ -423,6 +438,114 @@ public class EsQueryUtils {
             }
         }
         return res;
+    }
+
+    public HashMap<String, UserTagInfo> QueryPrReviewerByInter(RestHighLevelClient restHighLevelClient, PrReviewerVo input, String indexName, List<String> robotUsers) throws Exception {
+        // 1、matchPhraseQuery
+        QueryBuilder queryBuilder = QueryBuilders.matchPhraseQuery("pull_title", input.getPrTitle())
+                .slop(3)
+//                .boost(1)
+                .analyzer("standard");
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        builder.size(10);
+        builder.query(queryBuilder);
+        builder.fetchSource(new String[]{"pull_title", "pull_url"}, new String[]{});
+        SearchRequest request = new SearchRequest(indexName);
+        request.source(builder);
+        SearchResponse search = restHighLevelClient.search(request, RequestOptions.DEFAULT);
+        SearchHits hits = search.getHits();
+
+        // 2、matchPhraseQuery查询不到使用matchQuery
+        if (hits.getHits().length == 0) {
+            MoreLikeThisQueryBuilder moreLikeThisQueryBuilder = QueryBuilders.moreLikeThisQuery(new String[]{"pull_title"}, new String[]{input.getPrTitle()}, null);
+//            queryBuilder = QueryBuilders.matchQuery("pull_title", input.getPrTitle());
+            builder.query(moreLikeThisQueryBuilder);
+            request.source(builder);
+            search = restHighLevelClient.search(request, RequestOptions.DEFAULT);
+            hits = search.getHits();
+        }
+
+        // 3、根据pr_url，查询评论的人
+        HashMap<String, Float> user2score = new HashMap<>();
+        for (SearchHit hit : hits) {
+            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+            float score = hit.getScore();
+            String pr_url = (String) sourceAsMap.get("pull_url");
+
+            queryBuilder = QueryBuilders.boolQuery()
+                    .must(QueryBuilders.termQuery("pull_url.keyword", pr_url))
+                    .must(QueryBuilders.termQuery("is_gitee_comment", 1))
+                    .mustNot(QueryBuilders.termsQuery("user_login.keyword", robotUsers));
+            builder.size(1000);
+            builder.query(queryBuilder);
+            builder.fetchSource(new String[]{"user_login"}, new String[]{});
+            request.source(builder);
+            search = restHighLevelClient.search(request, RequestOptions.DEFAULT);
+            SearchHits hits1 = search.getHits();
+            for (SearchHit hits1Hit : hits1.getHits()) {
+                Map<String, Object> sourceAsMap1 = hits1Hit.getSourceAsMap();
+                String userLogin = (String) sourceAsMap1.get("user_login");
+                float scoreTemp = user2score.getOrDefault(userLogin, 0.0f);
+                user2score.put(userLogin, Math.max(scoreTemp, score));
+
+                UserTagInfo userTagInfo = new UserTagInfo();
+                userTagInfo.setGiteeId((String) sourceAsMap1.get("user_login"));
+                userTagInfo.setCorrelation(score);
+            }
+        }
+
+        HashMap<String, UserTagInfo> user2info = new HashMap<>();
+        for (Map.Entry<String, Float> entry : user2score.entrySet()) {
+            UserTagInfo userTagInfo = new UserTagInfo();
+            userTagInfo.setGiteeId(entry.getKey());
+            userTagInfo.setCorrelation(entry.getValue());
+            user2info.put(entry.getKey(), userTagInfo);
+        }
+
+        return user2info;
+
+    }
+
+    public Map<String, Map<String, Object>> QueryPrReviewerByRepo(RestHighLevelClient restHighLevelClient, PrReviewerVo input, String indexName, HashMap<String, UserTagInfo> user2Info) throws Exception {
+        Set<String> users = user2Info.keySet();
+        Stream<String> stringStream = users.stream().map(it -> String.format("\"%s\"", it));
+        List<String> collect = stringStream.collect(Collectors.toList());
+        String join = StringUtils.join(collect, ",");
+        String repoName = input.getPrUrl().split("/pulls/")[0];
+        String str = String.format("repo_comments.repo.keyword:\"%s\" OR user_login.keyword:(%s)", repoName, join);
+        QueryStringQueryBuilder queryBuilder = QueryBuilders.queryStringQuery(str);
+        SearchSourceBuilder builder = new SearchSourceBuilder();
+        builder.size(10);
+        builder.query(queryBuilder);
+        SearchRequest request = new SearchRequest(indexName);
+        request.source(builder);
+        SearchResponse search = restHighLevelClient.search(request, RequestOptions.DEFAULT);
+        SearchHits hits = search.getHits();
+        Map<String, Map<String, Object>> res = new HashMap<>();
+        for (SearchHit hit : hits) {
+            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+            String userLogin = (String) sourceAsMap.get("user_login");
+            List<String> openPr = (List<String>) sourceAsMap.get("open_pr");
+            List<HashMap<String, Object>> repoComments = (List<HashMap<String, Object>>) sourceAsMap.get("repo_comments");
+            double activity = (double) sourceAsMap.get("activity");
+            double willingness = (double) sourceAsMap.get("willingness");
+
+            double commentCount = calcUserComment(repoComments);
+
+
+
+            UserTagInfo userInfo = user2Info.getOrDefault(userLogin, new UserTagInfo());
+            userInfo.setGiteeId(userLogin);
+
+            res.put(userLogin, sourceAsMap);
+        }
+
+        return res;
+    }
+
+    private double calcUserComment(List<HashMap<String, Object>> repoComments) {
+
+        return 0.0d;
     }
 }
 
