@@ -2544,7 +2544,6 @@ public class QueryDao {
                 group = sigInfo.get("group");
                 en_feature = sigInfo.get("en_feature");
                 en_group = sigInfo.get("en_group");
-            }           
             }
             item.put("sig", s);
             item.put("value", value);
@@ -3955,6 +3954,8 @@ public class QueryDao {
             e.printStackTrace();
         }
         return company;
+    }
+
     public ResponseEntity queryReviewerRecommend(PrReviewerVo input, Environment env) {
         String giteeAllIndex;
         String userTagIndex;
