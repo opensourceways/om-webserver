@@ -25,6 +25,7 @@ import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
+
 import java.net.URLEncoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -39,6 +40,8 @@ import javax.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import com.om.Vo.OauthTokenVo;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -214,6 +217,58 @@ public class AuthingService {
         userData.put("photo", user.getPhoto());
         userData.put("username", user.getUsername());
         return result(HttpStatus.OK, "success", userData);
+    }
+
+    public ResponseEntity appVerify(String appId, String redirect) {
+        List<String> uris = authingUserDao.getAppRedirectUris(appId);
+        for (String uri : uris) {
+            System.out.println(uri);
+            if (uri.endsWith("*") && redirect.startsWith(uri.substring(0, uri.length() - 1)))
+                return result(HttpStatus.OK, "success", null);
+            else if (redirect.equals(uri))
+                return result(HttpStatus.OK, "success", null);
+        }
+        return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
+    }
+
+    public ResponseEntity oauthToken(String appId, String appSecret, String grantType, String code, String redirectUri,
+                                     OauthTokenVo oauthTokenVo) {
+         appId = appId != null ? appId : oauthTokenVo.getApp_id();
+        appSecret = appSecret != null ? appSecret : oauthTokenVo.getApp_secret();
+        if (appId == null || appSecret == null)
+            return result(HttpStatus.NOT_FOUND, null, "未找到应用", null);
+
+        try {
+            String url = redirectUri;
+            Matcher matcher = Pattern.compile("[\\u4e00-\\u9fa5]+").matcher(redirectUri);
+            String tmp = "";
+            while (matcher.find()) {
+                tmp = matcher.group();
+                System.out.println(tmp);
+                url = url.replaceAll(tmp, URLEncoder.encode(tmp, "UTF-8"));
+            }
+
+            HttpResponse<JsonNode> accessTokenByCode = authingUserDao.getAccessTokenByCode(code, appId, grantType, appSecret, redirectUri);
+            int status = accessTokenByCode.getStatus();
+            JSONObject object = accessTokenByCode.getBody().getObject();
+            if (status != 200)
+                return result(HttpStatus.BAD_REQUEST, object.getString("error_description"), null);
+
+            return result(HttpStatus.OK, "OK", object.toString());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return result(HttpStatus.BAD_REQUEST, null, "授权失败", null);
+        }
+    }
+
+    public ResponseEntity userByAccessToken(String accessToken) {
+        try {
+            authingUserDao.getUserByAccessToken(accessToken);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return null;
     }
 
     public ResponseEntity authingUserPermission(String community, String token) {

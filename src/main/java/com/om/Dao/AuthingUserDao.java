@@ -19,10 +19,14 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
+import com.mashape.unirest.request.body.MultipartBody;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.RSAUtil;
+
+import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -32,6 +36,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -270,6 +275,46 @@ public class AuthingUserDao {
         return msg;
     }
 
+    public List<String> getAppRedirectUris(String appId) {
+        List<String> redirectUris = new ArrayList<>();
+        try {
+            Application execute = managementClient.application().findById(appId).execute();
+            redirectUris = execute.getRedirectUris();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return redirectUris;
+    }
+
+    public HttpResponse<JsonNode> getAccessTokenByCode(String code, String appId, String grantType, String appSecret, String redirectUri) throws UnirestException {
+        HttpResponse<JsonNode> jsonNodeHttpResponse = Unirest.post("https://core.authing.cn/oidc/token")
+                .field("client_id", appId)
+                .field("client_secret", appSecret)
+                .field("grant_type", "authorization_code")
+                .field("redirect_uri", redirectUri)
+                .field("code", code)
+                .asJson();
+        return jsonNodeHttpResponse;
+
+        //        int status = jsonNodeHttpResponse.getStatus();
+//        if (status != 200)
+//            return jsonNodeHttpResponse.getBody().getObject();
+//        else
+//            return jsonNodeHttpResponse.getBody().getObject();
+
+        /*AuthenticationClient authentication = new AuthenticationClient(appId, appHost);
+        authentication.setSecret(appSecret);
+        authentication.setRedirectUri(redirectUri);
+        return authentication.getAccessTokenByCode(code).execute();*/
+    }
+
+    public Object getUserByAccessToken(String accessToken) throws UnirestException {
+        HttpResponse<JsonNode> authorization = Unirest.get("https://core.authing.cn/oidc/me")
+                .header("Authorization", accessToken)
+                .asJson();
+        return authorization;
+    }
+
     public Map getUserInfoByAccessToken(String code, String redirectUrl) {
         try {
             // code换access_token
@@ -477,11 +522,12 @@ public class AuthingUserDao {
             User us = getUserInfo(token);
             authentication.setCurrentUser(us);
             switch (type.toLowerCase()) {
-                case "email":
+                // TODO 目前不允许解绑邮箱
+                /*case "email":
                     String email = us.getEmail();
                     if (!account.equals(email)) return resFail;
                     authentication.unbindEmail().execute();
-                    break;
+                    break;*/
                 case "phone":
                     String phone = us.getPhone();
                     if (!account.equals(phone)) return resFail;
@@ -493,8 +539,6 @@ public class AuthingUserDao {
         } catch (Exception e) {
             String message = e.getMessage();
             System.out.println(message);
-            /*if (message.contains("没有配置其他登录方式")) return resFail + ",only one login account";
-            else */
             return message;
         }
         return "unbind success";
@@ -754,6 +798,9 @@ public class AuthingUserDao {
         map.put("新手机号与已绑定手机号相同", MessageCodeConfig.E00032);
         map.put("用户名唯一，不可修改", MessageCodeConfig.E00033);
         map.put("用户不存在", MessageCodeConfig.E00034);
+        map.put("回调地址与配置不符", MessageCodeConfig.E00035);
+        map.put("请指定应用的id、secret、host", MessageCodeConfig.E00036);
+        map.put("授权失败", MessageCodeConfig.E00037);
 
         return map;
     }
