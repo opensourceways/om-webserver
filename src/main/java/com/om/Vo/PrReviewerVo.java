@@ -11,16 +11,13 @@
 
 package com.om.Vo;
 
-public class TokenUser {
-    private String community;
-    private String username;
-    private String password;
+import java.util.List;
 
-    public TokenUser(String community, String username, String password) {
-        this.community = community;
-        this.username = username;
-        this.password = password;
-    }
+public class PrReviewerVo {
+    private String community;
+    private String prUrl;
+    private String prTitle;
+    private List<String> reviewers;
 
     public String getCommunity() {
         return community;
@@ -30,19 +27,27 @@ public class TokenUser {
         this.community = community;
     }
 
-    public String getUsername() {
-        return username;
+    public String getPrUrl() {
+        return prUrl;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setPrUrl(String prUrl) {
+        this.prUrl = prUrl;
     }
 
-    public String getPassword() {
-        return password;
+    public String getPrTitle() {
+        return prTitle;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setPrTitle(String prTitle) {
+        this.prTitle = prTitle;
+    }
+
+    public List<String> getReviewers() {
+        return reviewers;
+    }
+
+    public void setReviewers(List<String> reviewers) {
+        this.reviewers = reviewers;
     }
 }

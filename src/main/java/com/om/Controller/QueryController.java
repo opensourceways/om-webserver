@@ -1,3 +1,14 @@
+/* This project is licensed under the Mulan PSL v2.
+ You can use this software according to the terms and conditions of the Mulan PSL v2.
+ You may obtain a copy of Mulan PSL v2 at:
+     http://license.coscl.org.cn/MulanPSL2
+ THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+ PURPOSE.
+ See the Mulan PSL v2 for more details.
+ Create: 2022
+*/
+
 package com.om.Controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -6,10 +17,11 @@ import com.om.Service.QueryService;
 import com.om.Vo.*;
 import com.om.authing.AuthingToken;
 import com.om.token.UserLoginToken;
+import java.util.concurrent.ExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.concurrent.ExecutionException;
 
 
 /**
@@ -398,5 +410,11 @@ public class QueryController {
             @RequestParam(value = "page", required = false) String page,
             @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
         return queryService.getEcosystemRepoInfo(community, ecosystem_type, sort_type, sort_order, page, pageSize);
+    }
+
+    @RequestMapping(value = "/reviewer/recommend", method = RequestMethod.POST)
+    public ResponseEntity queryReviewerRecommend(@RequestBody PrReviewerVo input) {
+        ResponseEntity res = queryService.queryReviewerRecommend(input);
+        return res;
     }
 }

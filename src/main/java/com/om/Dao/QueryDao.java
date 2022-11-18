@@ -1,3 +1,14 @@
+/* This project is licensed under the Mulan PSL v2.
+ You can use this software according to the terms and conditions of the Mulan PSL v2.
+ You may obtain a copy of Mulan PSL v2 at:
+     http://license.coscl.org.cn/MulanPSL2
+ THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+ PURPOSE.
+ See the Mulan PSL v2 for more details.
+ Create: 2022
+*/
+
 package com.om.Dao;
 
 import com.alibaba.fastjson.JSONArray;
@@ -14,40 +25,18 @@ import com.om.Modules.yaml.CommunityPartnersYaml;
 import com.om.Modules.yaml.CommunityPartnersYamlInfo;
 import com.om.Modules.yaml.CompanyYaml;
 import com.om.Modules.yaml.CompanyYamlInfo;
+import com.om.Modules.yaml.GroupYamlInfo;
 import com.om.Modules.yaml.SigYaml;
 import com.om.Modules.yaml.SigYamlInfo;
 import com.om.Modules.yaml.UserInfoYaml;
 import com.om.Modules.yaml.UserNameYaml;
-import com.om.Modules.yaml.GroupYamlInfo;
 import com.om.Utils.*;
 import com.om.Vo.*;
 import io.netty.util.internal.StringUtil;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.assertj.core.util.Lists;
-import org.asynchttpclient.*;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.index.query.BoolQueryBuilder;
-import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.RangeQueryBuilder;
-import org.elasticsearch.index.query.TermQueryBuilder;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.sort.SortOrder;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Repository;
-
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetAddress;
-import java.net.URL;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
@@ -57,6 +46,24 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.StringUtils;
+import org.assertj.core.util.Lists;
+import org.asynchttpclient.*;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.index.query.*;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortOrder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Repository;
+
+
 
 import static com.alibaba.fastjson.JSON.parseObject;
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -760,11 +767,11 @@ public class QueryDao {
             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets").elements();
             if (community.toLowerCase().equals("mindspore") && buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
-                count = bucket.get("count").get("value").asInt(); 
+                count = bucket.get("count").get("value").asInt();
             }
             if (community.toLowerCase().equals("opengauss") && buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
-                count = bucket.get("doc_count").asInt(); 
+                count = bucket.get("doc_count").asInt();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -1518,7 +1525,7 @@ public class QueryDao {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
 
-            builder.setUrl(this.url + index + "/_search");;
+            builder.setUrl(this.url + index + "/_search");
             builder.setBody(queryStr);
             //获取执行结果
             ListenableFuture<Response> f = client.executeRequest(builder.build());
@@ -1925,7 +1932,6 @@ public class QueryDao {
                 }
 
 
-
                 boolean isAdd = isLocatedInTimeWindow(queryBody, eachResultJsonObject.getString("ci_mistake_update_at"));
                 if (!isAdd) {
                     continue;
@@ -1972,7 +1978,7 @@ public class QueryDao {
     }
 
     public SearchSourceBuilder assembleResultSourceBuilder(String sortKeyword,
-            BuildCheckInfoQueryVo buildCheckInfoQueryVo) {
+                                                           BuildCheckInfoQueryVo buildCheckInfoQueryVo) {
         SearchSourceBuilder builder = new SearchSourceBuilder();
         builder.sort(sortKeyword, SortOrder.DESC);
 
@@ -2079,7 +2085,7 @@ public class QueryDao {
     }
 
     public SearchSourceBuilder assembleMistakeSourceBuilder(String sortKeyword, String prUrl, String buildNoStr,
-            BuildCheckInfoQueryVo buildCheckInfoQueryVo) {
+                                                            BuildCheckInfoQueryVo buildCheckInfoQueryVo) {
         SearchSourceBuilder builder = new SearchSourceBuilder();
         builder.sort(sortKeyword, SortOrder.DESC);
 
@@ -2140,10 +2146,10 @@ public class QueryDao {
                 break;
             case "openlookeng":
                 index = openLookeng.getTracker_index();
-                break; 
+                break;
             case "test":
                 index = "test_tracker";
-                break; 
+                break;
             default:
                 return "{\"code\":" + 404 + ",\"data\":\"index: error!\",\"msg\":\"not Found!\"}";
         }
@@ -2228,7 +2234,7 @@ public class QueryDao {
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
-    
+
     public String querySigInfo(String community, String sig) {
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
@@ -2423,7 +2429,7 @@ public class QueryDao {
             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
 
             HashMap<String, Object> dataMap = new HashMap<>();
-            List<String> metrics = Arrays.asList(new String[] { "PR", "PR_Review", "Issue", "Issue_Comment", "Fork", "Star", "Watch" });
+            List<String> metrics = Arrays.asList(new String[]{"PR", "PR_Review", "Issue", "Issue_Comment", "Fork", "Star", "Watch"});
             dataMap.put("metrics", metrics);
 
             while (buckets.hasNext()) {
@@ -2505,28 +2511,27 @@ public class QueryDao {
         }
 
         HashMap<String, Integer> maintainersList = queryCompanyMaintainers(community, companystr, timeRange);
-        if (maintainersList==null){
+        if (maintainersList == null) {
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"queryCompanyMaintainers error\"}";
         }
         Set<String> sigMain = maintainersList.keySet();
         sigAll = sigMetricsList.keySet().iterator();
-        while (sigAll.hasNext()){
+        while (sigAll.hasNext()) {
             String s = sigAll.next();
             if (sigMain.contains(s)) {
                 sigMetricsList.get(s).add(maintainersList.get(s));
-            }
-            else {
+            } else {
                 sigMetricsList.get(s).add(0);
             }
-        }        
+        }
 
         HashMap<String, Object> dataMap = new HashMap<>();
-        
+
         ArrayList<HashMap<String, Object>> itemList = new ArrayList<>();
         sigAll = sigMetricsList.keySet().iterator();
         HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
-        while(sigAll.hasNext()){
-            HashMap<String, Object> item =new HashMap<>();
+        while (sigAll.hasNext()) {
+            HashMap<String, Object> item = new HashMap<>();
             String s = sigAll.next();
             List<Integer> value = sigMetricsList.get(s);
             HashMap<String, String> sigInfo = sigfeatures.get(s);
@@ -2540,6 +2545,7 @@ public class QueryDao {
                 en_feature = sigInfo.get("en_feature");
                 en_group = sigInfo.get("en_group");
             }           
+            }
             item.put("sig", s);
             item.put("value", value);
             item.put("feature", feature);
@@ -2548,9 +2554,9 @@ public class QueryDao {
             item.put("en_group", en_group);
             itemList.add(item);
         }
-        List<String> metrics=Arrays.asList(new String[]{"D0","D1","D2","Company","PR_Merged","PR_Review","Issue_update","Issue_Closed","Issue_Comment","Contribute","Meeting","Attebdee","Maintainer"});
+        List<String> metrics = Arrays.asList(new String[]{"D0", "D1", "D2", "Company", "PR_Merged", "PR_Review", "Issue_update", "Issue_Closed", "Issue_Comment", "Contribute", "Meeting", "Attebdee", "Maintainer"});
         dataMap.put("metrics", metrics);
-        dataMap.put(company, itemList);   
+        dataMap.put(company, itemList);
         HashMap<String, Object> resMap = new HashMap<>();
         resMap.put("code", 200);
         resMap.put("data", dataMap);
@@ -2831,7 +2837,7 @@ public class QueryDao {
         }
     }
 
-    public String getcompanyNames(String name){
+    public String getcompanyNames(String name) {
         ArrayList<String> res = new ArrayList<>();
         res.add(name);
         YamlUtil yamlUtil = new YamlUtil();
@@ -2839,20 +2845,20 @@ public class QueryDao {
         for (CompanyYamlInfo companyinfo : companies.getCompanies()) {
             String cnCompany = companyinfo.getCompany_cn().trim();
             String enCompany = companyinfo.getCompany_en().trim();
-            if (name.equals(cnCompany) || name.equals(enCompany)){
+            if (name.equals(cnCompany) || name.equals(enCompany)) {
                 res.add(enCompany);
                 res.add(cnCompany);
                 List<String> aliases = companyinfo.getAliases();
                 if (aliases != null) {
-                    for (String alias : aliases){
+                    for (String alias : aliases) {
                         res.add(alias);
                     }
                 }
             }
         }
         String names = "(";
-        for (String r: res){
-            names = names + "\\\"" + r +  "\\\",";
+        for (String r : res) {
+            names = names + "\\\"" + r + "\\\",";
         }
         names = names + ")";
         return names;
@@ -2902,7 +2908,7 @@ public class QueryDao {
             default:
                 return "";
         }
-        
+
         Iterator<String> users = ownerType.fieldNames();
         HashMap<String, String> data = new HashMap<>();
         while (users.hasNext()) {
@@ -2970,9 +2976,9 @@ public class QueryDao {
             }
 
             Iterator<String> owners = ownerType.fieldNames();
-            while (owners.hasNext()){
+            while (owners.hasNext()) {
                 String owner = owners.next();
-                if(userList.contains(owner.toLowerCase())){
+                if (userList.contains(owner.toLowerCase())) {
                     continue;
                 }
                 HashMap<String, Object> dataMap = new HashMap<>();
@@ -3017,7 +3023,7 @@ public class QueryDao {
                 break;
             default:
                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }       
+        }
 
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
@@ -3037,7 +3043,7 @@ public class QueryDao {
             }
             HashMap<String, Object> dataMap = new HashMap<>();
             dataMap.put("value", companyUsersList);
-            List<String> metrics = Arrays.asList(new String[] { "D0", "D1", "D2" });
+            List<String> metrics = Arrays.asList(new String[]{"D0", "D1", "D2"});
             dataMap.put("metrics", metrics);
 
             HashMap<String, Object> resMap = new HashMap<>();
@@ -3153,6 +3159,7 @@ public class QueryDao {
                 String en_feature = "";
                 String en_group = "";
                 if (sigInfo != null){
+                if (sigInfo != null) {
                     feature = sigInfo.get("feature");
                     group = sigInfo.get("group");
                     en_feature = sigInfo.get("en_feature");
@@ -3200,13 +3207,13 @@ public class QueryDao {
             String responseBody = query(index, queryStr);
             JsonNode dataNode = objectMapper.readTree(responseBody);
             Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
-            if (!buckets.hasNext()){
+            if (!buckets.hasNext()) {
                 c.add(Calendar.DATE, -1);
                 queryStr = String.format(queryjson, c.getTimeInMillis());
                 responseBody = query(index, queryStr);
                 dataNode = objectMapper.readTree(responseBody);
                 buckets = dataNode.get("hits").get("hits").elements();
-            }         
+            }
             ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
             HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
             while (buckets.hasNext()) {
@@ -3219,6 +3226,7 @@ public class QueryDao {
                 String en_feature = "";
                 String en_group = "";
                 if (sigInfo != null){
+                if (sigInfo != null) {
                     feature = sigInfo.get("feature");
                     group = sigInfo.get("group");
                     en_feature = sigInfo.get("en_feature");
@@ -3247,7 +3255,7 @@ public class QueryDao {
         HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
         ArrayList<HashMap<String, String>> sigList = new ArrayList<>();
         Set<String> keys = sigfeatures.keySet();
-        for (String key:keys) {
+        for (String key : keys) {
             HashMap<String, String> data = sigfeatures.get(key);
             data.put("sig_names", key);
             sigList.add(data);
@@ -3381,7 +3389,7 @@ public class QueryDao {
                 resData.put("name", user_cn);
                 resData.put("sigs", sigList);
                 res.add(resData);
-                
+
             } catch (Exception e) {
                 e.printStackTrace();
                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
@@ -3454,7 +3462,7 @@ public class QueryDao {
             String responseBody = f.get().getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
 
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();       
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
             double count = 0d;
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
@@ -3469,7 +3477,7 @@ public class QueryDao {
                 JsonNode bucket = buckets.next();
                 String sig_name = bucket.get("key").asText();
                 long contribute = bucket.get("sum_field").get("value").asLong();
-                double percent = contribute/count;
+                double percent = contribute / count;
 
                 HashMap<String, Object> dataMap = new HashMap<>();
                 dataMap.put("sig_name", sig_name);
@@ -3495,7 +3503,7 @@ public class QueryDao {
         String queryjson;
         String queryStr;
         String index;
-  
+
         switch (community.toLowerCase()) {
             case "openeuler":
                 queryjson = openEuler.getuser_owner_type_queryStr();
@@ -3521,12 +3529,12 @@ public class QueryDao {
             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
 
             ArrayList<HashMap<String, Object>> dataMap = new ArrayList<>();
-            while(buckets.hasNext()){
+            while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 String sig = bucket.get("key").asText();
                 Iterator<JsonNode> types = bucket.get("owner_type").get("buckets").elements();
                 ArrayList<String> typeList = new ArrayList<>();
-                while(types.hasNext()){
+                while (types.hasNext()) {
                     JsonNode type = types.next();
                     typeList.add(type.get("key").asText());
                 }
@@ -3549,7 +3557,7 @@ public class QueryDao {
     public String queryAllUserOwnertype(String community) {
         String queryStr;
         String index;
-  
+
         switch (community.toLowerCase()) {
             case "openeuler":
                 queryStr = openEuler.getall_user_owner_type_queryStr();
@@ -3612,17 +3620,17 @@ public class QueryDao {
     }
 
     public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
-            String timeRange, Environment env, String comment_type, String filter) {
+                                             String timeRange, Environment env, String comment_type, String filter) {
         String index;
         ArrayList<Object> params;
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getGiteeAllIndex();
-                params = openEuler.getAggUserCountQueryParams(contributeType, timeRange);     
+                params = openEuler.getAggUserCountQueryParams(contributeType, timeRange);
                 break;
             case "opengauss":
                 index = openGauss.getGiteeAllIndex();
-                params = openGauss.getAggUserCountQueryParams(contributeType, timeRange); 
+                params = openGauss.getAggUserCountQueryParams(contributeType, timeRange);
                 if (null != sig)
                     sig = querySiglabel(community, sig);
                 break;
@@ -3630,7 +3638,7 @@ public class QueryDao {
                 return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
         }
         index = index.substring(1);
-        if(params == null){
+        if (params == null) {
             return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"params error\"}";
         }
 
@@ -3652,7 +3660,7 @@ public class QueryDao {
         String index;
         if (group != null && group.equals("company")) {
             name = getcompanyNames(name);
-        }       
+        }
         switch (community.toLowerCase()) {
             case "openeuler":
                 queryjson = openEuler.getUserListQueryStr();
@@ -3678,7 +3686,7 @@ public class QueryDao {
             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
 
             ArrayList<String> dataMap = new ArrayList<>();
-            while(buckets.hasNext()){
+            while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 String user = bucket.get("key").asText();
                 dataMap.add(user);
@@ -3697,7 +3705,7 @@ public class QueryDao {
     public String querySigRepoCommitters(String community, String sig) {
         String queryjson;
         String queryStr;
-        String index;      
+        String index;
         switch (community.toLowerCase()) {
             case "openeuler":
                 queryjson = openEuler.getSigRepoCommittersQueryStr();
@@ -3720,17 +3728,17 @@ public class QueryDao {
             String responseBody = f.get().getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-          
+
             ArrayList<Object> dataList = new ArrayList<>();
             ArrayList<String> committerList = new ArrayList<>();
             ArrayList<String> committerRepoList = new ArrayList<>();
-            
-            while(buckets.hasNext()){
+
+            while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 String repo = bucket.get("key").asText();
                 Iterator<JsonNode> user_buckets = bucket.get("user").get("buckets").elements();
                 ArrayList<String> userlist = new ArrayList<>();
-                while(user_buckets.hasNext()){
+                while (user_buckets.hasNext()) {
                     JsonNode userBucket = user_buckets.next();
                     String user = userBucket.get("key").asText();
                     userlist.add(user);
@@ -3744,7 +3752,7 @@ public class QueryDao {
             }
             Set<String> set = new HashSet<>();
             set.addAll(committerList);
-            ArrayList<String> committers = new ArrayList<>();         
+            ArrayList<String> committers = new ArrayList<>();
             committers.addAll(set);
 
             String res = querySigRepo(community, sig);
@@ -3768,7 +3776,7 @@ public class QueryDao {
             String siginfo = querySigInfo(community, sig);
             JsonNode sigMaintainers = objectMapper.readTree(siginfo).get("data");
             if (sigMaintainers.size() != 0) {
-                JsonNode maintainers =  sigMaintainers.get(0).get("maintainers");
+                JsonNode maintainers = sigMaintainers.get(0).get("maintainers");
                 resData.put("maintainers", maintainers);
             }
             resData.put("committers", committers);
@@ -3796,7 +3804,7 @@ public class QueryDao {
         }
         return false;
     }
-    
+
     public String getIPLocation(String ip) {
         InputStream database = obsDao.getData();
         try {
@@ -3807,7 +3815,7 @@ public class QueryDao {
             String continent_name = response.getContinent().getName();
             String region_iso_code = response.getMostSpecificSubdivision().getName();
             String city_name = response.getCity().getName();
-            String country_iso_code =response.getCountry().getIsoCode();
+            String country_iso_code = response.getCountry().getIsoCode();
             Double lon = response.getLocation().getLatitude();
             Double lat = response.getLocation().getLongitude();
 
@@ -3859,9 +3867,9 @@ public class QueryDao {
             String responseBody = f.get().getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
             Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
-           
+
             ArrayList<JsonNode> resList = new ArrayList<>();
-            while (buckets.hasNext()){
+            while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 JsonNode res = bucket.get("_source");
                 resList.add(res);
@@ -3949,5 +3957,77 @@ public class QueryDao {
             e.printStackTrace();
         }
         return company;
+    public ResponseEntity queryReviewerRecommend(PrReviewerVo input, Environment env) {
+        String giteeAllIndex;
+        String userTagIndex;
+        try {
+            String community = input.getCommunity().toLowerCase();
+            switch (community) {
+                case "mindspore":
+                    giteeAllIndex = mindSpore.getGiteeAllIndex().replace("/", "");
+                    userTagIndex = mindSpore.getUserTagIndex();
+                    break;
+                default:
+                    return result(HttpStatus.NOT_FOUND, "the community not found", null);
+            }
+
+            List<String> robotUsers = Arrays.asList(robotUser.split(","));
+            String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
+            String host = env.getProperty("es.host");
+            int port = Integer.parseInt(env.getProperty("es.port", "9200"));
+            String scheme = env.getProperty("es.scheme");
+            String esUser = userpass[0];
+            String password = userpass[1];
+            RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
+            EsQueryUtils esQueryUtils = new EsQueryUtils();
+
+            HashMap<String, UserTagInfo> inputUser2Info = new HashMap<>();
+            for (String reviewer : input.getReviewers()) {
+                UserTagInfo userTagInfo = new UserTagInfo();
+                userTagInfo.setGiteeId(reviewer);
+                inputUser2Info.put(reviewer, userTagInfo);
+            }
+            // 评论过相关PR的人 + 输入的人
+            HashMap<String, UserTagInfo> user2Info = esQueryUtils.QueryPrReviewerByInter(restHighLevelClient, input, giteeAllIndex, robotUsers);
+            inputUser2Info.putAll(user2Info);
+            // 获取评论过该仓库的人  TODO
+            Map<String, Map<String, Object>> mindspore_user_tag = esQueryUtils.QueryPrReviewerByRepo(restHighLevelClient, input, userTagIndex, inputUser2Info);
+
+            // TODO return test
+            ArrayList<String> strings = new ArrayList<>(mindspore_user_tag.keySet());
+            ArrayList<String> reviewers = new ArrayList<>(new HashSet<>(input.getReviewers()));
+            strings.removeAll(reviewers);
+
+            List<String> res1 = randomItems(reviewers);
+            List<String> res2 = randomItems(strings);
+            res2.addAll(res1);
+            return result(HttpStatus.OK, "success", res2);
+        } catch (Exception ex) {
+            return result(HttpStatus.NOT_FOUND, "query reviewers error", null);
+        }
+    }
+
+    private ResponseEntity result(HttpStatus status, String msg, Object data) {
+        HashMap<String, Object> res = new HashMap<>();
+        res.put("code", status.value());
+        res.put("data", data);
+        res.put("msg", msg);
+        return new ResponseEntity<>(res, status);
+    }
+
+    private List<String> randomItems(List<String> items) {
+        Random random = new Random();
+        ArrayList<String> res = new ArrayList<>();
+        if (items.size() >= 2) {
+            int i = random.nextInt(items.size());
+            res.add(items.get(i));
+            items.remove(i);
+            i = random.nextInt(items.size());
+            res.add(items.get(i));
+        } else {
+            res.addAll(items);
+        }
+        return res;
+
     }
 }
