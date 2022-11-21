@@ -174,10 +174,16 @@ public class HttpClientUtils implements Serializable {
         String serverName = httpServletRequest.getServerName();
         String referer = httpServletRequest.getHeader("referer");
         if (StringUtils.isNotBlank(referer)) {
-            int fromIndex = referer.startsWith("http://") ? 7 : 8;
-            int endIndex = referer.indexOf(":", fromIndex);
-            int end = endIndex == -1 ? referer.indexOf("/", fromIndex) : endIndex;
-            serverName = end == -1 ? referer : referer.substring(0, end);
+            int fromIndex;
+            int endIndex;
+            if (referer.startsWith("http://")) {
+                fromIndex = 7;
+                endIndex = referer.indexOf(":", fromIndex);
+            } else {
+                fromIndex = 8;
+                endIndex = referer.indexOf("/", fromIndex);
+            }
+            serverName = referer.substring(0, endIndex);
         }
 
         String domain = null;
