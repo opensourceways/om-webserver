@@ -52,6 +52,9 @@ public enum MessageCodeConfig {
     E00032("E00032", "new phone number is same as the old", "新手机号与已绑定手机号相同"),
     E00033("E00033", "username is unique and cannot be modified", "用户名唯一，不可修改"),
     E00034("E00034", "username not exists", "用户不存在"),
+    E00035("E00035", "redirect uri not in the configuration", "回调地址与配置不符"),
+    E00036("E00036", "app not found,please check the parameter", "请指定应用的id、secret、host"),
+    E00037("E00037", "authorization failed", "授权失败"),
     ;
 
     private String code;
