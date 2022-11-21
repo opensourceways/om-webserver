@@ -77,6 +77,8 @@ public class AuthingService {
 
     private static HashMap<String, Boolean> domain2secure;
 
+    private static ObjectMapper objectMapper;
+
     private static final String PHONEREGEX = "^[a-z0-9]{11}$";
 
     private static final String EMAILREGEX = "^[A-Za-z0-9-._\\u4e00-\\u9fa5]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$";
@@ -85,6 +87,7 @@ public class AuthingService {
     public void init() {
         codeUtil = new CodeUtil();
         error2code = authingUserDao.getErrorCode();
+        objectMapper = new ObjectMapper();
         domain2secure = HttpClientUtils.getConfigCookieInfo(Objects.requireNonNull(env.getProperty("cookie.token.domains")), Objects.requireNonNull(env.getProperty("cookie.token.secures")));
     }
 
@@ -254,21 +257,28 @@ public class AuthingService {
             if (status != 200)
                 return result(HttpStatus.BAD_REQUEST, object.getString("error_description"), null);
 
-            return result(HttpStatus.OK, "OK", object.toString());
+            Map data = objectMapper.readValue(object.toString(), Map.class);
+            return result(HttpStatus.OK, "OK", data);
         } catch (Exception e) {
             e.printStackTrace();
-            return result(HttpStatus.BAD_REQUEST, null, "授权失败", null);
+            return result(HttpStatus.BAD_REQUEST, "授权失败", null);
         }
     }
 
     public ResponseEntity userByAccessToken(String accessToken) {
         try {
-            authingUserDao.getUserByAccessToken(accessToken);
+            HttpResponse<JsonNode> userByAccessToken = authingUserDao.getUserByAccessToken(accessToken);
+            int status = userByAccessToken.getStatus();
+            JSONObject object = userByAccessToken.getBody().getObject();
+            if (status != 200)
+                return result(HttpStatus.BAD_REQUEST, object.getString("error_description"), null);
+
+            Map data = objectMapper.readValue(object.toString(), Map.class);
+            return result(HttpStatus.OK, "OK", data);
         } catch (Exception e) {
             e.printStackTrace();
+            return result(HttpStatus.BAD_REQUEST, "获取用户失败", null);
         }
-
-        return null;
     }
 
     public ResponseEntity authingUserPermission(String community, String token) {

@@ -73,11 +73,11 @@ public class AuthingController {
                                      @RequestParam(value = "grant_type") String grantType,
                                      @RequestParam(value = "code") String code,
                                      @RequestParam(value = "redirect_uri") String redirectUri,
-                                     @RequestBody OauthTokenVo oauthTokenVo) {
+                                     @RequestBody(required = false) OauthTokenVo oauthTokenVo) {
         return authingService.oauthToken(appId, appSecret, grantType, code, redirectUri, oauthTokenVo);
     }
 
-    @RequestMapping(value = "/user/by-token")
+    @RequestMapping(value = "/oauth/me")
     public ResponseEntity oauthToken(@RequestParam(value = "access_token") String accessToken) {
         return authingService.userByAccessToken(accessToken);
     }
