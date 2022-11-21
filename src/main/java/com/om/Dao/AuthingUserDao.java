@@ -40,6 +40,7 @@ import javax.crypto.NoSuchPaddingException;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -287,22 +288,21 @@ public class AuthingUserDao {
     }
 
     public HttpResponse<JsonNode> getAccessTokenByCode(String code, String appId, String grantType, String appSecret, String redirectUri) throws UnirestException {
-        HttpResponse<JsonNode> jsonNodeHttpResponse = Unirest.post("")
+        return Unirest.post(AUTHINGAPIHOST + "/oidc/token")
                 .field("client_id", appId)
                 .field("client_secret", appSecret)
                 .field("grant_type", "authorization_code")
                 .field("redirect_uri", redirectUri)
                 .field("code", code)
                 .asJson();
-        return jsonNodeHttpResponse;
-
     }
 
-    public Object getUserByAccessToken(String accessToken) throws UnirestException {
-        HttpResponse<JsonNode> authorization = Unirest.get("")
+
+
+    public HttpResponse<JsonNode> getUserByAccessToken(String accessToken) throws UnirestException {
+        return Unirest.get(AUTHINGAPIHOST + "/oidc/me")
                 .header("Authorization", accessToken)
                 .asJson();
-        return authorization;
     }
 
     public Map getUserInfoByAccessToken(String code, String redirectUrl) {
