@@ -11,11 +11,15 @@
 
 package com.om.Controller;
 
+import com.mashape.unirest.http.HttpResponse;
 import com.om.Service.AuthingService;
+import com.om.Vo.OauthTokenVo;
 import com.om.authing.AuthingUserToken;
+
 import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -55,6 +59,27 @@ public class AuthingController {
                                 @RequestParam(value = "account") String account,
                                 @RequestParam(value = "code") String code) {
         return authingService.login(httpServletRequest, servletResponse, community, permission, account, code);
+    }
+
+    @RequestMapping(value = "/app/verify")
+    public ResponseEntity appVerify(@RequestParam(value = "app_id") String appId,
+                                    @RequestParam(value = "redirect_uri") String redirect) {
+        return authingService.appVerify(appId, redirect);
+    }
+
+    @RequestMapping(value = "/oauth/token", method = RequestMethod.POST)
+    public ResponseEntity oauthToken(@RequestParam(value = "app_id", required = false) String appId,
+                                     @RequestParam(value = "app_secret", required = false) String appSecret,
+                                     @RequestParam(value = "grant_type") String grantType,
+                                     @RequestParam(value = "code") String code,
+                                     @RequestParam(value = "redirect_uri") String redirectUri,
+                                     @RequestBody(required = false) OauthTokenVo oauthTokenVo) {
+        return authingService.oauthToken(appId, appSecret, grantType, code, redirectUri, oauthTokenVo);
+    }
+
+    @RequestMapping(value = "/oauth/me")
+    public ResponseEntity oauthToken(@RequestParam(value = "access_token") String accessToken) {
+        return authingService.userByAccessToken(accessToken);
     }
 
     @AuthingUserToken
