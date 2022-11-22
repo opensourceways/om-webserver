@@ -582,9 +582,9 @@ public class AuthingService {
     }
 
     public ResponseEntity unLinkAccount(String token, String platform) {
-        boolean res = authingUserDao.unLinkAccount(token, platform);
-        if (!res) {
-            return result(HttpStatus.BAD_REQUEST, null, "解绑三方账号失败", null);
+        String msg = authingUserDao.unLinkAccount(token, platform);
+        if (!msg.equals("success")) {
+            return result(HttpStatus.BAD_REQUEST, null, msg, null);
         }
         return result(HttpStatus.OK, "unlink account success", null);
     }
