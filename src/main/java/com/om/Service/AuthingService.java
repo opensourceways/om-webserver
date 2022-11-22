@@ -323,6 +323,8 @@ public class AuthingService {
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             Date issuedAt = decode.getIssuedAt();
+
+            // 退出登录，该token失效
             String redisKey = userId + issuedAt.toString();
             redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
 
@@ -441,7 +443,15 @@ public class AuthingService {
 
     public ResponseEntity deleteUser(String token) {
         try {
-            String userId = getUserIdFromToken(token);
+            token = rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(token);
+            String userId = decode.getAudience().get(0);
+            Date issuedAt = decode.getIssuedAt();
+
+            // 用户注销，当前token失效
+            String redisKey = userId + issuedAt.toString();
+            redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
+
             boolean res = authingUserDao.deleteUserById(userId);
             if (res) return result(HttpStatus.OK, "delete user success", null);
             else return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
