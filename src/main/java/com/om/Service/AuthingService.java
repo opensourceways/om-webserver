@@ -503,10 +503,7 @@ public class AuthingService {
                     String msgsms_sender = env.getProperty("msgsms.sender");
                     String msgsms_template_id = env.getProperty("msgsms.template.id");
                     // 短信发送请求
-                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                    String format = dtf.format(LocalDateTime.now());
-                    String[] split = format.split(" ");
-                    String templateParas = String.format("[\"%s\",\"%s\",\"%s\"]", code, split[0], split[1]);
+                    String templateParas = String.format("[\"%s\",\"%s\"]", code, env.getProperty("msgsms.template.context.expire", "1"));
                     String wsseHeader = codeUtil.buildWsseHeader(msgsms_app_key, msgsms_app_secret);
                     String body = codeUtil.buildSmsBody(msgsms_sender, account, msgsms_template_id, templateParas, "", msgsms_signature);
                     // 发送验证码
