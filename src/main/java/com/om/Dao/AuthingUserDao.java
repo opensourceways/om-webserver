@@ -298,7 +298,6 @@ public class AuthingUserDao {
     }
 
 
-
     public HttpResponse<JsonNode> getUserByAccessToken(String accessToken) throws UnirestException {
         return Unirest.get(AUTHINGAPIHOST + "/oidc/me")
                 .header("Authorization", accessToken)
@@ -510,6 +509,8 @@ public class AuthingUserDao {
         String resFail = "unbind fail";
         try {
             User us = getUserInfo(token);
+            if (StringUtils.isBlank(us.getEmail())) return "请先绑定邮箱";
+
             authentication.setCurrentUser(us);
             switch (type.toLowerCase()) {
                 // TODO 目前不允许解绑邮箱
@@ -600,7 +601,8 @@ public class AuthingUserDao {
         return "true";
     }
 
-    public boolean unLinkAccount(String token, String platform) {
+    public String unLinkAccount(String token, String platform) {
+        String msg = "解绑三方账号失败";
         String identifier;
         String extIdpId;
         try {
@@ -614,15 +616,17 @@ public class AuthingUserDao {
                     extIdpId = enterExtIdpIdGitee;
                     break;
                 default:
-                    return false;
+                    return msg;
             }
 
             User us = getUserInfo(token);
+            if (StringUtils.isBlank(us.getEmail())) return "请先绑定邮箱";
 
             // -- temporary (解决gitee多身份源解绑问题) -- TODO
             List<String> userIds = Stream.of(users.split(";")).collect(Collectors.toList());
             if (platform.toLowerCase().equals("gitee") && userIds.contains(us.getId())) {
-                return unLinkAccountTemp(us, identifiers, extIdpIds);
+                if (unLinkAccountTemp(us, identifiers, extIdpIds)) return "success";
+                else return msg;
             } // -- temporary -- TODO
 
             String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", identifier, extIdpId);
@@ -633,11 +637,11 @@ public class AuthingUserDao {
                     .header("Content-Type", "application/json")
                     .body(body)
                     .asJson();
-            return response.getBody().getObject().getInt("code") == 200;
+            if (response.getBody().getObject().getInt("code") == 200) msg = "success";
         } catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
+            e.printStackTrace();
         }
+        return msg;
     }
 
     // -- temporary (解决gitee多身份源解绑问题) -- TODO
@@ -791,6 +795,7 @@ public class AuthingUserDao {
         map.put("回调地址与配置不符", MessageCodeConfig.E00035);
         map.put("请指定应用的id、secret、host", MessageCodeConfig.E00036);
         map.put("授权失败", MessageCodeConfig.E00037);
+        map.put("请先绑定邮箱", MessageCodeConfig.E00038);
 
         return map;
     }

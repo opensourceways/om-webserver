@@ -55,6 +55,7 @@ public enum MessageCodeConfig {
     E00035("E00035", "redirect uri not in the configuration", "回调地址与配置不符"),
     E00036("E00036", "app not found,please check the parameter", "请指定应用的id、secret、host"),
     E00037("E00037", "authorization failed", "授权失败"),
+    E00038("E00037", "please bind mailbox first", "请先绑定邮箱"),
     ;
 
     private String code;
