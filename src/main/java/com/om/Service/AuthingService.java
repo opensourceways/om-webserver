@@ -323,6 +323,8 @@ public class AuthingService {
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             Date issuedAt = decode.getIssuedAt();
+
+            // 退出登录，该token失效
             String redisKey = userId + issuedAt.toString();
             redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
 
@@ -441,7 +443,15 @@ public class AuthingService {
 
     public ResponseEntity deleteUser(String token) {
         try {
-            String userId = getUserIdFromToken(token);
+            token = rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(token);
+            String userId = decode.getAudience().get(0);
+            Date issuedAt = decode.getIssuedAt();
+
+            // 用户注销，当前token失效
+            String redisKey = userId + issuedAt.toString();
+            redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
+
             boolean res = authingUserDao.deleteUserById(userId);
             if (res) return result(HttpStatus.OK, "delete user success", null);
             else return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
@@ -493,10 +503,7 @@ public class AuthingService {
                     String msgsms_sender = env.getProperty("msgsms.sender");
                     String msgsms_template_id = env.getProperty("msgsms.template.id");
                     // 短信发送请求
-                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                    String format = dtf.format(LocalDateTime.now());
-                    String[] split = format.split(" ");
-                    String templateParas = String.format("[\"%s\",\"%s\",\"%s\"]", code, split[0], split[1]);
+                    String templateParas = String.format("[\"%s\",\"%s\"]", code, env.getProperty("msgsms.template.context.expire", "1"));
                     String wsseHeader = codeUtil.buildWsseHeader(msgsms_app_key, msgsms_app_secret);
                     String body = codeUtil.buildSmsBody(msgsms_sender, account, msgsms_template_id, templateParas, "", msgsms_signature);
                     // 发送验证码
@@ -575,9 +582,9 @@ public class AuthingService {
     }
 
     public ResponseEntity unLinkAccount(String token, String platform) {
-        boolean res = authingUserDao.unLinkAccount(token, platform);
-        if (!res) {
-            return result(HttpStatus.BAD_REQUEST, null, "解绑三方账号失败", null);
+        String msg = authingUserDao.unLinkAccount(token, platform);
+        if (!msg.equals("success")) {
+            return result(HttpStatus.BAD_REQUEST, null, msg, null);
         }
         return result(HttpStatus.OK, "unlink account success", null);
     }
