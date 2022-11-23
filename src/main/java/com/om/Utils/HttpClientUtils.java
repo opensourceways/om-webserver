@@ -182,7 +182,7 @@ public class HttpClientUtils implements Serializable {
             } else {
                 fromIndex = 8;
                 endIndex = referer.indexOf("/", fromIndex);
-                endIndex = endIndex == -1 ? referer.length() - 1 : endIndex;
+                endIndex = endIndex == -1 ? referer.length() : endIndex;
             }
             serverName = referer.substring(0, endIndex);
         }
