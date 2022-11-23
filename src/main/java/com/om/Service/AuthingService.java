@@ -135,7 +135,9 @@ public class AuthingService {
         if (!msg.equals("success"))
             return result(HttpStatus.BAD_REQUEST, null, msg, null);
         if (StringUtils.isBlank(account))
-            return result(HttpStatus.BAD_REQUEST, null, "手机号或者邮箱不能为空", null);
+            return result(HttpStatus.BAD_REQUEST, null, "邮箱不能为空", null);
+        if (!account.matches(EMAILREGEX))
+            return result(HttpStatus.BAD_REQUEST, null, "请输入正确的邮箱", null);
 
         // 邮箱 OR 手机号校验
         String accountType = checkPhoneAndEmail(account);
@@ -143,10 +145,10 @@ public class AuthingService {
         if (accountType.equals("email")) {
             // 邮箱注册
             msg = authingUserDao.registerByEmail(account, code, userName);
-        } else if (accountType.equals("phone")) {
+        } /*else if (accountType.equals("phone")) {
             // 手机注册
             msg = authingUserDao.registerByPhone(account, code, userName);
-        } else {
+        } */else {
             return result(HttpStatus.BAD_REQUEST, null, accountType, null);
         }
         if (!msg.equals("success")) return result(HttpStatus.BAD_REQUEST, null, msg, null);
