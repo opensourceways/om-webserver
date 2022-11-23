@@ -121,7 +121,7 @@ public class AuthingUserDao {
 
     public static ObsClient obsClient;
 
-    private static final String USERNAMEREGEX = "^[0-9a-zA-Z_]{3,20}$";
+    private static final String USERNAMEREGEX = "^[a-zA-Z][0-9a-zA-Z_]{1,18}[0-9a-zA-Z]$";
 
     private static List<String> reservedUsernames;
 
@@ -742,7 +742,7 @@ public class AuthingUserDao {
         if (StringUtils.isBlank(userName))
             msg = "用户名不能为空";
         else if (!userName.matches(USERNAMEREGEX))
-            msg = "请输入3到20个字符，由字母、数字、下划线(_)组成";
+            msg = "请输入3到20个字符。只能由字母、数字或者下划线(_)组成。必须以字母开头，不能以下划线(_)结尾";
         else if (reservedUsernames.contains(userName) || isUserExists(userName, "username"))
             msg = "用户名已存在";
 
@@ -798,6 +798,7 @@ public class AuthingUserDao {
         map.put("请先绑定邮箱", MessageCodeConfig.E00038);
         map.put("邮箱不能为空", MessageCodeConfig.E00039);
         map.put("请输入正确的邮箱", MessageCodeConfig.E00040);
+        map.put("请输入3到20个字符。只能由字母、数字或者下划线(_)组成。必须以字母开头，不能以下划线(_)结尾", MessageCodeConfig.E00041);
 
         return map;
     }

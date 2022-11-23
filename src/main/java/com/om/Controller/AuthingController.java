@@ -11,7 +11,13 @@
 
 package com.om.Controller;
 
-import com.mashape.unirest.http.HttpResponse;
+import com.anji.captcha.model.common.ResponseModel;
+import com.anji.captcha.model.vo.CaptchaVO;
+import com.anji.captcha.service.CaptchaService;
+import com.anji.captcha.util.AESUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Service.AuthingService;
 import com.om.Vo.OauthTokenVo;
 import com.om.authing.AuthingUserToken;
@@ -25,12 +31,29 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import static com.anji.captcha.controller.CaptchaController.getRemoteId;
+
 
 @RequestMapping(value = "/authing")
 @RestController
 public class AuthingController {
     @Autowired
     AuthingService authingService;
+
+    @Autowired
+    private CaptchaService captchaService;
+
+    @RequestMapping(value = "/captcha/get")
+    public ResponseModel captchaGet(@RequestBody CaptchaVO data, HttpServletRequest request) throws JsonProcessingException {
+        data.setBrowserInfo(getRemoteId(request));
+        return captchaService.get(data);
+    }
+
+    @RequestMapping(value = "/captcha/check")
+    public ResponseModel captchaCheck(@RequestBody CaptchaVO data, HttpServletRequest request) {
+        data.setBrowserInfo(getRemoteId(request));
+        return captchaService.check(data);
+    }
 
     @RequestMapping(value = "/account/exists")
     public ResponseEntity accountExists(@RequestParam(value = "userName", required = false) String userName,
@@ -40,8 +63,13 @@ public class AuthingController {
 
     @RequestMapping(value = "/v3/sendCode")
     public ResponseEntity sendCodeV3(@RequestParam(value = "account") String account,
-                                     @RequestParam(value = "channel") String channel) {
-        return authingService.sendCodeV3(account, channel);
+                                     @RequestParam(value = "channel") String channel,
+                                     @RequestParam("captchaVerification") String captchaVerification) {
+        CaptchaVO captchaVO = new CaptchaVO();
+        captchaVO.setCaptchaVerification(captchaVerification);
+        ResponseModel response = captchaService.verification(captchaVO);
+        boolean isSuccess = response.isSuccess();
+        return authingService.sendCodeV3(account, channel, isSuccess);
     }
 
     @RequestMapping(value = "/register")
