@@ -12,6 +12,8 @@
 package com.om.Service;
 
 import cn.authing.core.types.User;
+import com.anji.captcha.model.common.ResponseModel;
+import com.anji.captcha.model.vo.CaptchaVO;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -103,7 +105,11 @@ public class AuthingService {
         return result(HttpStatus.OK, "success", null);
     }
 
-    public ResponseEntity sendCodeV3(String account, String channel) {
+    public ResponseEntity sendCodeV3(String account, String channel, boolean isSuccess) {
+        // 验证码二次校验
+        if (!isSuccess)
+            return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
+
         // 限制一分钟登录失败次数
         String loginErrorCountKey = account + "loginCount";
         Object v = redisDao.get(loginErrorCountKey);
