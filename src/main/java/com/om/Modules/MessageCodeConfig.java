@@ -56,6 +56,8 @@ public enum MessageCodeConfig {
     E00036("E00036", "app not found,please check the parameter", "请指定应用的id、secret、host"),
     E00037("E00037", "authorization failed", "授权失败"),
     E00038("E00037", "please bind mailbox first", "请先绑定邮箱"),
+    E00039("E00020", "mailbox must be not empty", "邮箱不能为空"),
+    E00040("E00020", "please enter the correct mailbox", "请输入正确的邮箱"),
     ;
 
     private String code;

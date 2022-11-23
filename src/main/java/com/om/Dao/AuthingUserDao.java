@@ -796,6 +796,8 @@ public class AuthingUserDao {
         map.put("请指定应用的id、secret、host", MessageCodeConfig.E00036);
         map.put("授权失败", MessageCodeConfig.E00037);
         map.put("请先绑定邮箱", MessageCodeConfig.E00038);
+        map.put("邮箱不能为空", MessageCodeConfig.E00039);
+        map.put("请输入正确的邮箱", MessageCodeConfig.E00040);
 
         return map;
     }
