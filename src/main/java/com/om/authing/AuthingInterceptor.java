@@ -287,6 +287,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         } else {
             fromIndex = 8;
             endIndex = input.indexOf("/", fromIndex);
+            endIndex = endIndex == -1 ? input.length() - 1 : endIndex;
         }
         String substring = input.substring(0, endIndex);
         for (String domain : domains) {
