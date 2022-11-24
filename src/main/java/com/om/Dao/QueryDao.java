@@ -122,11 +122,6 @@ public class QueryDao {
     @Autowired
     StarFork starFork;
 
-    String DEFAULT_MISTAKE_UPDATE_START_TIME = "2010-01-01";
-    String DEFAULT_MISTAKE_UPDATE_END_TIME = "now";
-    @Value("${openeuler.contributors.default}")
-    int globalContributors;
-
     public HashMap<String, HashMap<String, String>> getcommunityFeature(String community) {
         String yamlFile;
         switch (community.toLowerCase()) {
@@ -500,10 +495,6 @@ public class QueryDao {
     public String queryAll(String community) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
         Map<String, Object> contributes = queryContributes(community, "contributes");
         JsonNode contributorsNode = objectMapper.readTree(this.queryContributors(community)).get("data").get("contributors");
-        Object contributors = contributorsNode == null ? null : contributorsNode.intValue();
-        if (contributors != null && contributorsNode.intValue() != 0) {
-            globalContributors = contributorsNode.intValue();
-        }
         JsonNode usersNode = objectMapper.readTree(this.queryUsers(community)).get("data").get("users");
         Object users = usersNode == null ? null : usersNode.intValue();
         JsonNode noticeusersNode = objectMapper.readTree(this.queryNoticeusers(community)).get("data").get("noticeusers");
@@ -524,7 +515,7 @@ public class QueryDao {
             users = downloads;
         }
         contributes.put("downloads", downloads);
-        contributes.put("contributors", globalContributors);
+        contributes.put("contributors", contributorsNode.intValue());
         contributes.put("users", users);
         contributes.put("noticeusers", noticeusers);
         contributes.put("sigs", sigs);
@@ -539,9 +530,6 @@ public class QueryDao {
         resMap.put("msg", "success");
         resMap.put("update_at", (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")).format(new Date()));
         return objectMapper.valueToTree(resMap).toString();
-
-//        String result = "{\"code\":" + 200 + ",\"data\":{\"downloads\":" + downloads + ",\"contributors\":" + contributors + ",\"users\":" + users + ",\"noticeusers\":" + noticeusers + ",\"sigs\":" + sigs + ",\"modulenums\":" + modulenums + ",\"businessosv\":" + businessOsv + ",\"communitymembers\":" + communityMembers + "},\"msg\":\"" + "OK" + "\"}";
-//        return result;
     }
 
     public String getCountResult(ListenableFuture<Response> f, String dataflage) {
