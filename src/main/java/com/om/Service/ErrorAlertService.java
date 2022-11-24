@@ -109,15 +109,15 @@ public class ErrorAlertService {
             JsonNode old_value = old_data.get(fieldName);
             JsonNode new_value = new_data.get(fieldName);
             if (old_value == null || new_value == null) {
-                for (String account : accounts) {
-                    sendMsg(account, community, label, null);
-                }
+                // for (String account : accounts) {
+                //     sendMsg(account, community, label, null);
+                // }
                 flag = true;
             } else if (old_value.asInt() > new_value.asInt()
                     && ((old_value.asInt() - new_value.asInt()) > old_value.asInt() * 0.005)) {
-                for (String account : accounts) {
-                    sendMsg(account, community, label, new_value.asText());
-                }
+                // for (String account : accounts) {
+                //     sendMsg(account, community, label, new_value.asText());
+                // }
                 flag = true;
             }
         }
