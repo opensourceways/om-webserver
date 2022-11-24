@@ -20,7 +20,6 @@ import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.mashape.unirest.http.exceptions.UnirestException;
-import com.mashape.unirest.request.body.MultipartBody;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
@@ -40,9 +39,7 @@ import javax.crypto.NoSuchPaddingException;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -280,7 +277,8 @@ public class AuthingUserDao {
         List<String> redirectUris = new ArrayList<>();
         try {
             Application execute = managementClient.application().findById(appId).execute();
-            redirectUris = execute.getRedirectUris();
+            if (execute != null)
+                redirectUris = execute.getRedirectUris();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -314,7 +312,6 @@ public class AuthingUserDao {
             // access_token换user
             Map user = (Map) authentication.getUserInfoByAccessToken(access_token).execute();
             user.put("id_token", res.get("id_token").toString());
-            System.out.println("*** getAccessTokenByCode:" + res.get("id_token").toString());
             return user;
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -705,11 +702,12 @@ public class AuthingUserDao {
         try {
             User user = getUserInfo(token);
             authentication.setCurrentUser(user);
+            String photo = user.getPhoto();
 
             // 重命名文件
             String fileName = file.getOriginalFilename();
             String extension = fileName.substring(fileName.lastIndexOf("."));
-            String objectName = String.format("%s-%s%s", user.getId(), DigestUtils.md5DigestAsHex(fileName.getBytes()), extension);
+            String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
 
             //上传文件到OBS
             PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, file.getInputStream());
@@ -717,9 +715,26 @@ public class AuthingUserDao {
 
             // 修改用户头像
             authentication.updateProfile(new UpdateUserInput().withPhoto(objectUrl)).execute();
+
+            // 删除旧的头像
+            deleteObsObjectByUrl(photo);
             return true;
         } catch (Exception ex) {
             return false;
+        }
+    }
+
+    private void deleteObsObjectByUrl(String objectUrl) {
+        try {
+            if (StringUtils.isBlank(objectUrl)) return;
+
+            int beginIndex = objectUrl.lastIndexOf("/");
+            beginIndex = beginIndex == -1 ? 0 : beginIndex + 1;
+            String objName = objectUrl.substring(beginIndex);
+            if (obsClient.doesObjectExist(datastatImgBucket, objName))
+                obsClient.deleteObject(datastatImgBucket, objName);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
