@@ -243,6 +243,8 @@ public class QueryService {
         JsonNode old_data = null;
         JsonNode new_data = null;
         result = (String) redisDao.get(key);
+        System.out.println("(String) redisDao.get(key) = " + key);
+        System.out.println(result);
 
         Boolean is_flush = false;
         ObjectMapper objectMapper = new ObjectMapper();
@@ -269,6 +271,8 @@ public class QueryService {
             Boolean flag = false;
             try {
                 String result_new = queryDao.queryAll(community);
+                System.out.println("queryDao.queryAll(community) ");
+                System.out.println("result_new = " + result_new);
                 JsonNode all_new = objectMapper.readTree(result_new);
                 new_data = all_new.get("data");
                 if (old_data != null) {
@@ -276,6 +280,7 @@ public class QueryService {
                 }
                 if (!flag) {
                     boolean set = redisDao.set(key, result_new, -1l);
+                    System.out.println("set result_new = " + result_new);
                     if (set) {
                         System.out.println("update " + key + " success!");
                     }
@@ -1371,7 +1376,7 @@ public class QueryService {
         }
         return res;
     }
-    
+
     public ResponseEntity queryReviewerRecommend(PrReviewerVo input) {
         String key =  "reviewer_recommend_" + input.getCommunity(); //community.toLowerCase() + contributeType + "committers";
         ResponseEntity result = null;
