@@ -14,10 +14,6 @@ package com.om.Controller;
 import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
-import com.anji.captcha.util.AESUtil;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Service.AuthingService;
 import com.om.Vo.OauthTokenVo;
 import com.om.authing.AuthingUserToken;
@@ -34,7 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 import static com.anji.captcha.controller.CaptchaController.getRemoteId;
 
 
-@RequestMapping(value = "/authing")
+@RequestMapping(value = "/oneid")
 @RestController
 public class AuthingController {
     @Autowired
@@ -44,7 +40,7 @@ public class AuthingController {
     private CaptchaService captchaService;
 
     @RequestMapping(value = "/captcha/get")
-    public ResponseModel captchaGet(@RequestBody CaptchaVO data, HttpServletRequest request) throws JsonProcessingException {
+    public ResponseModel captchaGet(@RequestBody CaptchaVO data, HttpServletRequest request) {
         data.setBrowserInfo(getRemoteId(request));
         return captchaService.get(data);
     }
