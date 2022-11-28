@@ -2907,12 +2907,12 @@ public class QueryDao {
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getGiteeAllIndex();
-                queryStr = openEuler.getAggGroupCountQueryStr(group_field, group, contributeType, timeRange, community);
+                queryStr = openEuler.getAggGroupCountQueryStr(group_field, group, contributeType, timeRange, community, null);
                 break;
             case "opengauss":
-                group = querySiglabel(community, group);
+                String label = querySiglabel(community, group);
                 index = openGauss.getGiteeAllIndex();
-                queryStr = openGauss.getAggGroupCountQueryStr(group_field, group, contributeType, timeRange, community);
+                queryStr = openGauss.getAggGroupCountQueryStr(group_field, group, contributeType, timeRange, community, label);
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
@@ -3608,6 +3608,7 @@ public class QueryDao {
                                              String timeRange, Environment env, String comment_type, String filter) {
         String index;
         ArrayList<Object> params;
+        String label = null;
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getGiteeAllIndex();
@@ -3617,7 +3618,7 @@ public class QueryDao {
                 index = openGauss.getGiteeAllIndex();
                 params = openGauss.getAggUserCountQueryParams(contributeType, timeRange);
                 if (null != sig)
-                    sig = querySiglabel(community, sig);
+                    label  = querySiglabel(community, sig);
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
@@ -3636,7 +3637,7 @@ public class QueryDao {
         RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
         EsQueryUtils esQueryUtils = new EsQueryUtils();
 
-        return esQueryUtils.esUserCount(community, restHighLevelClient, index, user, sig, params, comment_type, filter);
+        return esQueryUtils.esUserCount(community, restHighLevelClient, index, user, sig, params, comment_type, filter, label);
     }
 
     public String queryUserLists(String community, String group, String name) {
