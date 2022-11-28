@@ -291,7 +291,7 @@ public class EsQueryUtils {
     }
 
     public String esUserCount(String community, RestHighLevelClient client, String indexname, String user, String sig, 
-            ArrayList<Object> params, String comment_type, String filter) {
+            ArrayList<Object> params, String comment_type, String filter, String label) {
         SearchRequest request = new SearchRequest(indexname);
         SearchSourceBuilder builder = new SearchSourceBuilder();
         request.scroll(TimeValue.timeValueMinutes(1));
@@ -307,6 +307,7 @@ public class EsQueryUtils {
         String type_url = params.get(5).toString();
         String type_no = params.get(6).toString();
         sig = sig == null ? "*" : sig;
+        label = label == null ? "*" : label;
         boolQueryBuilder.must(QueryBuilders.rangeQuery("created_at").from(start).to(end));
         boolQueryBuilder.mustNot(QueryBuilders.matchQuery("is_removed", 1));
         boolQueryBuilder.must(QueryBuilders.wildcardQuery("user_login.keyword", user));
@@ -316,7 +317,10 @@ public class EsQueryUtils {
                 boolQueryBuilder.must(QueryBuilders.wildcardQuery("sig_names.keyword", sig));     
                 break;
             case "opengauss":
-                boolQueryBuilder.must(QueryBuilders.wildcardQuery("tag_sig_names.keyword", sig));
+                boolQueryBuilder.mustNot(QueryBuilders.wildcardQuery("gitee_repo.keyword", "https://gitee.com/opengauss/practice-course"));
+                String query = "(sig_names.keyword:%s OR (tag_sig_names.keyword:%s AND gitee_repo.keyword:\"https://gitee.com/opengauss/openGauss-server\"))";
+                query = String.format(query, sig, label);
+                boolQueryBuilder.must(QueryBuilders.queryStringQuery(query));
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + type + "\":\"query error\"},\"msg\":\"query error\"}";
@@ -342,7 +346,7 @@ public class EsQueryUtils {
         request.source(builder);
 
         ArrayList<HashMap<String, Object>> list = new ArrayList<>();
-        HashMap<String, ArrayList<Object>> data = new HashMap<>();
+        HashMap<String, ArrayList<HashMap<String, Object>>> data = new HashMap<>();
         long totalCount = 0;
         String scrollId = null;
         try {
@@ -375,7 +379,7 @@ public class EsQueryUtils {
                 e.printStackTrace();
             }
         }
-        data = MapCombine(list);
+        data.put(user, list);
         String s = objectMapper.valueToTree(data).toString();
         return "{\"code\":200,\"data\":" + s + ",\"totalCount\":" + totalCount + ",\"msg\":\"ok\"}";
     }
@@ -418,9 +422,7 @@ public class EsQueryUtils {
             }
             datamap.put("url", url);
             HashMap<String, Object> res = new HashMap<>();
-            res.put("user", user);
-            res.put("details", datamap);
-            list.add(res);          
+            list.add(datamap);          
         }
         return list;
     }

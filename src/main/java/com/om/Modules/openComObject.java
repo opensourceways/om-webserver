@@ -928,7 +928,7 @@ public class openComObject {
     }
 
     public String getAggGroupCountQueryStr(String group_field, String group, String contributeType, String timeRange,
-            String community) {
+            String community, String label) {
         String queryStr;
         String queryJson;
         long currentTimeMillis = System.currentTimeMillis();
@@ -950,13 +950,25 @@ public class openComObject {
 
         switch (contributeType.toLowerCase()) {
             case "pr":
-                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group, "is_pull_state_merged");
+                if (community.toLowerCase().equals("opengauss")){
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group, label, "is_pull_state_merged");
+                } else {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group, "is_pull_state_merged");
+                }                
                 break;
-            case "issue":
-                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group, "is_gitee_issue");
+            case "issue":                
+                if (community.toLowerCase().equals("opengauss")){
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group, label, "is_gitee_issue");
+                } else {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group, "is_gitee_issue");
+                } 
                 break;
-            case "comment":
-                queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group, "is_gitee_comment");
+            case "comment":                
+                if (community.toLowerCase().equals("opengauss")){
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group, label, "is_gitee_comment");
+                } else {
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, group, "is_gitee_comment");
+                }
                 break;
             default:
                 return null;
