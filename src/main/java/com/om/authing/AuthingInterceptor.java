@@ -111,7 +111,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         // 校验cookie
         Cookie tokenCookie = verifyCookie(httpServletRequest);
         if (tokenCookie == null) {
-            tokenError(httpServletRequest, httpServletResponse, "token miss");
+            tokenError(httpServletRequest, httpServletResponse, "unauthorized");
             return false;
         }
 
@@ -193,7 +193,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
                 }
             }
         } catch (Exception e) {
-            return "unauthorized";
+            return "has no permission";
         }
         return "success";
     }
@@ -272,7 +272,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         boolean checkOrigin = checkDomain(domains, origin);
 
         if (!checkReferer && !checkOrigin) {
-            return "request not allowed";
+            return "unauthorized";
         }
         return "success";
     }
