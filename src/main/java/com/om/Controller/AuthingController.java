@@ -108,14 +108,16 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/logout")
-    public ResponseEntity logout(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, @CookieValue("_Y_G_") String token) {
+    public ResponseEntity logout(HttpServletRequest httpServletRequest,
+                                 HttpServletResponse servletResponse,
+                                 @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.logoutOld(httpServletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/user/permission")
     public ResponseEntity getUser(@RequestParam(value = "community") String community,
-                                  @CookieValue("_Y_G_") String token) {
+                                  @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.authingUserPermission(community, token);
     }
 
@@ -131,13 +133,13 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/personal/center/user")
-    public ResponseEntity userInfo(@CookieValue("_Y_G_") String token) {
+    public ResponseEntity userInfo(@CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.personalCenterUserInfo(token);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/delete/user")
-    public ResponseEntity deleteUser(@CookieValue("_Y_G_") String token) {
+    public ResponseEntity deleteUser(@CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.deleteUser(token);
     }
 
@@ -158,7 +160,7 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/update/account")
-    public ResponseEntity updateAccount(@CookieValue(value = "_Y_G_") String token,
+    public ResponseEntity updateAccount(@CookieValue(value = "_Y_G_", required = false) String token,
                                         @RequestParam(value = "oldaccount") String oldaccount,
                                         @RequestParam(value = "oldcode") String oldcode,
                                         @RequestParam(value = "account") String account,
@@ -169,7 +171,7 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/unbind/account")
-    public ResponseEntity unbindAccount(@CookieValue(value = "_Y_G_") String token,
+    public ResponseEntity unbindAccount(@CookieValue(value = "_Y_G_", required = false) String token,
                                         @RequestParam(value = "account") String account,
                                         @RequestParam(value = "code") String code,
                                         @RequestParam(value = "account_type") String account_type) {
@@ -178,7 +180,7 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/bind/account")
-    public ResponseEntity bindAccount(@CookieValue(value = "_Y_G_") String token,
+    public ResponseEntity bindAccount(@CookieValue(value = "_Y_G_", required = false) String token,
                                       @RequestParam(value = "account") String account,
                                       @RequestParam(value = "code") String code,
                                       @RequestParam(value = "account_type") String account_type) {
@@ -188,34 +190,34 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/conn/list")
-    public ResponseEntity linkConnList(@CookieValue(value = "_Y_G_") String token) {
+    public ResponseEntity linkConnList(@CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.linkConnList(token);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/link/account")
-    public ResponseEntity linkAccount(@CookieValue(value = "_Y_G_") String token,
+    public ResponseEntity linkAccount(@CookieValue(value = "_Y_G_", required = false) String token,
                                       @RequestParam(value = "secondtoken") String secondtoken) {
         return authingService.linkAccount(token, secondtoken);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/unlink/account")
-    public ResponseEntity unLinkAccount(@CookieValue(value = "_Y_G_") String token,
+    public ResponseEntity unLinkAccount(@CookieValue(value = "_Y_G_", required = false) String token,
                                         @RequestParam(value = "platform") String platform) {
         return authingService.unLinkAccount(token, platform);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/update/baseInfo", method = RequestMethod.POST)
-    public ResponseEntity updateUserBaseInfo(@CookieValue(value = "_Y_G_") String token,
+    public ResponseEntity updateUserBaseInfo(@CookieValue(value = "_Y_G_", required = false) String token,
                                              @RequestBody Map<String, Object> map) {
         return authingService.updateUserBaseInfo(token, map);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/update/photo", method = RequestMethod.POST)
-    public ResponseEntity upload(@CookieValue(value = "_Y_G_") String token,
+    public ResponseEntity upload(@CookieValue(value = "_Y_G_", required = false) String token,
                                  @RequestParam(value = "file") MultipartFile file) {
         return authingService.updatePhoto(token, file);
     }
