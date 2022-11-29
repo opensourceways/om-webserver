@@ -290,7 +290,7 @@ public class QueryController {
     public String queryCompanySigDetails(@RequestParam(value = "community") String community, 
                                          @RequestParam(value = "company") String company, 
                                          @RequestParam(value = "timeRange") String timeRange,
-                                         @CookieValue(value ="_Y_G_", required = false) String token) {
+                                         @CookieValue(value = "_Y_G_", required = false) String token) {
         String res = queryService.queryCompanySigDetails(community, company, timeRange, token);
         return res;
     }
@@ -308,7 +308,7 @@ public class QueryController {
     public String queryCompanyUsers(@RequestParam(value = "community") String community, 
                                     @RequestParam(value = "company") String company, 
                                     @RequestParam(value = "timeRange") String timeRange,
-                                    @CookieValue(value ="_Y_G_", required = false) String token) {
+                                    @CookieValue(value = "_Y_G_", required = false) String token) {
         String res = queryService.queryCompanyUsers(community, company, timeRange, token);
         return res;
     }
