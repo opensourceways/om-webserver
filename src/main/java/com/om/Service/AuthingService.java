@@ -219,7 +219,8 @@ public class AuthingService {
 
         // 写cookie
         String cookieTokenName = env.getProperty("cookie.token.name");
-        int maxAge = Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
+        String maxAgeTemp = env.getProperty("authing.cookie.max.age");
+        int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
         HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
 
         // 返回结果
@@ -419,7 +420,8 @@ public class AuthingService {
 
             // 写cookie
             String cookieTokenName = env.getProperty("cookie.token.name");
-            int maxAge = Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
+            String maxAgeTemp = env.getProperty("authing.cookie.max.age");
+            int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
             HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
 
             // 返回结果
