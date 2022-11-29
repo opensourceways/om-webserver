@@ -12,6 +12,8 @@
 package com.om.Service;
 
 import cn.authing.core.types.User;
+import com.anji.captcha.model.common.ResponseModel;
+import com.anji.captcha.model.vo.CaptchaVO;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -25,6 +27,7 @@ import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
+
 import java.net.URLEncoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -39,6 +42,8 @@ import javax.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import com.om.Vo.OauthTokenVo;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -74,6 +79,8 @@ public class AuthingService {
 
     private static HashMap<String, Boolean> domain2secure;
 
+    private static ObjectMapper objectMapper;
+
     private static final String PHONEREGEX = "^[a-z0-9]{11}$";
 
     private static final String EMAILREGEX = "^[A-Za-z0-9-._\\u4e00-\\u9fa5]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$";
@@ -82,6 +89,7 @@ public class AuthingService {
     public void init() {
         codeUtil = new CodeUtil();
         error2code = authingUserDao.getErrorCode();
+        objectMapper = new ObjectMapper();
         domain2secure = HttpClientUtils.getConfigCookieInfo(Objects.requireNonNull(env.getProperty("cookie.token.domains")), Objects.requireNonNull(env.getProperty("cookie.token.secures")));
     }
 
@@ -97,7 +105,11 @@ public class AuthingService {
         return result(HttpStatus.OK, "success", null);
     }
 
-    public ResponseEntity sendCodeV3(String account, String channel) {
+    public ResponseEntity sendCodeV3(String account, String channel, boolean isSuccess) {
+        // 验证码二次校验
+        if (!isSuccess)
+            return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
+
         // 限制一分钟登录失败次数
         String loginErrorCountKey = account + "loginCount";
         Object v = redisDao.get(loginErrorCountKey);
@@ -129,7 +141,9 @@ public class AuthingService {
         if (!msg.equals("success"))
             return result(HttpStatus.BAD_REQUEST, null, msg, null);
         if (StringUtils.isBlank(account))
-            return result(HttpStatus.BAD_REQUEST, null, "手机号或者邮箱不能为空", null);
+            return result(HttpStatus.BAD_REQUEST, null, "邮箱不能为空", null);
+        if (!account.matches(EMAILREGEX))
+            return result(HttpStatus.BAD_REQUEST, null, "请输入正确的邮箱", null);
 
         // 邮箱 OR 手机号校验
         String accountType = checkPhoneAndEmail(account);
@@ -137,10 +151,10 @@ public class AuthingService {
         if (accountType.equals("email")) {
             // 邮箱注册
             msg = authingUserDao.registerByEmail(account, code, userName);
-        } else if (accountType.equals("phone")) {
+        } /*else if (accountType.equals("phone")) {
             // 手机注册
             msg = authingUserDao.registerByPhone(account, code, userName);
-        } else {
+        } */else {
             return result(HttpStatus.BAD_REQUEST, null, accountType, null);
         }
         if (!msg.equals("success")) return result(HttpStatus.BAD_REQUEST, null, msg, null);
@@ -205,7 +219,8 @@ public class AuthingService {
 
         // 写cookie
         String cookieTokenName = env.getProperty("cookie.token.name");
-        int maxAge = Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
+        String maxAgeTemp = env.getProperty("authing.cookie.max.age");
+        int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
         HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
 
         // 返回结果
@@ -214,6 +229,65 @@ public class AuthingService {
         userData.put("photo", user.getPhoto());
         userData.put("username", user.getUsername());
         return result(HttpStatus.OK, "success", userData);
+    }
+
+    public ResponseEntity appVerify(String appId, String redirect) {
+        List<String> uris = authingUserDao.getAppRedirectUris(appId);
+        for (String uri : uris) {
+            System.out.println(uri);
+            if (uri.endsWith("*") && redirect.startsWith(uri.substring(0, uri.length() - 1)))
+                return result(HttpStatus.OK, "success", null);
+            else if (redirect.equals(uri))
+                return result(HttpStatus.OK, "success", null);
+        }
+        return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
+    }
+
+    public ResponseEntity oauthToken(String appId, String appSecret, String grantType, String code, String redirectUri,
+                                     OauthTokenVo oauthTokenVo) {
+         appId = appId != null ? appId : oauthTokenVo.getApp_id();
+        appSecret = appSecret != null ? appSecret : oauthTokenVo.getApp_secret();
+        if (appId == null || appSecret == null)
+            return result(HttpStatus.NOT_FOUND, null, "未找到应用", null);
+
+        try {
+            String url = redirectUri;
+            Matcher matcher = Pattern.compile("[\\u4e00-\\u9fa5]+").matcher(redirectUri);
+            String tmp = "";
+            while (matcher.find()) {
+                tmp = matcher.group();
+                System.out.println(tmp);
+                url = url.replaceAll(tmp, URLEncoder.encode(tmp, "UTF-8"));
+            }
+
+            HttpResponse<JsonNode> accessTokenByCode = authingUserDao.getAccessTokenByCode(code, appId, grantType, appSecret, redirectUri);
+            int status = accessTokenByCode.getStatus();
+            JSONObject object = accessTokenByCode.getBody().getObject();
+            if (status != 200)
+                return result(HttpStatus.BAD_REQUEST, object.getString("error_description"), null);
+
+            Map data = objectMapper.readValue(object.toString(), Map.class);
+            return result(HttpStatus.OK, "OK", data);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return result(HttpStatus.BAD_REQUEST, "授权失败", null);
+        }
+    }
+
+    public ResponseEntity userByAccessToken(String accessToken) {
+        try {
+            HttpResponse<JsonNode> userByAccessToken = authingUserDao.getUserByAccessToken(accessToken);
+            int status = userByAccessToken.getStatus();
+            JSONObject object = userByAccessToken.getBody().getObject();
+            if (status != 200)
+                return result(HttpStatus.BAD_REQUEST, object.getString("error_description"), null);
+
+            Map data = objectMapper.readValue(object.toString(), Map.class);
+            return result(HttpStatus.OK, "OK", data);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return result(HttpStatus.BAD_REQUEST, "获取用户失败", null);
+        }
     }
 
     public ResponseEntity authingUserPermission(String community, String token) {
@@ -258,6 +332,8 @@ public class AuthingService {
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             Date issuedAt = decode.getIssuedAt();
+
+            // 退出登录，该token失效
             String redisKey = userId + issuedAt.toString();
             redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
 
@@ -344,7 +420,8 @@ public class AuthingService {
 
             // 写cookie
             String cookieTokenName = env.getProperty("cookie.token.name");
-            int maxAge = Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
+            String maxAgeTemp = env.getProperty("authing.cookie.max.age");
+            int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
             HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
 
             // 返回结果
@@ -376,7 +453,15 @@ public class AuthingService {
 
     public ResponseEntity deleteUser(String token) {
         try {
-            String userId = getUserIdFromToken(token);
+            token = rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(token);
+            String userId = decode.getAudience().get(0);
+            Date issuedAt = decode.getIssuedAt();
+
+            // 用户注销，当前token失效
+            String redisKey = userId + issuedAt.toString();
+            redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
+
             boolean res = authingUserDao.deleteUserById(userId);
             if (res) return result(HttpStatus.OK, "delete user success", null);
             else return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
@@ -428,10 +513,7 @@ public class AuthingService {
                     String msgsms_sender = env.getProperty("msgsms.sender");
                     String msgsms_template_id = env.getProperty("msgsms.template.id");
                     // 短信发送请求
-                    DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-                    String format = dtf.format(LocalDateTime.now());
-                    String[] split = format.split(" ");
-                    String templateParas = String.format("[\"%s\",\"%s\",\"%s\"]", code, split[0], split[1]);
+                    String templateParas = String.format("[\"%s\",\"%s\"]", code, env.getProperty("msgsms.template.context.expire", "1"));
                     String wsseHeader = codeUtil.buildWsseHeader(msgsms_app_key, msgsms_app_secret);
                     String body = codeUtil.buildSmsBody(msgsms_sender, account, msgsms_template_id, templateParas, "", msgsms_signature);
                     // 发送验证码
@@ -510,9 +592,9 @@ public class AuthingService {
     }
 
     public ResponseEntity unLinkAccount(String token, String platform) {
-        boolean res = authingUserDao.unLinkAccount(token, platform);
-        if (!res) {
-            return result(HttpStatus.BAD_REQUEST, null, "解绑三方账号失败", null);
+        String msg = authingUserDao.unLinkAccount(token, platform);
+        if (!msg.equals("success")) {
+            return result(HttpStatus.BAD_REQUEST, null, msg, null);
         }
         return result(HttpStatus.OK, "unlink account success", null);
     }
