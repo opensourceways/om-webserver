@@ -111,7 +111,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         // 校验cookie
         Cookie tokenCookie = verifyCookie(httpServletRequest);
         if (tokenCookie == null) {
-            tokenError(httpServletRequest, httpServletResponse, "token miss");
+            tokenError(httpServletRequest, httpServletResponse, "unauthorized");
             return false;
         }
 
@@ -193,7 +193,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
                 }
             }
         } catch (Exception e) {
-            return "unauthorized";
+            return "has no permission";
         }
         return "success";
     }
@@ -272,17 +272,24 @@ public class AuthingInterceptor implements HandlerInterceptor {
         boolean checkOrigin = checkDomain(domains, origin);
 
         if (!checkReferer && !checkOrigin) {
-            return "request not allowed";
+            return "unauthorized";
         }
         return "success";
     }
 
     private boolean checkDomain(String[] domains, String input) {
         if (StringUtils.isBlank(input)) return true;
-        int fromIndex = input.startsWith("http://") ? 7 : 8;
-        int endIndex = input.indexOf(":", fromIndex);
-        int end = endIndex == -1 ? input.indexOf("/", fromIndex) : endIndex;
-        String substring = end == -1 ? input : input.substring(0, end);
+        int fromIndex;
+        int endIndex;
+        if (input.startsWith("http://")) {
+            fromIndex = 7;
+            endIndex = input.indexOf(":", fromIndex);
+        } else {
+            fromIndex = 8;
+            endIndex = input.indexOf("/", fromIndex);
+            endIndex = endIndex == -1 ? input.length() : endIndex;
+        }
+        String substring = input.substring(0, endIndex);
         for (String domain : domains) {
             if (substring.endsWith(domain)) return true;
         }
