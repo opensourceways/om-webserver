@@ -1325,6 +1325,9 @@ public class QueryService {
     }
 
     private Boolean getPermission(String token, String community, String company) {
+        if (null == token) {
+            return false;
+        }
         try {
             RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
             DecodedJWT decode = JWT.decode(RSAUtil.privateDecrypt(token, privateKey));
