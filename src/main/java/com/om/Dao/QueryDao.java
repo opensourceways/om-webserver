@@ -1497,7 +1497,7 @@ public class QueryDao {
                 break;
             case "opengauss":
                 if (null != sig)
-                    sig = querySiglabel(community, sig);
+                    sig = querySiglabel(community).get(sig);
                 index = openGauss.getGiteeAllIndex();
                 queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
                 claIndex = openGauss.getClaCorporationIndex();
@@ -2922,7 +2922,7 @@ public class QueryDao {
                 queryStr = openEuler.getAggGroupCountQueryStr(group_field, group, contributeType, timeRange, community, null);
                 break;
             case "opengauss":
-                String label = querySiglabel(community, group);
+                String label = querySiglabel(community).get(group);
                 index = openGauss.getGiteeAllIndex();
                 queryStr = openGauss.getAggGroupCountQueryStr(group_field, group, contributeType, timeRange, community, label);
                 break;
@@ -3429,59 +3429,54 @@ public class QueryDao {
             default:
                 return "";
         }
-
+        ArrayList<HashMap<String, Object>> tempList = new ArrayList<>();
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getGiteeAllIndex();
                 queryjson = openEuler.getgroup_agg_sig_queryStr();
                 queryStr = openEuler.getAggGroupSigCountQueryStr(queryjson, contributeType, timeRange, group, field);
+                tempList = getdata(community, index, queryStr);
                 break;
             case "opengauss":
                 index = openGauss.getGiteeAllIndex();
                 queryjson = openGauss.getgroup_agg_sig_queryStr();
-                queryStr = openGauss.getAggGroupSigCountQueryStr(queryjson, contributeType, timeRange, group, field);
+                String[] queryjsons = queryjson.split(";");
+                for (String query : queryjsons) {
+                    queryStr = openGauss.getAggGroupSigCountQueryStr(query, contributeType, timeRange, group, field);
+                    ArrayList<HashMap<String, Object>> datalist = getdata(community, index, queryStr);
+                    tempList.addAll(datalist);
+                }
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
         }
-        if (queryStr == null) {
-            return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
-
         try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-            // 获取执行结果
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-            double count = 0d;
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                long contribute = bucket.get("sum_field").get("value").asLong();
-                count += contribute;
+            HashMap<String, Long> datamap = MapCombine(tempList);
+            double sum = datamap.get("sum");
+            ArrayList<HashMap<String, Object>> resList = new ArrayList<>();
+            for (String key : datamap.keySet()) {
+                if (key.equals("sum"))
+                    continue;
+                HashMap<String, Object> map = new HashMap<>();
+                double percent = datamap.get(key) / sum;
+                map.put("sig_name", key);
+                map.put("contribute", datamap.get(key));
+                map.put("percent", percent);
+                resList.add(map);
             }
+            Collections.sort(resList, new Comparator<HashMap<String, Object>>() {
+                @Override
+                public int compare(HashMap<String, Object> t1, HashMap<String, Object> t2) {
+                    return (int) (Long.parseLong(t2.get("contribute").toString())
+                            - Long.parseLong(t1.get("contribute").toString()));
+                }
+            });
 
             ArrayList<JsonNode> dataList = new ArrayList<>();
-            buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-            long rank = 1;
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String sig_name = bucket.get("key").asText();
-                long contribute = bucket.get("sum_field").get("value").asLong();
-                double percent = contribute / count;
-
-                HashMap<String, Object> dataMap = new HashMap<>();
-                dataMap.put("sig_name", sig_name);
-                dataMap.put("contribute", contribute);
-                dataMap.put("percent", percent);
-                dataMap.put("rank", rank);
-                JsonNode resNode = objectMapper.valueToTree(dataMap);
+            int rank = 1;
+            for (HashMap<String, Object> item : resList) {
+                item.put("rank", rank);
+                JsonNode resNode = objectMapper.valueToTree(item);
                 dataList.add(resNode);
                 rank += 1;
             }
@@ -3494,6 +3489,56 @@ public class QueryDao {
             e.printStackTrace();
             return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
         }
+    }
+
+    public ArrayList<HashMap<String, Object>> getdata(String community, String index, String queryStr) {
+        ArrayList<HashMap<String, Object>> dataList = new ArrayList<>();
+        HashMap<String, String> siglabels = querySiglabel(community);
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryStr);
+            // 获取执行结果
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                long contribute = bucket.get("sum_field").get("value").asLong();
+                HashMap<String, Object> dataMap = new HashMap<>();
+                String sig_name = bucket.get("key").asText();
+                sig_name = label2sig(sig_name, siglabels);
+                dataMap.put("sig_name", sig_name);
+                dataMap.put("contribute", contribute);
+                dataList.add(dataMap);
+            }
+            return dataList;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public HashMap<String, Long> MapCombine(ArrayList<HashMap<String, Object>> list) {
+        HashMap<String, Long> res = new HashMap<>();
+        Long sum = 0l;
+        for (HashMap<String, Object> map : list) {
+            String keyName = map.get("sig_name").toString();
+            Long keyValue = Long.parseLong(map.get("contribute").toString());
+            sum += keyValue;
+            if (!res.containsKey(keyName)) {
+                res.put(keyName, keyValue);
+            } else {
+                Long value = res.get(keyName) + keyValue;
+                res.put(keyName, value);
+            }
+        }
+        res.put("sum", sum);
+        return res;
     }
 
     public String queryUserOwnertype(String community, String user) {
@@ -3630,7 +3675,7 @@ public class QueryDao {
                 index = openGauss.getGiteeAllIndex();
                 params = openGauss.getAggUserCountQueryParams(contributeType, timeRange);
                 if (null != sig)
-                    label  = querySiglabel(community, sig);
+                    label  = querySiglabel(community).get(sig);
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
@@ -3883,40 +3928,53 @@ public class QueryDao {
         }
     }
 
-    public String querySiglabel(String community, String sig) {
+    public String label2sig(String label, HashMap<String, String> siglabels) {
+        String sig = label;
+        if (null != siglabels) {
+            for (String key : siglabels.keySet()) {
+                if (label.equals(siglabels.get(key))) {
+                    sig = key;
+                }
+            }
+        }
+        return sig;
+    }
+
+    public HashMap<String, String> querySiglabel(String community) {
         String queryjson;
-        String queryStr;
         String index;
+        HashMap<String, String> siglabels = new HashMap<>();
         switch (community.toLowerCase()) {
             case "opengauss":
                 index = openGauss.getSigs_index();
                 queryjson = openGauss.getsig_label_queryStr();
+                siglabels.put("No-SIG", "No-Sig");
                 break;
             default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+                return null;
         }
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
-            queryStr = String.format(queryjson, sig);
             builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
+            builder.setBody(queryjson);
             ListenableFuture<Response> f = client.executeRequest(builder.build());
             String responseBody = f.get().getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-            String label = sig;
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
-                label = bucket.get("key").asText();
-                String[] labels = label.split("/");
-                label = labels[1];
+                String sig = bucket.get("key").asText();
+                Iterator<JsonNode> sigbucket = bucket.get("2").get("buckets").elements();
+                if (sigbucket.hasNext()) {
+                    String label = sigbucket.next().get("key").asText().split("/")[1];
+                    siglabels.put(sig, label);
+                }
             }
-            return label;
         } catch (Exception e) {
             e.printStackTrace();
-            return sig;
         }
+        return siglabels;
     }
 
     public String queryUserCompany(String community, String user) {
