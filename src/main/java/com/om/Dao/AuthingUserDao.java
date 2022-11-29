@@ -19,10 +19,13 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.RSAUtil;
+
+import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -32,11 +35,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -115,7 +118,7 @@ public class AuthingUserDao {
 
     public static ObsClient obsClient;
 
-    private static final String USERNAMEREGEX = "^[0-9a-zA-Z_]{3,20}$";
+    private static final String USERNAMEREGEX = "^[a-zA-Z][0-9a-zA-Z_]{1,18}[0-9a-zA-Z]$";
 
     private static List<String> reservedUsernames;
 
@@ -270,6 +273,35 @@ public class AuthingUserDao {
         return msg;
     }
 
+    public List<String> getAppRedirectUris(String appId) {
+        List<String> redirectUris = new ArrayList<>();
+        try {
+            Application execute = managementClient.application().findById(appId).execute();
+            if (execute != null)
+                redirectUris = execute.getRedirectUris();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return redirectUris;
+    }
+
+    public HttpResponse<JsonNode> getAccessTokenByCode(String code, String appId, String grantType, String appSecret, String redirectUri) throws UnirestException {
+        return Unirest.post(AUTHINGAPIHOST + "/oidc/token")
+                .field("client_id", appId)
+                .field("client_secret", appSecret)
+                .field("grant_type", "authorization_code")
+                .field("redirect_uri", redirectUri)
+                .field("code", code)
+                .asJson();
+    }
+
+
+    public HttpResponse<JsonNode> getUserByAccessToken(String accessToken) throws UnirestException {
+        return Unirest.get(AUTHINGAPIHOST + "/oidc/me")
+                .header("Authorization", accessToken)
+                .asJson();
+    }
+
     public Map getUserInfoByAccessToken(String code, String redirectUrl) {
         try {
             // code换access_token
@@ -280,7 +312,6 @@ public class AuthingUserDao {
             // access_token换user
             Map user = (Map) authentication.getUserInfoByAccessToken(access_token).execute();
             user.put("id_token", res.get("id_token").toString());
-            System.out.println("*** getAccessTokenByCode:" + res.get("id_token").toString());
             return user;
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -475,13 +506,16 @@ public class AuthingUserDao {
         String resFail = "unbind fail";
         try {
             User us = getUserInfo(token);
+            if (StringUtils.isBlank(us.getEmail())) return "请先绑定邮箱";
+
             authentication.setCurrentUser(us);
             switch (type.toLowerCase()) {
-                case "email":
+                // TODO 目前不允许解绑邮箱
+                /*case "email":
                     String email = us.getEmail();
                     if (!account.equals(email)) return resFail;
                     authentication.unbindEmail().execute();
-                    break;
+                    break;*/
                 case "phone":
                     String phone = us.getPhone();
                     if (!account.equals(phone)) return resFail;
@@ -493,8 +527,6 @@ public class AuthingUserDao {
         } catch (Exception e) {
             String message = e.getMessage();
             System.out.println(message);
-            /*if (message.contains("没有配置其他登录方式")) return resFail + ",only one login account";
-            else */
             return message;
         }
         return "unbind success";
@@ -566,7 +598,8 @@ public class AuthingUserDao {
         return "true";
     }
 
-    public boolean unLinkAccount(String token, String platform) {
+    public String unLinkAccount(String token, String platform) {
+        String msg = "解绑三方账号失败";
         String identifier;
         String extIdpId;
         try {
@@ -580,15 +613,17 @@ public class AuthingUserDao {
                     extIdpId = enterExtIdpIdGitee;
                     break;
                 default:
-                    return false;
+                    return msg;
             }
 
             User us = getUserInfo(token);
+            if (StringUtils.isBlank(us.getEmail())) return "请先绑定邮箱";
 
             // -- temporary (解决gitee多身份源解绑问题) -- TODO
             List<String> userIds = Stream.of(users.split(";")).collect(Collectors.toList());
             if (platform.toLowerCase().equals("gitee") && userIds.contains(us.getId())) {
-                return unLinkAccountTemp(us, identifiers, extIdpIds);
+                if (unLinkAccountTemp(us, identifiers, extIdpIds)) return "success";
+                else return msg;
             } // -- temporary -- TODO
 
             String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", identifier, extIdpId);
@@ -599,11 +634,11 @@ public class AuthingUserDao {
                     .header("Content-Type", "application/json")
                     .body(body)
                     .asJson();
-            return response.getBody().getObject().getInt("code") == 200;
+            if (response.getBody().getObject().getInt("code") == 200) msg = "success";
         } catch (Exception e) {
-            System.out.println(e.getMessage());
-            return false;
+            e.printStackTrace();
         }
+        return msg;
     }
 
     // -- temporary (解决gitee多身份源解绑问题) -- TODO
@@ -667,11 +702,12 @@ public class AuthingUserDao {
         try {
             User user = getUserInfo(token);
             authentication.setCurrentUser(user);
+            String photo = user.getPhoto();
 
             // 重命名文件
             String fileName = file.getOriginalFilename();
             String extension = fileName.substring(fileName.lastIndexOf("."));
-            String objectName = String.format("%s-%s%s", user.getId(), DigestUtils.md5DigestAsHex(fileName.getBytes()), extension);
+            String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
 
             //上传文件到OBS
             PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, file.getInputStream());
@@ -679,9 +715,26 @@ public class AuthingUserDao {
 
             // 修改用户头像
             authentication.updateProfile(new UpdateUserInput().withPhoto(objectUrl)).execute();
+
+            // 删除旧的头像
+            deleteObsObjectByUrl(photo);
             return true;
         } catch (Exception ex) {
             return false;
+        }
+    }
+
+    private void deleteObsObjectByUrl(String objectUrl) {
+        try {
+            if (StringUtils.isBlank(objectUrl)) return;
+
+            int beginIndex = objectUrl.lastIndexOf("/");
+            beginIndex = beginIndex == -1 ? 0 : beginIndex + 1;
+            String objName = objectUrl.substring(beginIndex);
+            if (obsClient.doesObjectExist(datastatImgBucket, objName))
+                obsClient.deleteObject(datastatImgBucket, objName);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
@@ -704,7 +757,7 @@ public class AuthingUserDao {
         if (StringUtils.isBlank(userName))
             msg = "用户名不能为空";
         else if (!userName.matches(USERNAMEREGEX))
-            msg = "请输入3到20个字符，由字母、数字、下划线(_)组成";
+            msg = "请输入3到20个字符。只能由字母、数字或者下划线(_)组成。必须以字母开头，不能以下划线(_)结尾";
         else if (reservedUsernames.contains(userName) || isUserExists(userName, "username"))
             msg = "用户名已存在";
 
@@ -754,6 +807,13 @@ public class AuthingUserDao {
         map.put("新手机号与已绑定手机号相同", MessageCodeConfig.E00032);
         map.put("用户名唯一，不可修改", MessageCodeConfig.E00033);
         map.put("用户不存在", MessageCodeConfig.E00034);
+        map.put("回调地址与配置不符", MessageCodeConfig.E00035);
+        map.put("请指定应用的id、secret、host", MessageCodeConfig.E00036);
+        map.put("授权失败", MessageCodeConfig.E00037);
+        map.put("请先绑定邮箱", MessageCodeConfig.E00038);
+        map.put("邮箱不能为空", MessageCodeConfig.E00039);
+        map.put("请输入正确的邮箱", MessageCodeConfig.E00040);
+        map.put("请输入3到20个字符。只能由字母、数字或者下划线(_)组成。必须以字母开头，不能以下划线(_)结尾", MessageCodeConfig.E00041);
 
         return map;
     }
