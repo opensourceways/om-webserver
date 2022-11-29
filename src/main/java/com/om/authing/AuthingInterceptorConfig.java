@@ -21,7 +21,7 @@ public class AuthingInterceptorConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(AuthingInterceptor())
-                .addPathPatterns("/query/**", "/authing/**");
+                .addPathPatterns("/query/**", "/oneid/**");
     }
 
     @Bean
