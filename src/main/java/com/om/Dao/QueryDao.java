@@ -3662,7 +3662,7 @@ public class QueryDao {
                 index = openGauss.getGiteeAllIndex();
                 params = openGauss.getAggUserCountQueryParams(contributeType, timeRange);
                 String label = null;
-                if (sig.equals("Others")) sig = "No-SIG";
+                if (null != sig && sig.equals("Others")) sig = "No-SIG";
                 if (null != sig)
                     label = querySiglabel(community).get(sig);
                 sig = sig == null ? "*" : sig;
