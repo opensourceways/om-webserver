@@ -109,6 +109,15 @@ public class openComObject {
     protected String sig_label_queryStr;
     protected String account_org_index;
     protected String account_org_query;
+    protected String SigCountQuery;
+
+    public String getSigCountQuery() {
+        return SigCountQuery;
+    }
+
+    public void setSigCountQuery(String SigCountQuery) {
+        this.SigCountQuery = SigCountQuery;
+    }
 
     public String getaccount_org_index() {
         return account_org_index;
@@ -837,7 +846,7 @@ public class openComObject {
         switch (contributeType.toLowerCase()) {
             case "pr":
                 if (community.toLowerCase().equals("opengauss")) {
-                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo, sig, "is_pull_state_merged");
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo, "is_pull_state_merged");
                 } else if (community.toLowerCase().equals("openeuler") && groupField.equals("company")) {
                     queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, sig, "is_pull_state_merged");
                 } else {
@@ -846,7 +855,7 @@ public class openComObject {
                 break;
             case "issue":
                 if (community.toLowerCase().equals("opengauss")) {
-                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo, sig, "is_gitee_issue");
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo, "is_gitee_issue");
                 } else if (community.toLowerCase().equals("openeuler") && groupField.equals("company")) {
                     queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, sig, "is_gitee_issue");
                 } else {
@@ -855,7 +864,7 @@ public class openComObject {
                 break;
             case "comment":
                 if (community.toLowerCase().equals("opengauss")) {
-                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo, sig, "is_gitee_comment");
+                    queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, repo, "is_gitee_comment");
                 } else if (community.toLowerCase().equals("openeuler") && groupField.equals("company")) {
                     queryStr = String.format(queryJson, lastTimeMillis, currentTimeMillis, sig, "is_gitee_comment");
                 } else {
