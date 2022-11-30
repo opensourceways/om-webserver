@@ -1484,8 +1484,6 @@ public class QueryDao {
                 claIndex = openEuler.getClaCorporationIndex();
                 break;
             case "opengauss":
-                if (null != sig)
-                    sig = querySiglabel(community).get(sig);
                 index = openGauss.getGiteeAllIndex();
                 queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
                 claIndex = openGauss.getClaCorporationIndex();
@@ -3653,7 +3651,7 @@ public class QueryDao {
                                              String timeRange, Environment env, String comment_type, String filter) {
         String index;
         ArrayList<Object> params;
-        String label = null;
+        String query = null;
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getGiteeAllIndex();
@@ -3662,8 +3660,13 @@ public class QueryDao {
             case "opengauss":
                 index = openGauss.getGiteeAllIndex();
                 params = openGauss.getAggUserCountQueryParams(contributeType, timeRange);
+                String label = null;
                 if (null != sig)
-                    label  = querySiglabel(community).get(sig);
+                    label = querySiglabel(community).get(sig);
+                sig = sig == null ? "*" : sig;
+                label = label == null ? "*" : label;
+                query = openGauss.getSigCountQuery();
+                query = String.format(query, sig, label);
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
@@ -3682,7 +3685,7 @@ public class QueryDao {
         RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
         EsQueryUtils esQueryUtils = new EsQueryUtils();
 
-        return esQueryUtils.esUserCount(community, restHighLevelClient, index, user, sig, params, comment_type, filter, label);
+        return esQueryUtils.esUserCount(community, restHighLevelClient, index, user, sig, params, comment_type, filter, query);
     }
 
     public String queryUserLists(String community, String group, String name) {
