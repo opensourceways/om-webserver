@@ -3445,8 +3445,9 @@ public class QueryDao {
                     continue;
                 HashMap<String, Object> map = new HashMap<>();
                 double percent = datamap.get(key) / sum;
-                map.put("sig_name", key);
                 map.put("contribute", datamap.get(key));
+                if (key.equals("No-SIG")) key = "Others";
+                map.put("sig_name", key);
                 map.put("percent", percent);
                 resList.add(map);
             }
@@ -3661,6 +3662,7 @@ public class QueryDao {
                 index = openGauss.getGiteeAllIndex();
                 params = openGauss.getAggUserCountQueryParams(contributeType, timeRange);
                 String label = null;
+                if (sig.equals("Others")) sig = "No-SIG";
                 if (null != sig)
                     label = querySiglabel(community).get(sig);
                 sig = sig == null ? "*" : sig;
