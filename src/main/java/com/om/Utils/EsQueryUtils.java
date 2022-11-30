@@ -291,7 +291,7 @@ public class EsQueryUtils {
     }
 
     public String esUserCount(String community, RestHighLevelClient client, String indexname, String user, String sig, 
-            ArrayList<Object> params, String comment_type, String filter, String label) {
+            ArrayList<Object> params, String comment_type, String filter, String query) {
         SearchRequest request = new SearchRequest(indexname);
         SearchSourceBuilder builder = new SearchSourceBuilder();
         request.scroll(TimeValue.timeValueMinutes(1));
@@ -307,7 +307,6 @@ public class EsQueryUtils {
         String type_url = params.get(5).toString();
         String type_no = params.get(6).toString();
         sig = sig == null ? "*" : sig;
-        label = label == null ? "*" : label;
         boolQueryBuilder.must(QueryBuilders.rangeQuery("created_at").from(start).to(end));
         boolQueryBuilder.mustNot(QueryBuilders.matchQuery("is_removed", 1));
         boolQueryBuilder.must(QueryBuilders.wildcardQuery("user_login.keyword", user));
@@ -318,8 +317,6 @@ public class EsQueryUtils {
                 break;
             case "opengauss":
                 boolQueryBuilder.mustNot(QueryBuilders.wildcardQuery("gitee_repo.keyword", "https://gitee.com/opengauss/practice-course"));
-                String query = "(sig_names.keyword:%s OR (tag_sig_names.keyword:%s AND gitee_repo.keyword:\"https://gitee.com/opengauss/openGauss-server\"))";
-                query = String.format(query, sig, label);
                 boolQueryBuilder.must(QueryBuilders.queryStringQuery(query));
                 break;
             default:
