@@ -228,6 +228,7 @@ public class AuthingService {
         userData.put("token", verifyToken);
         userData.put("photo", user.getPhoto());
         userData.put("username", user.getUsername());
+        userData.put("email_exist", StringUtils.isNotBlank(user.getEmail()));
         return result(HttpStatus.OK, "success", userData);
     }
 
@@ -408,7 +409,8 @@ public class AuthingService {
             String userId = user.get("sub").toString();
             String idToken = user.get("id_token").toString();
             String picture = user.get("picture").toString();
-            String username = user.get("username").toString();
+            String username = (String) user.get("username");
+            String email = (String) user.get("email");
 
             // 资源权限
             String permissionInfo = env.getProperty(community + "." + permission);
@@ -429,6 +431,7 @@ public class AuthingService {
             userData.put("token", verifyToken);
             userData.put("photo", picture);
             userData.put("username", username);
+            userData.put("email_exist", StringUtils.isNotBlank(email));
             return result(HttpStatus.OK, "success", userData);
 
         } catch (Exception e) {
