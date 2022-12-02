@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.om.Service.QueryService;
 import com.om.Vo.*;
 import com.om.authing.AuthingToken;
+import com.om.authing.CompanyToken;
 import com.om.token.UserLoginToken;
 import java.util.concurrent.ExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -263,7 +264,6 @@ public class QueryController {
         return res;
     }
 
-    // @AuthingToken
     @RequestMapping("/company/usercontribute")
     public String queryCompanyUsercontribute(@RequestParam(value = "community") String community, 
                                              @RequestParam(value = "company") String company, 
@@ -274,7 +274,6 @@ public class QueryController {
         return res;
     }
 
-    // @AuthingToken
     @RequestMapping("/company/sigcontribute")
     public String queryCompanySigcontribute(@RequestParam(value = "community") String community, 
                                             @RequestParam(value = "company") String company, 
@@ -285,7 +284,6 @@ public class QueryController {
         return res;
     }
 
-    // @AuthingToken
     @RequestMapping("/company/sigdetails")
     public String queryCompanySigDetails(@RequestParam(value = "community") String community, 
                                          @RequestParam(value = "company") String company, 
@@ -295,7 +293,6 @@ public class QueryController {
         return res;
     }
 
-    //@AuthingToken
     @RequestMapping("/sig/usercontribute")
     public String querySigUserTypeCount(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig, 
                                         @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
@@ -303,7 +300,6 @@ public class QueryController {
         return res;
     }
 
-    // @AuthingToken
     @RequestMapping("/company/users")
     public String queryCompanyUsers(@RequestParam(value = "community") String community, 
                                     @RequestParam(value = "company") String company, 
@@ -356,7 +352,6 @@ public class QueryController {
         return res;
     }
 
-    //@AuthingToken
     @RequestMapping("/user/sigcontribute")
     public String queryUserSigcontribute(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user, 
                                         @RequestParam(value = "contributeType") String contributeType, @RequestParam(value = "timeRange") String timeRange) {
@@ -370,7 +365,6 @@ public class QueryController {
         return res;
     }
 
-    //@AuthingToken
     @RequestMapping("/user/contribute/details")
     public String queryUserContributeDetails(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user,
                                       @RequestParam(value = "sig", required = false) String sig,
