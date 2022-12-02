@@ -1332,6 +1332,20 @@ public class QueryService {
             RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
             DecodedJWT decode = JWT.decode(RSAUtil.privateDecrypt(token, privateKey));
             String userId = decode.getAudience().get(0);
+            Date expiresAt = decode.getExpiresAt();
+            Date now = new Date();
+            if (now.getTime() > expiresAt.getTime()) {
+                return false;
+            }
+            String permissionList = decode.getClaim("permissionList").asString();
+            String[] pers = new String(Base64.getDecoder().decode(permissionList.getBytes())).split(",");
+            for (String per : pers) {
+                String[] perList = per.split(":");
+                if (perList.length > 1 && perList[1].equalsIgnoreCase(env.getProperty("openeuler.companyAction"))){
+                    return true;
+                }                   
+            }
+            
             org.json.JSONObject userObj = authingUserDao.getUserById(userId);
             HashMap<String, Map<String, Object>> map = new HashMap<>();
             org.json.JSONArray jsonArray = userObj.getJSONArray("identities");
@@ -1342,8 +1356,11 @@ public class QueryService {
             if (null != map.get("oauth2") && null != map.get("oauth2").get("login_name")) {
                 String login = map.get("oauth2").get("login_name").toString();
                 String org = queryDao.queryUserCompany(community, login);
-                if (org.equals(company))
+                ArrayList<String> companyNameList = queryDao.getcompanyNameList(company);
+                for (String name: companyNameList){
+                    if (org.equals(name))
                     return true;
+                }               
             }
         } catch (Exception ex) {
             System.out.println("Identities Get Error");
