@@ -263,7 +263,7 @@ public class QueryController {
         return res;
     }
 
-    @AuthingToken
+    // @AuthingToken
     @RequestMapping("/company/usercontribute")
     public String queryCompanyUsercontribute(@RequestParam(value = "community") String community, 
                                              @RequestParam(value = "company") String company, 
@@ -274,7 +274,7 @@ public class QueryController {
         return res;
     }
 
-    @AuthingToken
+    // @AuthingToken
     @RequestMapping("/company/sigcontribute")
     public String queryCompanySigcontribute(@RequestParam(value = "community") String community, 
                                             @RequestParam(value = "company") String company, 
@@ -285,7 +285,7 @@ public class QueryController {
         return res;
     }
 
-    @AuthingToken
+    // @AuthingToken
     @RequestMapping("/company/sigdetails")
     public String queryCompanySigDetails(@RequestParam(value = "community") String community, 
                                          @RequestParam(value = "company") String company, 
@@ -303,7 +303,7 @@ public class QueryController {
         return res;
     }
 
-    @AuthingToken
+    // @AuthingToken
     @RequestMapping("/company/users")
     public String queryCompanyUsers(@RequestParam(value = "community") String community, 
                                     @RequestParam(value = "company") String company, 

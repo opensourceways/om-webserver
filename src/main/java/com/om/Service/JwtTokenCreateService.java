@@ -13,6 +13,7 @@ package com.om.Service;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.*;
 import com.om.Utils.RSAUtil;
@@ -23,11 +24,13 @@ import java.security.SecureRandom;
 import java.security.interfaces.RSAPublicKey;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
 
@@ -43,6 +46,10 @@ public class JwtTokenCreateService {
     private mindSpore mindspore;
     @Autowired
     RedisDao redisDao;
+    @Autowired
+    AuthingUserDao authingUserDao;
+    @Autowired
+    private Environment env;
 
     @Value("${authing.token.expire.seconds}")
     private String authingTokenExpireSeconds;
@@ -94,7 +101,7 @@ public class JwtTokenCreateService {
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
         long expireSeconds = 60;
         try {
-            expireSeconds = Integer.parseInt(authingTokenExpireSeconds);
+            expireSeconds = 1000000;//Integer.parseInt(authingTokenExpireSeconds);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -112,6 +119,12 @@ public class JwtTokenCreateService {
             e.printStackTrace();
         }
         redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
+        String perStr = "";
+        ArrayList<String> pers = authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
+        for (String per : pers) {
+            perStr += per + ","; 
+        }
+        perStr = Base64.getEncoder().encodeToString(perStr.getBytes());
 
         String token = JWT.create()
                 .withAudience(userId) //谁接受签名
@@ -120,6 +133,7 @@ public class JwtTokenCreateService {
                 .withClaim("permission", permissionStr)
                 .withClaim("inputPermission", inputPermission)
                 .withClaim("verifyToken", verifyToken)
+                .withClaim("permissionList", perStr)
                 .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));
         try {
             RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
