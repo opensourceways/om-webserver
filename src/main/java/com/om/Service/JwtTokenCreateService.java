@@ -101,7 +101,7 @@ public class JwtTokenCreateService {
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
         long expireSeconds = 60;
         try {
-            expireSeconds = 1000000;//Integer.parseInt(authingTokenExpireSeconds);
+            expireSeconds = Integer.parseInt(authingTokenExpireSeconds);
         } catch (Exception e) {
             e.printStackTrace();
         }
