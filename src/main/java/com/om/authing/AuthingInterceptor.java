@@ -31,6 +31,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -43,6 +44,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
     @Autowired
     RedisDao redisDao;
+
+    @Autowired
+    private Environment env;
 
     @Value("${authing.token.base.password}")
     private String authingTokenBasePassword;
@@ -85,12 +89,18 @@ public class AuthingInterceptor implements HandlerInterceptor {
         // 检查有没有需要用户权限的注解，仅拦截AuthingToken和AuthingUserToken
         HandlerMethod handlerMethod = (HandlerMethod) object;
         Method method = handlerMethod.getMethod();
-        if (!method.isAnnotationPresent(AuthingToken.class) && !method.isAnnotationPresent(AuthingUserToken.class)) {
+        if (!method.isAnnotationPresent(AuthingToken.class) && !method.isAnnotationPresent(AuthingUserToken.class)
+                && !method.isAnnotationPresent(CompanyToken.class)) {
             return true;
         }
         AuthingToken userLoginToken = method.getAnnotation(AuthingToken.class);
         AuthingUserToken authingUserToken = method.getAnnotation(AuthingUserToken.class);
-        if ((userLoginToken == null || !userLoginToken.required()) && (authingUserToken == null || !authingUserToken.required())) {
+        SigToken sigToken = method.getAnnotation(SigToken.class);
+        CompanyToken companyToken = method.getAnnotation(CompanyToken.class);
+        if ((userLoginToken == null || !userLoginToken.required())
+                && (authingUserToken == null || !authingUserToken.required())
+                && (sigToken == null || !sigToken.required())
+                && (companyToken == null || !companyToken.required())) {
             return true;
         }
 
@@ -151,11 +161,21 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        // token 权限验证
-        String verifyUserMsg = verifyUser(userLoginToken, userId, permission);
-        if (!verifyUserMsg.equals("success")) {
-            tokenError(httpServletRequest, httpServletResponse, verifyUserMsg);
-            return false;
+        // 校验sig权限
+        if (sigToken != null && sigToken.required()) {
+            String verifyUserMsg = verifyUser(sigToken, userId, permission);
+            if (!verifyUserMsg.equals("success")) {
+                tokenError(httpServletRequest, httpServletResponse, verifyUserMsg);
+                return false;
+            }
+        }
+        // 校验company权限
+        if (companyToken != null && companyToken.required()) {
+            String verifyCompanyPerMsg = verifyCompanyPer(companyToken, userId);
+            if (!verifyCompanyPerMsg.equals("success")) {
+                tokenError(httpServletRequest, httpServletResponse, verifyCompanyPerMsg);
+                return false;
+            }
         }
 
         return true;
@@ -182,10 +202,10 @@ public class AuthingInterceptor implements HandlerInterceptor {
      * @param permission     需要的操作权限
      * @return 校验结果
      */
-    private String verifyUser(AuthingToken userLoginToken, String userId, String permission) {
+    private String verifyUser(SigToken sigToken, String userId, String permission) {
         try {
             // token 页面请求权限验证
-            if (userLoginToken != null && userLoginToken.required()) {
+            if (sigToken != null && sigToken.required()) {
                 String[] split = permission.split("->");
                 boolean hasActionPer = authingUserDao.checkUserPermission(userId, split[0], split[1], split[2]);
                 if (!hasActionPer) {
@@ -196,6 +216,23 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return "has no permission";
         }
         return "success";
+    }
+
+    private String verifyCompanyPer(CompanyToken companyToken, String userId) {
+        try {           
+            if (companyToken != null && companyToken.required()) {
+                ArrayList<String> pers = authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
+                for (String per : pers) {
+                    String[] perList = per.split(":");
+                    if (perList.length > 1 && perList[1].equalsIgnoreCase(env.getProperty("openeuler.companyAction"))){
+                        return "success";
+                    }                   
+                }
+            }
+        } catch (Exception e) {
+            return "has no permission";
+        }
+        return "has no permission";
     }
 
     /**

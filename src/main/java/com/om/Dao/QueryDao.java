@@ -2823,6 +2823,16 @@ public class QueryDao {
     }
 
     public String getcompanyNames(String name) {
+        ArrayList<String> res = getcompanyNameList(name);
+        String names = "(";
+        for (String r : res) {
+            names = names + "\\\"" + r + "\\\",";
+        }
+        names = names + ")";
+        return names;
+    }
+
+    public ArrayList<String> getcompanyNameList(String name) {
         ArrayList<String> res = new ArrayList<>();
         res.add(name);
         YamlUtil yamlUtil = new YamlUtil();
@@ -2841,12 +2851,7 @@ public class QueryDao {
                 }
             }
         }
-        String names = "(";
-        for (String r : res) {
-            names = names + "\\\"" + r + "\\\",";
-        }
-        names = names + ")";
-        return names;
+        return res;
     }
 
     public String CompanyCN2Cla(String community, String company) {
