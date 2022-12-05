@@ -11,9 +11,8 @@
 
 package com.om.Service;
 
+import cn.authing.core.types.Application;
 import cn.authing.core.types.User;
-import com.anji.captcha.model.common.ResponseModel;
-import com.anji.captcha.model.vo.CaptchaVO;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -34,6 +33,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -53,6 +53,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 
@@ -73,6 +74,8 @@ public class AuthingService {
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
 
+    private static final String OIDCISSUER = "ONEID";
+
     private static CodeUtil codeUtil;
 
     private static Map<String, MessageCodeConfig> error2code;
@@ -85,12 +88,18 @@ public class AuthingService {
 
     private static final String EMAILREGEX = "^[A-Za-z0-9-._\\u4e00-\\u9fa5]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$";
 
+    private static HashMap<String, String[]> oidcScopeOthers;
+
+    private static HashMap<String, String> oidcScopeAuthingMapping;
+
     @PostConstruct
     public void init() {
         codeUtil = new CodeUtil();
         error2code = authingUserDao.getErrorCode();
         objectMapper = new ObjectMapper();
         domain2secure = HttpClientUtils.getConfigCookieInfo(Objects.requireNonNull(env.getProperty("cookie.token.domains")), Objects.requireNonNull(env.getProperty("cookie.token.secures")));
+        oidcScopeOthers = getOidcScopesOther();
+        oidcScopeAuthingMapping = oidcScopeAuthingMapping();
     }
 
     public ResponseEntity accountExists(String userName, String account) {
@@ -154,7 +163,7 @@ public class AuthingService {
         } /*else if (accountType.equals("phone")) {
             // 手机注册
             msg = authingUserDao.registerByPhone(account, code, userName);
-        } */else {
+        } */ else {
             return result(HttpStatus.BAD_REQUEST, null, accountType, null);
         }
         if (!msg.equals("success")) return result(HttpStatus.BAD_REQUEST, null, msg, null);
@@ -235,7 +244,7 @@ public class AuthingService {
     public ResponseEntity appVerify(String appId, String redirect) {
         List<String> uris = authingUserDao.getAppRedirectUris(appId);
         for (String uri : uris) {
-            System.out.println(uri);
+//            System.out.println(uri);
             if (uri.endsWith("*") && redirect.startsWith(uri.substring(0, uri.length() - 1)))
                 return result(HttpStatus.OK, "success", null);
             else if (redirect.equals(uri))
@@ -244,50 +253,127 @@ public class AuthingService {
         return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
     }
 
-    public ResponseEntity oauthToken(String appId, String appSecret, String grantType, String code, String redirectUri,
-                                     OauthTokenVo oauthTokenVo) {
-         appId = appId != null ? appId : oauthTokenVo.getApp_id();
-        appSecret = appSecret != null ? appSecret : oauthTokenVo.getApp_secret();
-        if (appId == null || appSecret == null)
-            return result(HttpStatus.NOT_FOUND, null, "未找到应用", null);
-
+    public ResponseEntity oidcAuthorize(String token, String appId, String redirectUri, String responseType, String state, String scope) {
         try {
-            String url = redirectUri;
-            Matcher matcher = Pattern.compile("[\\u4e00-\\u9fa5]+").matcher(redirectUri);
-            String tmp = "";
-            while (matcher.find()) {
-                tmp = matcher.group();
-                System.out.println(tmp);
-                url = url.replaceAll(tmp, URLEncoder.encode(tmp, "UTF-8"));
-            }
+            // responseType校验
+            if (!responseType.equals("code"))
+                return resultOidc(HttpStatus.NOT_FOUND, "currently response_type only supports code", null);
 
-            HttpResponse<JsonNode> accessTokenByCode = authingUserDao.getAccessTokenByCode(code, appId, grantType, appSecret, redirectUri);
-            int status = accessTokenByCode.getStatus();
-            JSONObject object = accessTokenByCode.getBody().getObject();
-            if (status != 200)
-                return result(HttpStatus.BAD_REQUEST, object.getString("error_description"), null);
+            // scope校验
+            if (!scope.contains("openid profile"))
+                return resultOidc(HttpStatus.NOT_FOUND, "scope must contain <openid profile>", null);
 
-            Map data = objectMapper.readValue(object.toString(), Map.class);
-            return result(HttpStatus.OK, "OK", data);
+            // app回调地址校验
+            ResponseEntity responseEntity = appVerify(appId, redirectUri);
+            if (responseEntity.getStatusCode().value() != 200)
+                return resultOidc(HttpStatus.NOT_FOUND, "redirect_uri not found in the app", null);
+
+            // 获取登录用户ID
+            token = rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(token);
+            String userId = decode.getAudience().get(0);
+
+            // 生成code和state
+            String code = codeUtil.randomStrBuilder(32);
+            state = StringUtils.isNotBlank(state) ? state : UUID.randomUUID().toString().replaceAll("-", "");
+
+            // 生成access_token和refresh_token
+            scope = StringUtils.isBlank(scope) ? "openid profile" : scope;
+            long codeExpire = Long.parseLong(env.getProperty("oidc.code.expire", "60"));
+            long accessTokenExpire = Long.parseLong(env.getProperty("oidc.access.token.expire", "1800"));
+            long refreshTokenExpire = Long.parseLong(env.getProperty("oidc.refresh.token.expire", "86400"));
+            String accessToken = jwtTokenCreateService.oidcToken(userId, OIDCISSUER, scope, accessTokenExpire, null);
+            String refreshToken = jwtTokenCreateService.oidcToken(userId, OIDCISSUER, scope, refreshTokenExpire, null);
+
+            // 缓存 code
+            HashMap<String, String> codeMap = new HashMap<>();
+            codeMap.put("accessToken", accessToken);
+            codeMap.put("refreshToken", refreshToken);
+            codeMap.put("state", state);
+            codeMap.put("appId", appId);
+            codeMap.put("redirectUri", redirectUri);
+            codeMap.put("scope", scope);
+            String codeMapStr = "oidcCode:" + objectMapper.writeValueAsString(codeMap);
+            redisDao.set(code, codeMapStr, codeExpire);
+            // 缓存 oidcToken
+            HashMap<String, String> userTokenMap = new HashMap<>();
+            userTokenMap.put("access_token", accessToken);
+            userTokenMap.put("refresh_token", refreshToken);
+            userTokenMap.put("scope", scope);
+            String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
+            redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
+
+            String res = String.format("%s?code=%s&state=%s", redirectUri, code, state);
+            return resultOidc(HttpStatus.OK, "OK", res);
         } catch (Exception e) {
             e.printStackTrace();
-            return result(HttpStatus.BAD_REQUEST, "授权失败", null);
+            return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+        }
+    }
+
+    public ResponseEntity oidcToken(String appId, String appSecret, String grantType, String code, String state,
+                                    String redirectUri, OauthTokenVo oauthTokenVo, String refreshToken) {
+        try {
+            if (grantType.equals("authorization_code"))
+                return getOidcTokenByCode(appId, appSecret, code, state, redirectUri, oauthTokenVo);
+            else if (grantType.equals("refresh_token"))
+                return oidcRefreshToken(refreshToken);
+            else
+                return resultOidc(HttpStatus.BAD_REQUEST, "grant_type must be authorization_code or refresh_token", null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            redisDao.remove(code);
+            return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
         }
     }
 
     public ResponseEntity userByAccessToken(String accessToken) {
         try {
-            HttpResponse<JsonNode> userByAccessToken = authingUserDao.getUserByAccessToken(accessToken);
-            int status = userByAccessToken.getStatus();
-            JSONObject object = userByAccessToken.getBody().getObject();
-            if (status != 200)
-                return result(HttpStatus.BAD_REQUEST, object.getString("error_description"), null);
+            // 解析access_token
+            String token = rsaDecryptToken(accessToken);
+            DecodedJWT decode = JWT.decode(token);
+            String userId = decode.getAudience().get(0);
+            Date expiresAt = decode.getExpiresAt();
 
-            Map data = objectMapper.readValue(object.toString(), Map.class);
-            return result(HttpStatus.OK, "OK", data);
+            // token是否被刷新了或者已经过期
+            Object refreshedToken = redisDao.get(DigestUtils.md5DigestAsHex(accessToken.getBytes()));
+            if (refreshedToken != null || expiresAt.before(new Date()))
+                return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
+
+            // 获取用户
+            JSONObject userObj = authingUserDao.getUserById(userId);
+
+            // 根据scope获取用户信息 oidcScopeAuthingMapping(临时,字段映射)
+            HashMap<String, Object> userData = new HashMap<>();
+            HashMap<String, Object> addressMap = new HashMap<>();
+            // 1、默认字段
+            String[] profiles = env.getProperty("oidc.scope.profile", "").split(",");
+            for (String profile : profiles) {
+                String profileTemp = oidcScopeAuthingMapping.getOrDefault(profile, profile);
+                Object value = jsonObjObjectValue(userObj, profileTemp);
+                if (profile.equals("updated_at") && value != null) {
+                    DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+                    value = LocalDateTime.parse(value.toString(), df).toInstant(ZoneOffset.UTC).toEpochMilli();
+                }
+                userData.put(profile, value);
+            }
+            // 2、指定字段
+            String[] scopes = decode.getClaim("scope").asString().split(" ");
+            for (String scope : scopes) {
+                if (scope.equals("openid") || scope.equals("profile")) continue;
+                String[] claims = oidcScopeOthers.getOrDefault(scope, new String[]{scope});
+                for (String claim : claims) {
+                    String profileTemp = oidcScopeAuthingMapping.getOrDefault(claim, claim);
+                    Object value = jsonObjObjectValue(userObj, profileTemp);
+                    if (scope.equals("address")) addressMap.put(claim, value);
+                    else userData.put(claim, value);
+                }
+                if (scope.equals("address")) userData.put(scope, addressMap);
+            }
+            return resultOidc(HttpStatus.OK, "OK", userData);
         } catch (Exception e) {
             e.printStackTrace();
-            return result(HttpStatus.BAD_REQUEST, "获取用户失败", null);
+            return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
         }
     }
 
@@ -709,11 +795,33 @@ public class AuthingService {
         return res;
     }
 
+    // JSONObject获取单个node的值
+    private Object jsonObjObjectValue(JSONObject jsonObj, String nodeName) {
+        Object res = null;
+        try {
+            if (jsonObj.isNull(nodeName)) return res;
+            Object obj = jsonObj.get(nodeName);
+            if (obj != null) res = obj;
+        } catch (Exception ex) {
+            System.out.println(nodeName + "Get Error");
+        }
+        return res;
+    }
+
     private ResponseEntity result(HttpStatus status, String msg, Object data) {
         HashMap<String, Object> res = new HashMap<>();
         res.put("code", status.value());
         res.put("data", data);
         res.put("msg", msg);
+        return new ResponseEntity<>(res, status);
+    }
+
+    private ResponseEntity resultOidc(HttpStatus status, String msg, Object body) {
+        HashMap<String, Object> res = new HashMap<>();
+        res.put("status", status.value());
+        res.put("message", msg);
+        if (body != null)
+            res.put("body", body);
         return new ResponseEntity<>(res, status);
     }
 
@@ -786,5 +894,136 @@ public class AuthingService {
             return "该账号已注册";
         else
             return accountType;
+    }
+
+    private HashMap<String, String[]> getOidcScopesOther() {
+        String[] others = env.getProperty("oidc.scope.other", "").split(";");
+        HashMap<String, String[]> otherMap = new HashMap<>();
+        for (String other : others) {
+            if (StringUtils.isBlank(other)) continue;
+            String[] split = other.split("->");
+            otherMap.put(split[0], split[1].split(","));
+        }
+        return otherMap;
+    }
+
+    private HashMap<String, String> oidcScopeAuthingMapping() {
+        String[] mappings = env.getProperty("oidc.scope.authing.mapping", "").split(",");
+        HashMap<String, String> authingMapping = new HashMap<>();
+        for (String mapping : mappings) {
+            if (StringUtils.isBlank(mapping)) continue;
+            String[] split = mapping.split(":");
+            authingMapping.put(split[0], split[1]);
+        }
+        return authingMapping;
+    }
+
+    private ResponseEntity getOidcTokenByCode(String appId, String appSecret, String code, String state,
+                                              String redirectUri, OauthTokenVo oauthTokenVo) {
+        try {
+            // 用户code获取token必须包含code、state、redirectUri
+            if (StringUtils.isBlank(code) || StringUtils.isBlank(state) || StringUtils.isBlank(redirectUri))
+                return resultOidc(HttpStatus.BAD_REQUEST, "when grant_type is authorization_code,parameters must contain code、state、redirectUri", null);
+
+            // 授权码校验
+            String codeMapStr = (String) redisDao.get(code);
+            if (StringUtils.isBlank(codeMapStr))
+                return resultOidc(HttpStatus.BAD_REQUEST, "code invalid or expired", null);
+
+            // 授权码信息
+            com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(codeMapStr.replace("oidcCode:", ""));
+            String appIdTemp = jsonNode.get("appId").asText();
+            String stateTemp = jsonNode.get("state").asText();
+            String redirectUriTemp = jsonNode.get("redirectUri").asText();
+            String scopeTemp = jsonNode.get("scope").asText();
+
+            // 授权码state校验
+            if (!state.equals(stateTemp)) {
+                redisDao.remove(code);
+                return resultOidc(HttpStatus.BAD_REQUEST, "state error", null);
+            }
+            // app校验（授权码对应的app）
+            if (!appId.equals(appIdTemp)) {
+                redisDao.remove(code);
+                return resultOidc(HttpStatus.BAD_REQUEST, "code invalid or expired", null);
+            }
+            // app回调地址校验（授权码对应的app的回调地址）
+            if (!redirectUri.equals(redirectUriTemp)) {
+                redisDao.remove(code);
+                return resultOidc(HttpStatus.BAD_REQUEST, "code invalid or expired", null);
+            }
+            // app密码校验
+            if (oauthTokenVo != null) {
+                appId = oauthTokenVo.getApp_id() == null ? appId : oauthTokenVo.getApp_id();
+                appSecret = oauthTokenVo.getApp_secret() == null ? appSecret : oauthTokenVo.getApp_secret();
+            }
+            Application app = authingUserDao.getAppById(appId);
+            if (app == null || !app.getSecret().equals(appSecret)) {
+                redisDao.remove(code);
+                return resultOidc(HttpStatus.NOT_FOUND, "app invalid or secret error", null);
+            }
+
+            HashMap<String, String> tokens = new HashMap<>();
+            tokens.put("scope", scopeTemp);
+            tokens.put("access_token", jsonNode.get("accessToken").asText());
+            if (Arrays.asList(scopeTemp.split(" ")).contains("offline_access"))
+                tokens.put("refresh_token", jsonNode.get("refreshToken").asText());
+
+            redisDao.remove(code);
+            return resultOidc(HttpStatus.OK, "OK", tokens);
+        } catch (Exception e) {
+            e.printStackTrace();
+            redisDao.remove(code);
+            return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+        }
+    }
+
+    private ResponseEntity oidcRefreshToken(String refreshToken) {
+        try {
+            if (StringUtils.isBlank(refreshToken))
+                return resultOidc(HttpStatus.BAD_REQUEST, "when grant_type is authorization_code,parameters must contain refresh_token", null);
+
+            // 解析refresh_token
+            String token = rsaDecryptToken(refreshToken);
+            DecodedJWT decode = JWT.decode(token);
+            String userId = decode.getAudience().get(0);
+            Date expiresAt = decode.getExpiresAt();
+
+            // tokens校验
+            String refreshTokenKey = DigestUtils.md5DigestAsHex(refreshToken.getBytes());
+            String tokenStr = (String) redisDao.get(refreshTokenKey);
+            if (StringUtils.isBlank(tokenStr))
+                return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
+            // refresh_token是否过期
+            if (expiresAt.before(new Date()))
+                return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
+
+            com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(tokenStr.replace("oidcTokens:", ""));
+            String scope = jsonNode.get("scope").asText();
+            String accessToken = jsonNode.get("access_token").asText();
+
+            // 生成新的accessToken和refreshToken
+            long accessTokenExpire = Long.parseLong(env.getProperty("oidc.access.token.expire", "1800"));
+            long refreshTokenExpire = Long.parseLong(env.getProperty("oidc.refresh.token.expire", "86400"));
+            String accessTokenNew = jwtTokenCreateService.oidcToken(userId, OIDCISSUER, scope, accessTokenExpire, null);
+            String refreshTokenNew = jwtTokenCreateService.oidcToken(userId, OIDCISSUER, scope, refreshTokenExpire, expiresAt);
+
+            // 缓存新的accessToken和refreshToken
+            HashMap<String, String> userTokenMap = new HashMap<>();
+            userTokenMap.put("access_token", accessTokenNew);
+            userTokenMap.put("refresh_token", refreshTokenNew);
+            userTokenMap.put("scope", scope);
+            String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
+            redisDao.set(DigestUtils.md5DigestAsHex(refreshTokenNew.getBytes()), userTokenMapStr, refreshTokenExpire);
+
+            // 移除以前的refresh_token，并将之前的access_token失效
+            redisDao.remove(refreshTokenKey);
+            redisDao.set(DigestUtils.md5DigestAsHex(accessToken.getBytes()), accessToken, accessTokenExpire);
+
+            return resultOidc(HttpStatus.OK, "OK", userTokenMap);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
+        }
     }
 }
