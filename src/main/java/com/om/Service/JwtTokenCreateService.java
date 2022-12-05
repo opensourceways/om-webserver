@@ -162,7 +162,7 @@ public class JwtTokenCreateService {
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(expireAt) //过期时间
                 .withClaim("scope", scope)
-                .sign(Algorithm.HMAC256(userId + authingTokenBasePassword));
+                .sign(Algorithm.HMAC256(userId + oidcTokenBasePassword));
 
         try {
             RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
