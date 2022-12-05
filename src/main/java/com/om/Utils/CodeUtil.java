@@ -11,6 +11,7 @@
 
 package com.om.Utils;
 
+import java.math.BigInteger;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -156,5 +157,15 @@ public class CodeUtil {
             result.append(instance.nextInt(9));
         }
         return result.toString();
+    }
+
+    /**
+     * 随机生成字符串
+     * @param strLength 字符串长度
+     * @return 随机字符串
+     */
+    public String randomStrBuilder(int strLength) throws NoSuchAlgorithmException {
+        SecureRandom random = SecureRandom.getInstanceStrong();
+        return new BigInteger(160, random).toString(strLength);
     }
 }

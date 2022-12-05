@@ -16,8 +16,10 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.*;
+import com.om.Utils.CodeUtil;
 import com.om.Utils.RSAUtil;
 import com.om.Vo.TokenUser;
+
 import java.math.BigInteger;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -27,6 +29,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -56,6 +59,9 @@ public class JwtTokenCreateService {
 
     @Value("${authing.token.base.password}")
     private String authingTokenBasePassword;
+
+    @Value("${oidc.token.base.password}")
+    private String oidcTokenBasePassword;
 
     @Value("${rsa.authing.publicKey}")
     private String rsaAuthingPublicKey;
@@ -112,8 +118,7 @@ public class JwtTokenCreateService {
 
         String verifyToken;
         try {
-            SecureRandom random = SecureRandom.getInstanceStrong();
-            verifyToken = new BigInteger(160, random).toString(32);
+            verifyToken = new CodeUtil().randomStrBuilder(32);
         } catch (NoSuchAlgorithmException e) {
             verifyToken = RandomStringUtils.randomAlphanumeric(32);
             e.printStackTrace();
@@ -122,7 +127,7 @@ public class JwtTokenCreateService {
         String perStr = "";
         ArrayList<String> pers = authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
         for (String per : pers) {
-            perStr += per + ","; 
+            perStr += per + ",";
         }
         perStr = Base64.getEncoder().encodeToString(perStr.getBytes());
 
@@ -141,6 +146,30 @@ public class JwtTokenCreateService {
         } catch (Exception e) {
             System.out.println("RSA Encrypt error");
             return new String[]{token, verifyToken};
+        }
+    }
+
+    public String oidcToken(String userId, String issuer, String scope, long expireSeconds, Date expireAt) {
+        // 过期时间
+        LocalDateTime nowDate = LocalDateTime.now();
+        Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
+        LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
+        expireAt = expireAt != null ? expireAt : Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
+
+        String token = JWT.create()
+                .withIssuer(issuer) //签名
+                .withAudience(userId) //谁接受签名
+                .withIssuedAt(issuedAt) //生成签名的时间
+                .withExpiresAt(expireAt) //过期时间
+                .withClaim("scope", scope)
+                .sign(Algorithm.HMAC256(userId + oidcTokenBasePassword));
+
+        try {
+            RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
+            return RSAUtil.publicEncrypt(token, publicKey);
+        } catch (Exception e) {
+            System.out.println("RSA Encrypt error");
+            return token;
         }
     }
 }
