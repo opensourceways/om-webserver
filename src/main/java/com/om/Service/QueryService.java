@@ -1332,11 +1332,6 @@ public class QueryService {
             RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
             DecodedJWT decode = JWT.decode(RSAUtil.privateDecrypt(token, privateKey));
             String userId = decode.getAudience().get(0);
-            Date expiresAt = decode.getExpiresAt();
-            Date now = new Date();
-            if (now.getTime() > expiresAt.getTime()) {
-                return false;
-            }
             String permissionList = decode.getClaim("permissionList").asString();
             String[] pers = new String(Base64.getDecoder().decode(permissionList.getBytes())).split(",");
             for (String per : pers) {
