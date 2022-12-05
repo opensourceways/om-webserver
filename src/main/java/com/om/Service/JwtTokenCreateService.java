@@ -16,6 +16,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.*;
+import com.om.Utils.CodeUtil;
 import com.om.Utils.RSAUtil;
 import com.om.Vo.TokenUser;
 
@@ -117,8 +118,7 @@ public class JwtTokenCreateService {
 
         String verifyToken;
         try {
-            SecureRandom random = SecureRandom.getInstanceStrong();
-            verifyToken = new BigInteger(160, random).toString(32);
+            verifyToken = new CodeUtil().randomStrBuilder(32);
         } catch (NoSuchAlgorithmException e) {
             verifyToken = RandomStringUtils.randomAlphanumeric(32);
             e.printStackTrace();
