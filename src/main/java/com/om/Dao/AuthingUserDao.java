@@ -25,7 +25,6 @@ import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.RSAUtil;
 
-import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -275,14 +274,18 @@ public class AuthingUserDao {
 
     public List<String> getAppRedirectUris(String appId) {
         List<String> redirectUris = new ArrayList<>();
-        try {
-            Application execute = managementClient.application().findById(appId).execute();
-            if (execute != null)
-                redirectUris = execute.getRedirectUris();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        Application execute = getAppById(appId);
+        if (execute != null)
+            redirectUris = execute.getRedirectUris();
         return redirectUris;
+    }
+
+    public Application getAppById(String appId) {
+        try {
+            return managementClient.application().findById(appId).execute();
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public HttpResponse<JsonNode> getAccessTokenByCode(String code, String appId, String grantType, String appSecret, String redirectUri) throws UnirestException {
