@@ -95,9 +95,11 @@ public class AuthingInterceptor implements HandlerInterceptor {
         }
         AuthingToken userLoginToken = method.getAnnotation(AuthingToken.class);
         AuthingUserToken authingUserToken = method.getAnnotation(AuthingUserToken.class);
+        SigToken sigToken = method.getAnnotation(SigToken.class);
         CompanyToken companyToken = method.getAnnotation(CompanyToken.class);
         if ((userLoginToken == null || !userLoginToken.required())
                 && (authingUserToken == null || !authingUserToken.required())
+                && (sigToken == null || !sigToken.required())
                 && (companyToken == null || !companyToken.required())) {
             return true;
         }
@@ -160,8 +162,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
         }
 
         // 校验sig权限
-        if (userLoginToken != null && userLoginToken.required()) {
-            String verifyUserMsg = verifyUser(userLoginToken, userId, permission);
+        if (sigToken != null && sigToken.required()) {
+            String verifyUserMsg = verifyUser(sigToken, userId, permission);
             if (!verifyUserMsg.equals("success")) {
                 tokenError(httpServletRequest, httpServletResponse, verifyUserMsg);
                 return false;
@@ -200,10 +202,10 @@ public class AuthingInterceptor implements HandlerInterceptor {
      * @param permission     需要的操作权限
      * @return 校验结果
      */
-    private String verifyUser(AuthingToken userLoginToken, String userId, String permission) {
+    private String verifyUser(SigToken sigToken, String userId, String permission) {
         try {
             // token 页面请求权限验证
-            if (userLoginToken != null && userLoginToken.required()) {
+            if (sigToken != null && sigToken.required()) {
                 String[] split = permission.split("->");
                 boolean hasActionPer = authingUserDao.checkUserPermission(userId, split[0], split[1], split[2]);
                 if (!hasActionPer) {
