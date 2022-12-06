@@ -259,7 +259,8 @@ public class AuthingService {
                 return resultOidc(HttpStatus.NOT_FOUND, "currently response_type only supports code", null);
 
             // scope校验
-            if (!scope.contains("openid profile"))
+            List<String> scopes = Arrays.asList(scope.split(" "));
+            if (!scopes.contains("openid") || !scopes.contains("profile"))
                 return resultOidc(HttpStatus.NOT_FOUND, "scope must contain <openid profile>", null);
 
             // app回调地址校验
