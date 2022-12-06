@@ -941,6 +941,13 @@ public class AuthingService {
     private ResponseEntity getOidcTokenByCode(String appId, String appSecret, String code, String state,
                                               String redirectUri, OauthTokenVo oauthTokenVo) {
         try {
+            if (oauthTokenVo != null) {
+                appId = oauthTokenVo.getApp_id() == null ? appId : oauthTokenVo.getApp_id();
+                appSecret = oauthTokenVo.getApp_secret() == null ? appSecret : oauthTokenVo.getApp_secret();
+            }
+            // 参数校验
+            if (StringUtils.isBlank(appId) || StringUtils.isBlank(appSecret))
+                return resultOidc(HttpStatus.BAD_REQUEST, "not found the app", null);
             // 用户code获取token必须包含code、state、redirectUri
             if (StringUtils.isBlank(code) || StringUtils.isBlank(state) || StringUtils.isBlank(redirectUri))
                 return resultOidc(HttpStatus.BAD_REQUEST, "when grant_type is authorization_code,parameters must contain code、state、redirectUri", null);
@@ -973,10 +980,6 @@ public class AuthingService {
                 return resultOidc(HttpStatus.BAD_REQUEST, "code invalid or expired", null);
             }
             // app密码校验
-            if (oauthTokenVo != null) {
-                appId = oauthTokenVo.getApp_id() == null ? appId : oauthTokenVo.getApp_id();
-                appSecret = oauthTokenVo.getApp_secret() == null ? appSecret : oauthTokenVo.getApp_secret();
-            }
             Application app = authingUserDao.getAppById(appId);
             if (app == null || !app.getSecret().equals(appSecret)) {
                 redisDao.remove(code);
