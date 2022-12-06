@@ -747,7 +747,7 @@ public class AuthingUserDao {
         }
     }
 
-    private void deleteObsObjectByUrl(String objectUrl) {
+    public void deleteObsObjectByUrl(String objectUrl) {
         try {
             if (StringUtils.isBlank(objectUrl)) return;
 
