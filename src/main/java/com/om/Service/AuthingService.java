@@ -244,7 +244,6 @@ public class AuthingService {
     public ResponseEntity appVerify(String appId, String redirect) {
         List<String> uris = authingUserDao.getAppRedirectUris(appId);
         for (String uri : uris) {
-//            System.out.println(uri);
             if (uri.endsWith("*") && redirect.startsWith(uri.substring(0, uri.length() - 1)))
                 return result(HttpStatus.OK, "success", null);
             else if (redirect.equals(uri))
@@ -540,19 +539,17 @@ public class AuthingService {
 
     }
 
-    public ResponseEntity deleteUser(String token) {
+    public ResponseEntity deleteUser(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String token) {
         try {
             token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             Date issuedAt = decode.getIssuedAt();
+            String photo = authingUserDao.getUser(userId).getPhoto();
 
-            // 用户注销，当前token失效
-            String redisKey = userId + issuedAt.toString();
-            redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
-
+            //用户注销
             boolean res = authingUserDao.deleteUserById(userId);
-            if (res) return result(HttpStatus.OK, "delete user success", null);
+            if (res) return deleteUserAfter(httpServletRequest, servletResponse, token, userId, issuedAt, photo);
             else return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
         } catch (Exception e) {
             return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
@@ -894,6 +891,28 @@ public class AuthingService {
             return "该账号已注册";
         else
             return accountType;
+    }
+
+    private ResponseEntity deleteUserAfter(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse,
+                                           String token, String userId, Date issuedAt, String photo) {
+        try {
+            // 当前token失效
+            String redisKey = userId + issuedAt.toString();
+            redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
+
+            // 删除用户头像
+            authingUserDao.deleteObsObjectByUrl(photo);
+
+            // 删除cookie，删除idToken
+            String headerToken = httpServletRequest.getHeader("token");
+            String idTokenKey = "idToken_" + headerToken;
+            String cookieTokenName = env.getProperty("cookie.token.name");
+            HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
+            redisDao.remove(idTokenKey);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result(HttpStatus.OK, "delete user success", null);
     }
 
     private HashMap<String, String[]> getOidcScopesOther() {
