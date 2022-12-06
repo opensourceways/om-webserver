@@ -152,8 +152,10 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/delete/user")
-    public ResponseEntity deleteUser(@CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.deleteUser(token);
+    public ResponseEntity deleteUser(HttpServletRequest httpServletRequest,
+                                     HttpServletResponse servletResponse,
+                                     @CookieValue(value = "_Y_G_", required = false) String token) {
+        return authingService.deleteUser(httpServletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
