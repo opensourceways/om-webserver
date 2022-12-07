@@ -134,6 +134,13 @@ public class AuthingController {
         return authingService.authingUserPermission(community, token);
     }
 
+    @AuthingUserToken
+    @RequestMapping(value = "/user/permissions")
+    public ResponseEntity userPermissions(@RequestParam(value = "community") String community,
+                                  @CookieValue(value = "_Y_G_", required = false) String token) {
+        return authingService.userPermissions(community, token);
+    }
+
     @RequestMapping(value = "/token/apply")
     public ResponseEntity tokenApply(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
