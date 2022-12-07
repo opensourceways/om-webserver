@@ -330,7 +330,6 @@ public class QueryController {
         return res;
     }
 
-    //@AuthingToken
     @RequestMapping("/sig/scoreAll")
     public String querySigScoreAll(@RequestParam(value = "community") String community) {
         String res = queryService.querySigScoreAll(community);
@@ -346,7 +345,6 @@ public class QueryController {
         return res;
     }
 
-    //@AuthingToken
     @RequestMapping("/company/sigs")
     public String queryCompanySigs(@RequestParam(value = "community") String community, @RequestParam(value = "timeRange") String timeRange) {
         String res = queryService.queryCompanySigs(community, timeRange);
@@ -406,11 +404,12 @@ public class QueryController {
     @RequestMapping(value = "ecosystem/repo/info")
     public String getEcosystemRepoInfo(@RequestParam(value = "community") String community,
             @RequestParam(value = "ecosystem_type") String ecosystem_type,
+            @RequestParam(value = "lang", required = false) String lang,
             @RequestParam(value = "sort_type", required = false) String sort_type,
             @RequestParam(value = "sort_order", required = false) String sort_order,
             @RequestParam(value = "page", required = false) String page,
             @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
-        return queryService.getEcosystemRepoInfo(community, ecosystem_type, sort_type, sort_order, page, pageSize);
+        return queryService.getEcosystemRepoInfo(community, ecosystem_type, lang, sort_type, sort_order, page, pageSize);
     }
 
     @RequestMapping(value = "/reviewer/recommend", method = RequestMethod.POST)
