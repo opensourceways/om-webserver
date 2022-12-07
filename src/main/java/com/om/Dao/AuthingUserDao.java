@@ -427,6 +427,26 @@ public class AuthingUserDao {
         }
     }
 
+    // 用户资源和操作权限
+    public ArrayList<String> getUserCompany(String userId, String groupCode) {
+        ArrayList<String> pers = new ArrayList<>();
+        try {
+            PaginatedAuthorizedResources pars = managementClient.users().listAuthorizedResources(userId, groupCode).execute();
+            if (pars.getTotalCount() <= 0) {
+                return pers;
+            }   
+            List<AuthorizedResource> ars = pars.getList();
+            for (AuthorizedResource ar : ars) {
+                List<String> actions = ar.getActions();
+                pers.addAll(actions);
+            }
+            return pers;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return pers;
+        }
+    }
+
     // TODO 此接口废弃 使用通过userID校验登录状态
     public boolean checkLoginStatusOnAuthing(User user) {
         try {

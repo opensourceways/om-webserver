@@ -22,6 +22,7 @@ import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.om.Dao.AuthingUserDao;
+import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.CodeUtil;
@@ -66,6 +67,9 @@ public class AuthingService {
 
     @Autowired
     RedisDao redisDao;
+
+    @Autowired
+    QueryDao queryDao;
 
     @Autowired
     JavaMailSender mailSender;
@@ -315,6 +319,53 @@ public class AuthingService {
             userData.put("photo", user.getPhoto());
             userData.put("permissions", permissions);
             userData.put("username", user.getUsername());
+            return result(HttpStatus.OK, "success", userData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+    }
+
+    public ResponseEntity userPermissions(String community, String token) {
+        try {
+            token = rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(token);
+            String userId = decode.getAudience().get(0);
+
+            // 获取权限
+            ArrayList<String> permissions = new ArrayList<>();
+            ArrayList<String> pers = authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
+            for (String per : pers) {
+                String[] perList = per.split(":");
+                if (perList.length > 1) {
+                    permissions.add(perList[0] + perList[1]);
+                }
+            }
+
+            //获取企业信息
+            ArrayList<String> companyNameList = new ArrayList<>();
+            JSONObject userObj = authingUserDao.getUserById(userId);            
+            HashMap<String, Map<String, Object>> map = new HashMap<>();
+            JSONArray jsonArray = userObj.getJSONArray("identities");
+            for (Object o : jsonArray) {
+                JSONObject obj =  (JSONObject) o;
+                authingUserIdentityIdp(obj, map);
+            }
+            if (null != map.get("oauth2") && null != map.get("oauth2").get("login_name")) {
+                String login = map.get("oauth2").get("login_name").toString();
+                String company = queryDao.queryUserCompany(community, login);
+                companyNameList = queryDao.getcompanyNameList(company);               
+            }
+
+            // 获取用户
+            User user = authingUserDao.getUser(userId);
+
+            // 返回结果
+            HashMap<String, Object> userData = new HashMap<>();
+
+            userData.put("permissions", permissions);
+            userData.put("username", user.getUsername());
+            userData.put("companyList", companyNameList);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             e.printStackTrace();
