@@ -3885,7 +3885,7 @@ public class QueryDao {
         return null;
     }
 
-    public String getEcosystemRepoInfo(String community, String ecosystem_type, String sort_order) {
+    public String getEcosystemRepoInfo(String community, String ecosystem_type, String lang, String sort_order) {
         String queryjson;
         String queryStr;
         String index;
@@ -3899,7 +3899,7 @@ public class QueryDao {
         }
         sort_order = sort_order == null ? "desc" : sort_order;
         try {
-            queryStr = String.format(queryjson, ecosystem_type, sort_order);
+            queryStr = String.format(queryjson, ecosystem_type, lang, sort_order);
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             builder.setUrl(this.url + index + "/_search");
