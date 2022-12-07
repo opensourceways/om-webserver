@@ -1249,16 +1249,16 @@ public class QueryService {
         return result;
     }
 
-    public String getEcosystemRepoInfo(String community, String ecosystem_type,
-            String sort_type, String sort_order,
-            String page, String pageSize) throws JsonMappingException, JsonProcessingException {
-        String key = community.toLowerCase() + ecosystem_type.toLowerCase() + "ecosysteminfo" + sort_order;
+    public String getEcosystemRepoInfo(String community, String ecosystem_type, String lang, String sort_type,
+            String sort_order, String page, String pageSize) throws JsonMappingException, JsonProcessingException {
+        lang = lang == null ? "zh" : lang.toLowerCase();
+        String key = community.toLowerCase() + ecosystem_type.toLowerCase() + "ecosysteminfo" + sort_order + lang;
         String result = null;
         result = (String) redisDao.get(key);
         if (result == null) {
             // 查询数据库，更新redis 缓存。
             try {
-                result = queryDao.getEcosystemRepoInfo(community, ecosystem_type, sort_order);
+                result = queryDao.getEcosystemRepoInfo(community, ecosystem_type, lang, sort_order);
             } catch (Exception e) {
                 e.printStackTrace();
             }
