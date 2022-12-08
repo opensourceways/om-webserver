@@ -23,6 +23,7 @@ import com.mashape.unirest.http.Unirest;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
+import com.om.Dao.SqlDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
@@ -33,6 +34,7 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
+import java.sql.ResultSet;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -74,6 +76,9 @@ public class AuthingService {
 
     @Autowired
     JavaMailSender mailSender;
+
+    @Autowired
+    SqlDao sqlDao;
 
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
@@ -399,13 +404,17 @@ public class AuthingService {
             // }
 
             // 获取用户
-            User user = authingUserDao.getUser(userId);
+            // User user = authingUserDao.getUser(userId);
+
+            String query = env.getProperty("mysql.query");
+            query = String.format(query, userId);
+            ArrayList<HashMap<String, String>> userinfo = sqlDao.getUserData(query);
+            HashMap<String, String> ui = userinfo.get(0);  
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
-            userData.put("photo", user.getPhoto());
-            // userData.put("permissions", permissions);
-            userData.put("username", user.getUsername());
+            userData.put("photo", ui.get("photo"));
+            userData.put("username", ui.get("username"));
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             e.printStackTrace();
