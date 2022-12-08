@@ -1282,10 +1282,16 @@ public class QueryService {
             resList = sortbytype(resList, sort_type, sort_order);
         }
 
-        if (pageSize != null && page != null) {
+        if (pageSize != null && page != null && resList.size() > 0) {
+            String type = resList.get(0).get("type").toString();
+            String name = resList.get(0).get("name").toString();
+            String description = resList.get(0).get("description").toString();
             int currentPage = Integer.parseInt(page);
             int pagesize = Integer.parseInt(pageSize);
             Map data = PageUtils.getDataByPage(currentPage, pagesize, resList);
+            data.put("type", type);
+            data.put("name", name);
+            data.put("description", description);
             ArrayList<HashMap<String, Object>> dataList = new ArrayList<>();
             dataList.add((HashMap<String, Object>) data);
             resList = dataList;
