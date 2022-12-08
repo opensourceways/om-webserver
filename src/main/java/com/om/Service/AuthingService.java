@@ -386,17 +386,17 @@ public class AuthingService {
             token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
-            String permissionTemp = decode.getClaim("permission").asString();
-            String inputPermission = decode.getClaim("inputPermission").asString();
+            // String permissionTemp = decode.getClaim("permission").asString();
+            // String inputPermission = decode.getClaim("inputPermission").asString();
 
-            // 资源权限验证
-            String permissionToken = new String(Base64.getDecoder().decode(permissionTemp.getBytes()));
-            ArrayList<String> permissions = new ArrayList<>();
-            String[] split = permissionToken.split("->");
-            boolean hasActionPer = authingUserDao.checkUserPermission(userId, split[0], split[1], split[2]);
-            if (hasActionPer) {
-                permissions.add(inputPermission);
-            }
+            // // 资源权限验证
+            // String permissionToken = new String(Base64.getDecoder().decode(permissionTemp.getBytes()));
+            // ArrayList<String> permissions = new ArrayList<>();
+            // String[] split = permissionToken.split("->");
+            // boolean hasActionPer = authingUserDao.checkUserPermission(userId, split[0], split[1], split[2]);
+            // if (hasActionPer) {
+            //     permissions.add(inputPermission);
+            // }
 
             // 获取用户
             User user = authingUserDao.getUser(userId);
@@ -404,7 +404,7 @@ public class AuthingService {
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("photo", user.getPhoto());
-            userData.put("permissions", permissions);
+            // userData.put("permissions", permissions);
             userData.put("username", user.getUsername());
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
