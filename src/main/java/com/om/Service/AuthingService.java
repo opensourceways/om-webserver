@@ -506,11 +506,11 @@ public class AuthingService {
                 JSONObject obj =  (JSONObject) o;
                 authingUserIdentityIdp(obj, map);
             }
-            if (null != map.get("oauth2") && null != map.get("oauth2").get("login_name")) {
-                String login = map.get("oauth2").get("login_name").toString();
-                String company = queryDao.queryUserCompany(community, login);
-                companyNameList = queryDao.getcompanyNameList(company);               
-            }
+            // if (null != map.get("oauth2") && null != map.get("oauth2").get("login_name")) {
+            //     String login = map.get("oauth2").get("login_name").toString();
+            //     String company = queryDao.queryUserCompany(community, login);
+            //     companyNameList = queryDao.getcompanyNameList(company);               
+            // }
 
             // 获取用户
             User user = authingUserDao.getUser(userId);

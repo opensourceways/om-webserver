@@ -1360,7 +1360,7 @@ public class QueryService {
                 ArrayList<String> companyNameList = queryDao.getcompanyNameList(company);
                 for (String name: companyNameList){
                     if (org.equals(name))
-                    return true;
+                    return false;//true;
                 }               
             }
         } catch (Exception ex) {
