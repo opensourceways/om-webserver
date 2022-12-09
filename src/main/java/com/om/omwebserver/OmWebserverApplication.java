@@ -17,12 +17,12 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
-@ComponentScan(basePackages = { "com.om.*" })
+@ComponentScan(basePackages = {"com.om.*"})
 public class OmWebserverApplication {
 
-	public static void main(String[] args) {
+    public static void main(String[] args) {
         ParserConfig.getGlobalInstance().setSafeMode(true);
-		SpringApplication.run(OmWebserverApplication.class, args);
-	}
+        SpringApplication.run(OmWebserverApplication.class, args);
+    }
 
 }
