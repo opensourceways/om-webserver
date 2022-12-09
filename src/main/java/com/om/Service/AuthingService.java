@@ -453,16 +453,27 @@ public class AuthingService {
 
             // 获取用户
             // User user = authingUserDao.getUser(userId);
+            String photo;
+            String username;
 
-            String query = env.getProperty("mysql.query");
-            query = String.format(query, userId);
-            ArrayList<HashMap<String, String>> userinfo = sqlDao.getUserData(query);
-            HashMap<String, String> ui = userinfo.get(0);  
+            try {
+                String query = env.getProperty("mysql.query");
+                query = String.format(query, userId);
+                ArrayList<HashMap<String, String>> userinfo = sqlDao.getUserData(query);
+                HashMap<String, String> ui = userinfo.get(0);
+                photo = ui.get("photo");
+                username = ui.get("username");
+            } catch (Exception e) {
+                System.out.println("get data from mysql failed.");
+                User user = authingUserDao.getUser(userId);
+                photo = user.getPhoto();
+                username = user.getUsername();
+            }
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
-            userData.put("photo", ui.get("photo"));
-            userData.put("username", ui.get("username"));
+            userData.put("photo", photo);
+            userData.put("username", username);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             e.printStackTrace();
