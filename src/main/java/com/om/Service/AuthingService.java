@@ -261,7 +261,7 @@ public class AuthingService {
         return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
     }
 
-    public ResponseEntity oidcAuthorize(String token, String appId, String redirectUri, String responseType, String state, String scope) {
+    public ResponseEntity oidcAuth(String token, String appId, String redirectUri, String responseType, String state, String scope) {
         try {
             // responseType校验
             if (!responseType.equals("code"))
@@ -298,7 +298,6 @@ public class AuthingService {
             HashMap<String, String> codeMap = new HashMap<>();
             codeMap.put("accessToken", accessToken);
             codeMap.put("refreshToken", refreshToken);
-            codeMap.put("state", state);
             codeMap.put("appId", appId);
             codeMap.put("redirectUri", redirectUri);
             codeMap.put("scope", scope);
@@ -320,24 +319,73 @@ public class AuthingService {
         }
     }
 
-    public ResponseEntity oidcToken(String appId, String appSecret, String grantType, String code, String state,
-                                    String redirectUri, OauthTokenVo oauthTokenVo, String refreshToken) {
+    public ResponseEntity oidcAuthorize(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         try {
-            if (grantType.equals("authorization_code"))
-                return getOidcTokenByCode(appId, appSecret, code, state, redirectUri, oauthTokenVo);
-            else if (grantType.equals("refresh_token"))
-                return oidcRefreshToken(refreshToken);
-            else
-                return resultOidc(HttpStatus.BAD_REQUEST, "grant_type must be authorization_code or refresh_token", null);
+            Map<String, String[]> parameterMap = servletRequest.getParameterMap();
+            String clientId = parameterMap.getOrDefault("client_id", new String[]{""})[0];
+            String responseType = parameterMap.getOrDefault("response_type", new String[]{""})[0];
+            String redirectUri = parameterMap.getOrDefault("redirect_uri", new String[]{""})[0];
+            String scope = parameterMap.getOrDefault("scope", new String[]{""})[0];
+            String state = parameterMap.getOrDefault("state", new String[]{""})[0];
+
+            // responseType校验
+            if (!responseType.equals("code"))
+                return resultOidc(HttpStatus.NOT_FOUND, "currently response_type only supports code", null);
+
+            // app回调地址校验
+            ResponseEntity responseEntity = appVerify(clientId, redirectUri);
+            if (responseEntity.getStatusCode().value() != 200)
+                return resultOidc(HttpStatus.NOT_FOUND, "redirect_uri not found in the app", null);
+
+            // 若缺少state,后端自动生成
+            state = StringUtils.isNotBlank(state) ? state : UUID.randomUUID().toString().replaceAll("-", "");
+
+            // scope默认<openid profile>
+            scope = StringUtils.isBlank(scope) ? "openid profile" : scope;
+
+            // 重定向到登录页
+            String loginPage = env.getProperty("oidc.login.page");
+            String loginPageRedirect = String.format("%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s", loginPage, clientId, scope, redirectUri, state);
+            servletResponse.sendRedirect(loginPageRedirect);
+
+            return resultOidc(HttpStatus.OK, "OK", loginPageRedirect);
         } catch (Exception e) {
             e.printStackTrace();
-            redisDao.remove(code);
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
         }
     }
 
-    public ResponseEntity userByAccessToken(String accessToken) {
+    public ResponseEntity oidcToken(HttpServletRequest servletRequest) {
         try {
+            Map<String, String[]> parameterMap = servletRequest.getParameterMap();
+            String grantType = parameterMap.getOrDefault("grant_type", new String[]{""})[0];
+
+            if (grantType.equals("authorization_code")) {
+                String appId = parameterMap.getOrDefault("client_id", new String[]{""})[0];
+                String appSecret = parameterMap.getOrDefault("client_secret", new String[]{""})[0];
+                String redirectUri = parameterMap.getOrDefault("redirect_uri", new String[]{""})[0];
+                String code = parameterMap.getOrDefault("code", new String[]{""})[0];
+                return getOidcTokenByCode(appId, appSecret, code, redirectUri);
+            } else if (grantType.equals("refresh_token")) {
+                String refreshToken = parameterMap.getOrDefault("refresh_token", new String[]{""})[0];
+                return oidcRefreshToken(refreshToken);
+            } else
+                return resultOidc(HttpStatus.BAD_REQUEST, "grant_type must be authorization_code or refresh_token", null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            redisDao.remove("code");
+            return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+        }
+    }
+
+    public ResponseEntity userByAccessToken(HttpServletRequest servletRequest) {
+        try {
+            String authorization = servletRequest.getHeader("Authorization");
+            if (StringUtils.isBlank(authorization)) {
+                return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
+            }
+            String accessToken = authorization.replace("Bearer ", "");
+
             // 解析access_token
             String token = rsaDecryptToken(accessToken);
             DecodedJWT decode = JWT.decode(token);
@@ -379,7 +427,7 @@ public class AuthingService {
                 }
                 if (scope.equals("address")) userData.put(scope, addressMap);
             }
-            return resultOidc(HttpStatus.OK, "OK", userData);
+            return result(HttpStatus.OK, "OK", userData);
         } catch (Exception e) {
             e.printStackTrace();
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
@@ -998,19 +1046,14 @@ public class AuthingService {
         return authingMapping;
     }
 
-    private ResponseEntity getOidcTokenByCode(String appId, String appSecret, String code, String state,
-                                              String redirectUri, OauthTokenVo oauthTokenVo) {
+    private ResponseEntity getOidcTokenByCode(String appId, String appSecret, String code, String redirectUri) {
         try {
-            if (oauthTokenVo != null) {
-                appId = oauthTokenVo.getApp_id() == null ? appId : oauthTokenVo.getApp_id();
-                appSecret = oauthTokenVo.getApp_secret() == null ? appSecret : oauthTokenVo.getApp_secret();
-            }
             // 参数校验
             if (StringUtils.isBlank(appId) || StringUtils.isBlank(appSecret))
                 return resultOidc(HttpStatus.BAD_REQUEST, "not found the app", null);
-            // 用户code获取token必须包含code、state、redirectUri
-            if (StringUtils.isBlank(code) || StringUtils.isBlank(state) || StringUtils.isBlank(redirectUri))
-                return resultOidc(HttpStatus.BAD_REQUEST, "when grant_type is authorization_code,parameters must contain code、state、redirectUri", null);
+            // 用户code获取token必须包含code、redirectUri
+            if (StringUtils.isBlank(code) || StringUtils.isBlank(redirectUri))
+                return resultOidc(HttpStatus.BAD_REQUEST, "when grant_type is authorization_code,parameters must contain code、redirectUri", null);
 
             // 授权码校验
             String codeMapStr = (String) redisDao.get(code);
@@ -1020,15 +1063,9 @@ public class AuthingService {
             // 授权码信息
             com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(codeMapStr.replace("oidcCode:", ""));
             String appIdTemp = jsonNode.get("appId").asText();
-            String stateTemp = jsonNode.get("state").asText();
             String redirectUriTemp = jsonNode.get("redirectUri").asText();
             String scopeTemp = jsonNode.get("scope").asText();
 
-            // 授权码state校验
-            if (!state.equals(stateTemp)) {
-                redisDao.remove(code);
-                return resultOidc(HttpStatus.BAD_REQUEST, "state error", null);
-            }
             // app校验（授权码对应的app）
             if (!appId.equals(appIdTemp)) {
                 redisDao.remove(code);
@@ -1046,14 +1083,16 @@ public class AuthingService {
                 return resultOidc(HttpStatus.NOT_FOUND, "app invalid or secret error", null);
             }
 
-            HashMap<String, String> tokens = new HashMap<>();
-            tokens.put("scope", scopeTemp);
+            HashMap<String, Object> tokens = new HashMap<>();
             tokens.put("access_token", jsonNode.get("accessToken").asText());
+            tokens.put("scope", scopeTemp);
+            tokens.put("expires_in", Long.parseLong(env.getProperty("oidc.access.token.expire", "1800")));
+            tokens.put("token_type", "Bearer");
             if (Arrays.asList(scopeTemp.split(" ")).contains("offline_access"))
                 tokens.put("refresh_token", jsonNode.get("refreshToken").asText());
 
             redisDao.remove(code);
-            return resultOidc(HttpStatus.OK, "OK", tokens);
+            return new ResponseEntity(tokens, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
             redisDao.remove(code);
@@ -1092,10 +1131,11 @@ public class AuthingService {
             String refreshTokenNew = jwtTokenCreateService.oidcToken(userId, OIDCISSUER, scope, refreshTokenExpire, expiresAt);
 
             // 缓存新的accessToken和refreshToken
-            HashMap<String, String> userTokenMap = new HashMap<>();
+            HashMap<String, Object> userTokenMap = new HashMap<>();
             userTokenMap.put("access_token", accessTokenNew);
             userTokenMap.put("refresh_token", refreshTokenNew);
             userTokenMap.put("scope", scope);
+            userTokenMap.put("expires_in", Long.parseLong(env.getProperty("oidc.access.token.expire", "1800")));
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
             redisDao.set(DigestUtils.md5DigestAsHex(refreshTokenNew.getBytes()), userTokenMapStr, refreshTokenExpire);
 
@@ -1103,7 +1143,7 @@ public class AuthingService {
             redisDao.remove(refreshTokenKey);
             redisDao.set(DigestUtils.md5DigestAsHex(accessToken.getBytes()), accessToken, accessTokenExpire);
 
-            return resultOidc(HttpStatus.OK, "OK", userTokenMap);
+            return new ResponseEntity(userTokenMap, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
             return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
