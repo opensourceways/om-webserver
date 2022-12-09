@@ -86,37 +86,35 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "/app/verify")
-    public ResponseEntity appVerify(@RequestParam(value = "app_id") String appId,
+    public ResponseEntity appVerify(@RequestParam(value = "client_id") String clientId,
                                     @RequestParam(value = "redirect_uri") String redirect) {
-        return authingService.appVerify(appId, redirect);
+        return authingService.appVerify(clientId, redirect);
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/oidc/authorize", method = RequestMethod.GET)
-    public ResponseEntity oidcAuthorize(@CookieValue(value = "_Y_G_", required = false) String token,
-                                        @RequestParam(value = "app_id") String appId,
+    @RequestMapping(value = "/oidc/auth", method = RequestMethod.GET)
+    public ResponseEntity oidcAuth(@CookieValue(value = "_Y_G_", required = false) String token,
+                                        @RequestParam(value = "client_id") String clientId,
                                         @RequestParam(value = "redirect_uri") String redirectUri,
                                         @RequestParam(value = "response_type") String responseType,
                                         @RequestParam(value = "state", required = false) String state,
                                         @RequestParam(value = "scope") String scope) {
-        return authingService.oidcAuthorize(token, appId, redirectUri, responseType, state, scope);
+        return authingService.oidcAuth(token, clientId, redirectUri, responseType, state, scope);
+    }
+
+    @RequestMapping(value = "/oidc/authorize", method = RequestMethod.GET)
+    public ResponseEntity oidcAuthorize(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        return authingService.oidcAuthorize(servletRequest, servletResponse);
     }
 
     @RequestMapping(value = "/oidc/token", method = RequestMethod.POST)
-    public ResponseEntity oidcToken(@RequestParam(value = "app_id", required = false) String appId,
-                                    @RequestParam(value = "app_secret", required = false) String appSecret,
-                                    @RequestParam(value = "grant_type") String grantType,
-                                    @RequestParam(value = "code", required = false) String code,
-                                    @RequestParam(value = "state", required = false) String state,
-                                    @RequestParam(value = "redirect_uri", required = false) String redirectUri,
-                                    @RequestParam(value = "refresh_token", required = false) String refreshToken,
-                                    @RequestBody(required = false) OauthTokenVo oauthTokenVo) {
-        return authingService.oidcToken(appId, appSecret, grantType, code, state, redirectUri, oauthTokenVo, refreshToken);
+    public ResponseEntity oidcToken(HttpServletRequest servletRequest) {
+        return authingService.oidcToken(servletRequest);
     }
 
     @RequestMapping(value = "/oidc/user")
-    public ResponseEntity oidcUser(@RequestParam(value = "access_token") String accessToken) {
-        return authingService.userByAccessToken(accessToken);
+    public ResponseEntity oidcUser(HttpServletRequest servletRequest) {
+        return authingService.userByAccessToken(servletRequest);
     }
 
     @AuthingUserToken
