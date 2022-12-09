@@ -66,8 +66,9 @@ public class SqlDao {
             System.out.println("connect mysql succeed.");
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
+            System.out.println("connect mysql failed.");
         }
         return con;
     }
