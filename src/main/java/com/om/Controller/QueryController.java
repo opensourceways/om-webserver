@@ -417,4 +417,16 @@ public class QueryController {
         ResponseEntity res = queryService.queryReviewerRecommend(input);
         return res;
     }
+
+    @RequestMapping(value = "/mindspore/siglist")
+    public String queryMindsporeSig(@RequestParam(value = "lang") String lang) {
+        String res = queryService.queryMindsporeSig(lang);
+        return res;
+    }
+
+    @RequestMapping(value = "/mindspore/siginfo")
+    public String queryMindsporeSigInfo(@RequestParam(value = "sig") String sig, @RequestParam(value = "lang") String lang) {
+        String res = queryService.queryMindsporeSigInfo(sig, lang);
+        return res;
+    }
 }
