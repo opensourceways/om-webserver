@@ -44,6 +44,19 @@ public class YamlUtil {
         return t;
     }
 
+    public <T> T readYaml(String yamlFile) {
+        Yaml yaml = new Yaml();
+        InputStream inputStream;
+        T t = null;
+        try {
+            inputStream = new FileInputStream(yamlFile);
+            t = yaml.load(inputStream);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return t;
+    }
+
     public String wget(String urlFile, String path) {
         Runtime runtime = Runtime.getRuntime();
         String cmd = String.format("wget -N -P %s %s", path, urlFile);

@@ -687,13 +687,13 @@ public class QueryService {
         return result;
     }
 
-    public String querySigName(String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String key = community + "sigsname";
+    public String querySigName(String community, String lang) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String key = community + "sigsname" + lang;
         String result;        
         result = (String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
-            result = queryDao.querySigName(community);           
+            result = queryDao.querySigName(community, lang);           
             boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
             if (set) {
                 System.out.println("update " + key + " success!");
@@ -702,21 +702,21 @@ public class QueryService {
         return result;
     }
 
-    public String querySigInfo(String community, String sig, String repo, String user, String search, String page, String pageSize) 
+    public String querySigInfo(String community, String sig, String repo, String user, String search, String page, String pageSize, String lang) 
             throws JsonMappingException, JsonProcessingException {
         if (search != null && search.equals("fuzzy")){
             return queryFuzzySigInfo(community, sig, repo, user, search, page, pageSize);
         }
-        return querySigInfo(community, sig);
+        return querySigInfo(community, sig, lang);
     }
 
-    public String querySigInfo(String community, String sig) throws JsonMappingException, JsonProcessingException {
-        String key = community + sig + "siginfo";
+    public String querySigInfo(String community, String sig, String lang) throws JsonMappingException, JsonProcessingException {
+        String key = community + sig + "siginfo" + lang;
         String result = null;
         result = (String) redisDao.get(key);
         if (result == null) {
             // 查询数据库，更新redis 缓存。
-            result = queryDao.querySigInfo(community, sig);
+            result = queryDao.querySigInfo(community, sig, lang);
             boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
             if (set) {
                 System.out.println("update " + key + " success!");
@@ -732,7 +732,7 @@ public class QueryService {
         result = (String) redisDao.get(key);
         if (result == null) {
             // 查询数据库，更新redis 缓存。
-            result = queryDao.querySigInfo(community, null);
+            result = queryDao.querySigInfo(community, null, null);
             boolean set = redisDao.set(key, result, Long.valueOf(env.getProperty("spring.redis.keyexpire")));
             if (set) {
                 System.out.println("update " + key + " success!");
@@ -1416,6 +1416,5 @@ public class QueryService {
         }
         return result;
     }
-
 }
 

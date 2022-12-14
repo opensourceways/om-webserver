@@ -223,8 +223,10 @@ public class QueryController {
     }
 
     @RequestMapping("/sig/name")
-    public String querySigName(@RequestParam(value = "community") String community) throws JsonProcessingException, InterruptedException, ExecutionException {
-        String res = queryService.querySigName(community);
+    public String querySigName(@RequestParam(value = "community") String community,
+            @RequestParam(value = "lang", required = false) String lang)
+            throws JsonProcessingException, InterruptedException, ExecutionException {
+        String res = queryService.querySigName(community, lang);
         return res;
     }
 
@@ -235,8 +237,9 @@ public class QueryController {
             @RequestParam(value = "user", required = false) String user,
             @RequestParam(value = "search", required = false) String search,
             @RequestParam(value = "page", required = false) String page,
-            @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
-        String res = queryService.querySigInfo(community, sig, repo, user, search, page, pageSize);
+            @RequestParam(value = "pageSize", required = false) String pageSize,
+            @RequestParam(value = "lang", required = false) String lang) throws JsonMappingException, JsonProcessingException {
+        String res = queryService.querySigInfo(community, sig, repo, user, search, page, pageSize, lang);
         return res;
     }
 
