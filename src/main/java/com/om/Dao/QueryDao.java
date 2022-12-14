@@ -2185,7 +2185,7 @@ public class QueryDao {
         return res;
     }
 
-    public String querySigName(String community) {
+    public String querySigName(String community, String lang) {
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
@@ -2200,6 +2200,8 @@ public class QueryDao {
                     index = openGauss.getSigs_index();
                     queryjson = openGauss.getSigNameQueryStr();
                     break;
+                case "mindspore":
+                    return getMindsporeSigList(lang);
                 default:
                     return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
             }
@@ -2233,7 +2235,7 @@ public class QueryDao {
         }
     }
 
-    public String querySigInfo(String community, String sig) {
+    public String querySigInfo(String community, String sig, String lang) {
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
@@ -2248,6 +2250,8 @@ public class QueryDao {
                     index = openGauss.getSigs_index();
                     queryjson = openGauss.getSigInfoQueryStr();
                     break;
+                case "mindspore":
+                    return getMindsporeSigInfo(sig, lang);
                 default:
                     return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
             }
@@ -3826,7 +3830,7 @@ public class QueryDao {
             }
 
             HashMap<String, Object> resData = new HashMap<>();
-            String siginfo = querySigInfo(community, sig);
+            String siginfo = querySigInfo(community, sig, null);
             JsonNode sigMaintainers = objectMapper.readTree(siginfo).get("data");
             if (sigMaintainers.size() != 0) {
                 JsonNode maintainers = sigMaintainers.get(0).get("maintainers");
@@ -4121,6 +4125,7 @@ public class QueryDao {
     }
 
     public String getMindsporeSigList(String lang) {
+        lang = lang == null ? "zh" : lang;
         HashMap<String, Object> res = getMindsporeSigFromYaml(lang);
         HashMap<String, Object> resMap = new HashMap<>();
         resMap.put("code", 200);
@@ -4130,6 +4135,7 @@ public class QueryDao {
     }
 
     public String getMindsporeSigInfo(String sig, String lang) {
+        lang = lang == null ? "zh" : lang;
         try {
             String urlStr = "";
             HashMap<String, Object> sigInfo = getMindsporeSigFromYaml(lang);
