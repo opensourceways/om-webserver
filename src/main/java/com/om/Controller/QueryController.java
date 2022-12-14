@@ -223,8 +223,10 @@ public class QueryController {
     }
 
     @RequestMapping("/sig/name")
-    public String querySigName(@RequestParam(value = "community") String community) throws JsonProcessingException, InterruptedException, ExecutionException {
-        String res = queryService.querySigName(community);
+    public String querySigName(@RequestParam(value = "community") String community,
+            @RequestParam(value = "lang", required = false) String lang)
+            throws JsonProcessingException, InterruptedException, ExecutionException {
+        String res = queryService.querySigName(community, lang);
         return res;
     }
 
@@ -235,8 +237,9 @@ public class QueryController {
             @RequestParam(value = "user", required = false) String user,
             @RequestParam(value = "search", required = false) String search,
             @RequestParam(value = "page", required = false) String page,
-            @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
-        String res = queryService.querySigInfo(community, sig, repo, user, search, page, pageSize);
+            @RequestParam(value = "pageSize", required = false) String pageSize,
+            @RequestParam(value = "lang", required = false) String lang) throws JsonMappingException, JsonProcessingException {
+        String res = queryService.querySigInfo(community, sig, repo, user, search, page, pageSize, lang);
         return res;
     }
 
@@ -415,18 +418,6 @@ public class QueryController {
     @RequestMapping(value = "/reviewer/recommend", method = RequestMethod.POST)
     public ResponseEntity queryReviewerRecommend(@RequestBody PrReviewerVo input) {
         ResponseEntity res = queryService.queryReviewerRecommend(input);
-        return res;
-    }
-
-    @RequestMapping(value = "/mindspore/siglist")
-    public String queryMindsporeSig(@RequestParam(value = "lang") String lang) {
-        String res = queryService.queryMindsporeSig(lang);
-        return res;
-    }
-
-    @RequestMapping(value = "/mindspore/siginfo")
-    public String queryMindsporeSigInfo(@RequestParam(value = "sig") String sig, @RequestParam(value = "lang") String lang) {
-        String res = queryService.queryMindsporeSigInfo(sig, lang);
         return res;
     }
 }
