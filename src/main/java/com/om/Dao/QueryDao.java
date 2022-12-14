@@ -33,10 +33,16 @@ import com.om.Modules.yaml.UserNameYaml;
 import com.om.Utils.*;
 import com.om.Vo.*;
 import io.netty.util.internal.StringUtil;
+
+import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.URL;
+import java.net.URLConnection;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
@@ -101,6 +107,12 @@ public class QueryDao {
 
     @Value("${producer.topic.tracker}")
     String topicTracker;
+
+    @Value("${mindspore.sig.yaml.en}")
+    String MindsporeSigYamlEn;
+
+    @Value("${mindspore.sig.yaml.zh}")
+    String MindsporeSigYamlZh;
 
     @Autowired
     KafkaDao kafkaDao;
@@ -4085,5 +4097,70 @@ public class QueryDao {
         }
         return res;
 
+    }
+
+    public HashMap<String, Object> getMindsporeSigFromYaml(String lang) {
+        HashMap<String, Object> res = new HashMap<>();
+        String MindsporeSigYaml;
+        switch (lang){
+            case "zh":
+                MindsporeSigYaml = MindsporeSigYamlZh;
+                break;
+            case "en":
+                MindsporeSigYaml = MindsporeSigYamlEn;
+                break;
+            default :
+                return res;
+        }
+        
+        String localYamlPath = companyNameLocalYaml;
+        YamlUtil yamlUtil = new YamlUtil();
+        String localFile = yamlUtil.wget(MindsporeSigYaml, localYamlPath);
+        res = yamlUtil.readYaml(localFile);
+        return res;
+    }
+
+    public String getMindsporeSigList(String lang) {
+        HashMap<String, Object> res = getMindsporeSigFromYaml(lang);
+        HashMap<String, Object> resMap = new HashMap<>();
+        resMap.put("code", 200);
+        resMap.put("data", res);
+        resMap.put("msg", "success");
+        return objectMapper.valueToTree(resMap).toString();
+    }
+
+    public String getMindsporeSigInfo(String sig, String lang) {
+        try {
+            String urlStr = "";
+            HashMap<String, Object> sigInfo = getMindsporeSigFromYaml(lang);
+            ArrayList<HashMap<String, String>> SigList = (ArrayList<HashMap<String, String>>) sigInfo.get("SIG list");
+            for (HashMap<String, String> siginfo : SigList) {
+                if (sig.toLowerCase().equals(siginfo.get("name").toLowerCase())) {
+                    urlStr = siginfo.get("links").replace("/blob/", "/raw/");
+                }
+            }
+            URL url = new URL(urlStr);
+            URLConnection urlConnection = url.openConnection();
+            HttpURLConnection connection = null;
+            if (urlConnection instanceof HttpURLConnection) {
+                connection = (HttpURLConnection) urlConnection;
+                connection.setConnectTimeout(0);
+            }
+            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"));
+            String res = "";
+            String current;
+            while ((current = in.readLine()) != null) {
+                res += current;
+            }
+
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", res);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+        }
     }
 }
