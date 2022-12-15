@@ -548,7 +548,7 @@ public class QueryService {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -567,7 +567,7 @@ public class QueryService {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -794,7 +794,7 @@ public class QueryService {
                 e.printStackTrace();
             }
             boolean set = redisDao.set(key, result,
-                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -835,7 +835,7 @@ public class QueryService {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -880,7 +880,7 @@ public class QueryService {
                 e.printStackTrace();
             }
             boolean set = redisDao.set(key, result,
-                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -905,7 +905,7 @@ public class QueryService {
                 e.printStackTrace();
             }
             boolean set = redisDao.set(key, result,
-                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -928,7 +928,7 @@ public class QueryService {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -947,7 +947,7 @@ public class QueryService {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -970,7 +970,7 @@ public class QueryService {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -1031,7 +1031,7 @@ public class QueryService {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -1070,7 +1070,7 @@ public class QueryService {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -1089,7 +1089,7 @@ public class QueryService {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
             System.out.println("update " + key + " success!");
             }
@@ -1110,7 +1110,7 @@ public class QueryService {
                 e.printStackTrace();
             }
             boolean set = redisDao.set(key, result,
-                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -1130,7 +1130,7 @@ public class QueryService {
                 e.printStackTrace();
             }
             boolean set = redisDao.set(key, result,
-                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -1164,7 +1164,7 @@ public class QueryService {
                 e.printStackTrace();
             }
             boolean set = redisDao.set(key, user, result,
-                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " " + user + " hash success!");
             }
@@ -1210,7 +1210,7 @@ public class QueryService {
                 e.printStackTrace();
             }
             boolean set = redisDao.set(key, result,
-                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -1263,7 +1263,7 @@ public class QueryService {
                 e.printStackTrace();
             }
             boolean set = redisDao.set(key, result,
-                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
