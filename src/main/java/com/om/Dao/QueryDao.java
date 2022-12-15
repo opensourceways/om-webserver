@@ -4143,6 +4143,7 @@ public class QueryDao {
             for (HashMap<String, String> siginfo : SigList) {
                 if (sig.toLowerCase().equals(siginfo.get("name").toLowerCase())) {
                     urlStr = siginfo.get("links").replace("/blob/", "/raw/");
+                    urlStr = siginfo.get("links").replace("/tree/", "/raw/");
                 }
             }
             URL url = new URL(urlStr);
