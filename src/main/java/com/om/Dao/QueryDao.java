@@ -4127,9 +4127,13 @@ public class QueryDao {
     public String getMindsporeSigList(String lang) {
         lang = lang == null ? "zh" : lang;
         HashMap<String, Object> res = getMindsporeSigFromYaml(lang);
+        HashMap<String, Object> resData = new HashMap<>();
+        resData.put("name", res.get("name"));
+        resData.put("description", res.get("description"));
+        resData.put("SIG_list", res.get("SIG list"));
         HashMap<String, Object> resMap = new HashMap<>();
         resMap.put("code", 200);
-        resMap.put("data", res);
+        resMap.put("data", resData);
         resMap.put("msg", "success");
         return objectMapper.valueToTree(resMap).toString();
     }
@@ -4156,7 +4160,7 @@ public class QueryDao {
             String res = "";
             String current;
             while ((current = in.readLine()) != null) {
-                res += current;
+                res += current + '\n';
             }
 
             HashMap<String, Object> resMap = new HashMap<>();
