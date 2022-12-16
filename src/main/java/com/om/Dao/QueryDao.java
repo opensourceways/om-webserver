@@ -4142,8 +4142,7 @@ public class QueryDao {
             ArrayList<HashMap<String, String>> SigList = (ArrayList<HashMap<String, String>>) sigInfo.get("SIG list");
             for (HashMap<String, String> siginfo : SigList) {
                 if (sig.toLowerCase().equals(siginfo.get("name").toLowerCase())) {
-                    urlStr = siginfo.get("links").replace("/blob/", "/raw/");
-                    urlStr = siginfo.get("links").replace("/tree/", "/raw/");
+                    urlStr = siginfo.get("links").replace("/blob/", "/raw/").replace("/tree/", "/raw/");
                 }
             }
             URL url = new URL(urlStr);
