@@ -11,7 +11,13 @@
 
 package com.om.Result;
 
+import com.om.Modules.MessageCodeConfig;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author xiazhonghai
@@ -64,5 +70,30 @@ public class Result {
     public Result setTotal(int total) {
         this.total = total;
         return this;
+    }
+
+    public ResponseEntity setResult(HttpStatus status, MessageCodeConfig msgCode, String msg, Object data, Map<String, MessageCodeConfig> error2code) {
+        HashMap<String, Object> res = new HashMap<>();
+        res.put("code", status.value());
+        res.put("data", data);
+        res.put("msg", msg);
+
+        if (status.value() == 400 && msgCode == null) {
+            for (Map.Entry<String, MessageCodeConfig> entry : error2code.entrySet()) {
+                if (msg.contains(entry.getKey())) {
+                    msgCode = entry.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (msgCode != null) {
+            HashMap<String, Object> msgMap = new HashMap<>();
+            msgMap.put("code", msgCode.getCode());
+            msgMap.put("message_en", msgCode.getMsgEn());
+            msgMap.put("message_zh", msgCode.getMsgZh());
+            res.put("msg", msgMap);
+        }
+        return new ResponseEntity<>(res, status);
     }
 }
