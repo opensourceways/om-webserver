@@ -2235,7 +2235,7 @@ public class QueryDao {
         }
     }
 
-    public String querySigInfo(String community, String sig, String lang) {
+    public String querySigInfo(String community, String sig) {
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
@@ -2251,7 +2251,10 @@ public class QueryDao {
                     queryjson = openGauss.getSigInfoQueryStr();
                     break;
                 case "mindspore":
-                    return getMindsporeSigInfo(sig, lang);
+                    sig = getMindsporeSigName(sig);
+                    index = mindSpore.getSigs_index();
+                    queryjson = mindSpore.getSigInfoQueryStr();
+                    break;
                 default:
                     return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
             }
@@ -3830,7 +3833,7 @@ public class QueryDao {
             }
 
             HashMap<String, Object> resData = new HashMap<>();
-            String siginfo = querySigInfo(community, sig, null);
+            String siginfo = querySigInfo(community, sig);
             JsonNode sigMaintainers = objectMapper.readTree(siginfo).get("data");
             if (sigMaintainers.size() != 0) {
                 JsonNode maintainers = sigMaintainers.get(0).get("maintainers");
@@ -4138,7 +4141,26 @@ public class QueryDao {
         return objectMapper.valueToTree(resMap).toString();
     }
 
-    public String getMindsporeSigInfo(String sig, String lang) {
+    public String getMindsporeSigName(String sig) {
+        try {
+            HashMap<String, Object> sigInfo = getMindsporeSigFromYaml("en");
+            ArrayList<HashMap<String, String>> SigList = (ArrayList<HashMap<String, String>>) sigInfo.get("SIG list");
+            for (HashMap<String, String> siginfo : SigList) {
+                if (sig.toLowerCase().equals(siginfo.get("name").toLowerCase())) {
+                    sig = siginfo.get("links").split("/")[8];
+                    return sig;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return sig;
+    }
+
+    public String getMindsporeSigReadme(String community, String sig, String lang) {
+        if (!community.toLowerCase().equals("mindspore")) {
+            return "{\"code\":400,\"data\":\"community error\",\"msg\":\"community error\"}";
+        }
         lang = lang == null ? "zh" : lang;
         try {
             String urlStr = "";
