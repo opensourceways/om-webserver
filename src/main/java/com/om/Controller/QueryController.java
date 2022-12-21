@@ -237,9 +237,8 @@ public class QueryController {
             @RequestParam(value = "user", required = false) String user,
             @RequestParam(value = "search", required = false) String search,
             @RequestParam(value = "page", required = false) String page,
-            @RequestParam(value = "pageSize", required = false) String pageSize,
-            @RequestParam(value = "lang", required = false) String lang) throws JsonMappingException, JsonProcessingException {
-        String res = queryService.querySigInfo(community, sig, repo, user, search, page, pageSize, lang);
+            @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
+        String res = queryService.querySigInfo(community, sig, repo, user, search, page, pageSize);
         return res;
     }
 
@@ -419,5 +418,13 @@ public class QueryController {
     public ResponseEntity queryReviewerRecommend(@RequestBody PrReviewerVo input) {
         ResponseEntity res = queryService.queryReviewerRecommend(input);
         return res;
+    }
+
+    @RequestMapping(value = "sig/readme")
+    public String getSigReadme(@RequestParam(value = "community") String community,
+            @RequestParam(value = "sig", required = false) String sig,
+            @RequestParam(value = "lang", required = false) String lang)
+            throws JsonMappingException, JsonProcessingException {
+        return queryService.getSigReadme(community, sig, lang);
     }
 }
