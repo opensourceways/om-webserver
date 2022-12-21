@@ -160,7 +160,7 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         String msg;
-        String userName = servletRequest.getParameter("username");
+        String userName = servletRequest.getParameter("userName");
         String account = servletRequest.getParameter("account");
         String code = servletRequest.getParameter("code");
 
