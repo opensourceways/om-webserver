@@ -59,6 +59,9 @@ public enum MessageCodeConfig {
     E00039("E00039", "email must be not empty", "邮箱不能为空"),
     E00040("E00040", "please enter the correct email", "请输入正确的邮箱"),
     E00041("E00041", "contain 3 to 20 characters. include only letters, digits, and underscores (_). it must start with a letter and cannot end with underscore (_)", "请输入3到20个字符。只能由字母、数字或者下划线(_)组成。必须以字母开头，不能以下划线(_)结尾"),
+    E00042("E00042", "not found the app", "应用未找到"),
+    E00043("E00043", "please enter the correct phone number", "请输入正确的手机号码"),
+    E00044("E00044", "please enter the correct company name", "请输入正确的公司名"),
     ;
 
     private String code;
