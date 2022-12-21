@@ -1,6 +1,7 @@
 FROM openjdk:8-jdk
 
 ARG NEW_YEAR_USER
+ARG BRANCH
 
 MAINTAINER zhongjun <jun.zhongjun2@gmail.com>
 
@@ -16,7 +17,7 @@ RUN wget https://dlcdn.apache.org/maven/maven-3/3.6.3/binaries/apache-maven-3.6.
 ENV MAVEN_HOEM=/var/lib/om-webserver/apache-maven-3.6.3
 ENV PATH=$MAVEN_HOEM/bin:$PATH
 
-RUN git clone https://gitee.com/opensourceway/om-webserver.git && \
+RUN git clone -b ${BRANCH} https://gitee.com/opensourceway/om-webserver.git && \
         cd om-webserver && \
         mvn clean install package -Dmaven.test.skip && \
         mv ./target/om-webserver-0.0.1-SNAPSHOT.jar ../om-webserver.jar

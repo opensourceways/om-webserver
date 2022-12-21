@@ -87,7 +87,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         try {
             String community = servletRequest.getParameter("community");
             String appId = servletRequest.getParameter("client_id");
-            String username = servletRequest.getParameter("username");
+            String userName = servletRequest.getParameter("userName");
             String phone = servletRequest.getParameter("account");
             String phoneCode = servletRequest.getParameter("code");
             String company = servletRequest.getParameter("company");
@@ -103,11 +103,11 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
 
             // 用户名校验
-            if (StringUtils.isBlank(username))
+            if (StringUtils.isBlank(userName))
                 return result(HttpStatus.BAD_REQUEST, null, "用户名不能为空", null);
-            if (oneidDao.isUserExists(poolId, poolSecret, username, "username"))
+            if (oneidDao.isUserExists(poolId, poolSecret, userName, "username"))
                 return result(HttpStatus.BAD_REQUEST, null, "用户名已存在", null);
-            userInfo.put("username", username);
+            userInfo.put("username", userName);
 
             // 手机号校验
             if (!phone.matches(Constant.PHONEREGEX))
