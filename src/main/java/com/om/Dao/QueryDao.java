@@ -900,7 +900,6 @@ public class QueryDao {
                 if (source.has("is_pr")) {
                     Map sourceMap = objectMapper.convertValue(source, Map.class);
                     sourceMap.put("id", id);
-                    sourceMap.remove("url");
                     JsonNode pr = objectMapper.valueToTree(sourceMap);
                     prList.add(pr);
                 }
