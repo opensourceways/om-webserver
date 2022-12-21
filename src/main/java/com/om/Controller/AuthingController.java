@@ -15,14 +15,19 @@ import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.om.Service.AuthingService;
-import com.om.Vo.OauthTokenVo;
+import com.om.Service.UserCenterServiceContext;
+import com.om.Service.inter.UserCenterServiceInter;
 import com.om.authing.AuthingUserToken;
 
+import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -35,6 +40,9 @@ import static com.anji.captcha.controller.CaptchaController.getRemoteId;
 public class AuthingController {
     @Autowired
     AuthingService authingService;
+
+    @Autowired
+    UserCenterServiceContext userCenterServiceContext;
 
     @Autowired
     private CaptchaService captchaService;
@@ -52,27 +60,27 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "/account/exists")
-    public ResponseEntity accountExists(@RequestParam(value = "userName", required = false) String userName,
-                                        @RequestParam(value = "account", required = false) String account) {
-        return authingService.accountExists(userName, account);
+    public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.accountExists(servletRequest, servletResponse);
     }
 
     @RequestMapping(value = "/v3/sendCode")
-    public ResponseEntity sendCodeV3(@RequestParam(value = "account") String account,
-                                     @RequestParam(value = "channel") String channel,
+    public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
         CaptchaVO captchaVO = new CaptchaVO();
         captchaVO.setCaptchaVerification(captchaVerification);
         ResponseModel response = captchaService.verification(captchaVO);
         boolean isSuccess = response.isSuccess();
-        return authingService.sendCodeV3(account, channel, isSuccess);
+
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.sendCodeV3(servletRequest, servletResponse, isSuccess);
     }
 
     @RequestMapping(value = "/register")
-    public ResponseEntity register(@RequestParam(value = "userName") String userName,
-                                   @RequestParam(value = "account") String account,
-                                   @RequestParam(value = "code") String code) {
-        return authingService.register(userName, account, code);
+    public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.register(servletRequest, servletResponse);
     }
 
     @RequestMapping(value = "/login")
@@ -240,5 +248,11 @@ public class AuthingController {
     public ResponseEntity upload(@CookieValue(value = "_Y_G_", required = false) String token,
                                  @RequestParam(value = "file") MultipartFile file) {
         return authingService.updatePhoto(token, file);
+    }
+
+    private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
+        String community = servletRequest.getParameter("community");
+        String serviceType = community == null ? "authing" : community.toLowerCase();
+        return userCenterServiceContext.getUserCenterService(serviceType);
     }
 }
