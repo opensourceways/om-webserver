@@ -25,4 +25,6 @@ public class Constant {
     public static final String organization="organization";
     public static final String allIssueCveStr="allIssueCveStr";
     public static final String allIssueResult="allIssueResult";
+    public static final String PHONEREGEX = "^[a-z0-9]{11}$";
+    public static final String EMAILREGEX = "^[A-Za-z0-9-._\\u4e00-\\u9fa5]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$";
 }
