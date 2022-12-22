@@ -47,7 +47,7 @@ public class OneidDao {
             String mToken = getManagementToken(poolId, poolSecret);
             HttpResponse<JsonNode> response = Unirest.post(apiHost + "/users")
                     .header("Content-Type", "application/json")
-                    .header("Authorization", "Bearer " + mToken)
+                    .header("Authorization", mToken)
                     .body(userJsonStr)
                     .asJson();
             if (response.getStatus() == 200) {
@@ -65,7 +65,7 @@ public class OneidDao {
             String mToken = getManagementToken(poolId, poolSecret);
             String body = String.format("{\"accessKeyId\": \"%s\",\"accessKeySecret\": \"%s\"}", poolId, poolSecret);
             HttpResponse<JsonNode> response = Unirest.delete(apiHost + "/admin/user/delete-users-batch")
-                    .header("Authorization", "Bearer " + mToken)
+                    .header("Authorization", mToken)
                     .body("")
                     .asJson();
             if (response.getStatus() == 200) {
@@ -83,7 +83,7 @@ public class OneidDao {
 
             String body = String.format("{\"accessKeyId\": \"%s\",\"accessKeySecret\": \"%s\"}", poolId, poolSecret);
             HttpResponse<JsonNode> response = Unirest.put(apiHost + "/admin/user/update-user")
-                    .header("Authorization", "Bearer " + mToken)
+                    .header("Authorization", mToken)
                     .body("")
                     .asJson();
 
@@ -99,7 +99,7 @@ public class OneidDao {
         try {
             String mToken = getManagementToken(poolId, poolSecret);
             HttpResponse<JsonNode> response = Unirest.get(apiHost + "/users/" + account)
-                    .header("Authorization", "Bearer " + mToken)
+                    .header("Authorization", mToken)
                     .queryString("userIdType", accountType)
                     .asJson();
 
@@ -125,5 +125,14 @@ public class OneidDao {
         }
     }
 
+    public Object loginByAccountCode(String poolId, String poolSecret, String account, String accountType, String code, String appId) {
+        JSONObject user = getUser(poolId, poolSecret, account, accountType);
+        if (user == null) return "用户不存在";
+        user.accumulate("id_token", user.getString("id"));
+        return user;
+    }
 
+    public boolean logout(String idToken, String appId) {
+        return true;
+    }
 }
