@@ -84,13 +84,10 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "/login")
-    public ResponseEntity login(HttpServletRequest httpServletRequest,
-                                HttpServletResponse servletResponse,
-                                @RequestParam(value = "community") String community,
-                                @RequestParam(value = "permission") String permission,
-                                @RequestParam(value = "account") String account,
-                                @RequestParam(value = "code") String code) {
-        return authingService.login(httpServletRequest, servletResponse, community, permission, account, code);
+    public ResponseEntity login(HttpServletRequest servletRequest,
+                                HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.login(servletRequest, servletResponse);
     }
 
     @RequestMapping(value = "/app/verify")
@@ -102,11 +99,11 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/oidc/auth", method = RequestMethod.GET)
     public ResponseEntity oidcAuth(@CookieValue(value = "_Y_G_", required = false) String token,
-                                        @RequestParam(value = "client_id") String clientId,
-                                        @RequestParam(value = "redirect_uri") String redirectUri,
-                                        @RequestParam(value = "response_type") String responseType,
-                                        @RequestParam(value = "state", required = false) String state,
-                                        @RequestParam(value = "scope") String scope) {
+                                   @RequestParam(value = "client_id") String clientId,
+                                   @RequestParam(value = "redirect_uri") String redirectUri,
+                                   @RequestParam(value = "response_type") String responseType,
+                                   @RequestParam(value = "state", required = false) String state,
+                                   @RequestParam(value = "scope") String scope) {
         return authingService.oidcAuth(token, clientId, redirectUri, responseType, state, scope);
     }
 
@@ -127,10 +124,18 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/logout")
-    public ResponseEntity logout(HttpServletRequest httpServletRequest,
-                                 HttpServletResponse servletResponse,
+    public ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                  @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.logoutOld(httpServletRequest, servletResponse, token);
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.logout(servletRequest, servletResponse, token);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/user/refresh")
+    public ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                      @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.refreshUser(servletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
@@ -143,7 +148,7 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/user/permissions")
     public ResponseEntity userPermissions(@RequestParam(value = "community") String community,
-                                  @CookieValue(value = "_Y_G_", required = false) String token) {
+                                          @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.userPermissions(community, token);
     }
 
@@ -159,8 +164,11 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/personal/center/user")
-    public ResponseEntity userInfo(@CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.personalCenterUserInfo(token);
+    public ResponseEntity userInfo(HttpServletRequest servletRequest,
+                                   HttpServletResponse servletResponse,
+                                   @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.personalCenterUserInfo(servletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
