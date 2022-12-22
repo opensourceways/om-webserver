@@ -22,4 +22,12 @@ public interface UserCenterServiceInter {
     ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse, boolean isSuccess);
 
     ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+
+    ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+
+    ResponseEntity personalCenterUserInfo(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
+
+    ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
+
+    ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 }
