@@ -223,8 +223,10 @@ public class QueryController {
     }
 
     @RequestMapping("/sig/name")
-    public String querySigName(@RequestParam(value = "community") String community) throws JsonProcessingException, InterruptedException, ExecutionException {
-        String res = queryService.querySigName(community);
+    public String querySigName(@RequestParam(value = "community") String community,
+            @RequestParam(value = "lang", required = false) String lang)
+            throws JsonProcessingException, InterruptedException, ExecutionException {
+        String res = queryService.querySigName(community, lang);
         return res;
     }
 
@@ -416,5 +418,13 @@ public class QueryController {
     public ResponseEntity queryReviewerRecommend(@RequestBody PrReviewerVo input) {
         ResponseEntity res = queryService.queryReviewerRecommend(input);
         return res;
+    }
+
+    @RequestMapping(value = "sig/readme")
+    public String getSigReadme(@RequestParam(value = "community") String community,
+            @RequestParam(value = "sig", required = false) String sig,
+            @RequestParam(value = "lang", required = false) String lang)
+            throws JsonMappingException, JsonProcessingException {
+        return queryService.getSigReadme(community, sig, lang);
     }
 }
