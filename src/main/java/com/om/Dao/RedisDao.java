@@ -44,6 +44,25 @@ public class RedisDao {
     static ObjectMapper objectMapper = new ObjectMapper();
 
     /**
+     * 通过设置偏移量来修改value，不会更改过期时间
+     * offset = 0 表示不偏移
+     * 注意：这种情况要修改的值，长度不能比原值长度小
+     *
+     * @param key    key
+     * @param value  value
+     * @param offset 偏移量
+     * @return boolean
+     */
+    public boolean updateValue(String key, String value, long offset) {
+        boolean result = false;
+        if (exists(key)) {
+            redisTemplate.opsForValue().set(key, value, offset);
+            result = true;
+        }
+        return result;
+    }
+
+    /**
      * 功能描述: <br>
      * 〈设置key的有效期〉
      *
