@@ -125,5 +125,14 @@ public class OneidDao {
         }
     }
 
+    public Object loginByAccountCode(String poolId, String poolSecret, String account, String accountType, String code, String appId) {
+        JSONObject user = getUser(poolId, poolSecret, account, accountType);
+        if (user == null) return "用户不存在";
+        user.accumulate("id_token", user.getString("id"));
+        return user;
+    }
 
+    public boolean logout(String idToken, String appId) {
+        return true;
+    }
 }

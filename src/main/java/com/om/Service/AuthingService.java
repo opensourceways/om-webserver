@@ -184,7 +184,7 @@ public class AuthingService implements UserCenterServiceInter {
         } else if (accountType.equals("phone")) {
             // 手机注册
             msg = authingUserDao.registerByPhone(account, code, userName);
-        }  else {
+        } else {
             return result(HttpStatus.BAD_REQUEST, null, accountType, null);
         }
         if (!msg.equals("success")) return result(HttpStatus.BAD_REQUEST, null, msg, null);
@@ -192,8 +192,13 @@ public class AuthingService implements UserCenterServiceInter {
         return result(HttpStatus.OK, "success", null);
     }
 
-    public ResponseEntity login(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse,
-                                String community, String permission, String account, String code) {
+    @Override
+    public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        String community = servletRequest.getParameter("community");
+        String permission = servletRequest.getParameter("permission");
+        String account = servletRequest.getParameter("account");
+        String code = servletRequest.getParameter("code");
+
         // 限制一分钟登录失败次数
         String loginErrorCountKey = account + "loginCount";
         Object v = redisDao.get(loginErrorCountKey);
@@ -251,7 +256,7 @@ public class AuthingService implements UserCenterServiceInter {
         String cookieTokenName = env.getProperty("cookie.token.name");
         String maxAgeTemp = env.getProperty("authing.cookie.max.age");
         int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
-        HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
+        HttpClientUtils.setCookie(servletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
 
         // 返回结果
         HashMap<String, Object> userData = new HashMap<>();
@@ -511,17 +516,17 @@ public class AuthingService implements UserCenterServiceInter {
 
             //获取企业信息
             ArrayList<String> companyNameList = new ArrayList<>();
-            JSONObject userObj = authingUserDao.getUserById(userId);            
+            JSONObject userObj = authingUserDao.getUserById(userId);
             HashMap<String, Map<String, Object>> map = new HashMap<>();
             JSONArray jsonArray = userObj.getJSONArray("identities");
             for (Object o : jsonArray) {
-                JSONObject obj =  (JSONObject) o;
+                JSONObject obj = (JSONObject) o;
                 authingUserIdentityIdp(obj, map);
             }
             if (null != map.get("oauth2") && null != map.get("oauth2").get("login_name")) {
                 String login = map.get("oauth2").get("login_name").toString();
                 String company = queryDao.queryUserCompany(community, login);
-                companyNameList = queryDao.getcompanyNameList(company);               
+                companyNameList = queryDao.getcompanyNameList(company);
             }
 
             // 获取用户
@@ -540,9 +545,10 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-    public ResponseEntity logoutOld(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String token) {
+    @Override
+    public ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
         try {
-            String headerToken = httpServletRequest.getHeader("token");
+            String headerToken = servletRequest.getHeader("token");
             String idTokenKey = "idToken_" + headerToken;
             String idToken = (String) redisDao.get(idTokenKey);
 
@@ -557,7 +563,7 @@ public class AuthingService implements UserCenterServiceInter {
 
             // 退出登录，删除cookie，删除idToken
             String cookieTokenName = env.getProperty("cookie.token.name");
-            HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
+            HttpClientUtils.setCookie(servletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
             redisDao.remove(idTokenKey);
 
             HashMap<String, Object> userData = new HashMap<>();
@@ -571,7 +577,7 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     // 后端退出，目前有误 TODO
-    public ResponseEntity logout(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String token) {
+    public ResponseEntity logoutOld(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String token) {
         boolean res;
         String userId;
         Date issuedAt;
@@ -606,6 +612,40 @@ public class AuthingService implements UserCenterServiceInter {
         return result(HttpStatus.OK, "logout success", null);
     }
 
+    @Override
+    public ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
+        try {
+            token = rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(token);
+            String userId = decode.getAudience().get(0);
+
+            // 获取用户
+            String photo;
+            String username;
+            try {
+                String query = env.getProperty("mysql.query");
+                query = String.format(query, userId);
+                ArrayList<HashMap<String, String>> userinfo = sqlDao.getUserData(query);
+                HashMap<String, String> ui = userinfo.get(0);
+                photo = ui.get("photo");
+                username = ui.get("username");
+            } catch (Exception e) {
+                System.out.println("get data from mysql failed.");
+                User user = authingUserDao.getUser(userId);
+                photo = user.getPhoto();
+                username = user.getUsername();
+            }
+
+            // 返回结果
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("photo", photo);
+            userData.put("username", username);
+            return result(HttpStatus.OK, "success", userData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+    }
 
     public ResponseEntity tokenApply(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse,
                                      String community, String code, String permission, String redirectUrl) {
@@ -657,7 +697,8 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-    public ResponseEntity personalCenterUserInfo(String token) {
+    @Override
+    public ResponseEntity personalCenterUserInfo(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
         try {
             String userId = getUserIdFromToken(token);
             JSONObject userObj = authingUserDao.getUserById(userId);
