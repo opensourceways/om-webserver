@@ -712,7 +712,8 @@ public class AuthingService implements UserCenterServiceInter {
 
     }
 
-    public ResponseEntity deleteUser(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String token) {
+    @Override
+    public ResponseEntity deleteUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
         try {
             token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
@@ -722,7 +723,7 @@ public class AuthingService implements UserCenterServiceInter {
 
             //用户注销
             boolean res = authingUserDao.deleteUserById(userId);
-            if (res) return deleteUserAfter(httpServletRequest, servletResponse, token, userId, issuedAt, photo);
+            if (res) return deleteUserAfter(servletRequest, servletResponse, token, userId, issuedAt, photo);
             else return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
         } catch (Exception e) {
             return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
