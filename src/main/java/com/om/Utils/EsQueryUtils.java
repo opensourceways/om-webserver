@@ -177,6 +177,53 @@ public class EsQueryUtils {
 
     }
 
+    public String esScrollFromId(RestHighLevelClient client, String item, int pageSize, String indexname, String lastCursor, SearchSourceBuilder sourceBuilder) {
+        SearchRequest request = new SearchRequest(indexname);
+        SearchSourceBuilder builder = sourceBuilder;
+
+        builder.query(QueryBuilders.matchAllQuery());
+
+        if (pageSize <= 0 || pageSize > MAXPAGESIZE) {
+            pageSize = MAXPAGESIZE;
+        }
+        builder.size(pageSize);
+
+        if (lastCursor != null && !lastCursor.isEmpty()) {
+            builder.size(pageSize + 1);
+            String sortValueStr = new String(Base64.getDecoder().decode(lastCursor));
+            builder.searchAfter(sortValueStr.split(","));
+        }
+        request.source(builder);
+
+        ArrayList<Object> list = new ArrayList<>();
+        String endCursor = "";
+
+        long totalCount = 0;
+        try {        
+            SearchResponse response = client.search(request, RequestOptions.DEFAULT);
+            totalCount = response.getHits().getTotalHits().value;
+            for (SearchHit hit : response.getHits().getHits()) {
+                String s = Arrays.toString(hit.getSortValues()).replace("[", "").replace("]", "");
+                endCursor = Base64.getEncoder().encodeToString(s.getBytes());
+                Map<String, Object> sourceAsMap = hit.getSourceAsMap();
+                list.add(sourceAsMap);
+            }
+        } catch (Exception ex) {
+            list.clear();
+            String s = objectMapper.valueToTree(list).toString();
+            return "{\"code\":200,\"data\":" + s + ",\"cursor\":\"" + endCursor + "\",\"msg\":\"query error\"}";
+        }
+
+        if (endCursor.equals(lastCursor)) {
+            list.clear();
+        }
+        if (list.size() > pageSize) {
+            list.remove(0);
+        }
+        String s = objectMapper.valueToTree(list).toString();
+        return "{\"code\":200,\"data\":" + s + ",\"cursor\":\"" + endCursor + "\",\"totalCount\":" + totalCount + ",\"msg\":\"ok\"}";
+    }
+
     public String esFromId(RestHighLevelClient client, String item, String lastCursor, int pageSize, String indexname) {
         SearchRequest request = new SearchRequest(indexname);
         SearchSourceBuilder builder = new SearchSourceBuilder();
