@@ -643,8 +643,6 @@ public class QueryDao {
             resMap.put("code", 200);
             resMap.put("data", respro);
             resMap.put("msg", statusText);
-
-            resMap.put("msg", "OK");
             String result = objectMapper.valueToTree(resMap).toString();
             return result;
         } catch (Exception e) {
