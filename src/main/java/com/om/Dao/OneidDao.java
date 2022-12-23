@@ -59,18 +59,14 @@ public class OneidDao {
         return user;
     }
 
-    public String deleteUser(String poolId, String poolSecret) {
-        String res = "fail";
+    public boolean deleteUser(String poolId, String poolSecret, String userId) {
+        boolean res = false;
         try {
             String mToken = getManagementToken(poolId, poolSecret);
-            String body = String.format("{\"accessKeyId\": \"%s\",\"accessKeySecret\": \"%s\"}", poolId, poolSecret);
-            HttpResponse<JsonNode> response = Unirest.delete(apiHost + "/admin/user/delete-users-batch")
+            HttpResponse<JsonNode> response = Unirest.delete(apiHost + "/users/" + userId)
                     .header("Authorization", mToken)
-                    .body("")
                     .asJson();
-            if (response.getStatus() == 200) {
-                res = "success";
-            }
+            if (response.getStatus() == 200) res = true;
         } catch (Exception e) {
             e.printStackTrace();
         }
