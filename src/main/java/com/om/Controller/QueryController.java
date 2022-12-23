@@ -209,8 +209,10 @@ public class QueryController {
 
 
     @RequestMapping(value = "/buildCheckInfo", method = RequestMethod.POST)
-    public String queryBuildCheckInfo(@RequestBody BuildCheckInfoQueryVo queryBody) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String res = queryService.queryBuildCheckInfo(queryBody,"buildCheckInfo");
+    public String queryBuildCheckInfo(@RequestBody BuildCheckInfoQueryVo queryBody,
+            @RequestParam(value = "lastCursor", required = false) String lastCursor,
+            @RequestParam(value = "pageSize", required = false) String pageSize) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String res = queryService.queryBuildCheckInfo(queryBody, "buildCheckInfo", lastCursor, pageSize);
         return res;
     }
 
