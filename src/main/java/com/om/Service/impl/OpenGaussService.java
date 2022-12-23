@@ -385,6 +385,33 @@ public class OpenGaussService implements UserCenterServiceInter {
         }
     }
 
+    @Override
+    public ResponseEntity deleteUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
+        String community = servletRequest.getParameter("community");
+        String appId = servletRequest.getParameter("client_id");
+
+        // app校验
+        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
+            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+
+        try {
+            token = rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(token);
+            String userId = decode.getAudience().get(0);
+            Date issuedAt = decode.getIssuedAt();
+
+            JSONObject user = oneidDao.getUser(poolId, poolSecret, userId, "id");
+            String photo = jsonObjStringValue(user, "photo");
+
+            //用户注销
+            boolean res = oneidDao.deleteUser(poolId, poolSecret, userId);
+            if (res) return deleteUserAfter(servletRequest, servletResponse, token, userId, issuedAt, photo);
+            else return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
+        } catch (Exception e) {
+            return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
+        }
+    }
+
     private String getAccountType(String account) {
         String accountType;
         if (account.matches(Constant.EMAILREGEX))
@@ -449,5 +476,27 @@ public class OpenGaussService implements UserCenterServiceInter {
     private String rsaDecryptToken(String token) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
         RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
         return RSAUtil.privateDecrypt(token, privateKey);
+    }
+
+    private ResponseEntity deleteUserAfter(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse,
+                                           String token, String userId, Date issuedAt, String photo) {
+        try {
+            // 当前token失效
+            String redisKey = userId + issuedAt.toString();
+            redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
+
+            // 删除用户头像
+            authingUserDao.deleteObsObjectByUrl(photo);
+
+            // 删除cookie，删除idToken
+            String headerToken = httpServletRequest.getHeader("token");
+            String idTokenKey = "idToken_" + headerToken;
+            String cookieTokenName = env.getProperty("cookie.token.name");
+            HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
+            redisDao.remove(idTokenKey);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result(HttpStatus.OK, null, "delete user success", null);
     }
 }

@@ -30,4 +30,6 @@ public interface UserCenterServiceInter {
     ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 
     ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
+
+    ResponseEntity deleteUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 }
