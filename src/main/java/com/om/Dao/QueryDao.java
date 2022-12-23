@@ -11,12 +11,11 @@
 
 package com.om.Dao;
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CityResponse;
@@ -617,17 +616,17 @@ public class QueryDao {
             if (dataMap == null) {
                 return null;
             }
-            JSONObject projectObj = new JSONObject();
+            HashMap<String, Object> projectObj = new HashMap<>();
             for (JsonNode project_bucket : dataMap.get("buckets")) {
                 String projectName = project_bucket.get("key").asText();
                 JsonNode hostarchNode = project_bucket.get("group_by_hostarch");
 
-                JSONObject archObj = new JSONObject();
+                HashMap<String, Object> archObj = new HashMap<>();
                 for (JsonNode arch_bucket : hostarchNode.get("buckets")) {
                     String archName = arch_bucket.get("key").asText();
                     JsonNode archNode = arch_bucket.get("group_by_package");
 
-                    JSONObject packageObj = new JSONObject();
+                    HashMap<String, Object> packageObj = new HashMap<>();
                     for (JsonNode package_bucket : archNode.get("buckets")) {
                         String packageName = package_bucket.get("key").asText();
                         JsonNode value = package_bucket.get("avg_of_duration").get("value");
@@ -638,8 +637,15 @@ public class QueryDao {
                 }
                 projectObj.put(projectName, archObj);
             }
-            String str_data = projectObj.toString();
-            String result = "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + str_data + "},\"msg\":\"" + statusText + "\"}";
+            HashMap<String, Object> respro = new HashMap<>();
+            respro.put(dataflage, projectObj);
+            HashMap<String, Object> resMap = new HashMap();
+            resMap.put("code", 200);
+            resMap.put("data", respro);
+            resMap.put("msg", statusText);
+
+            resMap.put("msg", "OK");
+            String result = objectMapper.valueToTree(resMap).toString();
             return result;
         } catch (Exception e) {
             e.printStackTrace();
@@ -1784,7 +1790,8 @@ public class QueryDao {
         return resMap;
     }
 
-    public String queryIssueScore(String community, String start_date, String end_date, String item) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+    public String queryIssueScore(String community, String start_date, String end_date, String item)
+            throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
         RequestBuilder builder = asyncHttpUtil.getBuilder();
 
@@ -1806,21 +1813,17 @@ public class QueryDao {
                 return "";
         }
 
-        JSONObject queryjsonObj = parseObject(queryjson);
-        if (StringUtils.isNotBlank(start_date)) {
-            queryjsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(0)
-                    .getJSONObject("range").getJSONObject("created_at").fluentPut("gte", start_date);
+        if (StringUtils.isBlank(start_date)) {
+            start_date = "2020-01-01";
         }
-
-        if (StringUtils.isNotBlank(end_date)) {
-            queryjsonObj.getJSONObject("query").getJSONObject("bool").getJSONArray("must").getJSONObject(0)
-                    .getJSONObject("range").getJSONObject("created_at").fluentPut("lte", end_date);
+        if (StringUtils.isBlank(end_date)) {
+            end_date = "now";
         }
-        queryjson = queryjsonObj.toJSONString();
+        queryjson = String.format(queryjson, start_date, end_date);
 
         builder.setUrl(this.url + index + "/_search");
         builder.setBody(queryjson);
-        //获取执行结果
+        // 获取执行结果
         ListenableFuture<Response> futureRes = client.executeRequest(builder.build());
         return parseIssueScoreFutureRes(futureRes, item);
     }
@@ -1847,17 +1850,21 @@ public class QueryDao {
             JsonNode records = dataNode.get("aggregations").get("group_by_user_login").get("buckets");
             int totalCount = records.size();
 
-            JSONArray resJsonArray = new JSONArray();
+            ArrayList<HashMap<String, Object>> resJsonArray = new ArrayList<>();
             for (JsonNode record : records) {
                 String issue_author = record.get("key").asText();
                 Double issue_score = record.get("sum_of_score").get("value").asDouble();
 
-                JSONObject recordJsonObj = new JSONObject();
+                HashMap<String, Object> recordJsonObj = new HashMap<>();
                 recordJsonObj.put("issue_author", issue_author);
                 recordJsonObj.put("issue_score", issue_score);
-                resJsonArray.fluentAdd(recordJsonObj);
+                resJsonArray.add(recordJsonObj);
             }
-            result = "{\"code\":" + statusCode + ",\"data\":" + resJsonArray + ",\"msg\":\"" + statusText + "\"}";
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", resJsonArray);
+            resMap.put("msg", statusText);
+            result = objectMapper.valueToTree(resMap).toString();
             return result;
         } catch (Exception e) {
             e.printStackTrace();
@@ -1865,15 +1872,13 @@ public class QueryDao {
         return "{\"code\":" + statusCode + ",\"data\":\"[]\",\"msg\":\"" + statusText + "\"}";
     }
 
-    public String queryBuildCheckInfo(BuildCheckInfoQueryVo queryBody, String item, Environment env) {
-
+    public String queryBuildCheckInfo(BuildCheckInfoQueryVo queryBody, String item, Environment env, String lastCursor,
+            String pageSize) {
         String communityName = queryBody.getCommunity_name();
-
         String result = null;
         String resultInfo = null;
         String buildCheckInfoResultIndex;
         String buildCheckInfoMistakeIndex;
-
 
         switch (communityName.toLowerCase()) {
             case "openeuler":
@@ -1898,87 +1903,71 @@ public class QueryDao {
         EsQueryUtils esQueryUtils = new EsQueryUtils();
 
         SearchSourceBuilder queryResultSourceBuilder = assembleResultSourceBuilder("update_at", queryBody);
-        resultInfo = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoResultIndex, 5000, queryResultSourceBuilder);
-        JSONObject resultJsonObject = parseObject(resultInfo);
-        JSONArray resultJsonArray = resultJsonObject.getJSONArray("data");
+        pageSize = pageSize == null ? "5000" : pageSize;
+        resultInfo = esQueryUtils.esScrollFromId(restHighLevelClient, item, Integer.parseInt(pageSize),
+                buildCheckInfoResultIndex, lastCursor, queryResultSourceBuilder);
+        SearchSourceBuilder mistakeSourceBuilder = assembleMistakeSourceBuilder("update_at", queryBody);
+        String mistakeInfoStr = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoMistakeIndex, 5000,
+                mistakeSourceBuilder);
 
-        JSONArray finalResultJSONArray;
+        ArrayList<ObjectNode> finalResultJSONArray = new ArrayList<>();
+        int totalCount = 0;
+        String cursor = "";
         try {
-            finalResultJSONArray = new JSONArray();
-            JSONArray empty_ci_mistake_list = new JSONArray();
-            int resultTotalCount = resultJsonArray.size();
-            for (int i = 0; i < resultTotalCount; i++) {
-                JSONObject eachResultJsonObject = (JSONObject) resultJsonArray.get(i);
-                String pr_url = eachResultJsonObject.getString("pr_url");
-                String build_no = eachResultJsonObject.getString("build_no");
-                String result_update_at = eachResultJsonObject.getString("update_at");
-                eachResultJsonObject.fluentPut("result_update_at", result_update_at);
-                eachResultJsonObject.fluentRemove("update_at");
-
-                SearchSourceBuilder mistakeSourceBuilder = assembleMistakeSourceBuilder("update_at", pr_url, build_no, queryBody);
-                String mistakeInfoStr = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoMistakeIndex, 5000, mistakeSourceBuilder);
-                JSONObject eachResultMistakeInfoObj = parseObject(mistakeInfoStr);
-                JSONArray eachResultMistakeDataJsonArray = eachResultMistakeInfoObj.getJSONArray("data");
-
-                if (eachResultMistakeDataJsonArray.size() < 1) {
-                    eachResultJsonObject.fluentPut("ci_mistake_update_at", result_update_at);
-                    eachResultJsonObject.fluentPut("ci_mistake", empty_ci_mistake_list);
-                } else {
-                    String mistakeLatestUpdateTime = getMistakeLatestUpdateTime(eachResultMistakeDataJsonArray);
-                    eachResultJsonObject.fluentPut("ci_mistake_update_at", mistakeLatestUpdateTime);
-                    eachResultJsonObject.fluentPut("ci_mistake", eachResultMistakeDataJsonArray);
+            JsonNode resNode = objectMapper.readTree(resultInfo);
+            Iterator<JsonNode> resbuckets = resNode.get("data").elements();
+            cursor = resNode.get("cursor").asText();
+            totalCount = resNode.get("totalCount").asInt();
+            JsonNode dataNode = objectMapper.readTree(mistakeInfoStr);
+            while (resbuckets.hasNext()) {
+                ObjectNode resbucket = (ObjectNode) resbuckets.next();
+                String pr_url = resbucket.get("pr_url").asText();
+                int build_no = resbucket.get("build_no").asInt();
+                String result_update_at = resbucket.get("update_at").asText();
+                resbucket.put("result_update_at", result_update_at);
+                resbucket.remove("update_at");
+                ArrayList<ObjectNode> mistakeList = new ArrayList<>();
+                Iterator<JsonNode> buckets = dataNode.get("data").elements();
+                while (buckets.hasNext()) {
+                    ObjectNode bucket = (ObjectNode) buckets.next();
+                    String mistake_pr_url = bucket.get("pr_url").asText();
+                    int mistake_build_no = bucket.get("build_no").asInt();
+                    if (mistake_pr_url.equals(pr_url) && mistake_build_no == build_no) {
+                        mistakeList.add(bucket);
+                    }
                 }
+                String currentMistakeUpdateAt = mistakeList.size() > 0 ? mistakeList.get(0).get("update_at").asText()
+                        : result_update_at;
+                resbucket.putPOJO("ci_mistake", mistakeList);
+                resbucket.put("ci_mistake_update_at", currentMistakeUpdateAt);
 
-
-                boolean isAdd = isLocatedInTimeWindow(queryBody, eachResultJsonObject.getString("ci_mistake_update_at"));
+                if (result_update_at.compareTo(currentMistakeUpdateAt) < 0) {
+                    result_update_at = currentMistakeUpdateAt;
+                }
+                boolean isAdd = isLocatedInTimeWindow(queryBody, result_update_at);
                 if (!isAdd) {
                     continue;
                 }
-                finalResultJSONArray.add(eachResultJsonObject);
+                finalResultJSONArray.add(resbucket);
             }
-        } finally {
-            try {
-                restHighLevelClient.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
-
-        return "{\"code\":200,\"totalCount\":" + finalResultJSONArray.size() + ",\"msg\":\"ok\",\"data\":" + finalResultJSONArray + "}";
-    }
-
-    public String getMistakeLatestUpdateTime(JSONArray dateJsonArray) {
-        SimpleDateFormat simpleDateFormatWithTimeZone = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
-        Calendar c = Calendar.getInstance();
-        c.clear();
-        c.setTimeZone(TimeZone.getTimeZone("Asia/Shanghai"));
-        c.set(2000, 00 /* 1月 */, 01, 0, 0, 0);
-        Date latestUpdateTime = c.getTime();
-
-        int size = dateJsonArray.size();
-        for (int i = 0; i < size; i++) {
-            JSONObject eachMistakeJsonObject = dateJsonArray.getJSONObject(i);
-            String mistakeUpdateAtStr = String.valueOf(eachMistakeJsonObject.get("update_at"));
-            Date currentMistakeUpdateAt = null;
-            try {
-                currentMistakeUpdateAt = simpleDateFormatWithTimeZone.parse(mistakeUpdateAtStr);
-            } catch (ParseException e) {
-                e.printStackTrace();
-            }
-
-            if (latestUpdateTime.compareTo(currentMistakeUpdateAt) < 0) {
-                latestUpdateTime = currentMistakeUpdateAt;
-            }
-        }
-        return simpleDateFormatWithTimeZone.format(latestUpdateTime);
+        HashMap<String, Object> resMap = new HashMap<>();
+        resMap.put("code", 200);
+        resMap.put("data", finalResultJSONArray);
+        resMap.put("totalCount", totalCount);
+        resMap.put("cursor", cursor);
+        resMap.put("msg", "ok");
+        return objectMapper.valueToTree(resMap).toString();
     }
 
     public SearchSourceBuilder assembleResultSourceBuilder(String sortKeyword,
                                                            BuildCheckInfoQueryVo buildCheckInfoQueryVo) {
         SearchSourceBuilder builder = new SearchSourceBuilder();
         builder.sort(sortKeyword, SortOrder.DESC);
+        builder.sort("_id", SortOrder.DESC);
 
         String pr_url = buildCheckInfoQueryVo.getPr_url();
         String pr_title = buildCheckInfoQueryVo.getPr_title();
@@ -2082,16 +2071,9 @@ public class QueryDao {
         return builder;
     }
 
-    public SearchSourceBuilder assembleMistakeSourceBuilder(String sortKeyword, String prUrl, String buildNoStr,
-                                                            BuildCheckInfoQueryVo buildCheckInfoQueryVo) {
+    public SearchSourceBuilder assembleMistakeSourceBuilder(String sortKeyword, BuildCheckInfoQueryVo buildCheckInfoQueryVo) {
         SearchSourceBuilder builder = new SearchSourceBuilder();
         builder.sort(sortKeyword, SortOrder.DESC);
-
-        TermQueryBuilder prUrlTermQueryBuilder = QueryBuilders.termQuery("pr_url.keyword", prUrl);
-        TermQueryBuilder buildNoTermQueryBuilder = QueryBuilders.termQuery("build_no", Long.parseLong(buildNoStr));
-        BoolQueryBuilder mustQuery = QueryBuilders.boolQuery().must(prUrlTermQueryBuilder).must(buildNoTermQueryBuilder);
-
-        builder.query(mustQuery);
         return builder;
     }
 
