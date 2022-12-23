@@ -587,12 +587,12 @@ public class QueryService {
         return result;
     }
 
-    public String queryBuildCheckInfo(BuildCheckInfoQueryVo queryBody, String item) {
+    public String queryBuildCheckInfo(BuildCheckInfoQueryVo queryBody, String item, String lastCursor, String pageSize) {
         String validateResult = validateBuildCheckInfo(queryBody, item);
         if (!StringUtils.isBlank(validateResult)) {
             return validateResult;
         }
-        String res = queryDao.queryBuildCheckInfo(queryBody, item, env);
+        String res = queryDao.queryBuildCheckInfo(queryBody, item, env, lastCursor, pageSize);
 
         return res;
     }
