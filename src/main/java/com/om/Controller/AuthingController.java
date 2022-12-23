@@ -176,7 +176,8 @@ public class AuthingController {
     public ResponseEntity deleteUser(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
                                      @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.deleteUser(httpServletRequest, servletResponse, token);
+        UserCenterServiceInter service = getServiceImpl(httpServletRequest);
+        return service.deleteUser(httpServletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
@@ -260,7 +261,7 @@ public class AuthingController {
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
         String community = servletRequest.getParameter("community");
-        String serviceType = community == null ? "authing" : community.toLowerCase();
+        String serviceType = community == null || community.toLowerCase().equals("openeuler") ? "authing" : community.toLowerCase();
         return userCenterServiceContext.getUserCenterService(serviceType);
     }
 }
