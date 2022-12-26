@@ -418,7 +418,7 @@ public class QueryService {
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryNewYear(community, user, item, env);
+                result = queryDao.querylts2203(community, user, item, env);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -437,7 +437,7 @@ public class QueryService {
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryNewYear(community, user, year, env);
+                result = queryDao.queryNewYear(community, user, year);
             } catch (Exception e) {
                 e.printStackTrace();
             }

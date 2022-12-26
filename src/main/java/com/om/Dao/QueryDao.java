@@ -1160,20 +1160,20 @@ public class QueryDao {
         return s;
     }
 
-    public String queryNewYear(String community, String user, String year, Environment env) {
+    public String queryNewYear(String community, String user, String year) {
         String csvName;
         switch (community.toLowerCase()) {
             case "openeuler":
-                csvName = env.getProperty("openeuler_csv_data");
+                csvName = openEuler.getUserReportCsvData();
                 break;
             case "opengauss":
-                csvName = env.getProperty("opengauss_csv_data");
+                csvName = openGauss.getUserReportCsvData();
                 break;
             case "openlookeng":
-                csvName = env.getProperty("openlookeng_csv_data");
+                csvName = openLookeng.getUserReportCsvData();
                 break;
             case "mindspore":
-                csvName = env.getProperty("mindspore_csv_data");
+                csvName = mindSpore.getUserReportCsvData();
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + year + "\":\"query error\"},\"msg\":\"query error\"}";
