@@ -110,6 +110,15 @@ public class openComObject {
     protected String account_org_index;
     protected String account_org_query;
     protected String SigCountQuery;
+    protected String UserReportCsvData;
+
+    public String getUserReportCsvData() {
+        return UserReportCsvData;
+    }
+
+    public void setUserReportCsvData(String UserReportCsvData) {
+        this.UserReportCsvData = UserReportCsvData;
+    }
 
     public String getSigCountQuery() {
         return SigCountQuery;

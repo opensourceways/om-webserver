@@ -1106,7 +1106,7 @@ public class QueryDao {
         return esQueryUtils.esFromId(restHighLevelClient, item, lastCursor, Integer.parseInt(pageSize), indexName);
     }
 
-    public String queryNewYear(String community, String user, String item, Environment env) {
+    public String querylts2203(String community, String user, String item, Environment env) {
         String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
         String host = env.getProperty("es.host");
         int port = Integer.parseInt(env.getProperty("es.port", "9200"));
@@ -1156,6 +1156,43 @@ public class QueryDao {
 
         String s = objectMapper.valueToTree(resMap).toString();
 
+        return s;
+    }
+
+    public String queryNewYear(String community, String user, String year) {
+        String csvName;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                csvName = openEuler.getUserReportCsvData();
+                break;
+            case "opengauss":
+                csvName = openGauss.getUserReportCsvData();
+                break;
+            case "openlookeng":
+                csvName = openLookeng.getUserReportCsvData();
+                break;
+            case "mindspore":
+                csvName = mindSpore.getUserReportCsvData();
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"" + year + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+        String localYamlPath = companyNameLocalYaml;
+        YamlUtil yamlUtil = new YamlUtil();
+        String localFile = yamlUtil.wget(csvName, localYamlPath);
+        List<HashMap<String, Object>> datas = CsvFileUtil.readFile(localFile);
+        HashMap<String, Object> resMap = new HashMap<>();
+        resMap.put("code", 200);
+        resMap.put("msg", "OK");
+        if (datas == null) {
+            resMap.put("data", new ArrayList<>());
+        } else if (user == null){
+            resMap.put("data", datas);
+        } else {
+            List<HashMap<String, Object>> user_login = datas.stream().filter(m -> m.getOrDefault("user_login", "").equals(user)).collect(Collectors.toList());
+            resMap.put("data", user_login);
+        }
+        String s = objectMapper.valueToTree(resMap).toString();
         return s;
     }
 
