@@ -411,18 +411,37 @@ public class QueryService {
         return result;
     }
 
-    public String queryNewYear(String community, String user, String item) {
+    public String querylts2203(String community, String user, String item) {
         String key = community + item;
         String result;
         result = null; //(String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryNewYear(community, user, item, env);
+                result = queryDao.querylts2203(community, user, item, env);
             } catch (Exception e) {
                 e.printStackTrace();
             }
             boolean set = false; //redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryNewYear(String community, String user, String year) {
+        String key = community + user + year;
+        String result;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryNewYear(community, user, year);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
