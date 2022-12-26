@@ -144,11 +144,15 @@ public class QueryController {
         return res;
     }
 
-//    @RequestMapping("/newYear/2022")
     @RequestMapping("/lts/2203")
     public String queryNewYear(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user) {
-//        String res = queryService.queryNewYear(community, user, "2022");
         String res = queryService.queryNewYear(community, user, "2203lts");
+        return res;
+    }
+
+    @RequestMapping("/newYear/report")
+    public String queryNewYear(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user, @RequestParam(value = "year") String year) {
+        String res = queryService.queryNewYear(community, user, year);
         return res;
     }
 
