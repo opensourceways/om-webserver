@@ -98,9 +98,11 @@ public class AuthingUserDao {
     @Value("${rsa.authing.privateKey}")
     String rsaAuthingPrivateKey;
 
-
     @Value("${username.reserved}")
     String usernameReserved;
+
+    @Value("${datastat.img.default.photo}")
+    String defaultPhoto;
 
     // -- temporary (解决gitee多身份源解绑问题) -- TODO
     @Value("${temp.extIdpIds}")
@@ -754,7 +756,7 @@ public class AuthingUserDao {
             int beginIndex = objectUrl.lastIndexOf("/");
             beginIndex = beginIndex == -1 ? 0 : beginIndex + 1;
             String objName = objectUrl.substring(beginIndex);
-            if (obsClient.doesObjectExist(datastatImgBucket, objName))
+            if (obsClient.doesObjectExist(datastatImgBucket, objName) && !objName.equals(defaultPhoto))
                 obsClient.deleteObject(datastatImgBucket, objName);
         } catch (Exception e) {
             e.printStackTrace();
@@ -810,8 +812,8 @@ public class AuthingUserDao {
         map.put("请求异常", MessageCodeConfig.E00012);
         map.put("新邮箱和旧邮箱一样", MessageCodeConfig.E00013);
         map.put("新手机号和旧手机号一样", MessageCodeConfig.E00014);
-        map.put("已绑定手机号", MessageCodeConfig.E00015);
-        map.put("已绑定邮箱", MessageCodeConfig.E00016);
+        map.put("已经绑定了手机号", MessageCodeConfig.E00015);
+        map.put("已经绑定了邮箱", MessageCodeConfig.E00016);
         map.put("退出登录失败", MessageCodeConfig.E00017);
         map.put("用户名不能为空", MessageCodeConfig.E00018);
         map.put("用户名已存在", MessageCodeConfig.E00019);

@@ -57,7 +57,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-
 @Service("authing")
 public class AuthingService implements UserCenterServiceInter {
     @Autowired
@@ -738,7 +737,11 @@ public class AuthingService implements UserCenterServiceInter {
         return result(HttpStatus.OK, "success", null);
     }
 
-    public ResponseEntity sendCodeUnbind(String account, String type) {
+    @Override
+    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        String account = servletRequest.getParameter("account");
+        String accountType = servletRequest.getParameter("account_type");
+
         String redisKey = account + "_CodeUnbind";
         try {
             // 限制1分钟只能发送一次
@@ -748,7 +751,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
 
             // 发送验证码
-            String[] strings = codeUtil.sendCode(type, account, mailSender, env);
+            String[] strings = codeUtil.sendCode(accountType, account, mailSender, env);
             if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success"))
                 return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
 
@@ -768,17 +771,35 @@ public class AuthingService implements UserCenterServiceInter {
         return result(HttpStatus.OK, "success", null);
     }
 
-    public ResponseEntity updateAccount(String token, String oldaccount, String oldcode, String account, String code, String type) {
-        if (type.toLowerCase().equals("email") && oldaccount.equals(account))
+    @Override
+    public ResponseEntity updateAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
+        String oldAccount = servletRequest.getParameter("oldaccount");
+        String oldCode = servletRequest.getParameter("oldcode");
+        String account = servletRequest.getParameter("account");
+        String code = servletRequest.getParameter("code");
+        String accountType = servletRequest.getParameter("account_type");
+
+        if (StringUtils.isBlank(oldAccount) || StringUtils.isBlank(account) || StringUtils.isBlank(accountType))
+            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+
+        if (accountType.toLowerCase().equals("email") && oldAccount.equals(account))
             return result(HttpStatus.BAD_REQUEST, null, "新邮箱与已绑定邮箱相同", null);
-        else if (type.toLowerCase().equals("phone") && oldaccount.equals(account))
+        else if (accountType.toLowerCase().equals("phone") && oldAccount.equals(account))
             return result(HttpStatus.BAD_REQUEST, null, "新手机号与已绑定手机号相同", null);
 
-        String res = authingUserDao.updateAccount(token, oldaccount, oldcode, account, code, type);
+        String res = authingUserDao.updateAccount(token, oldAccount, oldCode, account, code, accountType);
         return message(res);
     }
 
-    public ResponseEntity unbindAccount(String token, String account, String code, String type) {
+    @Override
+    public ResponseEntity unbindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
+        String account = servletRequest.getParameter("account");
+        String code = servletRequest.getParameter("code");
+        String accountType = servletRequest.getParameter("account_type");
+
+        if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType))
+            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+
         String redisKey = account + "_CodeUnbind";
         String codeTemp = (String) redisDao.get(redisKey);
         if (codeTemp == null) {
@@ -787,7 +808,7 @@ public class AuthingService implements UserCenterServiceInter {
         if (!codeTemp.equals(code)) {
             return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
         }
-        String res = authingUserDao.unbindAccount(token, account, type);
+        String res = authingUserDao.unbindAccount(token, account, accountType);
 
         if (res.equals("unbind success")) {
             redisDao.remove(redisKey);
@@ -796,8 +817,16 @@ public class AuthingService implements UserCenterServiceInter {
         return result(HttpStatus.BAD_REQUEST, null, res, null);
     }
 
-    public ResponseEntity bindAccount(String token, String account, String code, String type) {
-        String res = authingUserDao.bindAccount(token, account, code, type);
+    @Override
+    public ResponseEntity bindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
+        String account = servletRequest.getParameter("account");
+        String code = servletRequest.getParameter("code");
+        String accountType = servletRequest.getParameter("account_type");
+
+        if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType))
+            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+
+        String res = authingUserDao.bindAccount(token, account, code, accountType);
         return message(res);
     }
 
@@ -822,13 +851,15 @@ public class AuthingService implements UserCenterServiceInter {
         return result(HttpStatus.OK, "unlink account success", null);
     }
 
-    public ResponseEntity updateUserBaseInfo(String token, Map<String, Object> map) {
+    @Override
+    public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token, Map<String, Object> map) {
         String res = authingUserDao.updateUserBaseInfo(token, map);
         if (res.equals("success")) return result(HttpStatus.OK, "update base info success", null);
         else return result(HttpStatus.BAD_REQUEST, null, res, null);
     }
 
-    public ResponseEntity updatePhoto(String token, MultipartFile file) {
+    @Override
+    public ResponseEntity updatePhoto(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token, MultipartFile file) {
         boolean res = authingUserDao.updatePhoto(token, file);
         if (res) return result(HttpStatus.OK, "update photo success", null);
         else return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);

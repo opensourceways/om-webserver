@@ -33,6 +33,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
@@ -123,7 +124,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             userInfo.put("username", userName);
 
             // 手机号校验
-            if (!phone.matches(Constant.PHONEREGEX))
+            if (StringUtils.isBlank(phone) || !phone.matches(Constant.PHONEREGEX))
                 return result(HttpStatus.BAD_REQUEST, null, "请输入正确的手机号码", null);
             if (oneidDao.isUserExists(poolId, poolSecret, phone, "phone"))
                 return result(HttpStatus.BAD_REQUEST, null, "该账号已注册", null);
@@ -132,12 +133,9 @@ public class OpenGaussService implements UserCenterServiceInter {
             // 验证码校验
             String redisKey = phone + "_sendCode_" + community;
             String codeTemp = (String) redisDao.get(redisKey);
-            if (codeTemp == null || codeTemp.endsWith("_used")) {
-                return result(HttpStatus.BAD_REQUEST, null, "验证码无效或已过期", null);
-            }
-            if (!codeTemp.equals(phoneCode)) {
-                return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
-            }
+            String codeCheck = checkCode(phoneCode, codeTemp);
+            if (!codeCheck.equals("success"))
+                return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
 
             // 用户注册
             String userJsonStr = objectMapper.writeValueAsString(userInfo);
@@ -234,12 +232,9 @@ public class OpenGaussService implements UserCenterServiceInter {
         // 验证码校验
         String redisKey = account + "_sendCode_" + community;
         String codeTemp = (String) redisDao.get(redisKey);
-        if (codeTemp == null || codeTemp.endsWith("_used")) {
-            return result(HttpStatus.BAD_REQUEST, null, "验证码无效或已过期", null);
-        }
-        if (!codeTemp.equals(code)) {
-            return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
-        }
+        String codeCheck = checkCode(code, codeTemp);
+        if (!codeCheck.equals("success"))
+            return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
 
         // 登录
         String accountType = getAccountType(account);
@@ -412,6 +407,226 @@ public class OpenGaussService implements UserCenterServiceInter {
         }
     }
 
+    @Override
+    public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token, Map<String, Object> map) {
+        String community = servletRequest.getParameter("community");
+        String appId = servletRequest.getParameter("client_id");
+
+        // app校验
+        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
+            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+
+        try {
+            DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
+            String userId = decode.getAudience().get(0);
+
+            // 只允许修改 nickname 和 company
+            map.entrySet().removeIf(entry -> !(entry.getKey().equals("nickname") || entry.getKey().equals("company")));
+
+            String userJsonStr = objectMapper.writeValueAsString(map);
+            JSONObject user = oneidDao.updateUser(poolId, poolSecret, userId, userJsonStr);
+            if (user != null) return result(HttpStatus.OK, null, "update base info success", null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
+    }
+
+    @Override
+    public ResponseEntity updatePhoto(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token, MultipartFile file) {
+        String community = servletRequest.getParameter("community");
+        String appId = servletRequest.getParameter("client_id");
+
+        // app校验
+        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
+            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+
+        try {
+            DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
+            String userId = decode.getAudience().get(0);
+            JSONObject oldUser = oneidDao.getUser(poolId, poolSecret, userId, "id");
+            String oldPhoto = jsonObjStringValue(oldUser, "photo");
+
+            JSONObject user = oneidDao.updatePhoto(poolId, poolSecret, userId, file);
+            if (user != null) {
+                // 删除旧的头像
+                authingUserDao.deleteObsObjectByUrl(oldPhoto);
+                return result(HttpStatus.OK, null, "update photo success", null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
+    }
+
+    @Override
+    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        String community = servletRequest.getParameter("community");
+        String appId = servletRequest.getParameter("client_id");
+        String account = servletRequest.getParameter("account");
+        String accountType = servletRequest.getParameter("account_type");
+
+        // app校验
+        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
+            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+
+        try {
+            String redisKey = account + "_sendCode_" + community;
+
+            // 限制1分钟只能发送一次
+            String codeOld = (String) redisDao.get(redisKey);
+            if (codeOld != null) {
+                return result(HttpStatus.BAD_REQUEST, null, "一分钟之内已发送过验证码", null);
+            }
+
+            // 发送验证码
+            String[] strings = codeUtil.sendCode(accountType, account, mailSender, env);
+            if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success"))
+                return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
+
+            redisDao.set(redisKey, strings[0], Long.parseLong(strings[1]));
+            return result(HttpStatus.OK, null, strings[2], null);
+        } catch (Exception ex) {
+            return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
+        }
+    }
+
+    @Override
+    public ResponseEntity updateAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
+        String community = servletRequest.getParameter("community");
+        String appId = servletRequest.getParameter("client_id");
+        String oldAccount = servletRequest.getParameter("oldaccount");
+        String oldCode = servletRequest.getParameter("oldcode");
+        String account = servletRequest.getParameter("account");
+        String code = servletRequest.getParameter("code");
+        String accountType = servletRequest.getParameter("account_type");
+
+        if (StringUtils.isBlank(oldAccount) || StringUtils.isBlank(account) || StringUtils.isBlank(accountType) ||
+                (!accountType.toLowerCase().equals("email") && !accountType.toLowerCase().equals("phone")))
+            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+
+        // app校验
+        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
+            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+
+        if (accountType.toLowerCase().equals("email") && oldAccount.equals(account))
+            return result(HttpStatus.BAD_REQUEST, null, "新邮箱与已绑定邮箱相同", null);
+        else if (accountType.toLowerCase().equals("phone") && oldAccount.equals(account))
+            return result(HttpStatus.BAD_REQUEST, null, "新手机号与已绑定手机号相同", null);
+
+        try {
+            // 验证码校验
+            String redisKeyOld = oldAccount + "_sendCode_" + community;
+            String codeTempOld = (String) redisDao.get(redisKeyOld);
+            String codeCheckOld = checkCode(oldCode, codeTempOld);
+            if (!codeCheckOld.equals("success"))
+                return result(HttpStatus.BAD_REQUEST, null, codeCheckOld, null);
+            // 验证码校验
+            String redisKey = account + "_sendCode_" + community;
+            String codeTemp = (String) redisDao.get(redisKey);
+            String codeCheck = checkCode(code, codeTemp);
+            if (!codeCheck.equals("success"))
+                return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
+
+            // 修改邮箱或者手机号
+            DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
+            String userId = decode.getAudience().get(0);
+            JSONObject user = oneidDao.updateAccount(poolId, poolSecret, userId, oldAccount, account, accountType);
+            if (user != null) {
+                redisDao.updateValue(redisKey, codeTempOld + "_used", 0);
+                redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+                return result(HttpStatus.OK, null, "update success", null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
+    }
+
+    @Override
+    public ResponseEntity unbindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
+        String community = servletRequest.getParameter("community");
+        String appId = servletRequest.getParameter("client_id");
+        String account = servletRequest.getParameter("account");
+        String code = servletRequest.getParameter("code");
+        String accountType = servletRequest.getParameter("account_type");
+
+        // todo 暂不支持解绑手机
+        if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType) ||
+                (!accountType.toLowerCase().equals("email")/* && !accountType.toLowerCase().equals("phone")*/))
+            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+
+        // app校验
+        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
+            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+
+        try {
+            // 验证码校验
+            String redisKey = account + "_sendCode_" + community;
+            String codeTemp = (String) redisDao.get(redisKey);
+            String codeCheck = checkCode(code, codeTemp);
+            if (!codeCheck.equals("success"))
+                return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
+
+            // 解绑
+            DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
+            String userId = decode.getAudience().get(0);
+            JSONObject user = oneidDao.updateAccount(poolId, poolSecret, userId, account, "", accountType);
+            if (user != null) {
+                redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+                return result(HttpStatus.OK, null, "unbind success", null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
+    }
+
+    @Override
+    public ResponseEntity bindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
+        String community = servletRequest.getParameter("community");
+        String appId = servletRequest.getParameter("client_id");
+        String account = servletRequest.getParameter("account");
+        String code = servletRequest.getParameter("code");
+        String accountType = servletRequest.getParameter("account_type");
+
+        // todo 暂不支持绑定手机（必须使用手机号注册）
+        if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType) ||
+                (!accountType.toLowerCase().equals("email")/* && !accountType.toLowerCase().equals("phone")*/))
+            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+
+        // app校验
+        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
+            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+
+        try {
+            // 验证码校验
+            String redisKey = account + "_sendCode_" + community;
+            String codeTemp = (String) redisDao.get(redisKey);
+            String codeCheck = checkCode(code, codeTemp);
+            if (!codeCheck.equals("success"))
+                return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
+
+            // 绑定
+            DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
+            String userId = decode.getAudience().get(0);
+            Object user = oneidDao.bindAccount(poolId, poolSecret, userId, account, accountType);
+            if (user == null)
+                return result(HttpStatus.BAD_REQUEST, null, "用户不存在", null);
+            if (user instanceof JSONObject) {
+                redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+                return result(HttpStatus.OK, null, "unbind success", null);
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, user.toString(), null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
+    }
+
     private String getAccountType(String account) {
         String accountType;
         if (account.matches(Constant.EMAILREGEX))
@@ -498,5 +713,15 @@ public class OpenGaussService implements UserCenterServiceInter {
             e.printStackTrace();
         }
         return result(HttpStatus.OK, null, "delete user success", null);
+    }
+
+    private String checkCode(String code, String codeTemp) {
+        if (code == null || codeTemp == null || codeTemp.endsWith("_used")) {
+            return "验证码无效或已过期";
+        }
+        if (!codeTemp.equals(code)) {
+            return "验证码不正确";
+        }
+        return "success";
     }
 }

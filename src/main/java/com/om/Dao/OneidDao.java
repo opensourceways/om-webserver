@@ -11,18 +11,49 @@
 
 package com.om.Dao;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
+import com.obs.services.ObsClient;
+import com.obs.services.model.PutObjectResult;
+import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
+import org.springframework.web.multipart.MultipartFile;
+
+import javax.annotation.PostConstruct;
+import java.util.HashMap;
+import java.util.UUID;
 
 @Repository
 public class OneidDao {
 
     @Value("${oneid.api.host}")
     String apiHost;
+
+    @Value("${datastat.img.ak}")
+    String datastatImgAk;
+
+    @Value("${datastat.img.sk}")
+    String datastatImgSk;
+
+    @Value("${datastat.img.endpoint}")
+    String datastatImgEndpoint;
+
+    @Value("${datastat.img.bucket.name}")
+    String datastatImgBucket;
+
+    public static ObsClient obsClient;
+
+    private static ObjectMapper objectMapper;
+
+    @PostConstruct
+    public void init() {
+        obsClient = new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint);
+        objectMapper = new ObjectMapper();
+    }
 
     private String getManagementToken(String poolId, String poolSecret) {
         String token = "";
@@ -73,21 +104,23 @@ public class OneidDao {
         return res;
     }
 
-    public JSONObject updateUser(String poolId, String poolSecret) {
+    public JSONObject updateUser(String poolId, String poolSecret, String userId, String userJsonStr) {
+        JSONObject user = null;
         try {
             String mToken = getManagementToken(poolId, poolSecret);
-
-            String body = String.format("{\"accessKeyId\": \"%s\",\"accessKeySecret\": \"%s\"}", poolId, poolSecret);
-            HttpResponse<JsonNode> response = Unirest.put(apiHost + "/admin/user/update-user")
+            HttpResponse<JsonNode> response = Unirest.put(apiHost + "/users/" + userId)
+                    .header("Content-Type", "application/json")
                     .header("Authorization", mToken)
-                    .body("")
+                    .body(userJsonStr)
                     .asJson();
 
-            JSONObject resObj = response.getBody().getObject();
+            if (response.getStatus() == 200) {
+                user = response.getBody().getObject().getJSONObject("data");
+            }
         } catch (Exception e) {
-
+            e.printStackTrace();
         }
-        return null;
+        return user;
     }
 
     public JSONObject getUser(String poolId, String poolSecret, String account, String accountType) {
@@ -130,5 +163,90 @@ public class OneidDao {
 
     public boolean logout(String idToken, String appId) {
         return true;
+    }
+
+    public JSONObject updatePhoto(String poolId, String poolSecret, String userId, MultipartFile file) {
+        JSONObject user = null;
+        try {
+            // 重命名文件
+            String fileName = file.getOriginalFilename();
+            String extension = fileName.substring(fileName.lastIndexOf("."));
+            String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
+
+            //上传文件到OBS
+            PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, file.getInputStream());
+            String objectUrl = putObjectResult.getObjectUrl();
+
+            // 修改用户头像
+            HashMap<String, String> map = new HashMap<>();
+            map.put("photo", objectUrl);
+            String userJsonStr = objectMapper.writeValueAsString(map);
+            user = updateUser(poolId, poolSecret, userId, userJsonStr);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return user;
+    }
+
+    public JSONObject updateAccount(String poolId, String poolSecret, String userId, String oldAccount, String account, String accountType) {
+        JSONObject oldUser = getUser(poolId, poolSecret, userId, "id");
+        if (oldUser == null)
+            return null;
+        // 老邮箱或者手机号校验
+        HashMap<String, String> map = new HashMap<>();
+        switch (accountType.toLowerCase()) {
+            case "email":
+                if (oldUser.isNull("email") || !oldUser.getString("email").equals(oldAccount))
+                    return null;
+                map.put("email", account);
+                break;
+            case "phone":
+                if (oldUser.isNull("phone") || !oldUser.getString("phone").equals(oldAccount))
+                    return null;
+                map.put("phone", account);
+                break;
+            default:
+                return null;
+        }
+        // 修改邮箱或者手机号
+        JSONObject user = null;
+        try {
+            String userJsonStr = objectMapper.writeValueAsString(map);
+            user = updateUser(poolId, poolSecret, userId, userJsonStr);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return user;
+    }
+
+    public Object bindAccount(String poolId, String poolSecret, String userId, String account, String accountType) {
+        JSONObject oldUser = getUser(poolId, poolSecret, userId, "id");
+        if (oldUser == null)
+            return null;
+        // 老邮箱或者手机号校验
+        HashMap<String, String> map = new HashMap<>();
+        switch (accountType.toLowerCase()) {
+            case "email":
+                if (!oldUser.isNull("email") && StringUtils.isNotBlank(oldUser.getString("email")))
+                    return "已经绑定了邮箱";
+                map.put("email", account);
+                break;
+            case "phone":
+                if (!oldUser.isNull("phone") && StringUtils.isNotBlank(oldUser.getString("phone")))
+                    return "已经绑定了手机号";
+                map.put("phone", account);
+                break;
+            default:
+                return null;
+        }
+        // 修改邮箱或者手机号
+        JSONObject user = null;
+        try {
+            String userJsonStr = objectMapper.writeValueAsString(map);
+            user = updateUser(poolId, poolSecret, userId, userJsonStr);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return user;
     }
 }
