@@ -261,6 +261,7 @@ public class propertiesObj {
         bean.setaccount_org_index(openconf.getProperty("account_org_index"));
         bean.setaccount_org_query(openconf.getProperty("account_org_query"));
         bean.setSigCountQuery(openconf.getProperty("SigCountQuery"));
+        bean.setUserReportCsvData(openconf.getProperty("UserReportCsvData"));
     }
 
     private static Properties readProperties(String path) throws IOException {
