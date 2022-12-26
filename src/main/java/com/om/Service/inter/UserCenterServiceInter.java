@@ -12,9 +12,11 @@
 package com.om.Service.inter;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Map;
 
 public interface UserCenterServiceInter {
     ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
@@ -32,4 +34,16 @@ public interface UserCenterServiceInter {
     ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 
     ResponseEntity deleteUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
+
+    ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token, Map<String, Object> map);
+
+    ResponseEntity updatePhoto(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token, MultipartFile file);
+
+    ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+
+    ResponseEntity updateAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
+
+    ResponseEntity unbindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
+
+    ResponseEntity bindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 }
