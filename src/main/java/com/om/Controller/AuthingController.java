@@ -190,38 +190,37 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/sendcode/unbind")
-    public ResponseEntity sendCodeUnbind(@RequestParam(value = "account") String account,
-                                         @RequestParam(value = "account_type") String account_type) {
-        return authingService.sendCodeUnbind(account, account_type);
+    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest,
+                                         HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.sendCodeUnbind(servletRequest, servletResponse);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/update/account")
-    public ResponseEntity updateAccount(@CookieValue(value = "_Y_G_", required = false) String token,
-                                        @RequestParam(value = "oldaccount") String oldaccount,
-                                        @RequestParam(value = "oldcode") String oldcode,
-                                        @RequestParam(value = "account") String account,
-                                        @RequestParam(value = "code") String code,
-                                        @RequestParam(value = "account_type") String account_type) {
-        return authingService.updateAccount(token, oldaccount, oldcode, account, code, account_type);
+    public ResponseEntity updateAccount(HttpServletRequest servletRequest,
+                                        HttpServletResponse servletResponse,
+                                        @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.updateAccount(servletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/unbind/account")
-    public ResponseEntity unbindAccount(@CookieValue(value = "_Y_G_", required = false) String token,
-                                        @RequestParam(value = "account") String account,
-                                        @RequestParam(value = "code") String code,
-                                        @RequestParam(value = "account_type") String account_type) {
-        return authingService.unbindAccount(token, account, code, account_type);
+    public ResponseEntity unbindAccount(HttpServletRequest servletRequest,
+                                        HttpServletResponse servletResponse,
+                                        @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.unbindAccount(servletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/bind/account")
-    public ResponseEntity bindAccount(@CookieValue(value = "_Y_G_", required = false) String token,
-                                      @RequestParam(value = "account") String account,
-                                      @RequestParam(value = "code") String code,
-                                      @RequestParam(value = "account_type") String account_type) {
-        return authingService.bindAccount(token, account, code, account_type);
+    public ResponseEntity bindAccount(HttpServletRequest servletRequest,
+                                      HttpServletResponse servletResponse,
+                                      @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.bindAccount(servletRequest, servletResponse, token);
     }
 
 
@@ -247,16 +246,22 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/update/baseInfo", method = RequestMethod.POST)
-    public ResponseEntity updateUserBaseInfo(@CookieValue(value = "_Y_G_", required = false) String token,
+    public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest,
+                                             HttpServletResponse servletResponse,
+                                             @CookieValue(value = "_Y_G_", required = false) String token,
                                              @RequestBody Map<String, Object> map) {
-        return authingService.updateUserBaseInfo(token, map);
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.updateUserBaseInfo(servletRequest, servletResponse, token, map);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/update/photo", method = RequestMethod.POST)
-    public ResponseEntity upload(@CookieValue(value = "_Y_G_", required = false) String token,
+    public ResponseEntity upload(HttpServletRequest servletRequest,
+                                 HttpServletResponse servletResponse,
+                                 @CookieValue(value = "_Y_G_", required = false) String token,
                                  @RequestParam(value = "file") MultipartFile file) {
-        return authingService.updatePhoto(token, file);
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.updatePhoto(servletRequest, servletResponse, token, file);
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
