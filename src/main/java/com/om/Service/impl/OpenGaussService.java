@@ -101,7 +101,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         try {
             String community = servletRequest.getParameter("community");
             String appId = servletRequest.getParameter("client_id");
-            String userName = servletRequest.getParameter("userName");
+            String userName = servletRequest.getParameter("username");
             String phone = servletRequest.getParameter("account");
             String phoneCode = servletRequest.getParameter("code");
             String company = servletRequest.getParameter("company");
@@ -193,7 +193,7 @@ public class OpenGaussService implements UserCenterServiceInter {
     public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         String community = servletRequest.getParameter("community");
         String appId = servletRequest.getParameter("client_id");
-        String userName = servletRequest.getParameter("userName");
+        String userName = servletRequest.getParameter("username");
         String account = servletRequest.getParameter("account");
 
         // app校验
@@ -303,11 +303,11 @@ public class OpenGaussService implements UserCenterServiceInter {
         }
 
         HashMap<String, Object> userData = new HashMap<>();
-        userData.put("userName", jsonObjStringValue(userObj, "username"));
+        userData.put("username", jsonObjStringValue(userObj, "username"));
         userData.put("email", jsonObjStringValue(userObj, "email"));
         userData.put("phone", jsonObjStringValue(userObj, "phone"));
         userData.put("signedUp", jsonObjStringValue(userObj, "createAt"));
-        userData.put("nickName", jsonObjStringValue(userObj, "nickname"));
+        userData.put("nickname", jsonObjStringValue(userObj, "nickname"));
         userData.put("company", jsonObjStringValue(userObj, "company"));
         userData.put("photo", jsonObjStringValue(userObj, "photo"));
 
