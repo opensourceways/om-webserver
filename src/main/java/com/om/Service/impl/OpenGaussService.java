@@ -234,8 +234,12 @@ public class OpenGaussService implements UserCenterServiceInter {
         String redisKey = account + "_sendCode_" + community;
         String codeTemp = (String) redisDao.get(redisKey);
         String codeCheck = checkCode(code, codeTemp);
-        if (!codeCheck.equals("success"))
+        if (!codeCheck.equals("success")) {
+            long codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
+            loginErrorCount += 1;
+            redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
             return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
+        }
 
         // 登录
         String accountType = getAccountType(account);
