@@ -109,7 +109,7 @@ public class AuthingService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        String userName = servletRequest.getParameter("userName");
+        String userName = servletRequest.getParameter("username");
         String account = servletRequest.getParameter("account");
 
         if (StringUtils.isNotBlank(userName)) {
@@ -159,7 +159,7 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         String msg;
-        String userName = servletRequest.getParameter("userName");
+        String userName = servletRequest.getParameter("username");
         String account = servletRequest.getParameter("account");
         String code = servletRequest.getParameter("code");
 
@@ -881,11 +881,11 @@ public class AuthingService implements UserCenterServiceInter {
     private HashMap<String, Object> parseAuthingUser(JSONObject userObj) {
         HashMap<String, Object> userData = new HashMap<>();
 
-        userData.put("userName", jsonObjStringValue(userObj, "username"));
+        userData.put("username", jsonObjStringValue(userObj, "username"));
         userData.put("email", jsonObjStringValue(userObj, "email"));
         userData.put("phone", jsonObjStringValue(userObj, "phone"));
         userData.put("signedUp", jsonObjStringValue(userObj, "signedUp"));
-        userData.put("nickName", jsonObjStringValue(userObj, "nickname"));
+        userData.put("nickname", jsonObjStringValue(userObj, "nickname"));
         userData.put("company", jsonObjStringValue(userObj, "company"));
         userData.put("photo", jsonObjStringValue(userObj, "photo"));
         ArrayList<Map<String, Object>> identities = authingUserIdentity(userObj);
