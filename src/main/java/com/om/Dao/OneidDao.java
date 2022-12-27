@@ -188,7 +188,7 @@ public class OneidDao {
         return user;
     }
 
-    public JSONObject updateAccount(String poolId, String poolSecret, String userId, String oldAccount, String account, String accountType) {
+    public Object updateAccount(String poolId, String poolSecret, String userId, String oldAccount, String account, String accountType) {
         JSONObject oldUser = getUser(poolId, poolSecret, userId, "id");
         if (oldUser == null)
             return null;
@@ -198,11 +198,15 @@ public class OneidDao {
             case "email":
                 if (oldUser.isNull("email") || !oldUser.getString("email").equals(oldAccount))
                     return null;
+                if (StringUtils.isNotBlank(account) && isUserExists(poolId, poolSecret, account, accountType))
+                    return "该邮箱已被其它账户绑定";
                 map.put("email", account);
                 break;
             case "phone":
                 if (oldUser.isNull("phone") || !oldUser.getString("phone").equals(oldAccount))
                     return null;
+                if (StringUtils.isNotBlank(account) && isUserExists(poolId, poolSecret, account, accountType))
+                    return "该手机号已被其它账户绑定";
                 map.put("phone", account);
                 break;
             default:
@@ -229,11 +233,15 @@ public class OneidDao {
             case "email":
                 if (!oldUser.isNull("email") && StringUtils.isNotBlank(oldUser.getString("email")))
                     return "已经绑定了邮箱";
+                if (isUserExists(poolId, poolSecret, account, accountType))
+                    return "该邮箱已被其它账户绑定";
                 map.put("email", account);
                 break;
             case "phone":
                 if (!oldUser.isNull("phone") && StringUtils.isNotBlank(oldUser.getString("phone")))
                     return "已经绑定了手机号";
+                if (isUserExists(poolId, poolSecret, account, accountType))
+                    return "该手机号已被其它账户绑定";
                 map.put("phone", account);
                 break;
             default:
