@@ -538,12 +538,21 @@ public class OpenGaussService implements UserCenterServiceInter {
             // 修改邮箱或者手机号
             DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
             String userId = decode.getAudience().get(0);
-            JSONObject user = oneidDao.updateAccount(poolId, poolSecret, userId, oldAccount, account, accountType);
-            if (user != null) {
+            Object user = oneidDao.updateAccount(poolId, poolSecret, userId, oldAccount, account, accountType);
+            if (user == null)
+                return result(HttpStatus.BAD_REQUEST, null, "用户不存在", null);
+            if (user instanceof JSONObject) {
                 redisDao.updateValue(redisKey, codeTempOld + "_used", 0);
                 redisDao.updateValue(redisKey, codeTemp + "_used", 0);
                 return result(HttpStatus.OK, null, "update success", null);
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, user.toString(), null);
             }
+            /*if (user != null) {
+                redisDao.updateValue(redisKey, codeTempOld + "_used", 0);
+                redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+                return result(HttpStatus.OK, null, "update success", null);
+            } */
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -578,11 +587,19 @@ public class OpenGaussService implements UserCenterServiceInter {
             // 解绑
             DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
             String userId = decode.getAudience().get(0);
-            JSONObject user = oneidDao.updateAccount(poolId, poolSecret, userId, account, "", accountType);
-            if (user != null) {
+            Object user = oneidDao.updateAccount(poolId, poolSecret, userId, account, "", accountType);
+            if (user == null)
+                return result(HttpStatus.BAD_REQUEST, null, "用户不存在", null);
+            if (user instanceof JSONObject) {
                 redisDao.updateValue(redisKey, codeTemp + "_used", 0);
                 return result(HttpStatus.OK, null, "unbind success", null);
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, user.toString(), null);
             }
+            /*if (user != null) {
+                redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+                return result(HttpStatus.OK, null, "unbind success", null);
+            }*/
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -622,7 +639,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, "用户不存在", null);
             if (user instanceof JSONObject) {
                 redisDao.updateValue(redisKey, codeTemp + "_used", 0);
-                return result(HttpStatus.OK, null, "unbind success", null);
+                return result(HttpStatus.OK, null, "bind success", null);
             } else {
                 return result(HttpStatus.BAD_REQUEST, null, user.toString(), null);
             }
