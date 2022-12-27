@@ -131,7 +131,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             userInfo.put("phone", phone);
 
             // 验证码校验
-            String redisKey = phone + "_sendCode_" + community;
+            String redisKey = phone + "_sendCode_" + community + "_register";
             String codeTemp = (String) redisDao.get(redisKey);
             String codeCheck = checkCode(phoneCode, codeTemp);
             if (!codeCheck.equals("success"))
@@ -164,16 +164,17 @@ public class OpenGaussService implements UserCenterServiceInter {
             if (!isSuccess)
                 return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
 
-            // 限制1分钟只能发送一次
-            String redisKey = account + "_sendCode_" + community;
-            String codeOld = (String) redisDao.get(redisKey);
-            if (codeOld != null) {
-                return result(HttpStatus.BAD_REQUEST, null, "一分钟之内已发送过验证码", null);
-            }
-
             // channel校验
             if (StringUtils.isBlank(channel) || !channels.contains(channel.toLowerCase())) {
                 return result(HttpStatus.BAD_REQUEST, null, "channel error", null);
+            }
+
+            // 限制1分钟只能发送一次
+            String redisKeyTemp = account + "_sendCode_" + community;
+            String redisKey = channel.toLowerCase().equals("channel_register") ? redisKeyTemp + "_register" : redisKeyTemp;
+            String codeOld = (String) redisDao.get(redisKey);
+            if (codeOld != null) {
+                return result(HttpStatus.BAD_REQUEST, null, "一分钟之内已发送过验证码", null);
             }
 
             // 发送验证码
