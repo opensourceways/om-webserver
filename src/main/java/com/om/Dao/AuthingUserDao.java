@@ -23,6 +23,7 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
+import com.om.Result.Constant;
 import com.om.Utils.RSAUtil;
 
 import java.security.InvalidKeyException;
@@ -118,8 +119,6 @@ public class AuthingUserDao {
     public static AuthenticationClient authentication;
 
     public static ObsClient obsClient;
-
-    private static final String USERNAMEREGEX = "^[a-zA-Z][0-9a-zA-Z_]{1,18}[0-9a-zA-Z]$";
 
     private static List<String> reservedUsernames;
 
@@ -781,7 +780,7 @@ public class AuthingUserDao {
         String msg = "success";
         if (StringUtils.isBlank(userName))
             msg = "用户名不能为空";
-        else if (!userName.matches(USERNAMEREGEX))
+        else if (!userName.matches(Constant.USERNAMEREGEX))
             msg = "请输入3到20个字符。只能由字母、数字或者下划线(_)组成。必须以字母开头，不能以下划线(_)结尾";
         else if (reservedUsernames.contains(userName) || isUserExists(userName, "username"))
             msg = "用户名已存在";
@@ -842,6 +841,8 @@ public class AuthingUserDao {
         map.put("应用未找到", MessageCodeConfig.E00042);
         map.put("请输入正确的手机号码", MessageCodeConfig.E00043);
         map.put("请输入正确的公司名", MessageCodeConfig.E00044);
+        map.put("请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。必须以字母或者汉字开头，不能以下划线(_)结尾", MessageCodeConfig.E00045);
+        map.put("请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾", MessageCodeConfig.E00046);
 
         return map;
     }
