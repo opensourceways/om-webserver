@@ -799,6 +799,8 @@ public class AuthingUserDao {
         map.put("验证码无效或已过期", MessageCodeConfig.E0001);
         map.put("验证码不正确", MessageCodeConfig.E0002);
         map.put("该手机号已被绑定", MessageCodeConfig.E0003);
+        map.put("该手机号已被其它账户绑定", MessageCodeConfig.E0003);
+        map.put("该邮箱已被其它账户绑定", MessageCodeConfig.E0004);
         map.put("该邮箱已被绑定", MessageCodeConfig.E0004);
         map.put("Duplicate entry", MessageCodeConfig.E0004);
         map.put("没有配置其他登录方式", MessageCodeConfig.E0005);
