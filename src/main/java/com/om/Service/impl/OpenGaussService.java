@@ -119,6 +119,8 @@ public class OpenGaussService implements UserCenterServiceInter {
             // 用户名校验
             if (StringUtils.isBlank(userName))
                 return result(HttpStatus.BAD_REQUEST, null, "用户名不能为空", null);
+            if (!userName.matches(Constant.USERNAMEREGEX))
+                return result(HttpStatus.BAD_REQUEST, null, "请输入3到20个字符。只能由字母、数字或者下划线(_)组成。必须以字母开头，不能以下划线(_)结尾", null);
             if (oneidDao.isUserExists(poolId, poolSecret, userName, "username"))
                 return result(HttpStatus.BAD_REQUEST, null, "用户名已存在", null);
             userInfo.put("username", userName);
@@ -427,7 +429,12 @@ public class OpenGaussService implements UserCenterServiceInter {
 
             // 只允许修改 nickname 和 company
             map.entrySet().removeIf(entry -> !(entry.getKey().equals("nickname") || entry.getKey().equals("company")));
-
+            String nickname = (String) map.getOrDefault("nickname", null);
+            if (nickname != null && !nickname.matches(Constant.NICKNAMEREGEX))
+                return result(HttpStatus.BAD_REQUEST, null, "请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。必须以字母或者汉字开头，不能以下划线(_)结尾", null);
+            String company = (String) map.getOrDefault("company", null);
+            if (company != null && !company.matches(Constant.COMPANYNAMEREGEX))
+                return result(HttpStatus.BAD_REQUEST, null, "请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾", null);
             String userJsonStr = objectMapper.writeValueAsString(map);
             JSONObject user = oneidDao.updateUser(poolId, poolSecret, userId, userJsonStr);
             if (user != null) return result(HttpStatus.OK, null, "update base info success", null);
@@ -548,11 +555,6 @@ public class OpenGaussService implements UserCenterServiceInter {
             } else {
                 return result(HttpStatus.BAD_REQUEST, null, user.toString(), null);
             }
-            /*if (user != null) {
-                redisDao.updateValue(redisKey, codeTempOld + "_used", 0);
-                redisDao.updateValue(redisKey, codeTemp + "_used", 0);
-                return result(HttpStatus.OK, null, "update success", null);
-            } */
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -596,10 +598,6 @@ public class OpenGaussService implements UserCenterServiceInter {
             } else {
                 return result(HttpStatus.BAD_REQUEST, null, user.toString(), null);
             }
-            /*if (user != null) {
-                redisDao.updateValue(redisKey, codeTemp + "_used", 0);
-                return result(HttpStatus.OK, null, "unbind success", null);
-            }*/
         } catch (Exception e) {
             e.printStackTrace();
         }

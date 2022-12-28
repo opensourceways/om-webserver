@@ -62,6 +62,8 @@ public enum MessageCodeConfig {
     E00042("E00042", "not found the app", "应用未找到"),
     E00043("E00043", "please enter the correct phone number", "请输入正确的手机号码"),
     E00044("E00044", "please enter the correct company name", "请输入正确的公司名"),
+    E00045("E00045", "contain 3 to 20 characters. nickname include only letters, digits, Chinese and underscores (_). must start with a letter or Chinese. cannot end with underscore (_)", "请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。必须以字母或者汉字开头，不能以下划线(_)结尾"),
+    E00046("E00046", "contain 2 to 100 characters. company include only letters, digits, Chinese, parentheses, point (.), comma (,) and &. must start with a letter, digits or Chinese. cannot end with parentheses, comma (,) and &", "请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾"),
     ;
 
     private String code;
