@@ -108,8 +108,8 @@ public class OpenGaussService implements UserCenterServiceInter {
 
             HashMap<String, Object> userInfo = new HashMap<>();
 
-            if (StringUtils.isBlank(company))
-                return result(HttpStatus.BAD_REQUEST, null, "请输入正确的公司名", null);
+            if (company == null || !company.matches(Constant.COMPANYNAMEREGEX))
+                return result(HttpStatus.BAD_REQUEST, null, "请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾", null);
             userInfo.put("company", company);
 
             // app校验
@@ -430,7 +430,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             // 只允许修改 nickname 和 company
             map.entrySet().removeIf(entry -> !(entry.getKey().equals("nickname") || entry.getKey().equals("company")));
             String nickname = (String) map.getOrDefault("nickname", null);
-            if (nickname != null && !nickname.matches(Constant.NICKNAMEREGEX))
+            if (nickname != null && !nickname.equals("") && !nickname.matches(Constant.NICKNAMEREGEX))
                 return result(HttpStatus.BAD_REQUEST, null, "请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。必须以字母或者汉字开头，不能以下划线(_)结尾", null);
             String company = (String) map.getOrDefault("company", null);
             if (company != null && !company.matches(Constant.COMPANYNAMEREGEX))
