@@ -144,11 +144,15 @@ public class QueryController {
         return res;
     }
 
-//    @RequestMapping("/newYear/2022")
     @RequestMapping("/lts/2203")
     public String queryNewYear(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user) {
-//        String res = queryService.queryNewYear(community, user, "2022");
         String res = queryService.queryNewYear(community, user, "2203lts");
+        return res;
+    }
+
+    @RequestMapping("/newYear/report")
+    public String queryNewYear(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user, @RequestParam(value = "year") String year) {
+        String res = queryService.queryNewYear(community, user, year);
         return res;
     }
 
@@ -209,8 +213,10 @@ public class QueryController {
 
 
     @RequestMapping(value = "/buildCheckInfo", method = RequestMethod.POST)
-    public String queryBuildCheckInfo(@RequestBody BuildCheckInfoQueryVo queryBody) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String res = queryService.queryBuildCheckInfo(queryBody,"buildCheckInfo");
+    public String queryBuildCheckInfo(@RequestBody BuildCheckInfoQueryVo queryBody,
+            @RequestParam(value = "lastCursor", required = false) String lastCursor,
+            @RequestParam(value = "pageSize", required = false) String pageSize) throws InterruptedException, ExecutionException, JsonProcessingException {
+        String res = queryService.queryBuildCheckInfo(queryBody, "buildCheckInfo", lastCursor, pageSize);
         return res;
     }
 
