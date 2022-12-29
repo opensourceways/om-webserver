@@ -25,6 +25,7 @@ import java.util.UUID;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.env.Environment;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -37,7 +38,7 @@ public class CodeUtil {
     // 华为云MSGSMS，用于格式化鉴权头域，给"X-WSSE"参数赋值
     private static final String WSSE_HEADER_FORMAT = "UsernameToken Username=\"%s\",PasswordDigest=\"%s\",Nonce=\"%s\",Created=\"%s\"";
 
-    public String[] sendCode(String accountType, String account, JavaMailSender mailSender, Environment env) {
+    public String[] sendCode(String accountType, String account, JavaMailSender mailSender, Environment env, String community) {
         String resMsg = "fail";
         long codeExpire = 60L;
         String code = null;
@@ -58,12 +59,13 @@ public class CodeUtil {
                 case "phone":
                     codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", "60"));
                     // 短信发送服务器
+                    String communityTemp = StringUtils.isBlank(community) ? "" : community + ".";
                     String msgsms_app_key = env.getProperty("msgsms.app_key");
                     String msgsms_app_secret = env.getProperty("msgsms.app_secret");
                     String msgsms_url = env.getProperty("msgsms.url");
-                    String msgsms_signature = env.getProperty("msgsms.signature");
-                    String msgsms_sender = env.getProperty("msgsms.sender");
-                    String msgsms_template_id = env.getProperty("msgsms.template.id");
+                    String msgsms_signature = env.getProperty(communityTemp + "msgsms.signature");
+                    String msgsms_sender = env.getProperty(communityTemp + "msgsms.sender");
+                    String msgsms_template_id = env.getProperty(communityTemp + "msgsms.template.id");
                     // 短信发送请求
                     String templateParas = String.format("[\"%s\",\"%s\"]", code, env.getProperty("msgsms.template.context.expire", "1"));
                     String wsseHeader = buildWsseHeader(msgsms_app_key, msgsms_app_secret);

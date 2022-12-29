@@ -751,7 +751,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
 
             // 发送验证码
-            String[] strings = codeUtil.sendCode(accountType, account, mailSender, env);
+            String[] strings = codeUtil.sendCode(accountType, account, mailSender, env, "");
             if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success"))
                 return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
 
