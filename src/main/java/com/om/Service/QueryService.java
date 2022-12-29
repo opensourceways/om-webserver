@@ -449,6 +449,25 @@ public class QueryService {
         return result;
     }
 
+    public String queryNewYearMonthCount(String community, String user) {
+        String key = community + user + "monthcount";
+        String result;
+        result = null; //(String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryNewYearMonthCount(community, user);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = false; //redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    } 
+
     public String queryBugQuestionnaire(String community, String item, String lastCursor, String pageSize) {
 
         String key = community + item;

@@ -156,6 +156,12 @@ public class QueryController {
         return res;
     }
 
+    @RequestMapping("/newYear/monthcount")
+    public String queryNewYearMonthCount(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user) {
+        String res = queryService.queryNewYearMonthCount(community, user);
+        return res;
+    }
+
     @UserLoginToken
     @RequestMapping("/bugQuestionnaires")
     public String queryBugQuestionnaires(@RequestParam(value = "community") String community,

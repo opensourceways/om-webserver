@@ -111,6 +111,15 @@ public class openComObject {
     protected String account_org_query;
     protected String SigCountQuery;
     protected String UserReportCsvData;
+    protected String MonthCountQueryStr;
+
+    public String getMonthCountQueryStr() {
+        return MonthCountQueryStr;
+    }
+
+    public void setMonthCountQueryStr(String MonthCountQueryStr) {
+        this.MonthCountQueryStr = MonthCountQueryStr;
+    }
 
     public String getUserReportCsvData() {
         return UserReportCsvData;
