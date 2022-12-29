@@ -106,7 +106,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             String phoneCode = servletRequest.getParameter("code");
             String company = servletRequest.getParameter("company");
 
-            // 限制一分钟登录失败次数
+            // 限制一分钟内失败次数
             String registerErrorCountKey = phone + "registerCount";
             Object v = redisDao.get(registerErrorCountKey);
             int registerErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
