@@ -15,14 +15,19 @@ import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.om.Service.AuthingService;
-import com.om.Vo.OauthTokenVo;
+import com.om.Service.UserCenterServiceContext;
+import com.om.Service.inter.UserCenterServiceInter;
 import com.om.authing.AuthingUserToken;
 
+import java.util.HashMap;
 import java.util.Map;
+import javax.annotation.PostConstruct;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -35,6 +40,9 @@ import static com.anji.captcha.controller.CaptchaController.getRemoteId;
 public class AuthingController {
     @Autowired
     AuthingService authingService;
+
+    @Autowired
+    UserCenterServiceContext userCenterServiceContext;
 
     @Autowired
     private CaptchaService captchaService;
@@ -52,37 +60,34 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "/account/exists")
-    public ResponseEntity accountExists(@RequestParam(value = "userName", required = false) String userName,
-                                        @RequestParam(value = "account", required = false) String account) {
-        return authingService.accountExists(userName, account);
+    public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.accountExists(servletRequest, servletResponse);
     }
 
     @RequestMapping(value = "/v3/sendCode")
-    public ResponseEntity sendCodeV3(@RequestParam(value = "account") String account,
-                                     @RequestParam(value = "channel") String channel,
+    public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
         CaptchaVO captchaVO = new CaptchaVO();
         captchaVO.setCaptchaVerification(captchaVerification);
         ResponseModel response = captchaService.verification(captchaVO);
         boolean isSuccess = response.isSuccess();
-        return authingService.sendCodeV3(account, channel, isSuccess);
+
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.sendCodeV3(servletRequest, servletResponse, isSuccess);
     }
 
     @RequestMapping(value = "/register")
-    public ResponseEntity register(@RequestParam(value = "userName") String userName,
-                                   @RequestParam(value = "account") String account,
-                                   @RequestParam(value = "code") String code) {
-        return authingService.register(userName, account, code);
+    public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.register(servletRequest, servletResponse);
     }
 
     @RequestMapping(value = "/login")
-    public ResponseEntity login(HttpServletRequest httpServletRequest,
-                                HttpServletResponse servletResponse,
-                                @RequestParam(value = "community") String community,
-                                @RequestParam(value = "permission") String permission,
-                                @RequestParam(value = "account") String account,
-                                @RequestParam(value = "code") String code) {
-        return authingService.login(httpServletRequest, servletResponse, community, permission, account, code);
+    public ResponseEntity login(HttpServletRequest servletRequest,
+                                HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.login(servletRequest, servletResponse);
     }
 
     @RequestMapping(value = "/app/verify")
@@ -94,11 +99,11 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/oidc/auth", method = RequestMethod.GET)
     public ResponseEntity oidcAuth(@CookieValue(value = "_Y_G_", required = false) String token,
-                                        @RequestParam(value = "client_id") String clientId,
-                                        @RequestParam(value = "redirect_uri") String redirectUri,
-                                        @RequestParam(value = "response_type") String responseType,
-                                        @RequestParam(value = "state", required = false) String state,
-                                        @RequestParam(value = "scope") String scope) {
+                                   @RequestParam(value = "client_id") String clientId,
+                                   @RequestParam(value = "redirect_uri") String redirectUri,
+                                   @RequestParam(value = "response_type") String responseType,
+                                   @RequestParam(value = "state", required = false) String state,
+                                   @RequestParam(value = "scope") String scope) {
         return authingService.oidcAuth(token, clientId, redirectUri, responseType, state, scope);
     }
 
@@ -119,10 +124,18 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/logout")
-    public ResponseEntity logout(HttpServletRequest httpServletRequest,
-                                 HttpServletResponse servletResponse,
+    public ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                  @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.logoutOld(httpServletRequest, servletResponse, token);
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.logout(servletRequest, servletResponse, token);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/user/refresh")
+    public ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                      @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.refreshUser(servletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
@@ -135,7 +148,7 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/user/permissions")
     public ResponseEntity userPermissions(@RequestParam(value = "community") String community,
-                                  @CookieValue(value = "_Y_G_", required = false) String token) {
+                                          @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.userPermissions(community, token);
     }
 
@@ -151,8 +164,11 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/personal/center/user")
-    public ResponseEntity userInfo(@CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.personalCenterUserInfo(token);
+    public ResponseEntity userInfo(HttpServletRequest servletRequest,
+                                   HttpServletResponse servletResponse,
+                                   @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.personalCenterUserInfo(servletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
@@ -160,7 +176,8 @@ public class AuthingController {
     public ResponseEntity deleteUser(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
                                      @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.deleteUser(httpServletRequest, servletResponse, token);
+        UserCenterServiceInter service = getServiceImpl(httpServletRequest);
+        return service.deleteUser(httpServletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
@@ -173,38 +190,37 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/sendcode/unbind")
-    public ResponseEntity sendCodeUnbind(@RequestParam(value = "account") String account,
-                                         @RequestParam(value = "account_type") String account_type) {
-        return authingService.sendCodeUnbind(account, account_type);
+    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest,
+                                         HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.sendCodeUnbind(servletRequest, servletResponse);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/update/account")
-    public ResponseEntity updateAccount(@CookieValue(value = "_Y_G_", required = false) String token,
-                                        @RequestParam(value = "oldaccount") String oldaccount,
-                                        @RequestParam(value = "oldcode") String oldcode,
-                                        @RequestParam(value = "account") String account,
-                                        @RequestParam(value = "code") String code,
-                                        @RequestParam(value = "account_type") String account_type) {
-        return authingService.updateAccount(token, oldaccount, oldcode, account, code, account_type);
+    public ResponseEntity updateAccount(HttpServletRequest servletRequest,
+                                        HttpServletResponse servletResponse,
+                                        @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.updateAccount(servletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/unbind/account")
-    public ResponseEntity unbindAccount(@CookieValue(value = "_Y_G_", required = false) String token,
-                                        @RequestParam(value = "account") String account,
-                                        @RequestParam(value = "code") String code,
-                                        @RequestParam(value = "account_type") String account_type) {
-        return authingService.unbindAccount(token, account, code, account_type);
+    public ResponseEntity unbindAccount(HttpServletRequest servletRequest,
+                                        HttpServletResponse servletResponse,
+                                        @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.unbindAccount(servletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/bind/account")
-    public ResponseEntity bindAccount(@CookieValue(value = "_Y_G_", required = false) String token,
-                                      @RequestParam(value = "account") String account,
-                                      @RequestParam(value = "code") String code,
-                                      @RequestParam(value = "account_type") String account_type) {
-        return authingService.bindAccount(token, account, code, account_type);
+    public ResponseEntity bindAccount(HttpServletRequest servletRequest,
+                                      HttpServletResponse servletResponse,
+                                      @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.bindAccount(servletRequest, servletResponse, token);
     }
 
 
@@ -230,15 +246,27 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/update/baseInfo", method = RequestMethod.POST)
-    public ResponseEntity updateUserBaseInfo(@CookieValue(value = "_Y_G_", required = false) String token,
+    public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest,
+                                             HttpServletResponse servletResponse,
+                                             @CookieValue(value = "_Y_G_", required = false) String token,
                                              @RequestBody Map<String, Object> map) {
-        return authingService.updateUserBaseInfo(token, map);
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.updateUserBaseInfo(servletRequest, servletResponse, token, map);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/update/photo", method = RequestMethod.POST)
-    public ResponseEntity upload(@CookieValue(value = "_Y_G_", required = false) String token,
+    public ResponseEntity upload(HttpServletRequest servletRequest,
+                                 HttpServletResponse servletResponse,
+                                 @CookieValue(value = "_Y_G_", required = false) String token,
                                  @RequestParam(value = "file") MultipartFile file) {
-        return authingService.updatePhoto(token, file);
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.updatePhoto(servletRequest, servletResponse, token, file);
+    }
+
+    private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
+        String community = servletRequest.getParameter("community");
+        String serviceType = community == null || community.toLowerCase().equals("openeuler") ? "authing" : community.toLowerCase();
+        return userCenterServiceContext.getUserCenterService(serviceType);
     }
 }
