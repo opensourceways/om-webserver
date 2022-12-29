@@ -23,6 +23,7 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
+import com.om.Result.Constant;
 import com.om.Utils.RSAUtil;
 
 import java.security.InvalidKeyException;
@@ -98,9 +99,11 @@ public class AuthingUserDao {
     @Value("${rsa.authing.privateKey}")
     String rsaAuthingPrivateKey;
 
-
     @Value("${username.reserved}")
     String usernameReserved;
+
+    @Value("${datastat.img.default.photo}")
+    String defaultPhoto;
 
     // -- temporary (解决gitee多身份源解绑问题) -- TODO
     @Value("${temp.extIdpIds}")
@@ -116,8 +119,6 @@ public class AuthingUserDao {
     public static AuthenticationClient authentication;
 
     public static ObsClient obsClient;
-
-    private static final String USERNAMEREGEX = "^[a-zA-Z][0-9a-zA-Z_]{1,18}[0-9a-zA-Z]$";
 
     private static List<String> reservedUsernames;
 
@@ -754,7 +755,7 @@ public class AuthingUserDao {
             int beginIndex = objectUrl.lastIndexOf("/");
             beginIndex = beginIndex == -1 ? 0 : beginIndex + 1;
             String objName = objectUrl.substring(beginIndex);
-            if (obsClient.doesObjectExist(datastatImgBucket, objName))
+            if (obsClient.doesObjectExist(datastatImgBucket, objName) && !objName.equals(defaultPhoto))
                 obsClient.deleteObject(datastatImgBucket, objName);
         } catch (Exception e) {
             e.printStackTrace();
@@ -779,7 +780,7 @@ public class AuthingUserDao {
         String msg = "success";
         if (StringUtils.isBlank(userName))
             msg = "用户名不能为空";
-        else if (!userName.matches(USERNAMEREGEX))
+        else if (!userName.matches(Constant.USERNAMEREGEX))
             msg = "请输入3到20个字符。只能由字母、数字或者下划线(_)组成。必须以字母开头，不能以下划线(_)结尾";
         else if (reservedUsernames.contains(userName) || isUserExists(userName, "username"))
             msg = "用户名已存在";
@@ -798,6 +799,8 @@ public class AuthingUserDao {
         map.put("验证码无效或已过期", MessageCodeConfig.E0001);
         map.put("验证码不正确", MessageCodeConfig.E0002);
         map.put("该手机号已被绑定", MessageCodeConfig.E0003);
+        map.put("该手机号已被其它账户绑定", MessageCodeConfig.E0003);
+        map.put("该邮箱已被其它账户绑定", MessageCodeConfig.E0004);
         map.put("该邮箱已被绑定", MessageCodeConfig.E0004);
         map.put("Duplicate entry", MessageCodeConfig.E0004);
         map.put("没有配置其他登录方式", MessageCodeConfig.E0005);
@@ -810,8 +813,8 @@ public class AuthingUserDao {
         map.put("请求异常", MessageCodeConfig.E00012);
         map.put("新邮箱和旧邮箱一样", MessageCodeConfig.E00013);
         map.put("新手机号和旧手机号一样", MessageCodeConfig.E00014);
-        map.put("已绑定手机号", MessageCodeConfig.E00015);
-        map.put("已绑定邮箱", MessageCodeConfig.E00016);
+        map.put("已经绑定了手机号", MessageCodeConfig.E00015);
+        map.put("已经绑定了邮箱", MessageCodeConfig.E00016);
         map.put("退出登录失败", MessageCodeConfig.E00017);
         map.put("用户名不能为空", MessageCodeConfig.E00018);
         map.put("用户名已存在", MessageCodeConfig.E00019);
@@ -837,6 +840,11 @@ public class AuthingUserDao {
         map.put("邮箱不能为空", MessageCodeConfig.E00039);
         map.put("请输入正确的邮箱", MessageCodeConfig.E00040);
         map.put("请输入3到20个字符。只能由字母、数字或者下划线(_)组成。必须以字母开头，不能以下划线(_)结尾", MessageCodeConfig.E00041);
+        map.put("应用未找到", MessageCodeConfig.E00042);
+        map.put("请输入正确的手机号码", MessageCodeConfig.E00043);
+        map.put("请输入正确的公司名", MessageCodeConfig.E00044);
+        map.put("请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。必须以字母或者汉字开头，不能以下划线(_)结尾", MessageCodeConfig.E00045);
+        map.put("请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾", MessageCodeConfig.E00046);
 
         return map;
     }

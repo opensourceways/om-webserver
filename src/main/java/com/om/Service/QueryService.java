@@ -11,10 +11,6 @@
 
 package com.om.Service;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import com.alibaba.fastjson.parser.Feature;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -22,6 +18,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
@@ -414,18 +411,37 @@ public class QueryService {
         return result;
     }
 
-    public String queryNewYear(String community, String user, String item) {
+    public String querylts2203(String community, String user, String item) {
         String key = community + item;
         String result;
         result = null; //(String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryNewYear(community, user, item, env);
+                result = queryDao.querylts2203(community, user, item, env);
             } catch (Exception e) {
                 e.printStackTrace();
             }
             boolean set = false; //redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+            if (set) {
+                System.out.println("update " + key + " success!");
+            }
+        }
+        return result;
+    }
+
+    public String queryNewYear(String community, String user, String year) {
+        String key = community + user + year;
+        String result;
+        result = (String) redisDao.get(key);
+        if (result == null) {
+            //查询数据库，更新redis 缓存。
+            try {
+                result = queryDao.queryNewYear(community, user, year);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
@@ -446,7 +462,7 @@ public class QueryService {
             return result;
         } else {
             result = queryDao.queryBugQuestionnaire(community, item, lastCursor, pageSize, env);
-            result = dataDesensitizationProcessing(result);
+            result = dataDesensitizationProcessing(result, item);
         }
 
         boolean set;
@@ -463,20 +479,27 @@ public class QueryService {
         return result;
     }
 
-    private String dataDesensitizationProcessing(String jsonRes) {
-        LinkedHashMap<String, Object> jsonMap = JSON.parseObject(jsonRes, LinkedHashMap.class, Feature.OrderedField);
-        JSONObject dataMap = new JSONObject(jsonMap);
-        JSONArray dataList = (JSONArray) dataMap.get("data");
-
-        for (int i = 0; i < dataList.size(); i++) {
-            JSONObject eachQuestionnaire = dataList.getJSONObject(i);
-            String email = (String) eachQuestionnaire.get("email");
-            String desensitizedEmail = StringDesensitizationUtils.maskEmail(email);
-            eachQuestionnaire.put("email", desensitizedEmail);
+    private String dataDesensitizationProcessing(String jsonRes, String item) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode dataMap;
+        try {
+            dataMap = objectMapper.readTree(jsonRes);
+            Iterator<JsonNode> buckets = dataMap.get("data").elements();
+            ArrayList<JsonNode> dataList = new ArrayList<>();
+            while (buckets.hasNext()) {
+                ObjectNode bucket = (ObjectNode) buckets.next();
+                String email = bucket.get("email").asText();
+                String desensitizedEmail = StringDesensitizationUtils.maskEmail(email);
+                bucket.put("email", desensitizedEmail);
+                dataList.add(bucket);
+            }
+            ObjectNode resMap = (ObjectNode) dataMap;
+            resMap.putPOJO("data", dataList);
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
         }
-        dataMap.put("data", dataList);
-
-        return dataMap.toJSONString();
     }
 
     public String queryObsDetails(String community, String item, String branch, String limit) {
@@ -587,12 +610,12 @@ public class QueryService {
         return result;
     }
 
-    public String queryBuildCheckInfo(BuildCheckInfoQueryVo queryBody, String item) {
+    public String queryBuildCheckInfo(BuildCheckInfoQueryVo queryBody, String item, String lastCursor, String pageSize) {
         String validateResult = validateBuildCheckInfo(queryBody, item);
         if (!StringUtils.isBlank(validateResult)) {
             return validateResult;
         }
-        String res = queryDao.queryBuildCheckInfo(queryBody, item, env);
+        String res = queryDao.queryBuildCheckInfo(queryBody, item, env, lastCursor, pageSize);
 
         return res;
     }

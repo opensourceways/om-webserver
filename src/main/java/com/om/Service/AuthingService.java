@@ -17,14 +17,14 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
 import com.om.Dao.SqlDao;
 import com.om.Modules.MessageCodeConfig;
+import com.om.Result.Constant;
+import com.om.Result.Result;
+import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
@@ -34,7 +34,6 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
-import java.sql.ResultSet;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -46,7 +45,6 @@ import javax.crypto.NoSuchPaddingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.om.Vo.OauthTokenVo;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -59,9 +57,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-
-@Service
-public class AuthingService {
+@Service("authing")
+public class AuthingService implements UserCenterServiceInter {
     @Autowired
     private Environment env;
 
@@ -93,13 +90,11 @@ public class AuthingService {
 
     private static ObjectMapper objectMapper;
 
-    private static final String PHONEREGEX = "^[a-z0-9]{11}$";
-
-    private static final String EMAILREGEX = "^[A-Za-z0-9-._\\u4e00-\\u9fa5]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$";
-
     private static HashMap<String, String[]> oidcScopeOthers;
 
     private static HashMap<String, String> oidcScopeAuthingMapping;
+
+    private static Result result;
 
     @PostConstruct
     public void init() {
@@ -109,9 +104,14 @@ public class AuthingService {
         domain2secure = HttpClientUtils.getConfigCookieInfo(Objects.requireNonNull(env.getProperty("cookie.token.domains")), Objects.requireNonNull(env.getProperty("cookie.token.secures")));
         oidcScopeOthers = getOidcScopesOther();
         oidcScopeAuthingMapping = oidcScopeAuthingMapping();
+        result = new Result();
     }
 
-    public ResponseEntity accountExists(String userName, String account) {
+    @Override
+    public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        String userName = servletRequest.getParameter("username");
+        String account = servletRequest.getParameter("account");
+
         if (StringUtils.isNotBlank(userName)) {
             boolean username = authingUserDao.isUserExists(userName, "username");
             if (username) return result(HttpStatus.BAD_REQUEST, null, "用户名已存在", null);
@@ -123,7 +123,11 @@ public class AuthingService {
         return result(HttpStatus.OK, "success", null);
     }
 
-    public ResponseEntity sendCodeV3(String account, String channel, boolean isSuccess) {
+    @Override
+    public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse, boolean isSuccess) {
+        String account = servletRequest.getParameter("account");
+        String channel = servletRequest.getParameter("channel");
+
         // 验证码二次校验
         if (!isSuccess)
             return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
@@ -152,16 +156,23 @@ public class AuthingService {
         else return result(HttpStatus.OK, "success", null);
     }
 
-    public ResponseEntity register(String userName, String account, String code) {
+    @Override
+    public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         String msg;
+        String userName = servletRequest.getParameter("username");
+        String account = servletRequest.getParameter("account");
+        String code = servletRequest.getParameter("code");
+
         // 用户名校验
         msg = authingUserDao.checkUsername(userName);
         if (!msg.equals("success"))
             return result(HttpStatus.BAD_REQUEST, null, msg, null);
         if (StringUtils.isBlank(account))
             return result(HttpStatus.BAD_REQUEST, null, "邮箱不能为空", null);
-        if (!account.matches(EMAILREGEX))
+        if (!account.matches(Constant.EMAILREGEX))
             return result(HttpStatus.BAD_REQUEST, null, "请输入正确的邮箱", null);
+        if (StringUtils.isBlank(code))
+            return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
 
         // 邮箱 OR 手机号校验
         String accountType = checkPhoneAndEmail(account);
@@ -169,10 +180,10 @@ public class AuthingService {
         if (accountType.equals("email")) {
             // 邮箱注册
             msg = authingUserDao.registerByEmail(account, code, userName);
-        } /*else if (accountType.equals("phone")) {
+        } else if (accountType.equals("phone")) {
             // 手机注册
             msg = authingUserDao.registerByPhone(account, code, userName);
-        } */ else {
+        } else {
             return result(HttpStatus.BAD_REQUEST, null, accountType, null);
         }
         if (!msg.equals("success")) return result(HttpStatus.BAD_REQUEST, null, msg, null);
@@ -180,8 +191,13 @@ public class AuthingService {
         return result(HttpStatus.OK, "success", null);
     }
 
-    public ResponseEntity login(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse,
-                                String community, String permission, String account, String code) {
+    @Override
+    public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        String community = servletRequest.getParameter("community");
+        String permission = servletRequest.getParameter("permission");
+        String account = servletRequest.getParameter("account");
+        String code = servletRequest.getParameter("code");
+
         // 限制一分钟登录失败次数
         String loginErrorCountKey = account + "loginCount";
         Object v = redisDao.get(loginErrorCountKey);
@@ -239,7 +255,7 @@ public class AuthingService {
         String cookieTokenName = env.getProperty("cookie.token.name");
         String maxAgeTemp = env.getProperty("authing.cookie.max.age");
         int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
-        HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
+        HttpClientUtils.setCookie(servletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
 
         // 返回结果
         HashMap<String, Object> userData = new HashMap<>();
@@ -499,11 +515,11 @@ public class AuthingService {
 
             //获取企业信息
             ArrayList<String> companyNameList = new ArrayList<>();
-            JSONObject userObj = authingUserDao.getUserById(userId);            
+            JSONObject userObj = authingUserDao.getUserById(userId);
             HashMap<String, Map<String, Object>> map = new HashMap<>();
             JSONArray jsonArray = userObj.getJSONArray("identities");
             for (Object o : jsonArray) {
-                JSONObject obj =  (JSONObject) o;
+                JSONObject obj = (JSONObject) o;
                 authingUserIdentityIdp(obj, map);
             }
             // if (null != map.get("oauth2") && null != map.get("oauth2").get("login_name")) {
@@ -528,9 +544,10 @@ public class AuthingService {
         }
     }
 
-    public ResponseEntity logoutOld(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String token) {
+    @Override
+    public ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
         try {
-            String headerToken = httpServletRequest.getHeader("token");
+            String headerToken = servletRequest.getHeader("token");
             String idTokenKey = "idToken_" + headerToken;
             String idToken = (String) redisDao.get(idTokenKey);
 
@@ -545,7 +562,7 @@ public class AuthingService {
 
             // 退出登录，删除cookie，删除idToken
             String cookieTokenName = env.getProperty("cookie.token.name");
-            HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
+            HttpClientUtils.setCookie(servletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
             redisDao.remove(idTokenKey);
 
             HashMap<String, Object> userData = new HashMap<>();
@@ -559,7 +576,7 @@ public class AuthingService {
     }
 
     // 后端退出，目前有误 TODO
-    public ResponseEntity logout(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String token) {
+    public ResponseEntity logoutOld(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String token) {
         boolean res;
         String userId;
         Date issuedAt;
@@ -594,6 +611,40 @@ public class AuthingService {
         return result(HttpStatus.OK, "logout success", null);
     }
 
+    @Override
+    public ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
+        try {
+            token = rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(token);
+            String userId = decode.getAudience().get(0);
+
+            // 获取用户
+            String photo;
+            String username;
+            try {
+                String query = env.getProperty("mysql.query");
+                query = String.format(query, userId);
+                ArrayList<HashMap<String, String>> userinfo = sqlDao.getUserData(query);
+                HashMap<String, String> ui = userinfo.get(0);
+                photo = ui.get("photo");
+                username = ui.get("username");
+            } catch (Exception e) {
+                System.out.println("get data from mysql failed.");
+                User user = authingUserDao.getUser(userId);
+                photo = user.getPhoto();
+                username = user.getUsername();
+            }
+
+            // 返回结果
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("photo", photo);
+            userData.put("username", username);
+            return result(HttpStatus.OK, "success", userData);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+    }
 
     public ResponseEntity tokenApply(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse,
                                      String community, String code, String permission, String redirectUrl) {
@@ -645,7 +696,8 @@ public class AuthingService {
         }
     }
 
-    public ResponseEntity personalCenterUserInfo(String token) {
+    @Override
+    public ResponseEntity personalCenterUserInfo(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
         try {
             String userId = getUserIdFromToken(token);
             JSONObject userObj = authingUserDao.getUserById(userId);
@@ -659,7 +711,8 @@ public class AuthingService {
 
     }
 
-    public ResponseEntity deleteUser(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String token) {
+    @Override
+    public ResponseEntity deleteUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
         try {
             token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
@@ -669,7 +722,7 @@ public class AuthingService {
 
             //用户注销
             boolean res = authingUserDao.deleteUserById(userId);
-            if (res) return deleteUserAfter(httpServletRequest, servletResponse, token, userId, issuedAt, photo);
+            if (res) return deleteUserAfter(servletRequest, servletResponse, token, userId, issuedAt, photo);
             else return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
         } catch (Exception e) {
             return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
@@ -684,7 +737,11 @@ public class AuthingService {
         return result(HttpStatus.OK, "success", null);
     }
 
-    public ResponseEntity sendCodeUnbind(String account, String type) {
+    @Override
+    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        String account = servletRequest.getParameter("account");
+        String accountType = servletRequest.getParameter("account_type");
+
         String redisKey = account + "_CodeUnbind";
         try {
             // 限制1分钟只能发送一次
@@ -693,50 +750,13 @@ public class AuthingService {
                 return result(HttpStatus.BAD_REQUEST, null, "一分钟之内已发送过验证码", null);
             }
 
-            String resMsg = "send code fail";
-            long codeExpire = 60L;
+            // 发送验证码
+            String[] strings = codeUtil.sendCode(accountType, account, mailSender, env);
+            if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success"))
+                return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
 
-            // 生成验证码
-            String code = codeUtil.randomNumBuilder(Integer.parseInt(env.getProperty("code.length", "6")));
-
-            switch (type.toLowerCase()) {
-                case "email":
-                    codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
-                    // 邮件服务器
-                    String from = env.getProperty("spring.mail.username");
-                    // 邮件信息
-                    String[] info = codeUtil.buildEmailUnbindInfo(account, code);
-                    // 发送验证码
-                    resMsg = codeUtil.sendSimpleMail(mailSender, from, account, info[0], info[1]);
-                    break;
-                case "phone":
-                    codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", "60"));
-                    // 短信发送服务器
-                    String msgsms_app_key = env.getProperty("msgsms.app_key");
-                    String msgsms_app_secret = env.getProperty("msgsms.app_secret");
-                    String msgsms_url = env.getProperty("msgsms.url");
-                    String msgsms_signature = env.getProperty("msgsms.signature");
-                    String msgsms_sender = env.getProperty("msgsms.sender");
-                    String msgsms_template_id = env.getProperty("msgsms.template.id");
-                    // 短信发送请求
-                    String templateParas = String.format("[\"%s\",\"%s\"]", code, env.getProperty("msgsms.template.context.expire", "1"));
-                    String wsseHeader = codeUtil.buildWsseHeader(msgsms_app_key, msgsms_app_secret);
-                    String body = codeUtil.buildSmsBody(msgsms_sender, account, msgsms_template_id, templateParas, "", msgsms_signature);
-                    // 发送验证码
-                    HttpResponse<JsonNode> response = Unirest.post(msgsms_url)
-                            .header("Content-Type", "application/x-www-form-urlencoded")
-                            .header("Authorization", CodeUtil.AUTH_HEADER_VALUE)
-                            .header("X-WSSE", wsseHeader)
-                            .body(body)
-                            .asJson();
-                    if (response.getStatus() == 200) resMsg = "send sms code success";
-                    break;
-                default:
-                    break;
-            }
-            System.out.println("***** codeExpire: " + codeExpire);
-            redisDao.set(redisKey, code, codeExpire);
-            return result(HttpStatus.OK, resMsg, null);
+            redisDao.set(redisKey, strings[0], Long.parseLong(strings[1]));
+            return result(HttpStatus.OK, strings[2], null);
         } catch (Exception ex) {
             return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
         }
@@ -751,17 +771,35 @@ public class AuthingService {
         return result(HttpStatus.OK, "success", null);
     }
 
-    public ResponseEntity updateAccount(String token, String oldaccount, String oldcode, String account, String code, String type) {
-        if (type.toLowerCase().equals("email") && oldaccount.equals(account))
+    @Override
+    public ResponseEntity updateAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
+        String oldAccount = servletRequest.getParameter("oldaccount");
+        String oldCode = servletRequest.getParameter("oldcode");
+        String account = servletRequest.getParameter("account");
+        String code = servletRequest.getParameter("code");
+        String accountType = servletRequest.getParameter("account_type");
+
+        if (StringUtils.isBlank(oldAccount) || StringUtils.isBlank(account) || StringUtils.isBlank(accountType))
+            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+
+        if (accountType.toLowerCase().equals("email") && oldAccount.equals(account))
             return result(HttpStatus.BAD_REQUEST, null, "新邮箱与已绑定邮箱相同", null);
-        else if (type.toLowerCase().equals("phone") && oldaccount.equals(account))
+        else if (accountType.toLowerCase().equals("phone") && oldAccount.equals(account))
             return result(HttpStatus.BAD_REQUEST, null, "新手机号与已绑定手机号相同", null);
 
-        String res = authingUserDao.updateAccount(token, oldaccount, oldcode, account, code, type);
+        String res = authingUserDao.updateAccount(token, oldAccount, oldCode, account, code, accountType);
         return message(res);
     }
 
-    public ResponseEntity unbindAccount(String token, String account, String code, String type) {
+    @Override
+    public ResponseEntity unbindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
+        String account = servletRequest.getParameter("account");
+        String code = servletRequest.getParameter("code");
+        String accountType = servletRequest.getParameter("account_type");
+
+        if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType))
+            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+
         String redisKey = account + "_CodeUnbind";
         String codeTemp = (String) redisDao.get(redisKey);
         if (codeTemp == null) {
@@ -770,7 +808,7 @@ public class AuthingService {
         if (!codeTemp.equals(code)) {
             return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
         }
-        String res = authingUserDao.unbindAccount(token, account, type);
+        String res = authingUserDao.unbindAccount(token, account, accountType);
 
         if (res.equals("unbind success")) {
             redisDao.remove(redisKey);
@@ -779,8 +817,16 @@ public class AuthingService {
         return result(HttpStatus.BAD_REQUEST, null, res, null);
     }
 
-    public ResponseEntity bindAccount(String token, String account, String code, String type) {
-        String res = authingUserDao.bindAccount(token, account, code, type);
+    @Override
+    public ResponseEntity bindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
+        String account = servletRequest.getParameter("account");
+        String code = servletRequest.getParameter("code");
+        String accountType = servletRequest.getParameter("account_type");
+
+        if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType))
+            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+
+        String res = authingUserDao.bindAccount(token, account, code, accountType);
         return message(res);
     }
 
@@ -805,13 +851,15 @@ public class AuthingService {
         return result(HttpStatus.OK, "unlink account success", null);
     }
 
-    public ResponseEntity updateUserBaseInfo(String token, Map<String, Object> map) {
+    @Override
+    public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token, Map<String, Object> map) {
         String res = authingUserDao.updateUserBaseInfo(token, map);
         if (res.equals("success")) return result(HttpStatus.OK, "update base info success", null);
         else return result(HttpStatus.BAD_REQUEST, null, res, null);
     }
 
-    public ResponseEntity updatePhoto(String token, MultipartFile file) {
+    @Override
+    public ResponseEntity updatePhoto(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token, MultipartFile file) {
         boolean res = authingUserDao.updatePhoto(token, file);
         if (res) return result(HttpStatus.OK, "update photo success", null);
         else return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
@@ -833,11 +881,11 @@ public class AuthingService {
     private HashMap<String, Object> parseAuthingUser(JSONObject userObj) {
         HashMap<String, Object> userData = new HashMap<>();
 
-        userData.put("userName", jsonObjStringValue(userObj, "username"));
+        userData.put("username", jsonObjStringValue(userObj, "username"));
         userData.put("email", jsonObjStringValue(userObj, "email"));
         userData.put("phone", jsonObjStringValue(userObj, "phone"));
         userData.put("signedUp", jsonObjStringValue(userObj, "signedUp"));
-        userData.put("nickName", jsonObjStringValue(userObj, "nickname"));
+        userData.put("nickname", jsonObjStringValue(userObj, "nickname"));
         userData.put("company", jsonObjStringValue(userObj, "company"));
         userData.put("photo", jsonObjStringValue(userObj, "photo"));
         ArrayList<Map<String, Object>> identities = authingUserIdentity(userObj);
@@ -943,28 +991,7 @@ public class AuthingService {
     }
 
     private ResponseEntity result(HttpStatus status, MessageCodeConfig msgCode, String msg, Object data) {
-        HashMap<String, Object> res = new HashMap<>();
-        res.put("code", status.value());
-        res.put("data", data);
-        res.put("msg", msg);
-
-        if (status.value() == 400 && msgCode == null) {
-            for (Map.Entry<String, MessageCodeConfig> entry : error2code.entrySet()) {
-                if (msg.contains(entry.getKey())) {
-                    msgCode = entry.getValue();
-                    break;
-                }
-            }
-        }
-
-        if (msgCode != null) {
-            HashMap<String, Object> msgMap = new HashMap<>();
-            msgMap.put("code", msgCode.getCode());
-            msgMap.put("message_en", msgCode.getMsgEn());
-            msgMap.put("message_zh", msgCode.getMsgZh());
-            res.put("msg", msgMap);
-        }
-        return new ResponseEntity<>(res, status);
+        return result.setResult(status, msgCode, msg, data, error2code);
     }
 
     private ResponseEntity message(String res) {
@@ -992,9 +1019,9 @@ public class AuthingService {
 
     private String getAccountType(String account) {
         String accountType;
-        if (account.matches(EMAILREGEX))
+        if (account.matches(Constant.EMAILREGEX))
             accountType = "email";
-        else if (account.matches(PHONEREGEX))
+        else if (account.matches(Constant.PHONEREGEX))
             accountType = "phone";
         else
             accountType = "请输入正确的手机号或者邮箱";
