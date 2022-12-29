@@ -106,8 +106,15 @@ public class OpenGaussService implements UserCenterServiceInter {
             String phoneCode = servletRequest.getParameter("code");
             String company = servletRequest.getParameter("company");
 
-            HashMap<String, Object> userInfo = new HashMap<>();
+            // 限制一分钟内失败次数
+            String registerErrorCountKey = phone + "registerCount";
+            Object v = redisDao.get(registerErrorCountKey);
+            int registerErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
+            if (registerErrorCount >= Integer.parseInt(env.getProperty("login.error.count", "6")))
+                return result(HttpStatus.BAD_REQUEST, null, "请求过于频繁", null);
 
+            HashMap<String, Object> userInfo = new HashMap<>();
+            // 公司名校验
             if (company == null || !company.matches(Constant.COMPANYNAMEREGEX))
                 return result(HttpStatus.BAD_REQUEST, null, "请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾", null);
             userInfo.put("company", company);
@@ -136,8 +143,12 @@ public class OpenGaussService implements UserCenterServiceInter {
             String redisKey = phone + "_sendCode_" + community + "_register";
             String codeTemp = (String) redisDao.get(redisKey);
             String codeCheck = checkCode(phoneCode, codeTemp);
-            if (!codeCheck.equals("success"))
+            if (!codeCheck.equals("success")) {
+                long codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
+                registerErrorCount += 1;
+                redisDao.set(registerErrorCountKey, String.valueOf(registerErrorCount), codeExpire);
                 return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
+            }
 
             // 用户注册
             String userJsonStr = objectMapper.writeValueAsString(userInfo);
@@ -145,7 +156,8 @@ public class OpenGaussService implements UserCenterServiceInter {
             if (user == null) {
                 return result(HttpStatus.BAD_REQUEST, null, "注册失败", null);
             } else {
-                // 注册成功，验证码失效
+                // 注册成功，验证码失效，解除注册失败次数限制
+                redisDao.remove(registerErrorCountKey);
                 redisDao.updateValue(redisKey, codeTemp + "_used", 0);
                 return result(HttpStatus.OK, null, "success", null);
             }
