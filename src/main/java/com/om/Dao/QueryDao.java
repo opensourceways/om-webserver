@@ -1197,6 +1197,63 @@ public class QueryDao {
         return s;
     }
 
+    public String queryNewYearMonthCount(String community, String user) {
+        String index;
+        String queryjson;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getGiteeAllIndex();
+                queryjson = openEuler.getMonthCountQueryStr();
+                break;
+            case "opengauss":
+            case "openlookeng":
+            case "mindspore":
+                index = mindSpore.getGiteeAllIndex();
+                queryjson = mindSpore.getMonthCountQueryStr();
+                break;
+            default:
+                return "{\"code\":400,\"data\":{\"" + user + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            queryjson = String.format(queryjson, user);
+
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(queryjson);
+            // 获取执行结果
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+
+            HashMap<String, Object> dataMap = new HashMap<>();
+            long monthTime = 0l;
+            int count = 0;
+            if (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                monthTime = bucket.get("key").asLong();
+                count = bucket.get("doc_count").asInt();
+            }
+            Calendar c = Calendar.getInstance();
+            c.setTimeInMillis(monthTime);
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM");
+            String monthString = sdf.format(c.getTime()).split("-")[1];
+            int month = Integer.parseInt(monthString);
+            dataMap.put("month", month);
+            dataMap.put("count", count);
+
+            HashMap<String, Object> resMap = new HashMap<>();
+            resMap.put("code", 200);
+            resMap.put("data", dataMap);
+            resMap.put("msg", "success");
+            return objectMapper.valueToTree(resMap).toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\":{\"" + user + "\":\"query error\"},\"msg\":\"query error\"}";
+        }
+    }
+
     public String queryBugQuestionnaire(String community, String item, String lastCursor, String pageSize, Environment env) {
         String indexName;
         switch (community.toLowerCase()) {
