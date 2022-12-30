@@ -433,7 +433,7 @@ public class QueryService {
     public String queryNewYear(String community, String user, String year) {
         String key = community + user + year;
         String result;
-        result = (String) redisDao.get(key);
+        result = null; //(String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
@@ -441,7 +441,7 @@ public class QueryService {
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            boolean set = redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+            boolean set = false;//redisDao.set(key, result, Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
