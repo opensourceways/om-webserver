@@ -433,7 +433,7 @@ public class QueryService {
     public String queryNewYear(String community, String user, String year) {
         String key = community + user + year;
         String result;
-        result = null;//(String) redisDao.get(key);
+        result = null; //(String) redisDao.get(key);
         if (result == null) {
             //查询数据库，更新redis 缓存。
             try {
