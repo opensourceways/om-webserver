@@ -19,9 +19,12 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.StringUtils;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.search.*;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHit;
@@ -34,6 +37,28 @@ public class EsQueryUtils {
     private static final int MAXSIZE = 10000;
     private static final int MAXPAGESIZE = 5000;
     private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    public boolean deleteIndex(RestHighLevelClient client, String indexname) {
+        try {
+            boolean exists = isExists(client, indexname);
+            if (!exists) return true;
+            DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(indexname);
+            AcknowledgedResponse delete = client.indices().delete(deleteIndexRequest, RequestOptions.DEFAULT);
+            return delete.isAcknowledged();
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public boolean isExists(RestHighLevelClient client, String indexname) {
+        boolean exists = false;
+        try {
+            GetIndexRequest request = new GetIndexRequest(indexname);
+            exists = client.indices().exists(request, RequestOptions.DEFAULT);
+        } catch (Exception ignored) {
+        }
+        return exists;
+    }
 
     public HashMap<String, HashSet<String>>  queryBlueUserEmails(RestHighLevelClient client, String indexname) {
         SearchRequest request = new SearchRequest(indexname);

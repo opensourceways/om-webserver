@@ -973,8 +973,9 @@ public class QueryDao {
 
         String index = blueZone.getBlueZoneUsersIndex();
         List<BlueZoneUser> users = userVo.getUsers();
-        HashMap<String, HashSet<String>> id2emails = esQueryUtils.queryBlueUserEmails(restHighLevelClient, index);
 
+        // 删除index,全量更新
+        esQueryUtils.deleteIndex(restHighLevelClient, index);
         for (BlueZoneUser user : users) {
             String id;
             if (StringUtils.isNotBlank(user.getGitee_id())) id = user.getGitee_id();
@@ -986,15 +987,7 @@ public class QueryDao {
             String email = user.getEmail();
             List<String> inputEmails = Arrays.asList(email.split(";"));
 
-            HashSet<String> emails = id2emails.getOrDefault(id, new HashSet<>());
-            emails.addAll(inputEmails);
-            ArrayList<String> newEmails = new ArrayList<>(emails);
-
-            if (id2emails.containsKey(id)) {
-                HashSet<String> originalEmails = id2emails.get(id);
-                originalEmails.addAll(inputEmails);
-            }
-            resMap.put("emails", newEmails);
+            resMap.put("emails", inputEmails);
             resMap.remove("email");
             request.add(new IndexRequest(index, "_doc", id).source(resMap));
         }
