@@ -1164,23 +1164,24 @@ public class QueryDao {
         String csvName;
         switch (community.toLowerCase()) {
             case "openeuler":
-                csvName = openEuler.getUserReportCsvData();
+                // csvName = openEuler.getUserReportCsvData();
                 break;
             case "opengauss":
-                csvName = openGauss.getUserReportCsvData();
+                // csvName = openGauss.getUserReportCsvData();
                 break;
             case "openlookeng":
-                csvName = openLookeng.getUserReportCsvData();
+                // csvName = openLookeng.getUserReportCsvData();
                 break;
             case "mindspore":
-                csvName = mindSpore.getUserReportCsvData();
+                // csvName = mindSpore.getUserReportCsvData();
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + year + "\":\"query error\"},\"msg\":\"query error\"}";
         }
-        String localYamlPath = companyNameLocalYaml;
-        YamlUtil yamlUtil = new YamlUtil();
-        String localFile = yamlUtil.wget(csvName, localYamlPath);
+        // String localYamlPath = companyNameLocalYaml;
+        // YamlUtil yamlUtil = new YamlUtil();
+        // String localFile = yamlUtil.wget(csvName, localYamlPath);
+        String localFile = "om-data/" + community.toLowerCase() + "_" + year + ".csv";
         List<HashMap<String, Object>> datas = CsvFileUtil.readFile(localFile);
         HashMap<String, Object> resMap = new HashMap<>();
         resMap.put("code", 200);
