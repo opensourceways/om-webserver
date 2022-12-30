@@ -21,6 +21,12 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
+
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
+import com.mashape.unirest.http.Unirest;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.core.env.Environment;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 
@@ -31,6 +37,56 @@ public class CodeUtil {
 
     // 华为云MSGSMS，用于格式化鉴权头域，给"X-WSSE"参数赋值
     private static final String WSSE_HEADER_FORMAT = "UsernameToken Username=\"%s\",PasswordDigest=\"%s\",Nonce=\"%s\",Created=\"%s\"";
+
+    public String[] sendCode(String accountType, String account, JavaMailSender mailSender, Environment env, String community) {
+        String resMsg = "fail";
+        long codeExpire = 60L;
+        String code = null;
+        try{
+            // 生成验证码
+            code = randomNumBuilder(Integer.parseInt(env.getProperty("code.length", "6")));
+
+            switch (accountType.toLowerCase()) {
+                case "email":
+                    codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
+                    // 邮件服务器
+                    String from = env.getProperty("spring.mail.username");
+                    // 邮件信息
+                    String[] info = buildEmailCodeInfo(account, code);
+                    // 发送验证码
+                    resMsg = sendSimpleMail(mailSender, from, account, info[0], info[1]);
+                    break;
+                case "phone":
+                    codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", "60"));
+                    // 短信发送服务器
+                    String communityTemp = StringUtils.isBlank(community) ? "" : community + ".";
+                    String msgsms_app_key = env.getProperty("msgsms.app_key");
+                    String msgsms_app_secret = env.getProperty("msgsms.app_secret");
+                    String msgsms_url = env.getProperty("msgsms.url");
+                    String msgsms_signature = env.getProperty(communityTemp + "msgsms.signature");
+                    String msgsms_sender = env.getProperty(communityTemp + "msgsms.sender");
+                    String msgsms_template_id = env.getProperty(communityTemp + "msgsms.template.id");
+                    // 短信发送请求
+                    String templateParas = String.format("[\"%s\",\"%s\"]", code, env.getProperty("msgsms.template.context.expire", "1"));
+                    String wsseHeader = buildWsseHeader(msgsms_app_key, msgsms_app_secret);
+                    String body = buildSmsBody(msgsms_sender, account, msgsms_template_id, templateParas, "", msgsms_signature);
+                    // 发送验证码
+                    HttpResponse<JsonNode> response = Unirest.post(msgsms_url)
+                            .header("Content-Type", "application/x-www-form-urlencoded")
+                            .header("Authorization", CodeUtil.AUTH_HEADER_VALUE)
+                            .header("X-WSSE", wsseHeader)
+                            .body(body)
+                            .asJson();
+                    if (response.getStatus() == 200) resMsg = "send code success";
+                    break;
+                default:
+                    break;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return new String[]{code, String.valueOf(codeExpire), resMsg};
+    }
 
     /**
      * 发送简单的邮件
@@ -48,7 +104,7 @@ public class CodeUtil {
         message.setSubject(title);
         message.setText(content);
         mailSender.send(message);
-        return "send email code success";
+        return "send code success";
     }
 
 
@@ -61,6 +117,12 @@ public class CodeUtil {
      */
     public String[] buildEmailUnbindInfo(String email, String code) {
         String title = "您正在解除绑定邮箱，验证码为：" + code;
+        String content = "亲爱的用户：" + email + "\n\n" + title + ", 请保管好验证码。\n\n";
+        return new String[]{title, content};
+    }
+
+    public String[] buildEmailCodeInfo(String email, String code) {
+        String title = "您的验证码为：" + code;
         String content = "亲爱的用户：" + email + "\n\n" + title + ", 请保管好验证码。\n\n";
         return new String[]{title, content};
     }

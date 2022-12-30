@@ -9,18 +9,20 @@
  Create: 2022
 */
 
-package com.om.omwebserver;
+package com.om.Service;
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.ComponentScan;
+import com.om.Service.inter.UserCenterServiceInter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-@SpringBootApplication
-@ComponentScan(basePackages = {"com.om.*"})
-public class OmWebserverApplication {
+import java.util.Map;
 
-    public static void main(String[] args) {
-        SpringApplication.run(OmWebserverApplication.class, args);
+@Service
+public class UserCenterServiceContext {
+    @Autowired
+    private Map<String, UserCenterServiceInter> userCenterServiceMap;
+
+    public UserCenterServiceInter getUserCenterService(String type) {
+        return userCenterServiceMap.get(type);
     }
-
 }
