@@ -1234,15 +1234,14 @@ public class QueryDao {
                 JsonNode bucket = buckets.next();
                 monthTime = bucket.get("key").asLong();
                 count = bucket.get("doc_count").asInt();
+                Calendar c = Calendar.getInstance();
+                c.setTimeInMillis(monthTime);
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM");
+                String monthString = sdf.format(c.getTime()).split("-")[1];
+                int month = Integer.parseInt(monthString);
+                dataMap.put("month", month);
+                dataMap.put("count", count);
             }
-            Calendar c = Calendar.getInstance();
-            c.setTimeInMillis(monthTime);
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM");
-            String monthString = sdf.format(c.getTime()).split("-")[1];
-            int month = Integer.parseInt(monthString);
-            dataMap.put("month", month);
-            dataMap.put("count", count);
-
             HashMap<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
             resMap.put("data", dataMap);
