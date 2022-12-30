@@ -30,6 +30,7 @@ public class AuthingTest {
         String[] headers = {"signedUp", "username", "nickname", "giteeLogin"};
         csvWriter.writeHeaders(headers);
 
+        // （用户池id和secret自己修改）
         ManagementClient managementClient = new ManagementClient("xxx", "xxx");
         int page = 1;
         while (page <= 1000) {
