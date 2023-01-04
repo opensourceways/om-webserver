@@ -27,6 +27,8 @@ import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.client.indices.GetIndexRequest;
 import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.reindex.BulkByScrollResponse;
+import org.elasticsearch.index.reindex.DeleteByQueryRequest;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
@@ -37,6 +39,17 @@ public class EsQueryUtils {
     private static final int MAXSIZE = 10000;
     private static final int MAXPAGESIZE = 5000;
     private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    public boolean deleteByQuery(RestHighLevelClient client, String indexname, DeleteByQueryRequest deleteByQueryRequest) {
+        try {
+            boolean exists = isExists(client, indexname);
+            if (!exists) return true;
+            client.deleteByQuery(deleteByQueryRequest, RequestOptions.DEFAULT);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
 
     public boolean deleteIndex(RestHighLevelClient client, String indexname) {
         try {
@@ -224,7 +237,7 @@ public class EsQueryUtils {
         String endCursor = "";
 
         long totalCount = 0;
-        try {        
+        try {
             SearchResponse response = client.search(request, RequestOptions.DEFAULT);
             totalCount = response.getHits().getTotalHits().value;
             for (SearchHit hit : response.getHits().getHits()) {
@@ -362,7 +375,7 @@ public class EsQueryUtils {
                 + ",\"msg\":\"ok\"}";
     }
 
-    public String esUserCount(String community, RestHighLevelClient client, String indexname, String user, String sig, 
+    public String esUserCount(String community, RestHighLevelClient client, String indexname, String user, String sig,
             ArrayList<Object> params, String comment_type, String filter, String query) {
         SearchRequest request = new SearchRequest(indexname);
         SearchSourceBuilder builder = new SearchSourceBuilder();
@@ -385,7 +398,7 @@ public class EsQueryUtils {
         boolQueryBuilder.must(QueryBuilders.matchQuery(feild, 1));
         switch (community.toLowerCase()) {
             case "openeuler":
-                boolQueryBuilder.must(QueryBuilders.wildcardQuery("sig_names.keyword", sig));     
+                boolQueryBuilder.must(QueryBuilders.wildcardQuery("sig_names.keyword", sig));
                 break;
             case "opengauss":
                 boolQueryBuilder.mustNot(QueryBuilders.wildcardQuery("gitee_repo.keyword", "https://gitee.com/opengauss/practice-course"));
@@ -404,8 +417,8 @@ public class EsQueryUtils {
                     break;
                 case "nonetype":
                     return "{\"code\":200,\"data\": {},\"totalCount\":0,\"msg\":\"ok\"}";
-                default:                   
-            }         
+                default:
+            }
         }
         // if (filter != null) {
         //     boolQueryBuilder.must(QueryBuilders.matchPhraseQuery(type_info, filter));
@@ -454,9 +467,9 @@ public class EsQueryUtils {
     }
 
     public ArrayList<HashMap<String, Object>> parseResponse(SearchResponse response, String type, String type_no, String type_info, String type_url){
-        ArrayList<HashMap<String, Object>> list = new ArrayList<>();       
+        ArrayList<HashMap<String, Object>> list = new ArrayList<>();
         for (SearchHit hit : response.getHits().getHits()) {
-            Map<String, Object> sourceAsMap = hit.getSourceAsMap();              
+            Map<String, Object> sourceAsMap = hit.getSourceAsMap();
             String no = sourceAsMap.get(type_no).toString();
             String info = sourceAsMap.get(type_info) != null ? sourceAsMap.get(type_info).toString(): "*";
             String time = sourceAsMap.get("created_at").toString();
@@ -491,7 +504,7 @@ public class EsQueryUtils {
             }
             datamap.put("url", url);
             HashMap<String, Object> res = new HashMap<>();
-            list.add(datamap);          
+            list.add(datamap);
         }
         return list;
     }
