@@ -12,12 +12,22 @@
 package com.om.Vo;
 
 import com.om.Modules.BlueZoneUser;
+
 import java.util.List;
 
 
 public class BlueZoneUserVo {
+    private String productLineCode;
     private String token;
     private List<BlueZoneUser> users;
+
+    public String getProductLineCode() {
+        return productLineCode;
+    }
+
+    public void setProductLineCode(String productLineCode) {
+        this.productLineCode = productLineCode;
+    }
 
     public String getToken() {
         return token;
