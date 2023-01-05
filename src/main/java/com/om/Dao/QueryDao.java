@@ -133,6 +133,8 @@ public class QueryDao {
     @Autowired
     StarFork starFork;
 
+    static String mistakeInfoStr;
+
     public HashMap<String, HashMap<String, String>> getcommunityFeature(String community) {
         String yamlFile;
         switch (community.toLowerCase()) {
@@ -2009,8 +2011,7 @@ public class QueryDao {
         resultInfo = esQueryUtils.esScrollFromId(restHighLevelClient, item, Integer.parseInt(pageSize),
                 buildCheckInfoResultIndex, lastCursor, queryResultSourceBuilder);
         SearchSourceBuilder mistakeSourceBuilder = assembleMistakeSourceBuilder("update_at", queryBody);
-        String mistakeInfoStr = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoMistakeIndex, 5000,
-                mistakeSourceBuilder);
+        mistakeInfoStr = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoMistakeIndex, 5000, mistakeSourceBuilder);
 
         ArrayList<ObjectNode> finalResultJSONArray = new ArrayList<>();
         int totalCount = 0;
@@ -4279,4 +4280,5 @@ public class QueryDao {
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
+
 }
