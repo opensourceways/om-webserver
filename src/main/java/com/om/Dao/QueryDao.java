@@ -4262,45 +4262,4 @@ public class QueryDao {
         }
     }
 
-    
-    public String queryUserTest(String community, String user) {
-        String index;
-        String query = null;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getGiteeAllIndex();
-                break;
-            default:
-                return "{\"code\":400,\"data\":{\"comment\":\"query error\"},\"msg\":\"query error\"}";
-        }
-        try {
-            query = "{\"size\":5000,\"query\":{\"bool\":{\"filter\":[{\"query_string\":{\"analyze_wildcard\":true,\"query\":\"!is_removed:1 AND is_gitee_comment:1 AND user_login.keyword:%s\"}}]}},\"aggs\":{}}";
-            query = String.format(query, user);
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(query);
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
-            ArrayList<HashMap<String, Object>> list = new ArrayList<>();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next().get("_source");
-                HashMap<String, Object> datamap = new HashMap<>();
-                datamap.put("no", bucket.get("id"));
-                datamap.put("info", bucket.get("body"));
-                datamap.put("time", bucket.get("created_at").toString());
-                datamap.put("repo", bucket.get("gitee_repo").toString().substring(18));
-                list.add(datamap);
-            }
-            HashMap<String, ArrayList<HashMap<String, Object>>> data = new HashMap<>();
-            data.put(user, list);
-            String s = objectMapper.valueToTree(data).toString();
-            return "{\"code\":200,\"data\":" + s + ",\"totalCount\": 5000,\"msg\":\"ok\"}";
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\": \"query error\",\"totalCount\": 5000,\"msg\":\"ok\"}";
-        }
-    }
 }
