@@ -206,8 +206,6 @@ public class EsQueryUtils {
         SearchRequest request = new SearchRequest(indexname);
         SearchSourceBuilder builder = sourceBuilder;
 
-        builder.query(QueryBuilders.matchAllQuery());
-
         if (pageSize <= 0 || pageSize > MAXPAGESIZE) {
             pageSize = MAXPAGESIZE;
         }
