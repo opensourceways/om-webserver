@@ -59,6 +59,7 @@ import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.index.query.*;
+import org.elasticsearch.index.reindex.DeleteByQueryRequest;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -131,6 +132,8 @@ public class QueryDao {
     BlueZone blueZone;
     @Autowired
     StarFork starFork;
+
+    static String mistakeInfoStr;
 
     public HashMap<String, HashMap<String, String>> getcommunityFeature(String community) {
         String yamlFile;
@@ -976,9 +979,19 @@ public class QueryDao {
 
         String index = blueZone.getBlueZoneUsersIndex();
         List<BlueZoneUser> users = userVo.getUsers();
+        String productLineCode = userVo.getProductLineCode();
+        productLineCode = productLineCode == null ? "" : productLineCode;
 
-        // 删除index,全量更新
-        esQueryUtils.deleteIndex(restHighLevelClient, index);
+        List<String> products = Arrays.asList(env.getProperty("product.line.code.all.update").split(";"));
+        if (StringUtils.isNotBlank(productLineCode) && products.contains(productLineCode)) {
+            // 某些产品线需要全量更新
+            DeleteByQueryRequest requestDelete = new DeleteByQueryRequest(index);
+            requestDelete.setConflicts("proceed");
+            requestDelete.setQuery(new TermQueryBuilder("product_line_code", productLineCode));
+            esQueryUtils.deleteByQuery(restHighLevelClient, index, requestDelete);
+        }
+
+        HashMap<String, HashSet<String>> id2emails = esQueryUtils.queryBlueUserEmails(restHighLevelClient, index);
         for (BlueZoneUser user : users) {
             String id;
             if (StringUtils.isNotBlank(user.getGitee_id())) id = user.getGitee_id();
@@ -990,8 +1003,16 @@ public class QueryDao {
             String email = user.getEmail();
             List<String> inputEmails = Arrays.asList(email.split(";"));
 
-            resMap.put("emails", inputEmails);
+            if (StringUtils.isNotBlank(productLineCode) && products.contains(productLineCode)) {
+                resMap.put("emails", inputEmails);
+            } else {
+                HashSet<String> emails = id2emails.getOrDefault(id, new HashSet<>());
+                emails.addAll(inputEmails);
+                resMap.put("emails", new ArrayList<>(emails));
+            }
+
             resMap.remove("email");
+            resMap.put("product_line_code", productLineCode);
             request.add(new IndexRequest(index, "_doc", id).source(resMap));
         }
 
@@ -1990,8 +2011,7 @@ public class QueryDao {
         resultInfo = esQueryUtils.esScrollFromId(restHighLevelClient, item, Integer.parseInt(pageSize),
                 buildCheckInfoResultIndex, lastCursor, queryResultSourceBuilder);
         SearchSourceBuilder mistakeSourceBuilder = assembleMistakeSourceBuilder("update_at", queryBody);
-        String mistakeInfoStr = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoMistakeIndex, 5000,
-                mistakeSourceBuilder);
+        mistakeInfoStr = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoMistakeIndex, 5000, mistakeSourceBuilder);
 
         ArrayList<ObjectNode> finalResultJSONArray = new ArrayList<>();
         int totalCount = 0;
@@ -4260,4 +4280,5 @@ public class QueryDao {
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
+
 }
