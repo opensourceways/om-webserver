@@ -426,7 +426,6 @@ public class AuthingUserDao {
             }
             return pers;
         } catch (Exception e) {
-            e.printStackTrace();
             return pers;
         }
     }
