@@ -434,6 +434,12 @@ public class AuthingService implements UserCenterServiceInter {
             String[] scopes = decode.getClaim("scope").asString().split(" ");
             for (String scope : scopes) {
                 if (scope.equals("openid") || scope.equals("profile")) continue;
+                // 三方登录字段
+                if (scope.equals("identities")) {
+                    ArrayList<Map<String, Object>> identities = authingUserIdentity(userObj);
+                    userData.put("identities", identities);
+                    continue;
+                }
                 String[] claims = oidcScopeOthers.getOrDefault(scope, new String[]{scope});
                 for (String claim : claims) {
                     String profileTemp = oidcScopeAuthingMapping.getOrDefault(claim, claim);
@@ -916,6 +922,8 @@ public class AuthingService implements UserCenterServiceInter {
         HashMap<String, Object> res = new HashMap<>();
 
         JSONObject userInfoInIdpObj = identityObj.getJSONObject("userInfoInIdp");
+        String userIdInIdp = identityObj.getString("userIdInIdp");
+        res.put("userIdInIdp", userIdInIdp);
 //        String accessToken = jsonObjStringValue(identityObj, "accessToken");
         String provider = jsonObjStringValue(identityObj, "provider");
         switch (provider) {
