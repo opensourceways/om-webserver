@@ -47,6 +47,20 @@ public class AuthingController {
     @Autowired
     private CaptchaService captchaService;
 
+    @RequestMapping(value = "/oauth/{oauthType}")
+    public ResponseEntity oauthLogin(@PathVariable String oauthType,
+                                     @RequestParam(value = "community") String community,
+                                     @RequestParam(value = "redirectUri") String redirectUri,
+                                     @RequestParam(value = "permission") String permission,
+                                     HttpServletResponse response) {
+        return authingService.oauthLogin(oauthType, community, redirectUri, permission, response);
+    }
+
+    @RequestMapping(value = "oauth/{oauthType}/callback")
+    public ResponseEntity callback(@PathVariable String oauthType, HttpServletRequest request, HttpServletResponse response) {
+        return authingService.oauthCallback(oauthType, request, response);
+    }
+
     @RequestMapping(value = "/captcha/get")
     public ResponseModel captchaGet(@RequestBody CaptchaVO data, HttpServletRequest request) {
         data.setBrowserInfo(getRemoteId(request));
