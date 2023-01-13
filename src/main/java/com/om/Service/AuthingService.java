@@ -173,7 +173,7 @@ public class AuthingService implements UserCenterServiceInter {
             JSONObject user = provider.getUser(oauthProviderInfo);
 
             // 将user 新建或者绑定到authing
-            String password = null; // codeUtil.randomPassword(12);
+            String password = null;
             User authingUser = authingUserDao.bindOtherUserInfo(user, oauthType, password);
             String idToken = authingUserDao.logByPassword(authingUser, password);
             if (idToken == null) return result(HttpStatus.BAD_REQUEST, null, "登录失败", null);
