@@ -13,18 +13,15 @@ package com.om.Service;
 
 import cn.authing.core.types.Application;
 import cn.authing.core.types.User;
-import cn.authing.core.types.UserCustomData;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
 import com.om.Dao.SqlDao;
 import com.om.Modules.MessageCodeConfig;
-import com.om.Modules.OauthProviderInfo;
 import com.om.Result.Constant;
 import com.om.Result.Result;
 import com.om.Service.inter.UserCenterServiceInter;
@@ -43,14 +40,11 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import javax.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.om.provider.Oauth2Provider;
-import com.om.provider.impl.OpenAtomProvider;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -111,99 +105,6 @@ public class AuthingService implements UserCenterServiceInter {
         oidcScopeOthers = getOidcScopesOther();
         oidcScopeAuthingMapping = oidcScopeAuthingMapping();
         result = new Result();
-    }
-
-    public ResponseEntity oauthLogin(String oauthType, String community, String redirectUri, String permission, HttpServletResponse response) {
-        try {
-            if (!checkOauthRedirectUri(redirectUri))
-                return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
-
-            OauthProviderInfo oauthProviderInfo;
-            Oauth2Provider provider;
-            oauthType = oauthType.toLowerCase();
-            switch (oauthType) {
-                case "openatom":
-                    provider = new OpenAtomProvider();
-                    oauthProviderInfo = getOauthProviderInfo(oauthType);
-                    oauthProviderInfo.setCommunity(community);
-                    oauthProviderInfo.setPermission(permission);
-                    oauthProviderInfo.setRedirectUri(redirectUri);
-                    break;
-                default:
-                    return result(HttpStatus.BAD_REQUEST, null, "登录失败", null);
-            }
-            // 登录页面
-            String authorize = provider.authorize(oauthProviderInfo);
-            response.sendRedirect(authorize);
-            return result(HttpStatus.OK, "success", null);
-        } catch (Exception e) {
-            return result(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
-        }
-    }
-
-    public ResponseEntity oauthCallback(String oauthType, HttpServletRequest request, HttpServletResponse response) {
-        try {
-            String code = request.getParameter("code");
-            if (code == null) return result(HttpStatus.BAD_REQUEST, null, "登录失败", null);
-
-            String state = request.getParameter("state");
-            String redirect = request.getParameter("redirect_to");
-            String[] redirects = redirect.split(" ");
-            String community = redirects[1];
-            String permission = redirects[2];
-            String redirectUri = redirects[0];
-
-            OauthProviderInfo oauthProviderInfo;
-            Oauth2Provider provider;
-            oauthType = oauthType.toLowerCase();
-            switch (oauthType) {
-                case "openatom":
-                    provider = new OpenAtomProvider();
-                    oauthProviderInfo = getOauthProviderInfo(oauthType);
-                    oauthProviderInfo.setCode(code);
-                    oauthProviderInfo.setState(state);
-                    break;
-                default:
-                    return result(HttpStatus.BAD_REQUEST, null, "登录失败", null);
-            }
-            String accessToken = provider.getAccessToken(oauthProviderInfo);
-            if (accessToken == null)
-                return result(HttpStatus.BAD_REQUEST, null, "登录失败", null);
-
-            JSONObject user = provider.getUser(oauthProviderInfo);
-
-            // 将user 新建或者绑定到authing
-            String password = null;
-            User authingUser = authingUserDao.bindOtherUserInfo(user, oauthType, password);
-            String idToken = authingUserDao.logByPassword(authingUser, password);
-            if (idToken == null) return result(HttpStatus.BAD_REQUEST, null, "登录失败", null);
-
-            // 资源权限
-            String permissionInfo = env.getProperty(community + "." + permission);
-
-            // 生成token
-            String[] tokens = jwtTokenCreateService.authingUserToken("userId", permissionInfo, permission, idToken);
-            String token = tokens[0];
-            String verifyToken = tokens[1];
-
-            // 写cookie
-            String cookieTokenName = env.getProperty("cookie.token.name");
-            String maxAgeTemp = env.getProperty("authing.cookie.max.age");
-            int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
-            HttpClientUtils.setCookie("", redirectUri, response, cookieTokenName, token, true, maxAge, "/", domain2secure);
-
-            response.sendRedirect(redirectUri);
-
-            // 返回结果
-            HashMap<String, Object> userData = new HashMap<>();
-            userData.put("token", verifyToken);
-            userData.put("photo", authingUser.getPhoto());
-            userData.put("username", authingUser.getUsername());
-            userData.put("email_exist", StringUtils.isNotBlank(authingUser.getEmail()));
-            return result(HttpStatus.OK, "success", userData);
-        } catch (Exception e) {
-            return result(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
-        }
     }
 
     @Override
@@ -1020,10 +921,6 @@ public class AuthingService implements UserCenterServiceInter {
     private void authingUserIdentityIdp(JSONObject identityObj, HashMap<String, Map<String, Object>> map) {
         HashMap<String, Object> res = new HashMap<>();
 
-        // 返回的三方身份中新增openAtom
-        HashMap<String, Object> openAtomUser = getOpenAtomUserInfoFromUserCustomData(identityObj.getString("userId"));
-        if (openAtomUser != null) map.put("openatom", openAtomUser);
-
         JSONObject userInfoInIdpObj = identityObj.getJSONObject("userInfoInIdp");
         String userIdInIdp = identityObj.getString("userIdInIdp");
         res.put("userIdInIdp", userIdInIdp);
@@ -1055,24 +952,6 @@ public class AuthingService implements UserCenterServiceInter {
                 break;
             default:
                 break;
-        }
-    }
-
-    private HashMap<String, Object> getOpenAtomUserInfoFromUserCustomData(String userId) {
-        try {
-            List<UserCustomData> customData = authingUserDao.getUser(userId).getCustomData().stream().filter(item -> item.getKey().equals("openatomUserInfo")).collect(Collectors.toList());
-            String value = customData.get(0).getValue();
-            JsonNode jsonNode = objectMapper.readTree(value);
-
-            HashMap<String, Object> res = new HashMap<>();
-            res.put("userIdInIdp", jsonNode.get("userId"));
-            res.put("identity", "openatom");
-            res.put("login_name", "");
-            res.put("user_name", jsonNode.get("nickName"));
-            res.put("accessToken", "");
-            return res;
-        } catch (Exception ignored) {
-            return null;
         }
     }
 
@@ -1317,40 +1196,4 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-    private OauthProviderInfo getOauthProviderInfo(String oauthType) throws Exception {
-        OauthProviderInfo oauthProviderInfo = null;
-        String authorizeUri = env.getProperty("oauth." + oauthType + ".authorize-uri");
-        String tokenUri = env.getProperty("oauth." + oauthType + ".token-uri");
-        String userUri = env.getProperty("oauth." + oauthType + ".user-uri");
-        String clientId = env.getProperty("oauth." + oauthType + ".client-id");
-        String clientSecret = env.getProperty("oauth." + oauthType + ".client-secret");
-        String callBack = env.getProperty("oauth." + oauthType + ".callback");
-        String scope = env.getProperty("oauth." + oauthType + ".scope");
-        String state = codeUtil.randomStrBuilder(6);
-
-        oauthProviderInfo = new OauthProviderInfo();
-        oauthProviderInfo.setAuthorizeUri(authorizeUri);
-        oauthProviderInfo.setTokenUri(tokenUri);
-        oauthProviderInfo.setUserUri(userUri);
-        oauthProviderInfo.setClientId(clientId);
-        oauthProviderInfo.setClientSecret(clientSecret);
-        oauthProviderInfo.setCallback(callBack);
-        oauthProviderInfo.setScope(scope);
-        oauthProviderInfo.setState(state);
-
-        return oauthProviderInfo;
-    }
-
-    private boolean checkOauthRedirectUri(String redirectUri) {
-        String property = env.getProperty("oauth.redirecturis");
-        String[] split = property.split(";");
-        List<String> strings = Arrays.asList(split);
-        for (String string : strings) {
-            if (string.endsWith("*"))
-                string = string.replace("*", ".*");
-            if (redirectUri.matches(string))
-                return true;
-        }
-        return false;
-    }
 }
