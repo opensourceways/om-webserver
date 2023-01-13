@@ -418,7 +418,7 @@ public class AuthingUserDao {
             PaginatedAuthorizedResources pars = managementClient.users().listAuthorizedResources(userId, groupCode).execute();
             if (pars.getTotalCount() <= 0) {
                 return pers;
-            }   
+            }
             List<AuthorizedResource> ars = pars.getList();
             for (AuthorizedResource ar : ars) {
                 List<String> actions = ar.getActions();
@@ -426,7 +426,6 @@ public class AuthingUserDao {
             }
             return pers;
         } catch (Exception e) {
-            e.printStackTrace();
             return pers;
         }
     }

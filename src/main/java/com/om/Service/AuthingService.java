@@ -434,6 +434,12 @@ public class AuthingService implements UserCenterServiceInter {
             String[] scopes = decode.getClaim("scope").asString().split(" ");
             for (String scope : scopes) {
                 if (scope.equals("openid") || scope.equals("profile")) continue;
+                // 三方登录字段
+                if (scope.equals("identities")) {
+                    ArrayList<Map<String, Object>> identities = authingUserIdentity(userObj);
+                    userData.put("identities", identities);
+                    continue;
+                }
                 String[] claims = oidcScopeOthers.getOrDefault(scope, new String[]{scope});
                 for (String claim : claims) {
                     String profileTemp = oidcScopeAuthingMapping.getOrDefault(claim, claim);
@@ -916,6 +922,8 @@ public class AuthingService implements UserCenterServiceInter {
         HashMap<String, Object> res = new HashMap<>();
 
         JSONObject userInfoInIdpObj = identityObj.getJSONObject("userInfoInIdp");
+        String userIdInIdp = identityObj.getString("userIdInIdp");
+        res.put("userIdInIdp", userIdInIdp);
 //        String accessToken = jsonObjStringValue(identityObj, "accessToken");
         String provider = jsonObjStringValue(identityObj, "provider");
         switch (provider) {
@@ -931,7 +939,7 @@ public class AuthingService implements UserCenterServiceInter {
                 String gitee_login = userInfoInIdpObj.getJSONObject("customData").getString("giteeLogin");
                 res.put("identity", "gitee");
                 res.put("login_name", gitee_login);
-                res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "name"));
+                res.put("user_name", userInfoInIdpObj.getJSONObject("customData").getString("giteeName"));
                 res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
                 map.put(provider, res);
                 break;
@@ -1187,4 +1195,5 @@ public class AuthingService implements UserCenterServiceInter {
             return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
         }
     }
+
 }
