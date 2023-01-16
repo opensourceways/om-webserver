@@ -924,34 +924,28 @@ public class AuthingService implements UserCenterServiceInter {
         JSONObject userInfoInIdpObj = identityObj.getJSONObject("userInfoInIdp");
         String userIdInIdp = identityObj.getString("userIdInIdp");
         res.put("userIdInIdp", userIdInIdp);
-//        String accessToken = jsonObjStringValue(identityObj, "accessToken");
-        String provider = jsonObjStringValue(identityObj, "provider");
-        switch (provider) {
-            case "github":
-                String github_login = jsonObjStringValue(userInfoInIdpObj, "profile").replace("https://api.github.com/users/", "");
-                res.put("identity", "github");
-                res.put("login_name", github_login);
-                res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "username"));
-                res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
-                map.put(provider, res);
-                break;
-            case "oauth2":
-                String gitee_login = userInfoInIdpObj.getJSONObject("customData").getString("giteeLogin");
-                res.put("identity", "gitee");
-                res.put("login_name", gitee_login);
-                res.put("user_name", userInfoInIdpObj.getJSONObject("customData").getString("giteeName"));
-                res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
-                map.put(provider, res);
-                break;
-            case "wechat":
-                res.put("identity", "wechat");
-                res.put("login_name", "");
-                res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "nickname"));
-                res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
-                map.put(provider, res);
-                break;
-            default:
-                break;
+
+        String originConnId = identityObj.getJSONArray("originConnIds").get(0).toString();
+        if (originConnId.equals(env.getProperty("social.connId.github"))) {
+            String github_login = jsonObjStringValue(userInfoInIdpObj, "profile").replace("https://api.github.com/users/", "");
+            res.put("identity", "github");
+            res.put("login_name", github_login);
+            res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "username"));
+            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
+            map.put("github", res);
+        } else if (originConnId.equals(env.getProperty("enterprise.connId.gitee"))) {
+            String gitee_login = userInfoInIdpObj.getJSONObject("customData").getString("giteeLogin");
+            res.put("identity", "gitee");
+            res.put("login_name", gitee_login);
+            res.put("user_name", userInfoInIdpObj.getJSONObject("customData").getString("giteeName"));
+            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
+            map.put("gitee", res);
+        } else if (originConnId.equals(env.getProperty("enterprise.connId.openatom"))) {
+            res.put("identity", "openatom");
+            res.put("login_name", jsonObjStringValue(userInfoInIdpObj, "middleName"));
+            res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "middleName"));
+            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
+            map.put("openatom", res);
         }
     }
 
