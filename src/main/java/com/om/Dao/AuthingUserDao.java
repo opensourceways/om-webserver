@@ -96,6 +96,15 @@ public class AuthingUserDao {
     @Value("${enterprise.authorizationUrl.gitee}")
     String enterAuthUrlGitee;
 
+    @Value("${enterprise.extIdpId.openatom}")
+    String enterExtIdpIdOpenatom;
+
+    @Value("${enterprise.identifier.openatom}")
+    String enterIdentifieOpenatom;
+
+    @Value("${enterprise.authorizationUrl.openatom}")
+    String enterAuthUrlOpenatom;
+
     @Value("${rsa.authing.privateKey}")
     String rsaAuthingPrivateKey;
 
@@ -591,8 +600,14 @@ public class AuthingUserDao {
             mapGitee.put("name", "enterprise_gitee");
             mapGitee.put("authorizationUrl", authGitee);
 
+            HashMap<String, String> mapOpenatom = new HashMap<>();
+            String authOpenatom = String.format(enterAuthUrlOpenatom, omAppId, enterIdentifieOpenatom, userToken);
+            mapOpenatom.put("name", "enterprise_openatom");
+            mapOpenatom.put("authorizationUrl", authOpenatom);
+
             list.add(mapGithub);
             list.add(mapGitee);
+            list.add(mapOpenatom);
             return list;
 
             /*TODO 该接口因为Cookie参数获取不到，所以无法使用
@@ -634,6 +649,10 @@ public class AuthingUserDao {
                 case "gitee":
                     identifier = enterIdentifieGitee;
                     extIdpId = enterExtIdpIdGitee;
+                    break;
+                case "openatom":
+                    identifier = enterIdentifieOpenatom;
+                    extIdpId = enterExtIdpIdOpenatom;
                     break;
                 default:
                     return msg;
