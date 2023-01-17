@@ -943,7 +943,7 @@ public class AuthingService implements UserCenterServiceInter {
         } else if (originConnId.equals(env.getProperty("enterprise.connId.openatom"))) {
             String phone = jsonObjStringValue(userInfoInIdpObj, "phone");
             String email = jsonObjStringValue(userInfoInIdpObj, "email");
-            String name = StringUtils.isNotBlank(phone) ? phone : email;
+            String name = StringUtils.isNotBlank(email) ? email : phone;
             res.put("identity", "openatom");
             res.put("login_name", name);
             res.put("user_name", name);
