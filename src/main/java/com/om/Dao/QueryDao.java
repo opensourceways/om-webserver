@@ -1658,7 +1658,8 @@ public class QueryDao {
 //                        company.contains("软通动力") ||
                         company.contains("中软国际") ||
                         company.contains("易宝软件") ||
-                        company.contains("华为合作方")) {
+                        company.contains("华为合作方") ||
+                        company.toLowerCase().equals("openeuler")) {
                     independent += contribute;
                     continue;
                 }
@@ -3404,7 +3405,8 @@ public class QueryDao {
 //                        company.contains("软通动力") ||
                         company.contains("中软国际") ||
                         company.contains("易宝软件") ||
-                        company.contains("华为合作方")) {
+                        company.contains("华为合作方") ||
+                        company.toLowerCase().equals("openeuler")) {
                     continue;
                 }
                 Iterator<JsonNode> its = bucket.get("sigs").get("buckets").elements();
