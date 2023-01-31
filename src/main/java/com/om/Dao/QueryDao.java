@@ -133,6 +133,8 @@ public class QueryDao {
     @Autowired
     StarFork starFork;
 
+    static String mistakeInfoStr;
+
     public HashMap<String, HashMap<String, String>> getcommunityFeature(String community) {
         String yamlFile;
         switch (community.toLowerCase()) {
@@ -1175,23 +1177,24 @@ public class QueryDao {
         String csvName;
         switch (community.toLowerCase()) {
             case "openeuler":
-                csvName = openEuler.getUserReportCsvData();
+                // csvName = openEuler.getUserReportCsvData();
                 break;
             case "opengauss":
-                csvName = openGauss.getUserReportCsvData();
+                // csvName = openGauss.getUserReportCsvData();
                 break;
             case "openlookeng":
-                csvName = openLookeng.getUserReportCsvData();
+                // csvName = openLookeng.getUserReportCsvData();
                 break;
             case "mindspore":
-                csvName = mindSpore.getUserReportCsvData();
+                // csvName = mindSpore.getUserReportCsvData();
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + year + "\":\"query error\"},\"msg\":\"query error\"}";
         }
-        String localYamlPath = companyNameLocalYaml;
-        YamlUtil yamlUtil = new YamlUtil();
-        String localFile = yamlUtil.wget(csvName, localYamlPath);
+        // String localYamlPath = companyNameLocalYaml;
+        // YamlUtil yamlUtil = new YamlUtil();
+        // String localFile = yamlUtil.wget(csvName, localYamlPath);
+        String localFile = "om-data/" + community.toLowerCase() + "_" + year + ".csv";
         List<HashMap<String, Object>> datas = CsvFileUtil.readFile(localFile);
         HashMap<String, Object> resMap = new HashMap<>();
         resMap.put("code", 200);
@@ -1245,15 +1248,14 @@ public class QueryDao {
                 JsonNode bucket = buckets.next();
                 monthTime = bucket.get("key").asLong();
                 count = bucket.get("doc_count").asInt();
+                Calendar c = Calendar.getInstance();
+                c.setTimeInMillis(monthTime);
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM");
+                String monthString = sdf.format(c.getTime()).split("-")[1];
+                int month = Integer.parseInt(monthString);
+                dataMap.put("month", month);
+                dataMap.put("count", count);
             }
-            Calendar c = Calendar.getInstance();
-            c.setTimeInMillis(monthTime);
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM");
-            String monthString = sdf.format(c.getTime()).split("-")[1];
-            int month = Integer.parseInt(monthString);
-            dataMap.put("month", month);
-            dataMap.put("count", count);
-
             HashMap<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
             resMap.put("data", dataMap);
@@ -2009,8 +2011,7 @@ public class QueryDao {
         resultInfo = esQueryUtils.esScrollFromId(restHighLevelClient, item, Integer.parseInt(pageSize),
                 buildCheckInfoResultIndex, lastCursor, queryResultSourceBuilder);
         SearchSourceBuilder mistakeSourceBuilder = assembleMistakeSourceBuilder("update_at", queryBody);
-        String mistakeInfoStr = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoMistakeIndex, 5000,
-                mistakeSourceBuilder);
+        mistakeInfoStr = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoMistakeIndex, 5000, mistakeSourceBuilder);
 
         ArrayList<ObjectNode> finalResultJSONArray = new ArrayList<>();
         int totalCount = 0;
@@ -4279,4 +4280,5 @@ public class QueryDao {
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
+
 }
