@@ -31,8 +31,8 @@ public class AddController {
 
     @UserLoginToken
     @RequestMapping(value = "/bugquestionnaire", method = RequestMethod.POST)
-    public String addBugQuestionnaire(@RequestParam String community, @RequestBody BugQuestionnaireVo bugQuestionnaireVo) {
-        String res = addService.putBugQuestionnaire(community, bugQuestionnaireVo);
+    public String addBugQuestionnaire(@RequestParam String community, @RequestParam(value = "lang", required = false) String lang, @RequestBody BugQuestionnaireVo bugQuestionnaireVo) {
+        String res = addService.putBugQuestionnaire(community, lang, bugQuestionnaireVo);
         return res;
     }
 
