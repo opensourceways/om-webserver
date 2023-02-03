@@ -4264,7 +4264,7 @@ public class QueryDao {
         }
     }
 
-    public String queryMetriCount(String community, String company, String sig, OmRequestBody body) {
+    public String queryMetricsData(String community, DatastatRequestBody body, String userQuery) {
         if (!community.toLowerCase().equals("openeuler")) {
             return "{\"code\":400,\"data\":\"community error\",\"msg\":\"query error\"}";
         }
@@ -4274,15 +4274,15 @@ public class QueryDao {
         String end = body.getend();
         switch (operation.toLowerCase()) {
             case "increase":
-                return queryUserCount(community, start, end, body);
+                return queryMetricUserCount(community, start, end, body);
             case "active":
-                return queryUserActiveCount(community, start, end, body);
+                return queryMetricUserActiveCount(community, start, end, body, userQuery);
             default:
                 return "{\"code\":400,\"data\":\"operation error\",\"msg\":\"query error\"}";
         }
     }
 
-    public String queryUserCount(String community, String start, String end, OmRequestBody body) {
+    public String queryMetricUserCount(String community, String start, String end, DatastatRequestBody body) {
         String index;
         String queryjson;
         switch (community.toLowerCase()) {
@@ -4303,11 +4303,10 @@ public class QueryDao {
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             HashMap<String, Object> data = new HashMap<>();
 
-            List<String> intervals = Arrays.asList("1M", "1d", "1w");
+            List<String> intervals = Arrays.asList("1d", "1w", "1M");
             for (String metric : metrics) {
                 for (String interval : intervals) {
                     String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), interval, metric);
-                    System.out.println(query);
                     builder.setUrl(this.url + index + "/_search");
                     builder.setBody(query);
                     ListenableFuture<Response> f = client.executeRequest(builder.build());
@@ -4348,7 +4347,7 @@ public class QueryDao {
         return names;
     }
 
-    public String queryUserActiveCount(String community, String start, String end, OmRequestBody body) {
+    public String queryMetricUserActiveCount(String community, String start, String end, DatastatRequestBody body, String userQuery) {
         String index;
         String queryjson;
         switch (community.toLowerCase()) {
@@ -4360,7 +4359,7 @@ public class QueryDao {
                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
         try {
-
+            JsonNode userQueryMap = objectMapper.readTree(userQuery);
             ArrayList<String> metrics = body.getmetrics(); // D0 D1 D2
             HashMap<String, Object> variables = body.getvariables();
             ArrayList<String> orgs = (ArrayList<String>) variables.get("org"); // openeuler,src-openeuler
@@ -4372,23 +4371,9 @@ public class QueryDao {
 
             List<String> intervals = Arrays.asList("1d", "1w", "1M");
             for (String metric : metrics) {
-                String userQuery;
-                switch (metric) {
-                    case "D0":
-                        userQuery = "*";
-                        break;
-                    case "D1":
-                        userQuery = "(is_gitee_issue:1 OR is_gitee_pull_request:1 OR is_gitee_comment:1)";
-                        break;
-                    case "D2":
-                        userQuery = "(is_gitee_pull_request:1 AND pull_state.keyword:merged)";
-                        break;
-                    default:
-                        return "{\"code\":400,\"data\":\"metric error\",\"msg\":\"query error\"}";
-                }
+                String userquery = userQueryMap.get(metric).asText();
                 for (String interval : intervals) {
-                    String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), userQuery, interval);
-                    System.out.println(query);
+                    String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), userquery, interval);
                     builder.setUrl(this.url + index + "/_search");
                     builder.setBody(query);
                     ListenableFuture<Response> f = client.executeRequest(builder.build());

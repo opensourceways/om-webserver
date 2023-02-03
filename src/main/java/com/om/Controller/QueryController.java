@@ -13,7 +13,7 @@ package com.om.Controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.om.Modules.OmRequestBody;
+import com.om.Modules.DatastatRequestBody;
 import com.om.Service.QueryService;
 import com.om.Vo.*;
 import com.om.authing.AuthingToken;
@@ -443,11 +443,9 @@ public class QueryController {
         return queryService.getSigReadme(community, sig, lang);
     }
 
-    @RequestMapping(value = "/metriCount", method = RequestMethod.POST)
-    public String queryMetriCount(@RequestParam(value = "community") String community, @RequestParam(value = "company", required = false) String company,
-                                      @RequestParam(value = "sig", required = false) String sig,
-                                      @RequestBody OmRequestBody body) throws JsonMappingException, JsonProcessingException {
-        String res = queryService.queryMetriCount(community, company, sig, body);
+    @RequestMapping(value = "/metrics/data", method = RequestMethod.POST)
+    public String queryMetricsData(@RequestParam(value = "community") String community, @RequestBody DatastatRequestBody body) throws JsonMappingException, JsonProcessingException {
+        String res = queryService.queryMetricsData(community, body);
         return res;
     }
 }
