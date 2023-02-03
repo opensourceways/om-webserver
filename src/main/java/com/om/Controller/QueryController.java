@@ -13,12 +13,15 @@ package com.om.Controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
+import com.om.Modules.OmRequestBody;
 import com.om.Service.QueryService;
 import com.om.Vo.*;
 import com.om.authing.AuthingToken;
 import com.om.authing.CompanyToken;
 import com.om.authing.SigToken;
 import com.om.token.UserLoginToken;
+
+import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -438,5 +441,13 @@ public class QueryController {
             @RequestParam(value = "lang", required = false) String lang)
             throws JsonMappingException, JsonProcessingException {
         return queryService.getSigReadme(community, sig, lang);
+    }
+
+    @RequestMapping(value = "/metriCount", method = RequestMethod.POST)
+    public String queryMetriCount(@RequestParam(value = "community") String community, @RequestParam(value = "company", required = false) String company,
+                                      @RequestParam(value = "sig", required = false) String sig,
+                                      @RequestBody OmRequestBody body) throws JsonMappingException, JsonProcessingException {
+        String res = queryService.queryMetriCount(community, company, sig, body);
+        return res;
     }
 }
