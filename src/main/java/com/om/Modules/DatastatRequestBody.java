@@ -3,7 +3,7 @@ package com.om.Modules;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class OmRequestBody {
+public class DatastatRequestBody {
     private ArrayList<String> metrics;
     private HashMap<String, Object> variables;
     private String operation;
