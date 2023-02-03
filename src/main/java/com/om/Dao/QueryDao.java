@@ -4264,4 +4264,156 @@ public class QueryDao {
         }
     }
 
+    public String queryMetriCount(String community, String company, String sig, OmRequestBody body) {
+        if (!community.toLowerCase().equals("openeuler")) {
+            return "{\"code\":400,\"data\":\"community error\",\"msg\":\"query error\"}";
+        }
+
+        String operation = body.geoperation(); // increase, active
+        String start = body.getstart();
+        String end = body.getend();
+        switch (operation.toLowerCase()) {
+            case "increase":
+                return queryUserCount(community, start, end, body);
+            case "active":
+                return queryUserActiveCount(community, start, end, body);
+            default:
+                return "{\"code\":400,\"data\":\"operation error\",\"msg\":\"query error\"}";
+        }
+    }
+
+    public String queryUserCount(String community, String start, String end, OmRequestBody body) {
+        String index;
+        String queryjson;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getuserCountIndex();
+                queryjson = openEuler.getuserCountquery();
+                break;
+            default:
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+        }
+        try {
+            ArrayList<String> metrics = body.getmetrics(); // D0 D1 D2
+            HashMap<String, Object> variables = body.getvariables();
+            ArrayList<String> orgs = (ArrayList<String>) variables.get("org"); // openeuler,src-openeuler
+            ArrayList<String> internals = (ArrayList<String>) variables.get("internal"); // 0,1
+
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            HashMap<String, Object> data = new HashMap<>();
+
+            List<String> intervals = Arrays.asList("1M", "1d", "1w");
+            for (String metric : metrics) {
+                for (String interval : intervals) {
+                    String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), interval, metric);
+                    System.out.println(query);
+                    builder.setUrl(this.url + index + "/_search");
+                    builder.setBody(query);
+                    ListenableFuture<Response> f = client.executeRequest(builder.build());
+                    String responseBody = f.get().getResponseBody(UTF_8);
+                    JsonNode dataNode = objectMapper.readTree(responseBody);
+                    Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+                    ArrayList<HashMap<String, Object>> list = new ArrayList<>();
+                    long total = 0l;
+                    while (buckets.hasNext()) {                       
+                        JsonNode bucket = buckets.next();
+                        String timedelta = bucket.get("key_as_string").asText().split("T")[0];
+                        long increase = bucket.get("res").get("value").asLong();
+                        total += increase;
+
+                        HashMap<String, Object> datamap = new HashMap<>();
+                        datamap.put("date", timedelta);
+                        datamap.put("increase", increase);
+                        datamap.put("total", total);
+                        list.add(datamap);
+                    }
+                    data.put(metric + "_" + interval, list);
+                }
+            }
+            String s = objectMapper.valueToTree(data).toString();
+            return "{\"code\":200,\"data\":" + s + ",\"msg\":\"ok\"}";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\": \"query error\",\"totalCount\": 0,\"msg\":\"ok\"}";
+        }
+    }
+
+    public String convertList2queryStr(ArrayList<String> res) {
+        String names = "(";
+        for (String r : res) {
+            names = names + "\\\"" + r + "\\\",";
+        }
+        names = names + ")";
+        return names;
+    }
+
+    public String queryUserActiveCount(String community, String start, String end, OmRequestBody body) {
+        String index;
+        String queryjson;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getGiteeAllIndex();
+                queryjson = openEuler.getuserActivequery();
+                break;
+            default:
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+        }
+        try {
+
+            ArrayList<String> metrics = body.getmetrics(); // D0 D1 D2
+            HashMap<String, Object> variables = body.getvariables();
+            ArrayList<String> orgs = (ArrayList<String>) variables.get("org"); // openeuler,src-openeuler
+            ArrayList<String> internals = (ArrayList<String>) variables.get("internal"); // 0,1
+
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            HashMap<String, Object> data = new HashMap<>();
+
+            List<String> intervals = Arrays.asList("1d", "1w", "1M");
+            for (String metric : metrics) {
+                String userQuery;
+                switch (metric) {
+                    case "D0":
+                        userQuery = "*";
+                        break;
+                    case "D1":
+                        userQuery = "(is_gitee_issue:1 OR is_gitee_pull_request:1 OR is_gitee_comment:1)";
+                        break;
+                    case "D2":
+                        userQuery = "(is_gitee_pull_request:1 AND pull_state.keyword:merged)";
+                        break;
+                    default:
+                        return "{\"code\":400,\"data\":\"metric error\",\"msg\":\"query error\"}";
+                }
+                for (String interval : intervals) {
+                    String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), userQuery, interval);
+                    System.out.println(query);
+                    builder.setUrl(this.url + index + "/_search");
+                    builder.setBody(query);
+                    ListenableFuture<Response> f = client.executeRequest(builder.build());
+                    String responseBody = f.get().getResponseBody(UTF_8);
+                    JsonNode dataNode = objectMapper.readTree(responseBody);
+                    Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+                    ArrayList<HashMap<String, Object>> list = new ArrayList<>();
+                    while (buckets.hasNext()) {                       
+                        JsonNode bucket = buckets.next();
+                        String timedelta = bucket.get("key_as_string").asText().split("T")[0];
+                        long active = bucket.get("res").get("value").asLong();
+                        HashMap<String, Object> datamap = new HashMap<>();
+                        datamap.put("date", timedelta);
+                        datamap.put("active", active);
+                        list.add(datamap);
+                    }
+                    data.put(metric + "_" + interval, list);
+                }
+            }
+            String s = objectMapper.valueToTree(data).toString();
+            return "{\"code\":200,\"data\":" + s + ",\"msg\":\"ok\"}";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\": \"query error\",\"totalCount\": 0,\"msg\":\"ok\"}";
+        }
+    }
+
 }
