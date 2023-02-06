@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
+import com.om.Modules.DatastatRequestBody;
 import com.om.Utils.PageUtils;
 import com.om.Utils.RSAUtil;
 import com.om.Utils.StringDesensitizationUtils;
@@ -1476,6 +1477,17 @@ public class QueryService {
                 System.out.println("update " + key + " success!");
             }
         }
+        return result;
+    }
+
+    public String queryMetricsData(String community, DatastatRequestBody body) {
+        String result = null;
+        try {
+            result = queryDao.queryMetricsData(community, body, env.getProperty("user.query"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+            
         return result;
     }
 }

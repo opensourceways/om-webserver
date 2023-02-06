@@ -96,6 +96,15 @@ public class AuthingUserDao {
     @Value("${enterprise.authorizationUrl.gitee}")
     String enterAuthUrlGitee;
 
+    @Value("${enterprise.extIdpId.openatom}")
+    String enterExtIdpIdOpenatom;
+
+    @Value("${enterprise.identifier.openatom}")
+    String enterIdentifieOpenatom;
+
+    @Value("${enterprise.authorizationUrl.openatom}")
+    String enterAuthUrlOpenatom;
+
     @Value("${rsa.authing.privateKey}")
     String rsaAuthingPrivateKey;
 
@@ -129,55 +138,6 @@ public class AuthingUserDao {
         authentication.setSecret(omAppSecret);
         obsClient = new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint);
         reservedUsernames = getUsernameReserved();
-    }
-
-    public User bindOtherUserInfo(JSONObject otherUser, String oauthType, String password) {
-        User user;
-        try {
-            String phone = jsonObjStringValue(otherUser, "phone");
-            String email = jsonObjStringValue(otherUser, "email");
-            String nickName = jsonObjStringValue(otherUser, "nickName");
-            String headImageUrl = jsonObjStringValue(otherUser, "headImageUrl");
-
-            FindUserParam findUserParam = new FindUserParam().withPhone(phone).withEmail(email);
-            user = managementClient.users().find(findUserParam).execute();
-            if (user == null) {
-                CreateUserInput createUserInput = new CreateUserInput().withPhone(phone).withEmail(email).withNickname(nickName).withPhone(headImageUrl).withPassword(password);
-                user = managementClient.users().create(createUserInput).execute();
-            } else {
-                UpdateUserInput updateUserInput = new UpdateUserInput().withPassword(password);
-                user = managementClient.users().update(user.getId(), updateUserInput).execute();
-                List<UserDefinedData> execute = managementClient.users().setUdv(user.getId(), oauthType + "UserInfo", otherUser.toString()).execute();
-                if (execute.isEmpty()) return null;
-            }
-        } catch (Exception e) {
-            return null;
-        }
-        return user;
-    }
-
-    public String logByPassword(User user, String password) {
-        String idToken = null;
-        String body = "";
-        try {
-            if (StringUtils.isNotBlank(user.getEmail()))
-                body = String.format("{\"connection\": \"PASSWORD\",\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", user.getEmail(), password, omAppId, omAppSecret);
-            else if (StringUtils.isNotBlank(user.getPhone()))
-                body = String.format("{\"connection\": \"PASSWORD\",\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", user.getPhone(), password, omAppId, omAppSecret);
-            else if (StringUtils.isNotBlank(user.getUsername()))
-                body = String.format("{\"connection\": \"PASSWORD\",\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", user.getUsername(), password, omAppId, omAppSecret);
-            else
-                return null;
-
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
-                    .header("x-authing-app-id", omAppId)
-                    .header("Content-Type", "application/json")
-                    .body(body)
-                    .asJson();
-            idToken = response.getBody().getObject().getJSONObject("data").getString("id_token");
-        } catch (Exception ignored) {
-        }
-        return idToken;
     }
 
     public String sendPhoneCodeV3(String account, String channel) {
@@ -640,8 +600,14 @@ public class AuthingUserDao {
             mapGitee.put("name", "enterprise_gitee");
             mapGitee.put("authorizationUrl", authGitee);
 
+            HashMap<String, String> mapOpenatom = new HashMap<>();
+            String authOpenatom = String.format(enterAuthUrlOpenatom, omAppId, enterIdentifieOpenatom, userToken);
+            mapOpenatom.put("name", "enterprise_openatom");
+            mapOpenatom.put("authorizationUrl", authOpenatom);
+
             list.add(mapGithub);
             list.add(mapGitee);
+            list.add(mapOpenatom);
             return list;
 
             /*TODO 该接口因为Cookie参数获取不到，所以无法使用
@@ -683,6 +649,10 @@ public class AuthingUserDao {
                 case "gitee":
                     identifier = enterIdentifieGitee;
                     extIdpId = enterExtIdpIdGitee;
+                    break;
+                case "openatom":
+                    identifier = enterIdentifieOpenatom;
+                    extIdpId = enterExtIdpIdOpenatom;
                     break;
                 default:
                     return msg;
@@ -839,18 +809,6 @@ public class AuthingUserDao {
     private List<String> getUsernameReserved() {
         if (StringUtils.isBlank(usernameReserved)) return null;
         return Arrays.stream(usernameReserved.split(",")).map(String::trim).collect(Collectors.toList());
-    }
-
-    private String jsonObjStringValue(JSONObject jsonObj, String nodeName) {
-        String res = "";
-        try {
-            if (jsonObj.isNull(nodeName)) return res;
-            Object obj = jsonObj.get(nodeName);
-            if (obj != null) res = obj.toString();
-        } catch (Exception ex) {
-            System.out.println(nodeName + "Get Error");
-        }
-        return res;
     }
 
     public Map<String, MessageCodeConfig> getErrorCode() {

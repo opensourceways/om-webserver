@@ -230,33 +230,4 @@ public class CodeUtil {
         SecureRandom random = SecureRandom.getInstanceStrong();
         return new BigInteger(160, random).toString(strLength);
     }
-
-    public String randomPassword(int len) throws NoSuchAlgorithmException {
-        final String chars1 = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        final String chars2 = "abcdefghijklmnopqrstuvwxyz";
-        final String chars3 = "0123456789";
-        final String chars4 = "!@#$&";
-        SecureRandom random = SecureRandom.getInstanceStrong();
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 1; i++) {
-            len = rand(random, chars1, sb, len);
-            len = rand(random, chars2, sb, len);
-            len = rand(random, chars3, sb, len);
-            len = rand(random, chars4, sb, len);
-        }
-        String chars = chars1 + chars2 + chars3 + chars4;
-        for (int i = 0; i < len; i++) {
-            int randomIndex = random.nextInt(chars.length());
-            sb.append(chars.charAt(randomIndex));
-        }
-
-        return sb.toString();
-    }
-
-    private int rand(SecureRandom random, String chars, StringBuilder sb, int len){
-        int randomIndex = random.nextInt(chars.length());
-        sb.append(chars.charAt(randomIndex));
-        len -= 1;
-        return len;
-    }
 }

@@ -27,11 +27,12 @@ public class AddService {
     @Autowired
     AddDao addDao;
 
-    public String putBugQuestionnaire(String community, BugQuestionnaireVo bugQuestionnaireVo) {
+    public String putBugQuestionnaire(String community, String lang, BugQuestionnaireVo bugQuestionnaireVo) {
         String item = "bugQuestionnaire";
         String res = "";
+        lang = lang == null ? "zh" : lang.toLowerCase();
         try {
-            res = addDao.putBugQuestionnaire(community, item, bugQuestionnaireVo);
+            res = addDao.putBugQuestionnaire(community, item, lang, bugQuestionnaireVo);
         } catch (Exception e) {
             e.printStackTrace();
         }
