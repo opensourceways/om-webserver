@@ -726,7 +726,7 @@ public class AuthingUserDao {
                     case "username":
                         msg = checkUsername(inputValue);
                         if (!msg.equals("success")) return msg;
-                        if (StringUtils.isNotBlank(user.getUsername())) return "用户名唯一，不可修改";
+                        if (StringUtils.isNotBlank(user.getUsername()) && !user.getUsername().startsWith("oauth2_")) return "用户名唯一，不可修改";
                         updateUserInput.withUsername(inputValue);
                         break;
                     default:
