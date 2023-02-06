@@ -169,8 +169,10 @@ public class HttpClientUtils implements Serializable {
         return res;
     }
 
-    public static void setCookie(String serverName, String referer, HttpServletResponse servletResponse, String name, String value,
+    public static void setCookie(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String name, String value,
                                  boolean isHttpOnly, int maxAge, String path, HashMap<String, Boolean> domain2Secure) {
+        String serverName = httpServletRequest.getServerName();
+        String referer = httpServletRequest.getHeader("referer");
         if (StringUtils.isNotBlank(referer)) {
             int fromIndex;
             int endIndex;
@@ -205,13 +207,6 @@ public class HttpClientUtils implements Serializable {
         cookie.setMaxAge(maxAge);
         cookie.setPath(path);
         servletResponse.addCookie(cookie);
-    }
-
-    public static void setCookie(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String name, String value,
-                                 boolean isHttpOnly, int maxAge, String path, HashMap<String, Boolean> domain2Secure) {
-        String serverName = httpServletRequest.getServerName();
-        String referer = httpServletRequest.getHeader("referer");
-        setCookie(serverName, referer, servletResponse, name, value, isHttpOnly, maxAge, path, domain2Secure);
     }
 
     public static void deleteCookie(HttpServletResponse servletResponse, String domainStr, String name, String path) {
