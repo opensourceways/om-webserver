@@ -112,6 +112,33 @@ public class openComObject {
     protected String SigCountQuery;
     protected String UserReportCsvData;
     protected String MonthCountQueryStr;
+    protected String userCountIndex;
+    protected String userCountquery;
+    protected String userActivequery;
+
+    public String getuserActivequery() {
+        return userActivequery;
+    }
+
+    public void setuserActivequery(String userActivequery) {
+        this.userActivequery = userActivequery;
+    }
+
+    public String getuserCountquery() {
+        return userCountquery;
+    }
+
+    public void setuserCountquery(String userCountquery) {
+        this.userCountquery = userCountquery;
+    }
+
+    public String getuserCountIndex() {
+        return userCountIndex;
+    }
+
+    public void setuserCountIndex(String userCountIndex) {
+        this.userCountIndex = userCountIndex;
+    }
 
     public String getMonthCountQueryStr() {
         return MonthCountQueryStr;
