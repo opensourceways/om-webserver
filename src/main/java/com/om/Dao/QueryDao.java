@@ -4434,7 +4434,7 @@ public class QueryDao {
 
             String userquery = userQueryMap.get(metric).asText();
             String query = String.format(queryjson, start, end, convertList2queryStr(internals),
-                    convertList2queryStr(orgs), userquery, "100000d");
+                    convertList2queryStr(orgs), userquery, "10000d");
 
             builder.setUrl(this.url + index + "/_search");
             builder.setBody(query);
