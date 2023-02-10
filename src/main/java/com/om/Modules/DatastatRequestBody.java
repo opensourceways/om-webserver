@@ -4,33 +4,33 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class DatastatRequestBody {
-    private ArrayList<String> metrics;
+    private String metric;
     private HashMap<String, Object> variables;
     private String operation;
-    private String start;
-    private String end;
+    private long start;
+    private long end;
 
-    public ArrayList<String> getmetrics() {
-        return metrics;
+    public String getmetric() {
+        return metric;
     }
 
-    public void setmetrics(ArrayList<String> metrics) {
-        this.metrics = metrics;
+    public void setmetric(String metric) {
+        this.metric = metric;
     }
 
-    public String getstart() {
+    public long getstart() {
         return start;
     }
 
-    public void setstart(String start) {
+    public void setstart(long start) {
         this.start = start;
     }
 
-    public String getend() {
+    public long getend() {
         return end;
     }
 
-    public void setend(String end) {
+    public void setend(long end) {
         this.end = end;
     }
 
