@@ -4288,6 +4288,12 @@ public class QueryDao {
             case "momratio":
                 ratio_ = Calendar.MONTH;
                 return queryMetricUserCountRatio(community, end, body, userQuery, ratio_);
+            case "increasedetail":
+                return queryMetricUserCountDetail(community, start, end, body);
+            case "totaldetail":
+                return queryMetricUserCountDetail(community, start, end, body);
+            case "activedetail":
+                return queryMetricUserActiveCountDetail(community, start, end, body, userQuery);
             default:
                 return "{\"code\":400,\"data\":\"operation error\",\"msg\":\"query error\"}";
         }
@@ -4524,5 +4530,74 @@ public class QueryDao {
             e.printStackTrace();
         }
         return cur;
+    }
+
+    public String queryMetricUserActiveCountDetail(String community, long start, long end, DatastatRequestBody body, String userQuery) {
+        String index;
+        String queryjson;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getGiteeAllIndex();
+                queryjson = openEuler.getuserActiveDetailquery();
+                break;
+            default:
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+        }
+        return queryMetricUserDetailCommon(index, queryjson, start, end, body, userQuery);  
+    }
+
+    public String queryMetricUserCountDetail(String community, long start, long end, DatastatRequestBody body) {
+        String index;
+        String queryjson;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getuserCountIndex();
+                queryjson = openEuler.getuserCountDetailquery();
+                break;
+            default:
+                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+        }
+        return queryMetricUserDetailCommon(index, queryjson, start, end, body, null);
+    }
+
+    public String queryMetricUserDetailCommon(String index, String queryjson, long start, long end, DatastatRequestBody body, String userQuery) {
+        try {
+            HashMap<String, Object> variables = body.getvariables();
+            ArrayList<String> orgs = (ArrayList<String>) variables.get("org"); // openeuler,src-openeuler
+            ArrayList<String> internals = (ArrayList<String>) variables.get("internal"); // 0,1
+            ArrayList<String> metrics = body.getmetrics();
+
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            HashMap<String, Object> data = new HashMap<>();
+            
+            for (String metric : metrics) {
+                String userquery = metric;               
+                if (userQuery != null){
+                    JsonNode userQueryMap = objectMapper.readTree(userQuery);
+                    userquery = userQueryMap.get(metric).asText();
+                }
+                String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), userquery);
+                builder.setUrl(this.url + index + "/_search");
+                builder.setBody(query);
+                ListenableFuture<Response> f = client.executeRequest(builder.build());
+                String responseBody = f.get().getResponseBody(UTF_8);
+                JsonNode dataNode = objectMapper.readTree(responseBody);
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+
+                ArrayList<String> list = new ArrayList<>();
+                while (buckets.hasNext()) {                       
+                    JsonNode bucket = buckets.next();
+                    String user = bucket.get("key").asText();
+                    list.add(user);
+                }
+                data.put(metric, list);
+            }
+            String s = objectMapper.valueToTree(data).toString();
+            return "{\"code\":200,\"data\":" + s + ",\"msg\":\"ok\"}";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "{\"code\":400,\"data\": \"query error\",\"totalCount\": 0,\"msg\":\"ok\"}";
+        }
     }
 }
