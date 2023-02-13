@@ -4328,35 +4328,36 @@ public class QueryDao {
             ArrayList<String> orgs = (ArrayList<String>) variables.get("org"); // openeuler,src-openeuler
             ArrayList<String> internals = (ArrayList<String>) variables.get("internal"); // 0,1
             String interval = (String) variables.get("interval");
-            String metric = body.getmetric();
+            ArrayList<String> metrics = body.getmetrics();
 
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             HashMap<String, Object> data = new HashMap<>();
 
-            String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), interval, metric);
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(query);
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-            ArrayList<HashMap<String, Object>> list = new ArrayList<>();
-            long total = 0l;
-            while (buckets.hasNext()) {                       
-                JsonNode bucket = buckets.next();
-                long timedelta = bucket.get("key").asLong();
-                long increase = bucket.get("res").get("value").asLong();
-                total += increase;
-
-                HashMap<String, Object> datamap = new HashMap<>();
-                datamap.put("date", timedelta);
-                datamap.put("increase", increase);
-                datamap.put("total", total);
-                list.add(datamap);
+            for (String metric : metrics) {
+                String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), interval, metric);
+                builder.setUrl(this.url + index + "/_search");
+                builder.setBody(query);
+                ListenableFuture<Response> f = client.executeRequest(builder.build());
+                String responseBody = f.get().getResponseBody(UTF_8);
+                JsonNode dataNode = objectMapper.readTree(responseBody);
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+                ArrayList<HashMap<String, Object>> list = new ArrayList<>();
+                long total = 0l;
+                while (buckets.hasNext()) {                       
+                    JsonNode bucket = buckets.next();
+                    long timedelta = bucket.get("key").asLong();
+                    long increase = bucket.get("res").get("value").asLong();
+                    total += increase;
+    
+                    HashMap<String, Object> datamap = new HashMap<>();
+                    datamap.put("date", timedelta);
+                    datamap.put("increase", increase);
+                    datamap.put("total", total);
+                    list.add(datamap);
+                }
+                data.put(metric + "_" + interval, list);
             }
-            data.put(metric + "_" + interval, list);
-
             String s = objectMapper.valueToTree(data).toString();
             return "{\"code\":200,\"data\":" + s + ",\"msg\":\"ok\"}";
         } catch (Exception e) {
@@ -4394,32 +4395,34 @@ public class QueryDao {
             ArrayList<String> orgs = (ArrayList<String>) variables.get("org"); // openeuler,src-openeuler
             ArrayList<String> internals = (ArrayList<String>) variables.get("internal"); // 0,1
             String interval = (String) variables.get("interval");
-            String metric = body.getmetric();
+            ArrayList<String> metrics = body.getmetrics();
 
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             HashMap<String, Object> data = new HashMap<>();
 
-            String userquery = userQueryMap.get(metric).asText();
-            String query = String.format(queryjson, start, end, convertList2queryStr(internals),
-                    convertList2queryStr(orgs), userquery, interval);
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(query);
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-            ArrayList<HashMap<String, Object>> list = new ArrayList<>();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                long timedelta = bucket.get("key").asLong();
-                long active = bucket.get("res").get("value").asLong();
-                HashMap<String, Object> datamap = new HashMap<>();
-                datamap.put("date", timedelta);
-                datamap.put("active", active);
-                list.add(datamap);
+            for (String metric : metrics) {
+                String userquery = userQueryMap.get(metric).asText();
+                String query = String.format(queryjson, start, end, convertList2queryStr(internals),
+                        convertList2queryStr(orgs), userquery, interval);
+                builder.setUrl(this.url + index + "/_search");
+                builder.setBody(query);
+                ListenableFuture<Response> f = client.executeRequest(builder.build());
+                String responseBody = f.get().getResponseBody(UTF_8);
+                JsonNode dataNode = objectMapper.readTree(responseBody);
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+                ArrayList<HashMap<String, Object>> list = new ArrayList<>();
+                while (buckets.hasNext()) {
+                    JsonNode bucket = buckets.next();
+                    long timedelta = bucket.get("key").asLong();
+                    long active = bucket.get("res").get("value").asLong();
+                    HashMap<String, Object> datamap = new HashMap<>();
+                    datamap.put("date", timedelta);
+                    datamap.put("active", active);
+                    list.add(datamap);
+                }
+                data.put(metric + "_" + interval, list);
             }
-            data.put(metric + "_" + interval, list);
             String s = objectMapper.valueToTree(data).toString();
             return "{\"code\":200,\"data\":" + s + ",\"msg\":\"ok\"}";
         } catch (Exception e) {
@@ -4445,27 +4448,29 @@ public class QueryDao {
             ArrayList<String> orgs = (ArrayList<String>) variables.get("org"); // openeuler,src-openeuler
             ArrayList<String> internals = (ArrayList<String>) variables.get("internal"); // 0,1
             String interval = (String) variables.get("interval");
-            String metric = body.getmetric();
+            ArrayList<String> metrics = body.getmetrics();
 
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             HashMap<String, Object> data = new HashMap<>();
 
-            String userquery = userQueryMap.get(metric).asText();
-            String query = String.format(queryjson, start, end, convertList2queryStr(internals),
-                    convertList2queryStr(orgs), userquery, "10000d");
+            for (String metric : metrics) {
+                String userquery = userQueryMap.get(metric).asText();
+                String query = String.format(queryjson, start, end, convertList2queryStr(internals),
+                        convertList2queryStr(orgs), userquery, "10000d");
 
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(query);
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-            ArrayList<HashMap<String, Object>> list = new ArrayList<>();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                long total = bucket.get("res").get("value").asLong();
-                data.put(metric, total);
+                builder.setUrl(this.url + index + "/_search");
+                builder.setBody(query);
+                ListenableFuture<Response> f = client.executeRequest(builder.build());
+                String responseBody = f.get().getResponseBody(UTF_8);
+                JsonNode dataNode = objectMapper.readTree(responseBody);
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+                ArrayList<HashMap<String, Object>> list = new ArrayList<>();
+                while (buckets.hasNext()) {
+                    JsonNode bucket = buckets.next();
+                    long total = bucket.get("res").get("value").asLong();
+                    data.put(metric, total);
+                }
             }
 
             String s = objectMapper.valueToTree(data).toString();
@@ -4496,21 +4501,19 @@ public class QueryDao {
             ArrayList<String> orgs = (ArrayList<String>) variables.get("org"); // openeuler,src-openeuler
             ArrayList<String> internals = (ArrayList<String>) variables.get("internal"); // 0,1
             String interval = (String) variables.get("interval");
-            String metric = body.getmetric();
+            ArrayList<String> metrics = body.getmetrics();
             String internalStr = convertList2queryStr(internals);
             String orgStr = convertList2queryStr(orgs);
-            double cur = queryMetricUserCount(start, end, metric, internalStr, orgStr, queryjson, index);
-
-            c.add(ratio_, -1);
-            long prestart = c.getTimeInMillis();
-            double pre = queryMetricUserCount(prestart, start, metric, internalStr, orgStr, queryjson, index);
-            double momRatio = pre == 0 ? cur : (cur - pre) / pre;
-
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
             HashMap<String, Object> data = new HashMap<>();
-            data.put("ratio", momRatio);
+            for (String metric : metrics) {
+                double cur = queryMetricUserCount(start, end, metric, internalStr, orgStr, queryjson, index);
 
+                c.add(ratio_, -1);
+                long prestart = c.getTimeInMillis();
+                double pre = queryMetricUserCount(prestart, start, metric, internalStr, orgStr, queryjson, index);
+                double momRatio = pre == 0 ? cur : (cur - pre) / pre;            
+                data.put(metric, momRatio);
+            }
             String s = objectMapper.valueToTree(data).toString();
             return "{\"code\":200,\"data\":" + s + ",\"msg\":\"ok\"}";
         } catch (Exception e) {
