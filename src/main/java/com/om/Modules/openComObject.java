@@ -115,6 +115,24 @@ public class openComObject {
     protected String userCountIndex;
     protected String userCountquery;
     protected String userActivequery;
+    protected String userCountDetailquery;
+    protected String userActiveDetailquery;
+
+    public String getuserCountDetailquery() {
+        return userCountDetailquery;
+    }
+
+    public void setuserCountDetailquery(String userCountDetailquery) {
+        this.userCountDetailquery = userCountDetailquery;
+    }
+
+    public String getuserActiveDetailquery() {
+        return userActiveDetailquery;
+    }
+
+    public void setuserActiveDetailquery(String userActiveDetailquery) {
+        this.userActiveDetailquery = userActiveDetailquery;
+    }
 
     public String getuserActivequery() {
         return userActivequery;
