@@ -266,6 +266,8 @@ public class propertiesObj {
         bean.setuserCountIndex(openconf.getProperty("userCountIndex"));
         bean.setuserCountquery(openconf.getProperty("userCountquery"));
         bean.setuserActivequery(openconf.getProperty("userActivequery"));
+        bean.setuserCountDetailquery(openconf.getProperty("userCountDetailquery"));
+        bean.setuserActiveDetailquery(openconf.getProperty("userActiveDetailquery"));
     }
 
     private static Properties readProperties(String path) throws IOException {
