@@ -4,18 +4,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class DatastatRequestBody {
-    private String metric;
+    private ArrayList<String> metrics;
     private HashMap<String, Object> variables;
     private String operation;
     private long start;
     private long end;
 
-    public String getmetric() {
-        return metric;
+    public ArrayList<String> getmetrics() {
+        return metrics;
     }
 
-    public void setmetric(String metric) {
-        this.metric = metric;
+    public void setmetrics(ArrayList<String> metrics) {
+        this.metrics = metrics;
     }
 
     public long getstart() {
