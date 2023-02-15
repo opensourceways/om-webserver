@@ -268,6 +268,9 @@ public class propertiesObj {
         bean.setuserActivequery(openconf.getProperty("userActivequery"));
         bean.setuserCountDetailquery(openconf.getProperty("userCountDetailquery"));
         bean.setuserActiveDetailquery(openconf.getProperty("userActiveDetailquery"));
+        bean.setdownload_ip_index(openconf.getProperty("download_ip_index"));
+        bean.setdownload_ip_count_query(openconf.getProperty("download_ip_count_query"));
+        bean.setdownload_queryStr(openconf.getProperty("download_queryStr"));
     }
 
     private static Properties readProperties(String path) throws IOException {
