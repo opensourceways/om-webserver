@@ -117,6 +117,33 @@ public class openComObject {
     protected String userActivequery;
     protected String userCountDetailquery;
     protected String userActiveDetailquery;
+    protected String download_ip_index;
+    protected String download_ip_count_query;
+    protected String download_queryStr;
+    
+    public String getdownload_ip_index() {
+        return download_ip_index;
+    }
+
+    public void setdownload_ip_index(String download_ip_index) {
+        this.download_ip_index = download_ip_index;
+    }
+
+    public String getdownload_ip_count_query() {
+        return download_ip_count_query;
+    }
+
+    public void setdownload_ip_count_query(String download_ip_count_query) {
+        this.download_ip_count_query = download_ip_count_query;
+    }
+
+    public String getdownload_queryStr() {
+        return download_queryStr;
+    }
+
+    public void setdownload_queryStr(String download_queryStr) {
+        this.download_queryStr = download_queryStr;
+    }
 
     public String getuserCountDetailquery() {
         return userCountDetailquery;

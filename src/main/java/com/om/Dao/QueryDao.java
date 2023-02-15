@@ -4321,6 +4321,7 @@ public class QueryDao {
     public String queryMetricUserCount(String community, long start, long end, DatastatRequestBody body) {
         String index;
         String queryjson;
+        String query;
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getuserCountIndex();
@@ -4341,35 +4342,49 @@ public class QueryDao {
             HashMap<String, Object> data = new HashMap<>();
 
             for (String metric : metrics) {
-                String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), interval, metric);
-                builder.setUrl(this.url + index + "/_search");
-                builder.setBody(query);
-                ListenableFuture<Response> f = client.executeRequest(builder.build());
-                String responseBody = f.get().getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-                ArrayList<HashMap<String, Object>> list = new ArrayList<>();
-                long total = 0l;
-                while (buckets.hasNext()) {                       
-                    JsonNode bucket = buckets.next();
-                    long timedelta = bucket.get("key").asLong();
-                    long increase = bucket.get("res").get("value").asLong();
-                    total += increase;
-    
-                    HashMap<String, Object> datamap = new HashMap<>();
-                    datamap.put("date", timedelta);
-                    datamap.put("increase", increase);
-                    datamap.put("total", total);
-                    list.add(datamap);
+                if (metric.equals("download_count")) {
+                    ArrayList<HashMap<String, Object>> list = getMetricDownloadCount(community, start, end, body);
+                    data.put(metric + "_" + interval, list);
+                } else {
+                    query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), interval, metric);
+                    ArrayList<HashMap<String, Object>> list = getResponseResult(client, builder, index, query);
+                    data.put(metric + "_" + interval, list);
                 }
-                data.put(metric + "_" + interval, list);
             }
             String s = objectMapper.valueToTree(data).toString();
             return "{\"code\":200,\"data\":" + s + ",\"msg\":\"ok\"}";
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\": \"query error\",\"totalCount\": 0,\"msg\":\"ok\"}";
+            return "{\"code\":400,\"data\": \"query error\",\"totalCount\": 0,\"msg\":\"query error\"}";
         }
+    }
+
+    public ArrayList<HashMap<String, Object>> getResponseResult(AsyncHttpClient client, RequestBuilder builder, String index, String query) {
+        ArrayList<HashMap<String, Object>> list = new ArrayList<>();
+        try {
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(query);
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+
+            long total = 0l;
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                long timedelta = bucket.get("key").asLong();
+                long increase = bucket.get("res").get("value").asLong();
+                total += increase;
+                HashMap<String, Object> datamap = new HashMap<>();
+                datamap.put("date", timedelta);
+                datamap.put("increase", increase);
+                datamap.put("total", total);
+                list.add(datamap);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return list;
     }
 
     public String convertList2queryStr(ArrayList<String> res) {
@@ -4461,31 +4476,39 @@ public class QueryDao {
             HashMap<String, Object> data = new HashMap<>();
 
             for (String metric : metrics) {
-                String userquery = userQueryMap.get(metric).asText();
-                String query = String.format(queryjson, start, end, convertList2queryStr(internals),
-                        convertList2queryStr(orgs), userquery, "10000d");
-
-                builder.setUrl(this.url + index + "/_search");
-                builder.setBody(query);
-                ListenableFuture<Response> f = client.executeRequest(builder.build());
-                String responseBody = f.get().getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-                ArrayList<HashMap<String, Object>> list = new ArrayList<>();
-                while (buckets.hasNext()) {
-                    JsonNode bucket = buckets.next();
-                    long total = bucket.get("res").get("value").asLong();
-                    data.put(metric, total);
+                if (metric.equals("download_ip")) {
+                    int cnt = queryMetricDownloadIPCount(community, start, end, body);
+                    data.put(metric, cnt);
+                } else if (metric.equals("download_count")) {
+                    int cnt = queryMetricDownloadCount(community, start, end, body);
+                    data.put(metric, cnt);
+                } else {
+                    String userquery = userQueryMap.get(metric).asText();
+                    String query = String.format(queryjson, start, end, convertList2queryStr(internals),
+                            convertList2queryStr(orgs), userquery, "10000d");
+                    builder.setUrl(this.url + index + "/_search");
+                    builder.setBody(query);
+                    ListenableFuture<Response> f = client.executeRequest(builder.build());
+                    String responseBody = f.get().getResponseBody(UTF_8);
+                    JsonNode dataNode = objectMapper.readTree(responseBody);
+                    Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets")
+                            .elements();
+                    ArrayList<HashMap<String, Object>> list = new ArrayList<>();
+                    while (buckets.hasNext()) {
+                        JsonNode bucket = buckets.next();
+                        long total = bucket.get("res").get("value").asLong();
+                        data.put(metric, total);
+                    }
                 }
             }
-
             String s = objectMapper.valueToTree(data).toString();
             return "{\"code\":200,\"data\":" + s + ",\"msg\":\"ok\"}";
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\": \"query error\",\"totalCount\": 0,\"msg\":\"ok\"}";
+            return "{\"code\":400,\"data\": \"query error\",\"totalCount\": 0,\"msg\":\"query error\"}";
         }
     }
+
     public String queryMetricUserCountRatio(String community, long end, DatastatRequestBody body, String userQuery, int ratio_) {
         String index;
         String queryjson;
@@ -4524,7 +4547,7 @@ public class QueryDao {
             return "{\"code\":200,\"data\":" + s + ",\"msg\":\"ok\"}";
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"code\":400,\"data\": \"query error\",\"totalCount\": 0,\"msg\":\"ok\"}";
+            return "{\"code\":400,\"data\": \"query error\",\"totalCount\": 0,\"msg\":\"query error\"}";
         }
     }
 
@@ -4618,5 +4641,144 @@ public class QueryDao {
             e.printStackTrace();
             return "{\"code\":400,\"data\": \"query error\",\"totalCount\": 0,\"msg\":\"ok\"}";
         }
+    }
+
+    public int queryMetricDownloadIPCount(String community, long start, long end, DatastatRequestBody body) {
+        String index;
+        String queryjson;
+        int cnt = 0;
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getdownload_ip_index();
+                queryjson = openEuler.getdownload_ip_count_query();
+                break;
+            default:
+                return cnt;
+        }
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            HashMap<String, Object> data = new HashMap<>();
+
+            String query = String.format(queryjson, start, end);
+            builder.setUrl(this.url + index + "/_search");
+            builder.setBody(query);
+            ListenableFuture<Response> f = client.executeRequest(builder.build());
+            String responseBody = f.get().getResponseBody(UTF_8);
+            JsonNode dataNode = objectMapper.readTree(responseBody);
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+            ArrayList<HashMap<String, Object>> list = new ArrayList<>();
+            while (buckets.hasNext()) {
+                JsonNode bucket = buckets.next();
+                cnt = bucket.get("res").get("value").asInt();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return cnt;
+    }
+
+    public int queryMetricDownloadCount(String community, long start, long end, DatastatRequestBody body) {
+        int ans = 0;
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            String index = "";
+            String queryjson = "";
+            switch (community.toLowerCase()) {
+                case "openeuler":
+                    index = openEuler.getUsers_index();
+                    queryjson = openEuler.getdownload_queryStr();
+                    String[] queryjsons = queryjson.split(";");
+                    HashMap<String, Object> variables = body.getvariables();
+                    ArrayList<String> oversea = (ArrayList<String>) variables.get("oversea");
+                    for (int i = 0; i < queryjsons.length; i++) {
+                        queryjson = queryjsons[i];
+                        queryjson = String.format(queryjsons[i], start, end, convertList2queryStr(oversea), "10000d");
+
+                        builder.setUrl(this.url + index + "/_search");
+                        builder.setBody(queryjson);
+                        ListenableFuture<Response> f = client.executeRequest(builder.build());
+                        String responseBody = f.get().getResponseBody(UTF_8);
+                        JsonNode dataNode = objectMapper.readTree(responseBody);
+                        Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+                        while (buckets.hasNext()) {
+                            JsonNode bucket = buckets.next();
+                            ans += bucket.get("res").get("value").asInt();
+                        }
+                    }
+                    return ans;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ans;
+    }
+
+    public ArrayList<HashMap<String, Object>> getMetricDownloadCount(String community, long start, long end, DatastatRequestBody body) {
+        ArrayList<HashMap<String, Object>> res = new ArrayList<>();
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            String index = "";
+            String queryjson = "";
+            switch (community.toLowerCase()) {
+                case "openeuler":
+                    index = openEuler.getUsers_index();
+                    queryjson = openEuler.getdownload_queryStr();
+                    String[] queryjsons = queryjson.split(";");
+                    HashMap<String, Object> variables = body.getvariables();
+                    ArrayList<String> oversea = (ArrayList<String>) variables.get("oversea");
+                    String interval = (String) variables.get("interval");
+
+                    HashMap<Long, Double> dataincreasemap = new HashMap<>();
+                    HashMap<Long, Double> datatotalmap = new HashMap<>();
+                    for (int i = 0; i < queryjsons.length; i++) {
+                        queryjson = queryjsons[i];
+                        queryjson = String.format(queryjsons[i], start, end, convertList2queryStr(oversea), interval);
+
+                        builder.setUrl(this.url + index + "/_search");
+                        builder.setBody(queryjson);
+                        ListenableFuture<Response> f = client.executeRequest(builder.build());
+                        String responseBody = f.get().getResponseBody(UTF_8);
+                        JsonNode dataNode = objectMapper.readTree(responseBody);
+                        Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+                        Double total = 0d;
+                        while (buckets.hasNext()) {
+                            JsonNode bucket = buckets.next();
+                            Long date = bucket.get("key").asLong();
+                            Double cur = bucket.get("res").get("value").asDouble();
+                            total += cur;
+                            if (dataincreasemap.containsKey(date)) {
+                                dataincreasemap.put(date, dataincreasemap.get(date) + cur);
+                            } else {
+                                dataincreasemap.put(date, cur);
+                            }
+                            if (datatotalmap.containsKey(date)) {
+                                datatotalmap.put(date, datatotalmap.get(date) + total);
+                            } else {
+                                datatotalmap.put(date, total);
+                            }
+                        }
+                    }
+                    dataincreasemap.forEach((key, value) -> {
+                        HashMap<String, Object> tmp = new HashMap<>();
+                        tmp.put("date", key);
+                        tmp.put("increase", value);
+                        tmp.put("total", datatotalmap.get(key));
+                        res.add(tmp);
+                    });
+                    Collections.sort(res, new Comparator<HashMap<String, Object>>() {
+                        @Override
+                        public int compare(HashMap<String, Object> t1, HashMap<String, Object> t2) {
+                            return t1.get("date").toString().compareTo(t2.get("date").toString());
+                        }
+                    });
+                    return res;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return res;
     }
 }
