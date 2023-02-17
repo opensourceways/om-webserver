@@ -271,6 +271,7 @@ public class propertiesObj {
         bean.setdownload_ip_index(openconf.getProperty("download_ip_index"));
         bean.setdownload_ip_count_query(openconf.getProperty("download_ip_count_query"));
         bean.setdownload_queryStr(openconf.getProperty("download_queryStr"));
+        bean.setdownload_ip_increase_query(openconf.getProperty("download_ip_increase_query"));
     }
 
     private static Properties readProperties(String path) throws IOException {
