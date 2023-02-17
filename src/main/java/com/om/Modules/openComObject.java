@@ -120,6 +120,15 @@ public class openComObject {
     protected String download_ip_index;
     protected String download_ip_count_query;
     protected String download_queryStr;
+    protected String download_ip_increase_query;
+
+    public String getdownload_ip_increase_query() {
+        return download_ip_increase_query;
+    }
+
+    public void setdownload_ip_increase_query(String download_ip_increase_query) {
+        this.download_ip_increase_query = download_ip_increase_query;
+    }
     
     public String getdownload_ip_index() {
         return download_ip_index;

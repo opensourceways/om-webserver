@@ -4318,16 +4318,20 @@ public class QueryDao {
             String interval = (String) variables.get("interval");
             ArrayList<String> metrics = body.getmetrics();
 
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
             HashMap<String, Object> data = new HashMap<>();
 
             for (String metric : metrics) {
                 if (metric.equals("download_count")) {
                     ArrayList<HashMap<String, Object>> list = getMetricDownloadCount(community, start, end, body);
                     data.put(metric + "_" + interval, list);
+                } else if (metric.equals("download_ip")) {
+                    ArrayList<HashMap<String, Object>> list = getMetricDownloadIPIncrease(community, start, end, interval);
+                    data.put(metric + "_" + interval, list);
                 } else {
-                    query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), interval, metric);
+                    query = String.format(queryjson, start, end, convertList2queryStr(internals),
+                            convertList2queryStr(orgs), interval, metric);
+                    AsyncHttpClient client = AsyncHttpUtil.getClient();
+                    RequestBuilder builder = asyncHttpUtil.getBuilder();
                     ArrayList<HashMap<String, Object>> list = getResponseResult(client, builder, index, query);
                     data.put(metric + "_" + interval, list);
                 }
@@ -4694,6 +4698,29 @@ public class QueryDao {
             e.printStackTrace();
         }
         return ans;
+    }
+
+    public ArrayList<HashMap<String, Object>> getMetricDownloadIPIncrease(String community, long start, long end, String interval) {
+        ArrayList<HashMap<String, Object>> res = new ArrayList<>();
+        String index = "";
+        String queryjson = "";
+        switch (community.toLowerCase()) {
+            case "openeuler":
+                index = openEuler.getdownload_ip_index();
+                queryjson = openEuler.getdownload_ip_increase_query();
+                break;
+            default:
+                return res;
+        }       
+        try {
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            String query = String.format(queryjson, start, end, interval);             
+            res = getResponseResult(client, builder, index, query);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return res;
     }
 
     public ArrayList<HashMap<String, Object>> getMetricDownloadCount(String community, long start, long end, DatastatRequestBody body) {
