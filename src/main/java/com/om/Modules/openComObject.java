@@ -121,6 +121,15 @@ public class openComObject {
     protected String download_ip_count_query;
     protected String download_queryStr;
     protected String download_ip_increase_query;
+    protected String userContributeDetailquery;
+
+    public String getuserContributeDetailquery() {
+        return userContributeDetailquery;
+    }
+
+    public void setuserContributeDetailquery(String userContributeDetailquery) {
+        this.userContributeDetailquery = userContributeDetailquery;
+    }
 
     public String getdownload_ip_increase_query() {
         return download_ip_increase_query;
