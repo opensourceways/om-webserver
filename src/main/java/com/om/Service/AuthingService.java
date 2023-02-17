@@ -377,8 +377,18 @@ public class AuthingService implements UserCenterServiceInter {
             String grantType = parameterMap.getOrDefault("grant_type", new String[]{""})[0];
 
             if (grantType.equals("authorization_code")) {
-                String appId = parameterMap.getOrDefault("client_id", new String[]{""})[0];
-                String appSecret = parameterMap.getOrDefault("client_secret", new String[]{""})[0];
+                String appId;
+                String appSecret;
+                if (parameterMap.containsKey("client_id") && parameterMap.containsKey("client_secret")) {
+                    appId = parameterMap.getOrDefault("client_id", new String[]{""})[0];
+                    appSecret = parameterMap.getOrDefault("client_secret", new String[]{""})[0];
+                } else {
+                    String header = servletRequest.getHeader("Authorization");
+                    byte[] authorization = Base64.getDecoder().decode(header.replace("Basic ", ""));
+                    String[] split = new String(authorization).split(":");
+                    appId = split[0];
+                    appSecret = split[1];
+                }
                 String redirectUri = parameterMap.getOrDefault("redirect_uri", new String[]{""})[0];
                 String code = parameterMap.getOrDefault("code", new String[]{""})[0];
                 return getOidcTokenByCode(appId, appSecret, code, redirectUri);
@@ -989,6 +999,7 @@ public class AuthingService implements UserCenterServiceInter {
     private ResponseEntity resultOidc(HttpStatus status, String msg, Object body) {
         HashMap<String, Object> res = new HashMap<>();
         res.put("status", status.value());
+        res.put("error", msg);
         res.put("message", msg);
         if (body != null)
             res.put("body", body);
