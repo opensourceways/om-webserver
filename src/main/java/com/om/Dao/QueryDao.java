@@ -4370,7 +4370,7 @@ public class QueryDao {
                 queryjson = openEuler.getuserContributeDetailquery();
                 break;
             default:
-                return "res";
+                return "{\"code\":400,\"data\": \"query error\",\"totalCount\": 0,\"msg\":\"query error\"}";
         }       
         try {
             HashMap<String, Object> data = new HashMap<>();
