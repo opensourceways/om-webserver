@@ -122,6 +122,33 @@ public class openComObject {
     protected String download_queryStr;
     protected String download_ip_increase_query;
     protected String userContributeDetailquery;
+    protected String AggContributeDetailquery;
+    protected String AggTotalContributeDetailquery;
+    protected String AggTotalUserCountquery;
+
+    public String getAggTotalUserCountquery() {
+        return AggTotalUserCountquery;
+    }
+
+    public void setAggTotalUserCountquery(String AggTotalUserCountquery) {
+        this.AggTotalUserCountquery = AggTotalUserCountquery;
+    }
+
+    public String getAggTotalContributeDetailquery() {
+        return AggTotalContributeDetailquery;
+    }
+
+    public void setAggTotalContributeDetailquery(String AggTotalContributeDetailquery) {
+        this.AggTotalContributeDetailquery = AggTotalContributeDetailquery;
+    }
+
+    public String getAggContributeDetailquery() {
+        return AggContributeDetailquery;
+    }
+
+    public void setAggContributeDetailquery(String AggContributeDetailquery) {
+        this.AggContributeDetailquery = AggContributeDetailquery;
+    }
 
     public String getuserContributeDetailquery() {
         return userContributeDetailquery;
