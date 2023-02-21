@@ -273,6 +273,9 @@ public class propertiesObj {
         bean.setdownload_queryStr(openconf.getProperty("download_queryStr"));
         bean.setdownload_ip_increase_query(openconf.getProperty("download_ip_increase_query"));
         bean.setuserContributeDetailquery(openconf.getProperty("userContributeDetailquery"));
+        bean.setAggContributeDetailquery(openconf.getProperty("AggContributeDetailquery"));
+        bean.setAggTotalContributeDetailquery(openconf.getProperty("AggTotalContributeDetailquery"));
+        bean.setAggTotalUserCountquery(openconf.getProperty("AggTotalUserCountquery"));
     }
 
     private static Properties readProperties(String path) throws IOException {
