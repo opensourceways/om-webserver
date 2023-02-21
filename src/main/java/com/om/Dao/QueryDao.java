@@ -4275,13 +4275,13 @@ public class QueryDao {
         int ratio_;
         switch (operation.toLowerCase()) {
             case "increase":
-                return queryMetricIncreaseCount(community, start, end, body);
+                return queryMetricIncreaseCount(community, start, end, body, userQuery);
             case "total":
-                return queryMetricIncreaseCount(community, start, end, body);
+                return queryMetricIncreaseCount(community, start, end, body, userQuery);
             case "active":
                 return queryMetricUserActiveCount(community, start, end, body, userQuery);
             case "totalcount":
-                return queryMetricUserTotalCount(community, start, end, body, userQuery);
+                return queryMetricTotalCount(community, start, end, body, userQuery);
             case "wowratio":
                 ratio_ = Calendar.WEEK_OF_MONTH;
                 return queryMetricUserCountRatio(community, end, body, userQuery, ratio_);
@@ -4298,27 +4298,25 @@ public class QueryDao {
                 return queryMetricIncreaseContribute(community, start, end, body, userQuery);
             case "totalcontribute":
                 return queryMetricIncreaseContribute(community, start, end, body, userQuery);
-            case "increasesigcontribute":
-                return queryMetricIncreaseTermContribute(community, start, end, body, userQuery, "sig_names.keyword");
-            case "increaserepocontribute":
-                return queryMetricIncreaseTermContribute(community, start, end, body, userQuery, "gitee_repo.keyword");
-            case "totalcountsigcontribute":
-                return queryMetricTotalCountTermContribute(community, start, end, body, userQuery, "sig_names.keyword");
-            case "totalcountrepocontribute":
-                return queryMetricTotalCountTermContribute(community, start, end, body, userQuery, "gitee_repo.keyword");
             default:
                 return "{\"code\":400,\"data\":\"operation error\",\"msg\":\"query error\"}";
         }
     }
 
-    public String queryMetricIncreaseCount(String community, long start, long end, DatastatRequestBody body) {
+    public String queryMetricIncreaseCount(String community, long start, long end, DatastatRequestBody body, String userQuery) {
         try {
             HashMap<String, Object> variables = body.getvariables();
+            if (variables.containsKey("term")) {
+                String term = (String) variables.get("term");
+                if (term != null && term.toLowerCase().equals("sig"))
+                    term = "sig_names.keyword";
+                if (term != null && term.toLowerCase().equals("repo"))
+                    term = "gitee_repo.keyword";
+                return queryMetricIncreaseTermContribute(community, start, end, body, userQuery, term);
+            }
             String interval = (String) variables.get("interval");
             ArrayList<String> metrics = body.getmetrics();
-
             HashMap<String, Object> data = new HashMap<>();
-
             for (String metric : metrics) {
                 if (metric.equals("download_count")) {
                     ArrayList<HashMap<String, Object>> list = getMetricDownloadCountIncrease(community, start, end, body);
@@ -4503,6 +4501,19 @@ public class QueryDao {
         }
     }
 
+    public String queryMetricTotalCount(String community, long start, long end, DatastatRequestBody body, String userQuery) {
+        HashMap<String, Object> variables = body.getvariables();
+        if (variables.containsKey("term")) {
+            String term = (String) variables.get("term");
+            if (term != null && term.toLowerCase().equals("sig"))
+                term = "sig_names.keyword";
+            if (term != null && term.toLowerCase().equals("repo"))
+                term = "gitee_repo.keyword";
+            return queryMetricTotalCountTermContribute(community, start, end, body, userQuery, term);
+        }
+        return queryMetricUserTotalCount(community, start, end, body, userQuery);
+    }
+    
     public String queryMetricUserTotalCount(String community, long start, long end, DatastatRequestBody body, String userQuery) {
         String index;
         String queryjson;
@@ -4880,9 +4891,13 @@ public class QueryDao {
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             HashMap<String, Object> data = new HashMap<>();
 
-            for (String metric : metrics) {
+            for (String metric : metrics) { // pr issue comment
+                if (!metric.equalsIgnoreCase("pr") && !metric.equalsIgnoreCase("issue")
+                        && !metric.equalsIgnoreCase("comment")) {
+                    continue;
+                }
                 String userquery = userQueryMap.get(metric).asText();
-                String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), "*", term, interval, userquery);
+                String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), term, interval, userquery);
                 builder.setUrl(this.url + index + "/_search");
                 builder.setBody(query);
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
