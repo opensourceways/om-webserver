@@ -112,6 +112,9 @@ public class QueryDao {
     @Value("${mindspore.sig.yaml.zh}")
     String MindsporeSigYamlZh;
 
+    @Value("${company.query}")
+    String companyQuery;
+
     @Autowired
     KafkaDao kafkaDao;
 
@@ -4265,7 +4268,7 @@ public class QueryDao {
     }
 
     public String queryMetricsData(String community, DatastatRequestBody body, String userQuery) {
-        if (!community.toLowerCase().equals("openeuler")) {
+        if (!community.equalsIgnoreCase("openeuler")) {
             return "{\"code\":400,\"data\":\"community error\",\"msg\":\"query error\"}";
         }
 
@@ -4294,10 +4297,6 @@ public class QueryDao {
                 return queryMetricUserCountDetail(community, start, end, body);
             case "activedetail":
                 return queryMetricUserActiveCountDetail(community, start, end, body, userQuery);
-            case "increasecontribute":
-                return queryMetricIncreaseContribute(community, start, end, body, userQuery);
-            case "totalcontribute":
-                return queryMetricIncreaseContribute(community, start, end, body, userQuery);
             default:
                 return "{\"code\":400,\"data\":\"operation error\",\"msg\":\"query error\"}";
         }
@@ -4306,15 +4305,13 @@ public class QueryDao {
     public String queryMetricIncreaseCount(String community, long start, long end, DatastatRequestBody body, String userQuery) {
         try {
             HashMap<String, Object> variables = body.getvariables();
+            String interval = (String) variables.get("interval");
             if (variables.containsKey("term")) {
                 String term = (String) variables.get("term");
-                if (term != null && term.toLowerCase().equals("sig"))
-                    term = "sig_names.keyword";
-                if (term != null && term.toLowerCase().equals("repo"))
-                    term = "gitee_repo.keyword";
-                return queryMetricIncreaseTermContribute(community, start, end, body, userQuery, term);
+                if (term.equalsIgnoreCase("sig") || term.equalsIgnoreCase("repo"))
+                    return queryMetricIncreaseTermContribute(community, start, end, body, userQuery, term);
+                return queryMetricIncreaseContribute(community, start, end, body, interval, userQuery);
             }
-            String interval = (String) variables.get("interval");
             ArrayList<String> metrics = body.getmetrics();
             HashMap<String, Object> data = new HashMap<>();
             for (String metric : metrics) {
@@ -4366,7 +4363,7 @@ public class QueryDao {
         return res;
     }
 
-    public String queryMetricIncreaseContribute(String community, long start, long end, DatastatRequestBody body, String userQuery) {
+    public String queryMetricIncreaseContribute(String community, long start, long end, DatastatRequestBody body, String interval, String userQuery) {
         String index;
         String queryjson;
         String query;
@@ -4381,23 +4378,31 @@ public class QueryDao {
         try {
             HashMap<String, Object> data = new HashMap<>();
             HashMap<String, Object> variables = body.getvariables();
-            String interval = (String) variables.get("interval");
             ArrayList<String> internals = (ArrayList<String>) variables.get("internal");
             ArrayList<String> orgs = (ArrayList<String>) variables.get("org");
-            ArrayList<String> items = (ArrayList<String>) variables.get("items");
-            ArrayList<String> metrics = body.getmetrics();
-            for (String metric: metrics) {
-                JsonNode userQueryMap = objectMapper.readTree(userQuery);
-                String userquery = userQueryMap.get(metric).asText();            
 
-                AsyncHttpClient client = AsyncHttpUtil.getClient();
-                RequestBuilder builder = asyncHttpUtil.getBuilder();
-                for (String item: items) {
-                    if (metric.equals("D2") && !item.toLowerCase().equals("pr")) continue;
-                    String itemquery = userQueryMap.get(item).asText();
-                    query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), userquery, interval, itemquery);
-                    ArrayList<HashMap<String, Object>> res = getResponseResult(client, builder, index, query);
-                    data.put(metric + "_" + item, res);
+            String term = (String) variables.get("term"); //D1 huawei
+            JsonNode companyQueryMap = objectMapper.readTree(companyQuery);
+            JsonNode userQueryMap = objectMapper.readTree(userQuery);
+            String termquery = "";
+            if (companyQueryMap.has(term)) {
+                termquery = companyQueryMap.get(term).asText();
+            }
+            if (userQueryMap.has(term)) {
+                termquery = userQueryMap.get(term).asText();
+            }
+            ArrayList<String> metrics = body.getmetrics();
+            AsyncHttpClient client = AsyncHttpUtil.getClient();
+            RequestBuilder builder = asyncHttpUtil.getBuilder();
+            for (String metric: metrics) { //pr issue               
+                String metricquery = userQueryMap.get(metric).asText();            
+                if (term.equals("D2") && !metric.equalsIgnoreCase("pr")) continue;
+                query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), termquery, interval, metricquery);
+                ArrayList<HashMap<String, Object>> res = getResponseResult(client, builder, index, query);
+                if (body.geoperation().equalsIgnoreCase("totalcount")) {
+                    data.put(term + "_" + metric, res.get(0).get("total"));
+                } else {
+                    data.put(term + "_" + metric, res);
                 }
             }
             String s = objectMapper.valueToTree(data).toString();
@@ -4505,11 +4510,10 @@ public class QueryDao {
         HashMap<String, Object> variables = body.getvariables();
         if (variables.containsKey("term")) {
             String term = (String) variables.get("term");
-            if (term != null && term.toLowerCase().equals("sig"))
-                term = "sig_names.keyword";
-            if (term != null && term.toLowerCase().equals("repo"))
-                term = "gitee_repo.keyword";
-            return queryMetricTotalCountTermContribute(community, start, end, body, userQuery, term);
+            if (term.equalsIgnoreCase("sig") || term.equalsIgnoreCase("repo")) {
+                return queryMetricTotalCountTermContribute(community, start, end, body, userQuery, term);
+            }
+            return queryMetricIncreaseContribute(community, start, end, body, "10000d", userQuery);
         }
         return queryMetricUserTotalCount(community, start, end, body, userQuery);
     }
@@ -4867,6 +4871,13 @@ public class QueryDao {
         return res;
     }
 
+    public String getTermQuery(String term) {
+        String res = "";
+        if (term.equalsIgnoreCase("sig")) res = "sig_names.keyword";
+        if (term.equalsIgnoreCase("repo")) res = "gitee_repo.keyword";
+        return res;
+    }
+
     public String queryMetricIncreaseTermContribute(String community, long start, long end, DatastatRequestBody body,
             String userQuery, String term) {
         String index;
@@ -4897,7 +4908,7 @@ public class QueryDao {
                     continue;
                 }
                 String userquery = userQueryMap.get(metric).asText();
-                String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), term, interval, userquery);
+                String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), getTermQuery(term), interval, userquery);
                 builder.setUrl(this.url + index + "/_search");
                 builder.setBody(query);
                 ListenableFuture<Response> f = client.executeRequest(builder.build());
@@ -4959,11 +4970,12 @@ public class QueryDao {
             HashMap<String, Object> data = new HashMap<>();
 
             if (!metrics.contains("details")) return "{\"code\":400,\"data\":\"metrics error\",\"msg\":\"metrics error\"}";
+            term = getTermQuery(term);
             HashMap<String, Integer> D0 = queryMetricTotalCountSigUser(community, start, end, body, userQuery, "D0", term);
             HashMap<String, Integer> D1 = queryMetricTotalCountSigUser(community, start, end, body, userQuery, "D1", term);
             HashMap<String, Integer> D2 = queryMetricTotalCountSigUser(community, start, end, body, userQuery, "D2", term);
             for (String metric : metrics) {
-                if (!metric.toLowerCase().equals("details")) continue;
+                if (!metric.equalsIgnoreCase("details")) continue;
                 String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), term);
                 builder.setUrl(this.url + index + "/_search");
                 builder.setBody(query);
