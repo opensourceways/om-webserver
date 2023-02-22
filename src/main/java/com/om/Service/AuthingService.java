@@ -487,7 +487,7 @@ public class AuthingService implements UserCenterServiceInter {
             // User user = authingUserDao.getUser(userId);
             String photo;
             String username;
-
+            String email;
             try {
                 String query = env.getProperty("mysql.query");
                 query = String.format(query, userId);
@@ -495,17 +495,20 @@ public class AuthingService implements UserCenterServiceInter {
                 HashMap<String, String> ui = userinfo.get(0);
                 photo = ui.get("photo");
                 username = ui.get("username");
+                email = ui.get("email");
             } catch (Exception e) {
                 System.out.println("get data from mysql failed.");
                 User user = authingUserDao.getUser(userId);
                 photo = user.getPhoto();
                 username = user.getUsername();
+                email = user.getEmail();
             }
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("photo", photo);
             userData.put("username", username);
+            userData.put("email", email);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             e.printStackTrace();
