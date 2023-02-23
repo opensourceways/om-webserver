@@ -42,9 +42,11 @@ public class SqlDao {
             while (rs.next()) {
                 String username = rs.getString("username");
                 String photo = rs.getString("photo");
+                String email = rs.getString("email");
                 HashMap<String, String> user = new HashMap<String, String>();
                 user.put("username", username);
                 user.put("photo", photo);
+                user.put("email", email);
                 
                 res.add(user);
             }
