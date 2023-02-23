@@ -459,7 +459,12 @@ public class AuthingService implements UserCenterServiceInter {
                 }
                 if (scope.equals("address")) userData.put(scope, addressMap);
             }
-            return result(HttpStatus.OK, "OK", userData);
+            HashMap<String, Object> res = new HashMap<>();
+            res.put("code", 200);
+            res.put("data", userData);
+            res.put("msg", "OK");
+            res.putAll(userData);
+            return new ResponseEntity<>(res, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
