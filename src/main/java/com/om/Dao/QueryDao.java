@@ -38,6 +38,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URL;
@@ -4271,7 +4272,11 @@ public class QueryDao {
         if (!community.equalsIgnoreCase("openeuler")) {
             return "{\"code\":400,\"data\":\"community error\",\"msg\":\"query error\"}";
         }
-
+        try {
+            companyQuery = new String(companyQuery.getBytes("ISO8859-1"), "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
         String operation = body.geoperation(); // increase, active
         long start = body.getstart();
         long end = body.getend();
