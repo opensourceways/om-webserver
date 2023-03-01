@@ -125,6 +125,15 @@ public class openComObject {
     protected String AggContributeDetailquery;
     protected String AggTotalContributeDetailquery;
     protected String AggTotalUserCountquery;
+    protected String SigOwnerQuery;
+
+    public String getSigOwnerQuery() {
+        return SigOwnerQuery;
+    }
+
+    public void setSigOwnerQuery(String SigOwnerQuery) {
+        this.SigOwnerQuery = SigOwnerQuery;
+    }
 
     public String getAggTotalUserCountquery() {
         return AggTotalUserCountquery;
