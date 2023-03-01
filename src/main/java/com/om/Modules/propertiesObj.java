@@ -276,6 +276,7 @@ public class propertiesObj {
         bean.setAggContributeDetailquery(openconf.getProperty("AggContributeDetailquery"));
         bean.setAggTotalContributeDetailquery(openconf.getProperty("AggTotalContributeDetailquery"));
         bean.setAggTotalUserCountquery(openconf.getProperty("AggTotalUserCountquery"));
+        bean.setSigOwnerQuery(openconf.getProperty("SigOwnerQuery"));
     }
 
     private static Properties readProperties(String path) throws IOException {
