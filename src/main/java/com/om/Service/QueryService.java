@@ -1181,7 +1181,7 @@ public class QueryService {
             }
         }
 
-        String giteeLogin = user != null ? user.toLowerCase() : getGiteeLoginFromAuthing(username);
+        String giteeLogin = StringUtils.isNotBlank(user) ? user.toLowerCase() : getGiteeLoginFromAuthing(username);
 
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode all = objectMapper.readTree(result);
