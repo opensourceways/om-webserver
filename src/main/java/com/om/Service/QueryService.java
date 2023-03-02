@@ -37,6 +37,8 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
@@ -1161,7 +1163,7 @@ public class QueryService {
         return result;
     }
 
-    public String queryUserOwnertype(String community, String user) throws JsonMappingException, JsonProcessingException {
+    public String queryUserOwnertype(String community, String user, String username) throws JsonMappingException, JsonProcessingException {
         String key = community.toLowerCase() + "all" + "ownertype";
         String result = null;
         result = (String) redisDao.get(key);
@@ -1178,14 +1180,38 @@ public class QueryService {
                 System.out.println("update " + key + " success!");
             }
         }
+
+        String giteeLogin;
+        if (user != null) giteeLogin = user.toLowerCase();
+        else if (username != null) giteeLogin = getGiteeLoginFromAuthing(username);
+        else giteeLogin = "";
+
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode all = objectMapper.readTree(result);
-        if (all.get("data").get(user.toLowerCase()) != null) {
-            JsonNode userData = all.get("data").get(user.toLowerCase());
+        if (all.get("data").get(giteeLogin) != null) {
+            JsonNode userData = all.get("data").get(giteeLogin);
             result = objectMapper.valueToTree(userData).toString();
+        } else {
+            result = "{}";
         }
         result = "{\"code\":200,\"data\":" + result + ",\"msg\":\"ok\"}";
         return result;
+    }
+
+    private String getGiteeLoginFromAuthing(String username) {
+        String giteeLogin = null;
+        try {
+            JSONObject userInfo = authingUserDao.getUserByName(username);
+            JSONArray identities = userInfo.getJSONArray("identities");
+            for (Object identity : identities) {
+                JSONObject identityObj = (JSONObject) identity;
+                String originConnId = identityObj.getJSONArray("originConnIds").get(0).toString();
+                if (!originConnId.equals(env.getProperty("enterprise.connId.gitee"))) continue;
+                giteeLogin = identityObj.getJSONObject("userInfoInIdp").getJSONObject("customData").getString("giteeLogin");
+            }
+        } catch (Exception ignored) {
+        }
+        return giteeLogin;
     }
 
     public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
