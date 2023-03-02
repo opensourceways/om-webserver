@@ -382,8 +382,11 @@ public class QueryController {
     }
 
     @RequestMapping("/user/ownertype")
-    public String queryUserOwnertype(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user) throws JsonMappingException, JsonProcessingException {
-        String res = queryService.queryUserOwnertype(community, user);
+    public String queryUserOwnertype(@RequestParam(value = "community") String community,
+                                     @RequestParam(value = "user", required = false) String user,
+                                     @RequestParam(value = "username", required = false) String username)
+            throws JsonProcessingException {
+        String res = queryService.queryUserOwnertype(community, user, username);
         return res;
     }
 
