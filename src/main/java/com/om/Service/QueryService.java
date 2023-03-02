@@ -1163,7 +1163,8 @@ public class QueryService {
         return result;
     }
 
-    public String queryUserOwnertype(String community, String user, String username) throws JsonMappingException, JsonProcessingException {
+    public String queryUserOwnertype(String community, String user, String username)
+            throws JsonProcessingException {
         String key = community.toLowerCase() + "all" + "ownertype";
         String result = null;
         result = (String) redisDao.get(key);
