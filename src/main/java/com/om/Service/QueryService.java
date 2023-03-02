@@ -1181,15 +1181,12 @@ public class QueryService {
             }
         }
 
-        String giteeLogin;
-        if (user != null) giteeLogin = user.toLowerCase();
-        else if (username != null) giteeLogin = getGiteeLoginFromAuthing(username);
-        else giteeLogin = "";
+        String giteeLogin = user != null ? user.toLowerCase() : getGiteeLoginFromAuthing(username);
 
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode all = objectMapper.readTree(result);
-        if (all.get("data").get(giteeLogin) != null) {
-            JsonNode userData = all.get("data").get(giteeLogin);
+        JsonNode userData = all.get("data").get(giteeLogin);
+        if (userData != null) {
             result = objectMapper.valueToTree(userData).toString();
         } else {
             result = "{}";
@@ -1199,7 +1196,10 @@ public class QueryService {
     }
 
     private String getGiteeLoginFromAuthing(String username) {
-        String giteeLogin = null;
+        String giteeLogin = "";
+        if (StringUtils.isBlank(username)) {
+            return giteeLogin;
+        }
         try {
             JSONObject userInfo = authingUserDao.getUserByName(username);
             JSONArray identities = userInfo.getJSONArray("identities");
