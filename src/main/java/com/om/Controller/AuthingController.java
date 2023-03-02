@@ -264,13 +264,6 @@ public class AuthingController {
         return service.updatePhoto(servletRequest, servletResponse, token, file);
     }
 
-    //    @AuthingUserToken
-    @RequestMapping(value = "/session/test")
-    public ResponseEntity test_session(HttpServletRequest servletRequest,
-                                       HttpServletResponse servletResponse) {
-        return authingService.test_session(servletRequest, servletResponse);
-    }
-
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
         String community = servletRequest.getParameter("community");
         String serviceType = community == null || community.toLowerCase().equals("openeuler") ? "authing" : community.toLowerCase();
