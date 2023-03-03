@@ -768,9 +768,7 @@ public class QueryDao {
             case "openlookeng":
                 return "{\"code\":" + 404 + ",\"data\":{\"" + item + "\":" + 0 + "},\"msg\":\"Not Found!\"}";
             case "opengauss":
-                index = openGauss.getDownloadQueryIndex();
-                queryjson = openGauss.getDownloadQueryStr();
-                break;
+                return queryDownloadOpenGauss(community, item);
             case "mindspore":
                 index = mindSpore.getDownloadQueryIndex();
                 queryjson = mindSpore.getDownloadQueryStr();
@@ -796,6 +794,46 @@ public class QueryDao {
             if (community.toLowerCase().equals("opengauss") && buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 count = bucket.get("doc_count").asInt();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return "{\"code\":" + statusCode + ",\"data\":{\"" + item + "\":" + count + "},\"msg\":\"" + statusText
+                + "\"}";
+
+    }
+
+    public String queryDownloadOpenGauss(String community, String item) throws NoSuchAlgorithmException, KeyManagementException,
+            ExecutionException, InterruptedException, JsonProcessingException {
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+        String[] indexs = openGauss.getDownloadQueryIndex().split(";");
+        String[] queryjsons = openGauss.getDownloadQueryStr().split(";");
+
+        int count = 0;
+        int statusCode = 500;
+        String statusText = "请求内部错误";       
+        try {
+            for (int i = 0; i < queryjsons.length; i++) {
+                builder.setUrl(this.url + indexs[i] + "/_search");
+                builder.setBody(queryjsons[i]);
+                // 获取执行结果
+                ListenableFuture<Response> f = client.executeRequest(builder.build());       
+                Response response = f.get();
+                statusCode = response.getStatusCode();
+                statusText = response.getStatusText();
+                String responseBody = response.getResponseBody(UTF_8);
+                JsonNode dataNode = objectMapper.readTree(responseBody);
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets").elements();
+                if (buckets.hasNext()) {
+                    JsonNode bucket = buckets.next();
+                    if (bucket.has("dockerhub")) {
+                        count += bucket.get("dockerhub").get("value").asInt();
+                    } else {
+                        count += bucket.get("doc_count").asInt();
+                    }                   
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -4407,7 +4445,7 @@ public class QueryDao {
                 break;
             default:
                 return "{\"code\":400,\"data\": \"query error\",\"msg\":\"query error\"}";
-        }       
+        }
         try {
             HashMap<String, Object> data = new HashMap<>();
             HashMap<String, Object> variables = body.getvariables();
@@ -4427,8 +4465,8 @@ public class QueryDao {
             ArrayList<String> metrics = body.getmetrics();
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
-            for (String metric: metrics) { //pr issue               
-                String metricquery = userQueryMap.get(metric).asText();            
+            for (String metric: metrics) { //pr issue
+                String metricquery = userQueryMap.get(metric).asText();
                 if (term.equals("D2") && !metric.equalsIgnoreCase("pr")) continue;
                 query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), termquery, interval, metricquery);
                 ArrayList<HashMap<String, Object>> res = getResponseResult(client, builder, index, query);
@@ -4553,7 +4591,7 @@ public class QueryDao {
         }
         return queryMetricUserTotalCount(community, start, end, body, userQuery);
     }
-    
+
     public String queryMetricUserTotalCount(String community, long start, long end, DatastatRequestBody body, String userQuery) {
         String index;
         String queryjson;
@@ -4642,7 +4680,7 @@ public class QueryDao {
                 c.add(ratio_, -1);
                 long prestart = c.getTimeInMillis();
                 double pre = queryMetricUserCount(prestart, start, metric, internalStr, orgStr, queryjson, index);
-                double momRatio = pre == 0 ? cur : (cur - pre) / pre;            
+                double momRatio = pre == 0 ? cur : (cur - pre) / pre;
                 data.put(metric, momRatio);
             }
             String s = objectMapper.valueToTree(data).toString();
@@ -4687,7 +4725,7 @@ public class QueryDao {
             default:
                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
-        return queryMetricUserDetailCommon(index, queryjson, start, end, body, userQuery);  
+        return queryMetricUserDetailCommon(index, queryjson, start, end, body, userQuery);
     }
 
     public String queryMetricUserCountDetail(String community, long start, long end, DatastatRequestBody body) {
@@ -4714,9 +4752,9 @@ public class QueryDao {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
             HashMap<String, Object> data = new HashMap<>();
-            
+
             for (String metric : metrics) {
-                String userquery = metric;               
+                String userquery = metric;
                 if (userQuery != null){
                     JsonNode userQueryMap = objectMapper.readTree(userQuery);
                     userquery = userQueryMap.get(metric).asText();
@@ -4730,7 +4768,7 @@ public class QueryDao {
                 Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
 
                 ArrayList<String> list = new ArrayList<>();
-                while (buckets.hasNext()) {                       
+                while (buckets.hasNext()) {
                     JsonNode bucket = buckets.next();
                     String user = bucket.get("key").asText();
                     list.add(user);
@@ -4828,7 +4866,7 @@ public class QueryDao {
                 break;
             default:
                 return res;
-        }       
+        }
         try {
             AsyncHttpClient client = AsyncHttpUtil.getClient();
             RequestBuilder builder = asyncHttpUtil.getBuilder();
@@ -4978,7 +5016,7 @@ public class QueryDao {
                         item.put("increase", increase);
                         item.put("total", total);
                         tmp.add(item);
-                    }                   
+                    }
                     datamap.put(sig, tmp);
                 }
                 data.put(metric, datamap);
@@ -5033,7 +5071,7 @@ public class QueryDao {
                 return res;
         }
         try {
-            JsonNode userQueryMap = objectMapper.readTree(userQuery);            
+            JsonNode userQueryMap = objectMapper.readTree(userQuery);
             HashMap<String, Object> variables = body.getvariables();
             ArrayList<String> orgs = (ArrayList<String>) variables.get("org"); // openeuler,src-openeuler
             ArrayList<String> internals = (ArrayList<String>) variables.get("internal"); // 0,1
@@ -5048,10 +5086,10 @@ public class QueryDao {
             ListenableFuture<Response> f = client.executeRequest(builder.build());
             String responseBody = f.get().getResponseBody(UTF_8);
             JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();           
+            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
-                String filter = bucket.get("key").asText();        
+                String filter = bucket.get("key").asText();
                 HashMap<String, Object> item = new HashMap<>();
                 item.put("filter", filter);
                 item.put("pr", bucket.get("pr").get("value").asInt());
@@ -5078,7 +5116,7 @@ public class QueryDao {
             for (String key : metricData.keySet()) {
                 HashMap<String, Object> tmp = new HashMap<>();
                 if (resMap.containsKey(key)) {
-                    tmp = resMap.get(key);    
+                    tmp = resMap.get(key);
                 }
                 tmp.put(metric, metricData.get(key));
                 tmp.put("filter", key);
@@ -5125,8 +5163,8 @@ public class QueryDao {
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 String filter = bucket.get("key").asText();
-                res.put(filter, bucket.get("res").get("value").asInt());             
-            }          
+                res.put(filter, bucket.get("res").get("value").asInt());
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -5140,7 +5178,7 @@ public class QueryDao {
         switch (community.toLowerCase()) {
             case "openeuler":
                 index = openEuler.getSigs_index();
-                queryjson = openEuler.getSigOwnerQuery();                
+                queryjson = openEuler.getSigOwnerQuery();
                 break;
             default:
                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
@@ -5165,7 +5203,7 @@ public class QueryDao {
             while (buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 String key = bucket.get("key").asText();
-                res.put(key, bucket.get("res").get("value").asInt());             
+                res.put(key, bucket.get("res").get("value").asInt());
             }
             String s = objectMapper.valueToTree(res).toString();
             return "{\"code\":200,\"data\":" + s + ",\"msg\":\"ok\"}";
@@ -5174,5 +5212,4 @@ public class QueryDao {
         }
         return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
     }
-
 }
