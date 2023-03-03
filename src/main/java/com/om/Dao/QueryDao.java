@@ -38,6 +38,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URL;
@@ -51,6 +52,9 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
+
 import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.util.Lists;
 import org.asynchttpclient.*;
@@ -750,9 +754,7 @@ public class QueryDao {
             case "openlookeng":
                 return "{\"code\":" + 404 + ",\"data\":{\"" + item + "\":" + 0 + "},\"msg\":\"Not Found!\"}";
             case "opengauss":
-                index = openGauss.getDownloadQueryIndex();
-                queryjson = openGauss.getDownloadQueryStr();
-                break;
+                return queryDownloadOpenGauss(community, item);
             case "mindspore":
                 index = mindSpore.getDownloadQueryIndex();
                 queryjson = mindSpore.getDownloadQueryStr();
@@ -778,6 +780,46 @@ public class QueryDao {
             if (community.toLowerCase().equals("opengauss") && buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 count = bucket.get("doc_count").asInt();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return "{\"code\":" + statusCode + ",\"data\":{\"" + item + "\":" + count + "},\"msg\":\"" + statusText
+                + "\"}";
+
+    }
+
+    public String queryDownloadOpenGauss(String community, String item) throws NoSuchAlgorithmException, KeyManagementException,
+            ExecutionException, InterruptedException, JsonProcessingException {
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+        String[] indexs = openGauss.getDownloadQueryIndex().split(";");
+        String[] queryjsons = openGauss.getDownloadQueryStr().split(";");
+
+        int count = 0;
+        int statusCode = 500;
+        String statusText = "请求内部错误";       
+        try {
+            for (int i = 0; i < queryjsons.length; i++) {
+                builder.setUrl(this.url + indexs[i] + "/_search");
+                builder.setBody(queryjsons[i]);
+                // 获取执行结果
+                ListenableFuture<Response> f = client.executeRequest(builder.build());       
+                Response response = f.get();
+                statusCode = response.getStatusCode();
+                statusText = response.getStatusText();
+                String responseBody = response.getResponseBody(UTF_8);
+                JsonNode dataNode = objectMapper.readTree(responseBody);
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets").elements();
+                if (buckets.hasNext()) {
+                    JsonNode bucket = buckets.next();
+                    if (bucket.has("dockerhub")) {
+                        count += bucket.get("dockerhub").get("value").asInt();
+                    } else {
+                        count += bucket.get("doc_count").asInt();
+                    }                   
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
