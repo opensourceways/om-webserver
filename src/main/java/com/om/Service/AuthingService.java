@@ -297,6 +297,8 @@ public class AuthingService implements UserCenterServiceInter {
             token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
+            String headToken = decode.getClaim("verifyToken").asString();
+            String idToken = (String) redisDao.get("idToken_" + headToken);
 
             // 生成code和state
             String code = codeUtil.randomStrBuilder(32);
@@ -314,6 +316,7 @@ public class AuthingService implements UserCenterServiceInter {
             HashMap<String, String> codeMap = new HashMap<>();
             codeMap.put("accessToken", accessToken);
             codeMap.put("refreshToken", refreshToken);
+            codeMap.put("idToken", idToken);
             codeMap.put("appId", appId);
             codeMap.put("redirectUri", redirectUri);
             codeMap.put("scope", scope);
@@ -323,6 +326,7 @@ public class AuthingService implements UserCenterServiceInter {
             HashMap<String, String> userTokenMap = new HashMap<>();
             userTokenMap.put("access_token", accessToken);
             userTokenMap.put("refresh_token", refreshToken);
+            codeMap.put("idToken", idToken);
             userTokenMap.put("scope", scope);
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
             redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
@@ -1147,6 +1151,7 @@ public class AuthingService implements UserCenterServiceInter {
 
             HashMap<String, Object> tokens = new HashMap<>();
             tokens.put("access_token", jsonNode.get("accessToken").asText());
+            tokens.put("id_token", jsonNode.get("idToken").asText());
             tokens.put("scope", scopeTemp);
             tokens.put("expires_in", Long.parseLong(env.getProperty("oidc.access.token.expire", "1800")));
             tokens.put("token_type", "Bearer");
@@ -1196,6 +1201,7 @@ public class AuthingService implements UserCenterServiceInter {
             HashMap<String, Object> userTokenMap = new HashMap<>();
             userTokenMap.put("access_token", accessTokenNew);
             userTokenMap.put("refresh_token", refreshTokenNew);
+            userTokenMap.put("id_token", jsonNode.get("idToken").asText());
             userTokenMap.put("scope", scope);
             userTokenMap.put("expires_in", Long.parseLong(env.getProperty("oidc.access.token.expire", "1800")));
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
