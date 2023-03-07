@@ -378,6 +378,7 @@ public class AuthingService implements UserCenterServiceInter {
     public ResponseEntity oidcToken(HttpServletRequest servletRequest) {
         try {
             Map<String, String[]> parameterMap = servletRequest.getParameterMap();
+            System.out.println(parameterMap);
             String grantType = parameterMap.getOrDefault("grant_type", new String[]{""})[0];
 
             if (grantType.equals("authorization_code")) {
@@ -1114,6 +1115,7 @@ public class AuthingService implements UserCenterServiceInter {
 
     private ResponseEntity getOidcTokenByCode(String appId, String appSecret, String code, String redirectUri) {
         try {
+            System.out.println(String.format("appid: %s; code: %s; redirectUri: %s", appId, code, redirectUri));
             // 参数校验
             if (StringUtils.isBlank(appId) || StringUtils.isBlank(appSecret))
                 return resultOidc(HttpStatus.BAD_REQUEST, "not found the app", null);
