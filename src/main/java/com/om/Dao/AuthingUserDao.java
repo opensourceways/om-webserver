@@ -355,6 +355,15 @@ public class AuthingUserDao {
         }
     }
 
+    public JSONObject getUserByName(String username) {
+        try {
+            User user = managementClient.users().find(new FindUserParam().withUsername(username)).execute();
+            return getUserById(user.getId());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     // 获取用户基本信息
     public User getUserInfo(String token) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
         RSAPrivateKey privateKey = RSAUtil.getPrivateKey(rsaAuthingPrivateKey);
