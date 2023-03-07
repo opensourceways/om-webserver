@@ -381,8 +381,18 @@ public class AuthingService implements UserCenterServiceInter {
             String grantType = parameterMap.getOrDefault("grant_type", new String[]{""})[0];
 
             if (grantType.equals("authorization_code")) {
-                String appId = parameterMap.getOrDefault("client_id", new String[]{""})[0];
-                String appSecret = parameterMap.getOrDefault("client_secret", new String[]{""})[0];
+                String appId;
+                String appSecret;
+                if (parameterMap.containsKey("client_id") && parameterMap.containsKey("client_secret")) {
+                    appId = parameterMap.getOrDefault("client_id", new String[]{""})[0];
+                    appSecret = parameterMap.getOrDefault("client_secret", new String[]{""})[0];
+                } else {
+                    String header = servletRequest.getHeader("Authorization");
+                    byte[] authorization = Base64.getDecoder().decode(header.replace("Basic ", ""));
+                    String[] split = new String(authorization).split(":");
+                    appId = split[0];
+                    appSecret = split[1];
+                }
                 String redirectUri = parameterMap.getOrDefault("redirect_uri", new String[]{""})[0];
                 String code = parameterMap.getOrDefault("code", new String[]{""})[0];
                 return getOidcTokenByCode(appId, appSecret, code, redirectUri);
@@ -453,7 +463,12 @@ public class AuthingService implements UserCenterServiceInter {
                 }
                 if (scope.equals("address")) userData.put(scope, addressMap);
             }
-            return result(HttpStatus.OK, "OK", userData);
+            HashMap<String, Object> res = new HashMap<>();
+            res.put("code", 200);
+            res.put("data", userData);
+            res.put("msg", "OK");
+            res.putAll(userData);
+            return new ResponseEntity<>(res, HttpStatus.OK);
         } catch (Exception e) {
             e.printStackTrace();
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
@@ -481,7 +496,7 @@ public class AuthingService implements UserCenterServiceInter {
             // User user = authingUserDao.getUser(userId);
             String photo;
             String username;
-
+            String email;
             try {
                 String query = env.getProperty("mysql.query");
                 query = String.format(query, userId);
@@ -489,17 +504,20 @@ public class AuthingService implements UserCenterServiceInter {
                 HashMap<String, String> ui = userinfo.get(0);
                 photo = ui.get("photo");
                 username = ui.get("username");
+                email = ui.get("email");
             } catch (Exception e) {
                 System.out.println("get data from mysql failed.");
                 User user = authingUserDao.getUser(userId);
                 photo = user.getPhoto();
                 username = user.getUsername();
+                email = user.getEmail();
             }
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("photo", photo);
             userData.put("username", username);
+            userData.put("email", email);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             e.printStackTrace();
@@ -993,6 +1011,7 @@ public class AuthingService implements UserCenterServiceInter {
     private ResponseEntity resultOidc(HttpStatus status, String msg, Object body) {
         HashMap<String, Object> res = new HashMap<>();
         res.put("status", status.value());
+        res.put("error", msg);
         res.put("message", msg);
         if (body != null)
             res.put("body", body);
