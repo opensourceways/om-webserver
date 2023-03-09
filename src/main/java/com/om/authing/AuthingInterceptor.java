@@ -51,15 +51,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
     @Value("${authing.token.base.password}")
     private String authingTokenBasePassword;
 
-    @Value("${authing.app.fuxi.id}")
-    String omAppId;
-
-    @Value("${authing.app.fuxi.host}")
-    String omAppHost;
-
-    @Value("${authing.app.fuxi.secret}")
-    String omAppSecret;
-
     @Value("${rsa.authing.privateKey}")
     private String rsaAuthingPrivateKey;
 
@@ -197,7 +188,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
     /**
      * 校验用户（登录状态，操作权限）
      *
-     * @param userLoginToken AuthingToken（仅带有该注解的接口需要校验操作权限）
+     * @param sigToken SigToken（仅带有该注解的接口需要校验操作权限）
      * @param userId         用户id
      * @param permission     需要的操作权限
      * @return 校验结果
