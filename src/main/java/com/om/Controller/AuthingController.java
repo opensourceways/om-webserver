@@ -18,19 +18,14 @@ import com.om.Service.AuthingService;
 import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.authing.AuthingUserToken;
-
-import java.util.HashMap;
-import java.util.Map;
-import javax.annotation.PostConstruct;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Map;
 
 import static com.anji.captcha.controller.CaptchaController.getRemoteId;
 
@@ -68,10 +63,10 @@ public class AuthingController {
     @RequestMapping(value = "/v3/sendCode")
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
-        /*CaptchaVO captchaVO = new CaptchaVO();
+        CaptchaVO captchaVO = new CaptchaVO();
         captchaVO.setCaptchaVerification(captchaVerification);
-        ResponseModel response = captchaService.verification(captchaVO);*/
-        boolean isSuccess = true; //response.isSuccess();
+        ResponseModel response = captchaService.verification(captchaVO);
+        boolean isSuccess = response.isSuccess();
 
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.sendCodeV3(servletRequest, servletResponse, isSuccess);
