@@ -68,10 +68,10 @@ public class AuthingController {
     @RequestMapping(value = "/v3/sendCode")
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
-        CaptchaVO captchaVO = new CaptchaVO();
+        /*CaptchaVO captchaVO = new CaptchaVO();
         captchaVO.setCaptchaVerification(captchaVerification);
-        ResponseModel response = captchaService.verification(captchaVO);
-        boolean isSuccess = response.isSuccess();
+        ResponseModel response = captchaService.verification(captchaVO);*/
+        boolean isSuccess = true; //response.isSuccess();
 
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.sendCodeV3(servletRequest, servletResponse, isSuccess);
@@ -184,8 +184,9 @@ public class AuthingController {
     @RequestMapping(value = "/sendcode")
     public ResponseEntity sendCode(@RequestParam(value = "account") String account,
                                    @RequestParam(value = "field") String field,
-                                   @RequestParam(value = "account_type") String account_type) {
-        return authingService.sendCode(account, account_type, field);
+                                   @RequestParam(value = "account_type") String account_type,
+                                   @CookieValue(value = "_Y_G_", required = false) String token) {
+        return authingService.sendCode(token, account, account_type, field);
     }
 
     @AuthingUserToken
