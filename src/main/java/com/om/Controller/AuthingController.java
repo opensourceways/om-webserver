@@ -18,19 +18,14 @@ import com.om.Service.AuthingService;
 import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.authing.AuthingUserToken;
-
-import java.util.HashMap;
-import java.util.Map;
-import javax.annotation.PostConstruct;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.Map;
 
 import static com.anji.captcha.controller.CaptchaController.getRemoteId;
 
@@ -184,8 +179,9 @@ public class AuthingController {
     @RequestMapping(value = "/sendcode")
     public ResponseEntity sendCode(@RequestParam(value = "account") String account,
                                    @RequestParam(value = "field") String field,
-                                   @RequestParam(value = "account_type") String account_type) {
-        return authingService.sendCode(account, account_type, field);
+                                   @RequestParam(value = "account_type") String account_type,
+                                   @CookieValue(value = "_Y_G_", required = false) String token) {
+        return authingService.sendCode(token, account, account_type, field);
     }
 
     @AuthingUserToken

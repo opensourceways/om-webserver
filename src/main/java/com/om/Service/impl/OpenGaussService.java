@@ -281,7 +281,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         redisDao.remove(loginErrorCountKey);
 
         // 生成token
-        String[] tokens = jwtTokenCreateService.authingUserToken(user.getString("id"), "", "", idToken);
+        String[] tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"), "", "", idToken);
         String token = tokens[0];
         String verifyToken = tokens[1];
 
