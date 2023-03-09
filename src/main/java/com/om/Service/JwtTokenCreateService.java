@@ -101,7 +101,7 @@ public class JwtTokenCreateService {
                 .sign(Algorithm.HMAC256(user.getPassword() + basePassword));
     }
 
-    public String[] authingUserToken(String userId, String permission, String inputPermission, String idToken) {
+    public String[] authingUserToken(String appId, String userId, String permission, String inputPermission, String idToken) {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -139,6 +139,7 @@ public class JwtTokenCreateService {
                 .withClaim("inputPermission", inputPermission)
                 .withClaim("verifyToken", verifyToken)
                 .withClaim("permissionList", perStr)
+                .withClaim("client_id", appId)
                 .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));
         try {
             RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
