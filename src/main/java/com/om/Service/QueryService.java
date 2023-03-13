@@ -1190,7 +1190,7 @@ public class QueryService {
         if (userData != null) {
             result = objectMapper.valueToTree(userData).toString();
         } else {
-            result = "{}";
+            result = "[]";
         }
         result = "{\"code\":200,\"data\":" + result + ",\"msg\":\"ok\"}";
         return result;
