@@ -281,7 +281,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         redisDao.remove(loginErrorCountKey);
 
         // 生成token
-        String[] tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"), "", "", idToken);
+        String[] tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"), user.getString("username"), "", "", idToken);
         String token = tokens[0];
         String verifyToken = tokens[1];
 
@@ -419,7 +419,8 @@ public class OpenGaussService implements UserCenterServiceInter {
 
             //用户注销
             boolean res = oneidDao.deleteUser(poolId, poolSecret, userId);
-            if (res) return deleteUserAfter(servletRequest, servletResponse, token, userId, issuedAt, photo);
+            if (res)
+                return deleteUserAfter(servletRequest, servletResponse, token, userId, issuedAt, photo);
             else return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
         } catch (Exception e) {
             return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
@@ -449,7 +450,8 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, "请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾", null);
             String userJsonStr = objectMapper.writeValueAsString(map);
             JSONObject user = oneidDao.updateUser(poolId, poolSecret, userId, userJsonStr);
-            if (user != null) return result(HttpStatus.OK, null, "update base info success", null);
+            if (user != null)
+                return result(HttpStatus.OK, null, "update base info success", null);
         } catch (Exception e) {
             e.printStackTrace();
         }
