@@ -99,7 +99,8 @@ public class JwtTokenCreateService {
                 .sign(Algorithm.HMAC256(user.getPassword() + basePassword));
     }
 
-    public String[] authingUserToken(String appId, String userId, String username, String permission, String inputPermission, String idToken) {
+    public String[] authingUserToken(String appId, String userId, String username,
+                                     String permission, String inputPermission, String idToken) {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -111,7 +112,8 @@ public class JwtTokenCreateService {
         }
         LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
-        Date headTokenExpireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant().plusSeconds(expireSeconds));
+        Date headTokenExpireAt = Date.from(expireDate.atZone(ZoneId.systemDefault())
+                .toInstant().plusSeconds(expireSeconds));
 
         String headToken = JWT.create()
                 .withAudience(username) //谁接受签名
@@ -153,9 +155,10 @@ public class JwtTokenCreateService {
         String headerJwtToken = request.getHeader("token");
         String headJwtTokenMd5 = DigestUtils.md5DigestAsHex(headerJwtToken.getBytes());
         String appId = claimMap.get("client_id").asString();
-        String permission = new String(Base64.getDecoder().decode(claimMap.get("permission").asString().getBytes()));
         String inputPermission = claimMap.get("inputPermission").asString();
         String idToken = (String) redisDao.get("idToken_" + headJwtTokenMd5);
+        String permission = new String(Base64.getDecoder()
+                .decode(claimMap.get("permission").asString().getBytes()));
 
         // 缓存正在进行刷新的headerToken，确保同一用户同一时间并发刷新时只刷新一次
         redisDao.set(headJwtTokenMd5, "refreshing", 10L);
