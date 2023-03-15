@@ -269,7 +269,8 @@ public class AuthingService implements UserCenterServiceInter {
         String permissionInfo = env.getProperty(community + "." + permission);
 
         // 生成token
-        String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, user.getUsername(), permissionInfo, permission, idToken);
+        String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
+                user.getUsername(), permissionInfo, permission, idToken);
         String token = tokens[0];
         String verifyToken = tokens[1];
 
@@ -279,8 +280,10 @@ public class AuthingService implements UserCenterServiceInter {
         String maxAgeTemp = env.getProperty("authing.cookie.max.age");
         int expire = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
         int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : expire;
-        HttpClientUtils.setCookie(servletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
-        HttpClientUtils.setCookie(servletRequest, servletResponse, verifyTokenName, verifyToken, false, expire, "/", domain2secure);
+        HttpClientUtils.setCookie(servletRequest, servletResponse, cookieTokenName,
+                token, true, maxAge, "/", domain2secure);
+        HttpClientUtils.setCookie(servletRequest, servletResponse, verifyTokenName,
+                verifyToken, false, expire, "/", domain2secure);
 
         // 返回结果
         HashMap<String, Object> userData = new HashMap<>();
@@ -689,7 +692,8 @@ public class AuthingService implements UserCenterServiceInter {
             String permissionInfo = env.getProperty(community + "." + permission);
 
             // 生成token
-            String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, username, permissionInfo, permission, idToken);
+            String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
+                    username, permissionInfo, permission, idToken);
             String token = tokens[0];
             String verifyToken = tokens[1];
 
@@ -699,8 +703,10 @@ public class AuthingService implements UserCenterServiceInter {
             String maxAgeTemp = env.getProperty("authing.cookie.max.age");
             int expire = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
             int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : expire;
-            HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
-            HttpClientUtils.setCookie(httpServletRequest, servletResponse, verifyTokenName, verifyToken, false, expire, "/", domain2secure);
+            HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName,
+                    token, true, maxAge, "/", domain2secure);
+            HttpClientUtils.setCookie(httpServletRequest, servletResponse, verifyTokenName,
+                    verifyToken, false, expire, "/", domain2secure);
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();

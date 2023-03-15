@@ -157,7 +157,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
         }
 
         // 校验token
-        String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, userId, issuedAt, expiresAt, permission);
+        String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, userId,
+                issuedAt, expiresAt, permission);
 
         // 如果token过期，使用headToken刷新token
         String newHeaderJwtToken = headerJwtToken;
@@ -179,7 +180,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
         int tokenExpire = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "1800"));
         String newVerifyToken = DigestUtils.md5DigestAsHex(newHeaderJwtToken.getBytes());
         redisDao.set("idToken_" + newVerifyToken, idToken, (long) tokenExpire);
-        HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, verifyTokenName, newHeaderJwtToken, false, tokenExpire, "/", domain2secure);
+        HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, verifyTokenName,
+                newHeaderJwtToken, false, tokenExpire, "/", domain2secure);
 
         // 校验sig权限
         if (sigToken != null && sigToken.required()) {
@@ -270,10 +272,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private String verifyCompanyPer(CompanyToken companyToken, String userId) {
         try {
             if (companyToken != null && companyToken.required()) {
-                ArrayList<String> pers = authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
+                ArrayList<String> pers =
+                        authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
                 for (String per : pers) {
                     String[] perList = per.split(":");
-                    if (perList.length > 1 && perList[1].equalsIgnoreCase(env.getProperty("openeuler.companyAction"))) {
+                    if (perList.length > 1
+                            && perList[1].equalsIgnoreCase(env.getProperty("openeuler.companyAction"))) {
                         return "success";
                     }
                 }
@@ -391,16 +395,23 @@ public class AuthingInterceptor implements HandlerInterceptor {
         int tokenExpire = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "1800"));
         String maxAgeTemp = env.getProperty("authing.cookie.max.age");
         int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : tokenExpire;
-        HttpClientUtils.setCookie(request, response, cookieTokenName, tokens[0], true, maxAge, "/", domain2secure);
+        HttpClientUtils.setCookie(request, response, cookieTokenName, tokens[0],
+                true, maxAge, "/", domain2secure);
 
         // 旧token失效
         redisDao.remove("idToken_" + verifyToken);
         return tokens[1];
     }
 
-    private void tokenError(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, String message) throws IOException {
-        HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
-        HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, verifyTokenName, null, false, 0, "/", domain2secure);
+    private void tokenError(HttpServletRequest httpServletRequest,
+                            HttpServletResponse httpServletResponse,
+                            String message) throws IOException {
+        HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, cookieTokenName,
+                null, true, 0, "/", domain2secure);
+
+        HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, verifyTokenName,
+                null, false, 0, "/", domain2secure);
+
         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
     }
 }
