@@ -13,29 +13,27 @@ package com.om.Service;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.Claim;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.*;
-import com.om.Utils.CodeUtil;
 import com.om.Utils.RSAUtil;
 import com.om.Vo.TokenUser;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 
-import java.math.BigInteger;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.security.interfaces.RSAPublicKey;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Date;
-
-import org.apache.commons.lang3.RandomStringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Service;
-
+import java.util.Map;
 
 @Service
 public class JwtTokenCreateService {
@@ -101,7 +99,8 @@ public class JwtTokenCreateService {
                 .sign(Algorithm.HMAC256(user.getPassword() + basePassword));
     }
 
-    public String[] authingUserToken(String appId, String userId, String permission, String inputPermission, String idToken) {
+    public String[] authingUserToken(String appId, String userId, String username,
+                                     String permission, String inputPermission, String idToken) {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -113,23 +112,24 @@ public class JwtTokenCreateService {
         }
         LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
+        Date headTokenExpireAt = Date.from(expireDate.atZone(ZoneId.systemDefault())
+                .toInstant().plusSeconds(expireSeconds));
 
-        String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes());
-
-        String verifyToken;
-        try {
-            verifyToken = new CodeUtil().randomStrBuilder(32);
-        } catch (NoSuchAlgorithmException e) {
-            verifyToken = RandomStringUtils.randomAlphanumeric(32);
-            e.printStackTrace();
-        }
+        String headToken = JWT.create()
+                .withAudience(username) //谁接受签名
+                .withIssuedAt(issuedAt) //生成签名的时间
+                .withExpiresAt(headTokenExpireAt) //过期时间
+                .sign(Algorithm.HMAC256(authingTokenBasePassword));
+        String verifyToken = DigestUtils.md5DigestAsHex(headToken.getBytes());
         redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
+
         String perStr = "";
         ArrayList<String> pers = authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
         for (String per : pers) {
             perStr += per + ",";
         }
         perStr = Base64.getEncoder().encodeToString(perStr.getBytes());
+        String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes());
 
         String token = JWT.create()
                 .withAudience(userId) //谁接受签名
@@ -143,11 +143,29 @@ public class JwtTokenCreateService {
                 .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));
         try {
             RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
-            return new String[]{RSAUtil.publicEncrypt(token, publicKey), verifyToken};
+            return new String[]{RSAUtil.publicEncrypt(token, publicKey), headToken};
         } catch (Exception e) {
             System.out.println("RSA Encrypt error");
-            return new String[]{token, verifyToken};
+            return new String[]{token, headToken};
         }
+    }
+
+    public String[] refreshAuthingUserToken(HttpServletRequest request, HttpServletResponse response,
+                                            String userId, Map<String, Claim> claimMap) {
+        String headerJwtToken = request.getHeader("token");
+        String headJwtTokenMd5 = DigestUtils.md5DigestAsHex(headerJwtToken.getBytes());
+        String appId = claimMap.get("client_id").asString();
+        String inputPermission = claimMap.get("inputPermission").asString();
+        String idToken = (String) redisDao.get("idToken_" + headJwtTokenMd5);
+        String permission = new String(Base64.getDecoder()
+                .decode(claimMap.get("permission").asString().getBytes()));
+
+        // 缓存正在进行刷新的headerToken，确保同一用户同一时间并发刷新时只刷新一次
+        redisDao.set(headJwtTokenMd5, "refreshing", 10L);
+
+        // 生成新的token和headToken
+        String username = JWT.decode(headerJwtToken).getAudience().get(0);
+        return authingUserToken(appId, userId, username, permission, inputPermission, idToken);
     }
 
     public String oidcToken(String userId, String issuer, String scope, long expireSeconds, Date expireAt) {

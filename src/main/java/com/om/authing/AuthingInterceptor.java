@@ -15,28 +15,30 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTDecodeException;
+import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
+import com.om.Service.JwtTokenCreateService;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.security.interfaces.RSAPrivateKey;
-import java.util.*;
-import javax.annotation.PostConstruct;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
-
+import javax.annotation.PostConstruct;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.security.interfaces.RSAPrivateKey;
+import java.util.*;
 
 public class AuthingInterceptor implements HandlerInterceptor {
     @Autowired
@@ -44,6 +46,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
     @Autowired
     RedisDao redisDao;
+
+    @Autowired
+    JwtTokenCreateService jwtTokenCreateService;
 
     @Autowired
     private Environment env;
@@ -56,6 +61,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
     @Value("${cookie.token.name}")
     private String cookieTokenName;
+
+    @Value("${cookie.verify.token.name}")
+    private String verifyTokenName;
 
     @Value("${cookie.token.domains}")
     private String allowDomains;
@@ -95,10 +103,11 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        // 从请求头中取出 token
-        String headerToken = httpServletRequest.getHeader("token");
-        if (StringUtils.isBlank(headerToken)) {
-            tokenError(httpServletRequest, httpServletResponse, "unauthorized");
+        // 校验header中的token
+        String headerJwtToken = httpServletRequest.getHeader("token");
+        String headJwtTokenMd5 = verifyHeaderToken(headerJwtToken);
+        if (headJwtTokenMd5.equals("unauthorized") || headJwtTokenMd5.equals("token expires")) {
+            tokenError(httpServletRequest, httpServletResponse, headJwtTokenMd5);
             return false;
         }
 
@@ -132,25 +141,47 @@ public class AuthingInterceptor implements HandlerInterceptor {
         Date expiresAt;
         String permission;
         String verifyToken;
+        Map<String, Claim> claims;
         try {
             DecodedJWT decode = JWT.decode(token);
             userId = decode.getAudience().get(0);
             issuedAt = decode.getIssuedAt();
             expiresAt = decode.getExpiresAt();
-            String permissionTemp = decode.getClaim("permission").asString();
+            claims = decode.getClaims();
+            String permissionTemp = claims.get("permission").asString();
             permission = new String(Base64.getDecoder().decode(permissionTemp.getBytes()));
-            verifyToken = decode.getClaim("verifyToken").asString();
+            verifyToken = claims.get("verifyToken").asString();
         } catch (JWTDecodeException j) {
             tokenError(httpServletRequest, httpServletResponse, "unauthorized");
             return false;
         }
 
         // 校验token
-        String verifyTokenMsg = verifyToken(headerToken, token, verifyToken, userId, issuedAt, expiresAt, permission);
+        String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, userId,
+                issuedAt, expiresAt, permission);
+
+        // 如果token过期，使用headToken刷新token
+        String newHeaderJwtToken = headerJwtToken;
+        String idToken = (String) redisDao.get("idToken_" + headJwtTokenMd5);
+        if (verifyTokenMsg.equals("token expires") && idToken != null) {
+            if (redisDao.get(headJwtTokenMd5) == null) {
+                newHeaderJwtToken = refreshToken(httpServletRequest, httpServletResponse,
+                        verifyToken, userId, claims);
+            }
+            verifyTokenMsg = "success";
+        }
+
         if (!verifyTokenMsg.equals("success")) {
             tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
             return false;
         }
+
+        // 每次调用刷新headerToken的过期时间，保证有交付保持登录
+        int tokenExpire = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "1800"));
+        String newVerifyToken = DigestUtils.md5DigestAsHex(newHeaderJwtToken.getBytes());
+        redisDao.set("idToken_" + newVerifyToken, idToken, (long) tokenExpire);
+        HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, verifyTokenName,
+                newHeaderJwtToken, false, tokenExpire, "/", domain2secure);
 
         // 校验sig权限
         if (sigToken != null && sigToken.required()) {
@@ -186,11 +217,40 @@ public class AuthingInterceptor implements HandlerInterceptor {
     }
 
     /**
+     * 校验header中的token
+     *
+     * @param headerToken header中的token
+     * @return 校验正确返回token的MD5值
+     */
+    private String verifyHeaderToken(String headerToken) {
+        try {
+            if (StringUtils.isBlank(headerToken)) {
+                return "unauthorized";
+            }
+
+            // 服务端校验headerToken是否有效
+            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes());
+            if (!redisDao.exists("idToken_" + md5Token)) {
+                return "token expires";
+            }
+
+            // token 签名密码验证
+            String password = authingTokenBasePassword;
+            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(password)).build();
+            jwtVerifier.verify(headerToken);
+            return md5Token;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "unauthorized";
+        }
+    }
+
+    /**
      * 校验用户（登录状态，操作权限）
      *
-     * @param sigToken SigToken（仅带有该注解的接口需要校验操作权限）
-     * @param userId         用户id
-     * @param permission     需要的操作权限
+     * @param sigToken   SigToken（仅带有该注解的接口需要校验操作权限）
+     * @param userId     用户id
+     * @param permission 需要的操作权限
      * @return 校验结果
      */
     private String verifyUser(SigToken sigToken, String userId, String permission) {
@@ -210,14 +270,16 @@ public class AuthingInterceptor implements HandlerInterceptor {
     }
 
     private String verifyCompanyPer(CompanyToken companyToken, String userId) {
-        try {           
+        try {
             if (companyToken != null && companyToken.required()) {
-                ArrayList<String> pers = authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
+                ArrayList<String> pers =
+                        authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
                 for (String per : pers) {
                     String[] perList = per.split(":");
-                    if (perList.length > 1 && perList[1].equalsIgnoreCase(env.getProperty("openeuler.companyAction"))){
+                    if (perList.length > 1
+                            && perList[1].equalsIgnoreCase(env.getProperty("openeuler.companyAction"))) {
                         return "success";
-                    }                   
+                    }
                 }
             }
         } catch (Exception e) {
@@ -324,8 +386,32 @@ public class AuthingInterceptor implements HandlerInterceptor {
         return false;
     }
 
-    private void tokenError(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, String message) throws IOException {
-        HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
+    private String refreshToken(HttpServletRequest request, HttpServletResponse response,
+                                String verifyToken, String userId, Map<String, Claim> claimMap) {
+        // headToken刷新token
+        String[] tokens = jwtTokenCreateService.refreshAuthingUserToken(request, response, userId, claimMap);
+
+        // 刷新cookie
+        int tokenExpire = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "1800"));
+        String maxAgeTemp = env.getProperty("authing.cookie.max.age");
+        int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : tokenExpire;
+        HttpClientUtils.setCookie(request, response, cookieTokenName, tokens[0],
+                true, maxAge, "/", domain2secure);
+
+        // 旧token失效
+        redisDao.remove("idToken_" + verifyToken);
+        return tokens[1];
+    }
+
+    private void tokenError(HttpServletRequest httpServletRequest,
+                            HttpServletResponse httpServletResponse,
+                            String message) throws IOException {
+        HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, cookieTokenName,
+                null, true, 0, "/", domain2secure);
+
+        HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, verifyTokenName,
+                null, false, 0, "/", domain2secure);
+
         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
     }
 }
