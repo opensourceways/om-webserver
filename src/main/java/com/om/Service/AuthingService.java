@@ -586,7 +586,8 @@ public class AuthingService implements UserCenterServiceInter {
     public ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
         try {
             String headerToken = servletRequest.getHeader("token");
-            String idTokenKey = "idToken_" + headerToken;
+            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes());
+            String idTokenKey = "idToken_" + md5Token;
             String idToken = (String) redisDao.get(idTokenKey);
 
             token = rsaDecryptToken(token);
@@ -1080,7 +1081,8 @@ public class AuthingService implements UserCenterServiceInter {
 
             // 删除cookie，删除idToken
             String headerToken = httpServletRequest.getHeader("token");
-            String idTokenKey = "idToken_" + headerToken;
+            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes());
+            String idTokenKey = "idToken_" + md5Token;
             String cookieTokenName = env.getProperty("cookie.token.name");
             HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
             redisDao.remove(idTokenKey);
