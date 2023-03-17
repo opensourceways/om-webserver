@@ -152,7 +152,8 @@ public class AuthingService implements UserCenterServiceInter {
         else
             return result(HttpStatus.BAD_REQUEST, null, accountType, null);
 
-        if (!msg.equals("success")) return result(HttpStatus.BAD_REQUEST, null, msg, null);
+        if (!msg.equals("success"))
+            return result(HttpStatus.BAD_REQUEST, null, msg, null);
         else return result(HttpStatus.OK, "success", null);
     }
 
@@ -186,7 +187,8 @@ public class AuthingService implements UserCenterServiceInter {
         } else {
             return result(HttpStatus.BAD_REQUEST, null, accountType, null);
         }
-        if (!msg.equals("success")) return result(HttpStatus.BAD_REQUEST, null, msg, null);
+        if (!msg.equals("success"))
+            return result(HttpStatus.BAD_REQUEST, null, msg, null);
 
         return result(HttpStatus.OK, "success", null);
     }
@@ -297,6 +299,8 @@ public class AuthingService implements UserCenterServiceInter {
             token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
+            String headToken = decode.getClaim("verifyToken").asString();
+            String idToken = (String) redisDao.get("idToken_" + headToken);
 
             // 生成code和state
             String code = codeUtil.randomStrBuilder(32);
@@ -314,6 +318,7 @@ public class AuthingService implements UserCenterServiceInter {
             HashMap<String, String> codeMap = new HashMap<>();
             codeMap.put("accessToken", accessToken);
             codeMap.put("refreshToken", refreshToken);
+            codeMap.put("idToken", idToken);
             codeMap.put("appId", appId);
             codeMap.put("redirectUri", redirectUri);
             codeMap.put("scope", scope);
@@ -323,6 +328,7 @@ public class AuthingService implements UserCenterServiceInter {
             HashMap<String, String> userTokenMap = new HashMap<>();
             userTokenMap.put("access_token", accessToken);
             userTokenMap.put("refresh_token", refreshToken);
+            userTokenMap.put("idToken", idToken);
             userTokenMap.put("scope", scope);
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
             redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
@@ -667,7 +673,8 @@ public class AuthingService implements UserCenterServiceInter {
 
             // 通过code获取access_token，再通过access_token获取用户
             Map user = authingUserDao.getUserInfoByAccessToken(code, url);
-            if (user == null) return result(HttpStatus.UNAUTHORIZED, "user not found", null);
+            if (user == null)
+                return result(HttpStatus.UNAUTHORIZED, "user not found", null);
             String userId = user.get("sub").toString();
             String idToken = user.get("id_token").toString();
             String picture = user.get("picture").toString();
@@ -728,7 +735,8 @@ public class AuthingService implements UserCenterServiceInter {
 
             //用户注销
             boolean res = authingUserDao.deleteUserById(userId);
-            if (res) return deleteUserAfter(servletRequest, servletResponse, token, userId, issuedAt, photo);
+            if (res)
+                return deleteUserAfter(servletRequest, servletResponse, token, userId, issuedAt, photo);
             else return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
         } catch (Exception e) {
             return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
@@ -860,7 +868,8 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token, Map<String, Object> map) {
         String res = authingUserDao.updateUserBaseInfo(token, map);
-        if (res.equals("success")) return result(HttpStatus.OK, "update base info success", null);
+        if (res.equals("success"))
+            return result(HttpStatus.OK, "update base info success", null);
         else return result(HttpStatus.BAD_REQUEST, null, res, null);
     }
 
@@ -1128,6 +1137,7 @@ public class AuthingService implements UserCenterServiceInter {
 
             HashMap<String, Object> tokens = new HashMap<>();
             tokens.put("access_token", jsonNode.get("accessToken").asText());
+            tokens.put("id_token", jsonNode.get("idToken").asText());
             tokens.put("scope", scopeTemp);
             tokens.put("expires_in", Long.parseLong(env.getProperty("oidc.access.token.expire", "1800")));
             tokens.put("token_type", "Bearer");
@@ -1177,6 +1187,7 @@ public class AuthingService implements UserCenterServiceInter {
             HashMap<String, Object> userTokenMap = new HashMap<>();
             userTokenMap.put("access_token", accessTokenNew);
             userTokenMap.put("refresh_token", refreshTokenNew);
+            userTokenMap.put("id_token", jsonNode.get("idToken").asText());
             userTokenMap.put("scope", scope);
             userTokenMap.put("expires_in", Long.parseLong(env.getProperty("oidc.access.token.expire", "1800")));
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
