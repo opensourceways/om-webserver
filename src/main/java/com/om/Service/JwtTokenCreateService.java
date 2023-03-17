@@ -191,4 +191,20 @@ public class JwtTokenCreateService {
             return token;
         }
     }
+
+    public String getAppManagerToken(String appId, String appSecret,
+                                     long tokenExpire) {
+        LocalDateTime nowDate = LocalDateTime.now();
+
+        Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
+
+        LocalDateTime expireDate = nowDate.plusSeconds(tokenExpire);
+        Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
+
+        return JWT.create()
+                .withAudience(appId) //谁接受签名
+                .withIssuedAt(issuedAt) //生成签名的时间
+                .withExpiresAt(expireAt) //过期时间
+                .sign(Algorithm.HMAC256(appSecret + authingTokenBasePassword));
+    }
 }
