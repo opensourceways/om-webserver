@@ -172,6 +172,11 @@ public class AuthingService implements UserCenterServiceInter {
         String code = servletRequest.getParameter("code");
         String appId = servletRequest.getParameter("client_id");
 
+        // 校验appId
+        if (authingUserDao.initAppClient(appId) == null) {
+            return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
+        }
+
         // 用户名校验
         msg = authingUserDao.checkUsername(appId, userName);
         if (!msg.equals("success"))
@@ -182,11 +187,6 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, "请输入正确的邮箱", null);
         if (StringUtils.isBlank(code))
             return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
-
-        // 校验appId
-        if (authingUserDao.initAppClient(appId) == null) {
-            return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
-        }
 
         // 邮箱 OR 手机号校验
         String accountType = checkPhoneAndEmail(appId, account);
@@ -354,7 +354,7 @@ public class AuthingService implements UserCenterServiceInter {
             HashMap<String, String> userTokenMap = new HashMap<>();
             userTokenMap.put("access_token", accessToken);
             userTokenMap.put("refresh_token", refreshToken);
-            codeMap.put("idToken", idToken);
+            userTokenMap.put("idToken", idToken);
             userTokenMap.put("scope", scope);
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
             redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
@@ -1151,14 +1151,22 @@ public class AuthingService implements UserCenterServiceInter {
                 return resultOidc(HttpStatus.NOT_FOUND, "app invalid or secret error", null);
             }
 
+            long expire = Long.parseLong(
+                    env.getProperty("oidc.access.token.expire", "1800"));
+
             HashMap<String, Object> tokens = new HashMap<>();
             tokens.put("access_token", jsonNode.get("accessToken").asText());
-            tokens.put("id_token", jsonNode.get("idToken").asText());
             tokens.put("scope", scopeTemp);
-            tokens.put("expires_in", Long.parseLong(env.getProperty("oidc.access.token.expire", "1800")));
+            tokens.put("expires_in", expire);
             tokens.put("token_type", "Bearer");
-            if (Arrays.asList(scopeTemp.split(" ")).contains("offline_access"))
+            List<String> scopes = Arrays.asList(scopeTemp.split(" "));
+            if (scopes.contains("offline_access")) {
                 tokens.put("refresh_token", jsonNode.get("refreshToken").asText());
+            }
+            if (scopes.contains("id_token")) {
+                tokens.put("id_token", jsonNode.get("idToken").asText());
+            }
+
 
             redisDao.remove(code);
             return new ResponseEntity(tokens, HttpStatus.OK);
@@ -1200,12 +1208,18 @@ public class AuthingService implements UserCenterServiceInter {
             String refreshTokenNew = jwtTokenCreateService.oidcToken(userId, OIDCISSUER, scope, refreshTokenExpire, expiresAt);
 
             // 缓存新的accessToken和refreshToken
+            long expire = Long.parseLong(
+                    env.getProperty("oidc.access.token.expire", "1800"));
             HashMap<String, Object> userTokenMap = new HashMap<>();
             userTokenMap.put("access_token", accessTokenNew);
             userTokenMap.put("refresh_token", refreshTokenNew);
-            userTokenMap.put("id_token", jsonNode.get("idToken").asText());
             userTokenMap.put("scope", scope);
-            userTokenMap.put("expires_in", Long.parseLong(env.getProperty("oidc.access.token.expire", "1800")));
+            userTokenMap.put("expires_in", expire);
+            List<String> scopes = Arrays.asList(scope.split(" "));
+            if (scopes.contains("id_token")) {
+                userTokenMap.put("id_token", jsonNode.get("idToken").asText());
+            }
+
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
             redisDao.set(DigestUtils.md5DigestAsHex(refreshTokenNew.getBytes()), userTokenMapStr, refreshTokenExpire);
 
