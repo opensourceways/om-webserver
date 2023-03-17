@@ -14,10 +14,13 @@ package com.om.Controller;
 import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.om.Service.AuthingService;
+import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.authing.AuthingUserToken;
+import com.om.token.ManageToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +38,9 @@ import static com.anji.captcha.controller.CaptchaController.getRemoteId;
 public class AuthingController {
     @Autowired
     AuthingService authingService;
+
+    @Autowired
+    QueryService queryService;
 
     @Autowired
     UserCenterServiceContext userCenterServiceContext;
@@ -258,6 +264,16 @@ public class AuthingController {
                                  @RequestParam(value = "file") MultipartFile file) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.updatePhoto(servletRequest, servletResponse, token, file);
+    }
+
+    @ManageToken
+    @RequestMapping("/user/ownertype")
+    public String queryUserOwnerType(@RequestParam(value = "community") String community,
+                                     @RequestParam(value = "user", required = false) String user,
+                                     @RequestParam(value = "username", required = false) String username)
+            throws JsonProcessingException {
+        String res = queryService.queryUserOwnertype(community, user, username);
+        return res;
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
