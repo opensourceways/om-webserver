@@ -86,7 +86,7 @@ public class OpenGaussService implements UserCenterServiceInter {
     @PostConstruct
     public void init() {
         codeUtil = new CodeUtil();
-        error2code = authingUserDao.getErrorCode();
+        error2code = MessageCodeConfig.getErrorCode();
         appId2Secret = getApps();
         result = new Result();
         channels = getSendCodeChannel();
