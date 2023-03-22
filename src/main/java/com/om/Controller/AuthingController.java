@@ -19,6 +19,7 @@ import com.om.Service.AuthingService;
 import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
+import com.om.Utils.HttpClientUtils;
 import com.om.authing.AuthingUserToken;
 import com.om.token.ManageToken;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,13 +79,14 @@ public class AuthingController {
         return service.sendCodeV3(servletRequest, servletResponse, isSuccess);
     }
 
-    @RequestMapping(value = "/register")
-    public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+    @RequestMapping(value = "/register", method = RequestMethod.POST)
+    public ResponseEntity register(HttpServletRequest servletRequest,
+                                   HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.register(servletRequest, servletResponse);
     }
 
-    @RequestMapping(value = "/login")
+    @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity login(HttpServletRequest servletRequest,
                                 HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
@@ -276,9 +278,45 @@ public class AuthingController {
         return res;
     }
 
+    @RequestMapping(value = "/public/key", method = RequestMethod.GET)
+    public ResponseEntity getPublicKey() throws JsonProcessingException {
+        return authingService.getPublicKey();
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/update/password", method = RequestMethod.POST)
+    public ResponseEntity updatePassword(HttpServletRequest request) {
+        return authingService.updatePassword(request);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/v3/sendCode/logged", method = RequestMethod.POST)
+    public ResponseEntity sendCodeLogged(HttpServletRequest request) {
+        return authingService.sendCodeLogged(request);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/reset/password/verify", method = RequestMethod.POST)
+    public ResponseEntity resetPwdVerify(HttpServletRequest request) {
+        return  authingService.resetPwdVerify(request);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/reset/password", method = RequestMethod.POST)
+    public ResponseEntity resetPwd(HttpServletRequest request) {
+        return  authingService.resetPwd(request);
+    }
+
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
         String community = servletRequest.getParameter("community");
-        String serviceType = community == null || community.toLowerCase().equals("openeuler") ? "authing" : community.toLowerCase();
+        if (community == null) {
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+            community = (String) body.getOrDefault("community", null);
+        }
+
+        String serviceType =
+                (community == null || community.toLowerCase().equals("openeuler"))
+                        ? "authing" : community.toLowerCase();
         return userCenterServiceContext.getUserCenterService(serviceType);
     }
 }

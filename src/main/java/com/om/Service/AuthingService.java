@@ -41,6 +41,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.net.URLEncoder;
@@ -75,6 +76,8 @@ public class AuthingService implements UserCenterServiceInter {
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
 
+    private static final String[] PARAMETER_DEFAULT_VALUE = new String[]{""};
+
     private static final String OIDCISSUER = "ONEID";
 
     private static CodeUtil codeUtil;
@@ -94,7 +97,7 @@ public class AuthingService implements UserCenterServiceInter {
     @PostConstruct
     public void init() {
         codeUtil = new CodeUtil();
-        error2code = authingUserDao.getErrorCode();
+        error2code = MessageCodeConfig.getErrorCode();
         objectMapper = new ObjectMapper();
         domain2secure = HttpClientUtils.getConfigCookieInfo(Objects.requireNonNull(env.getProperty("cookie.token.domains")), Objects.requireNonNull(env.getProperty("cookie.token.secures")));
         oidcScopeOthers = getOidcScopesOther();
@@ -165,12 +168,16 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     @Override
-    public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        String msg;
-        String userName = servletRequest.getParameter("username");
-        String account = servletRequest.getParameter("account");
-        String code = servletRequest.getParameter("code");
-        String appId = servletRequest.getParameter("client_id");
+    public ResponseEntity register(HttpServletRequest servletRequest,
+                                   HttpServletResponse servletResponse) {
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String username = (String) getBodyPara(body, "username");
+        String account = (String) getBodyPara(body, "account");
+        String code = (String) getBodyPara(body, "code");
+        String appId = (String) getBodyPara(body, "client_id");
+        String password = (String) getBodyPara(body, "password");
+        String pwdEncryptType = (String) getBodyPara(body, "pwd_encrypt_type");
+        pwdEncryptType = StringUtils.isBlank(pwdEncryptType) ? "none" : pwdEncryptType;
 
         // 校验appId
         if (authingUserDao.initAppClient(appId) == null) {
@@ -178,44 +185,49 @@ public class AuthingService implements UserCenterServiceInter {
         }
 
         // 用户名校验
-        msg = authingUserDao.checkUsername(appId, userName);
+        String msg;
+        msg = authingUserDao.checkUsername(appId, username);
         if (!msg.equals("success"))
             return result(HttpStatus.BAD_REQUEST, null, msg, null);
+
+        // 邮箱校验
         if (StringUtils.isBlank(account))
             return result(HttpStatus.BAD_REQUEST, null, "邮箱不能为空", null);
         if (!account.matches(Constant.EMAILREGEX))
             return result(HttpStatus.BAD_REQUEST, null, "请输入正确的邮箱", null);
-        if (StringUtils.isBlank(code))
-            return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
 
-        // 邮箱 OR 手机号校验
-        String accountType = checkPhoneAndEmail(appId, account);
-
-        if (accountType.equals("email")) {
-            // 邮箱注册
-            msg = authingUserDao.registerByEmail(appId, account, code, userName);
-        } else if (accountType.equals("phone")) {
-            // 手机注册
-            msg = authingUserDao.registerByPhone(appId, account, code, userName);
+        // 邮箱验证码或者密码注册
+        if (StringUtils.isNotBlank(code)) {
+            msg = authingUserDao.registerByEmailCode(appId, account, code, username);
+        } else if (StringUtils.isNotBlank(password)) {
+            msg = authingUserDao.registerByEmailPwd(appId, account, username,
+                    password, pwdEncryptType);
         } else {
-            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            return result(HttpStatus.BAD_REQUEST, null, "注册失败", null);
         }
-        if (!msg.equals("success"))
-            return result(HttpStatus.BAD_REQUEST, null, msg, null);
 
-        return result(HttpStatus.OK, "success", null);
+        return msg.equals("success")
+                ? result(HttpStatus.OK, "success", null)
+                : result(HttpStatus.BAD_REQUEST, null, msg, null);
     }
 
     @Override
-    public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        String appId = servletRequest.getParameter("client_id");
-        String community = servletRequest.getParameter("community");
-        String permission = servletRequest.getParameter("permission");
-        String account = servletRequest.getParameter("account");
-        String code = servletRequest.getParameter("code");
+    public ResponseEntity login(HttpServletRequest servletRequest,
+                                HttpServletResponse servletResponse) {
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String appId = (String) getBodyPara(body, "client_id");
+        String community = (String) getBodyPara(body, "community");
+        String permission = (String) getBodyPara(body, "permission");
+        String account = (String) getBodyPara(body, "account");
+        String username = (String) getBodyPara(body, "username");
+        String code = (String) getBodyPara(body, "code");
+        String password = (String) getBodyPara(body, "password");
+        String pwdEncryptType = (String) getBodyPara(body, "pwd_encrypt_type");
+        pwdEncryptType = StringUtils.isBlank(pwdEncryptType) ? "none" : pwdEncryptType;
 
         // 限制一分钟登录失败次数
-        String loginErrorCountKey = account + "loginCount";
+        String errorKey = StringUtils.isNoneBlank(account) ? account : username;
+        String loginErrorCountKey = errorKey + "loginCount";
         Object v = redisDao.get(loginErrorCountKey);
         int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
         if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.count", "6")))
@@ -227,15 +239,25 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
         }
 
+        String accountType = "";
+        if (StringUtils.isNotBlank(account)) {
+            accountType = getAccountType(account);
+        }
+
         // 登录
-        String accountType = getAccountType(account);
         Object msg;
-        if (accountType.equals("email")) {
-            msg = authingUserDao.loginByEmailCode(app, account, code);
-        } else if (accountType.equals("phone")) {
-            msg = authingUserDao.loginByPhoneCode(app, account, code);
+        if (accountType.equals("email")) { // 邮箱登录
+            msg = StringUtils.isNotBlank(code)
+                    ? authingUserDao.loginByEmailCode(app, account, code)
+                    : authingUserDao.loginByEmailPwd(app, account, password, pwdEncryptType);
+        } else if (accountType.equals("phone")) { // 手机号登录
+            msg = StringUtils.isNotBlank(code)
+                    ? authingUserDao.loginByPhoneCode(app, account, code)
+                    : authingUserDao.loginByPhonePwd(app, account, password, pwdEncryptType);
+        } else if (StringUtils.isNotBlank(username)) { // 用户名登录
+            msg = authingUserDao.loginByUsernamePwd(app, username, password, pwdEncryptType);
         } else {
-            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            msg = accountType;
         }
 
         String idToken;
@@ -894,6 +916,116 @@ public class AuthingService implements UserCenterServiceInter {
         else return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
     }
 
+    public ResponseEntity getPublicKey() throws JsonProcessingException {
+        String msg = authingUserDao.getPublicKey();
+        if (!msg.equals("Internal Server Error")) {
+            return result(HttpStatus.OK, "success", objectMapper.readTree(msg));
+        } else {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, null, msg, null);
+        }
+    }
+
+    public ResponseEntity updatePassword(HttpServletRequest request) {
+        String msg = "密码修改失败";
+        try {
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
+            String oldPwd = (String) getBodyPara(body, "old_pwd");
+            String newPwd = (String) getBodyPara(body, "new_pwd");
+            String pwdEncryptType = (String) getBodyPara(body, "pwd_encrypt_type");
+            Cookie cookie = getCookie(request, env.getProperty("cookie.token.name"));
+            pwdEncryptType = StringUtils.isBlank(pwdEncryptType) ? "none" : pwdEncryptType;
+
+            msg = authingUserDao.updatePassword(cookie.getValue(), oldPwd, newPwd, pwdEncryptType);
+            if (msg.equals("success")) {
+                return result(HttpStatus.OK, "success", null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result(HttpStatus.BAD_REQUEST, null, msg, null);
+    }
+
+    public ResponseEntity sendCodeLogged(HttpServletRequest request) {
+        String msg = "验证码发送失败";
+        try {
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
+            String account = (String) getBodyPara(body, "account");
+            String channel = (String) getBodyPara(body, "channel");
+
+            Cookie cookie = getCookie(request, env.getProperty("cookie.token.name"));
+            DecodedJWT decode = decodedJwtFromCookie(cookie);
+            String appId = decode.getClaim("client_id").asString();
+
+            String accountType = getAccountType(account);
+            if (accountType.equals("email")) {
+                msg = authingUserDao.sendEmailCodeV3(appId, account, channel);
+            } else if (accountType.equals("phone")) {
+                msg = authingUserDao.sendPhoneCodeV3(appId, account, channel);
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            }
+
+            return result(HttpStatus.OK, "success", null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return result(HttpStatus.BAD_REQUEST, null, msg, null);
+        }
+    }
+
+    public ResponseEntity resetPwdVerify(HttpServletRequest request) {
+        Object msg = "请求异常";
+        try {
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
+            String account = (String) getBodyPara(body, "account");
+            String code = (String) getBodyPara(body, "code");
+            Cookie cookie = getCookie(request, env.getProperty("cookie.token.name"));
+
+            String accountType = getAccountType(account);
+            if (accountType.equals("email")) {
+                msg = authingUserDao.resetPwdVerifyEmail(cookie.getValue(), account, code);
+            } else if (accountType.equals("phone")) {
+                msg = authingUserDao.resetPwdVerifyPhone(cookie.getValue(), account, code);
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            }
+
+            if (msg instanceof JSONObject) {
+                JSONObject resetToken = (JSONObject) msg;
+                return result(HttpStatus.OK, "success", resetToken.getString("passwordResetToken"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return result(HttpStatus.BAD_REQUEST, null, (String) msg, null);
+    }
+
+    public ResponseEntity resetPwd(HttpServletRequest request) {
+        try {
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
+            String pwdResetToken = (String) getBodyPara(body, "pwd_reset_token");
+            String newPwd = (String) getBodyPara(body, "new_pwd");
+            String pwdEncryptType = (String) getBodyPara(body, "pwd_encrypt_type");
+            pwdEncryptType = StringUtils.isBlank(pwdEncryptType) ? "none" : pwdEncryptType;
+
+            String resetMsg =
+                    authingUserDao.resetPwd(pwdResetToken, newPwd, pwdEncryptType);
+            if (resetMsg.equals("success")) {
+                return result(HttpStatus.OK, "change password success", null);
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, resetMsg, null);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return result(HttpStatus.BAD_REQUEST, null, "密码修改失败", null);
+    }
+
+    private DecodedJWT decodedJwtFromCookie(Cookie cookie) throws Exception {
+        String token = rsaDecryptToken(cookie.getValue());
+        return JWT.decode(token);
+    }
+
     // 获取自定义token中的user id
     private String getUserIdFromToken(String token) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
         DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
@@ -1234,4 +1366,31 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
+    private Object getBodyPara(Map<String, Object> body, String paraName) {
+        return body.getOrDefault(paraName, null);
+    }
+
+    private Cookie getCookie(Cookie[] cookies, String cookieName) {
+        Cookie cookie = null;
+        try {
+            for (Cookie cookieEle : cookies) {
+                if (cookieEle.getName().equals(cookieName)) {
+                    cookie = cookieEle;
+                    break;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return cookie;
+    }
+
+    private Cookie getCookie(HttpServletRequest request, String cookieName) {
+        Cookie cookie = null;
+        try {
+            Cookie[] cookies = request.getCookies();
+            cookie = getCookie(cookies, cookieName);
+        } catch (Exception ignored) {
+        }
+        return cookie;
+    }
 }
