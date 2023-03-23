@@ -176,12 +176,11 @@ public class AuthingService implements UserCenterServiceInter {
         String code = (String) getBodyPara(body, "code");
         String appId = (String) getBodyPara(body, "client_id");
         String password = (String) getBodyPara(body, "password");
-        String pwdEncryptType = (String) getBodyPara(body, "pwd_encrypt_type");
-        pwdEncryptType = StringUtils.isBlank(pwdEncryptType) ? "none" : pwdEncryptType;
 
         // 校验appId
         if (authingUserDao.initAppClient(appId) == null) {
-            return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
+            return result(HttpStatus.BAD_REQUEST, null,
+                    MessageCodeConfig.E00047.getMsgZh(), null);
         }
 
         // 用户名校验
@@ -191,19 +190,23 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, msg, null);
 
         // 邮箱校验
-        if (StringUtils.isBlank(account))
-            return result(HttpStatus.BAD_REQUEST, null, "邮箱不能为空", null);
-        if (!account.matches(Constant.EMAILREGEX))
-            return result(HttpStatus.BAD_REQUEST, null, "请输入正确的邮箱", null);
+        if (StringUtils.isBlank(account)) {
+            return result(HttpStatus.BAD_REQUEST, null,
+                    MessageCodeConfig.E00039.getMsgZh(), null);
+        }
+        if (!account.matches(Constant.EMAILREGEX)) {
+            return result(HttpStatus.BAD_REQUEST, null,
+                    MessageCodeConfig.E00040.getMsgZh(), null);
+        }
 
         // 邮箱验证码或者密码注册
         if (StringUtils.isNotBlank(code)) {
             msg = authingUserDao.registerByEmailCode(appId, account, code, username);
         } else if (StringUtils.isNotBlank(password)) {
-            msg = authingUserDao.registerByEmailPwd(appId, account, username,
-                    password, pwdEncryptType);
+            msg = authingUserDao.registerByEmailPwd(appId, account, username, password);
         } else {
-            return result(HttpStatus.BAD_REQUEST, null, "注册失败", null);
+            return result(HttpStatus.BAD_REQUEST, null,
+                    MessageCodeConfig.E00024.getMsgZh(), null);
         }
 
         return msg.equals("success")
@@ -222,21 +225,22 @@ public class AuthingService implements UserCenterServiceInter {
         String username = (String) getBodyPara(body, "username");
         String code = (String) getBodyPara(body, "code");
         String password = (String) getBodyPara(body, "password");
-        String pwdEncryptType = (String) getBodyPara(body, "pwd_encrypt_type");
-        pwdEncryptType = StringUtils.isBlank(pwdEncryptType) ? "none" : pwdEncryptType;
 
         // 限制一分钟登录失败次数
         String errorKey = StringUtils.isNoneBlank(account) ? account : username;
         String loginErrorCountKey = errorKey + "loginCount";
         Object v = redisDao.get(loginErrorCountKey);
         int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
-        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.count", "6")))
-            return result(HttpStatus.BAD_REQUEST, null, "失败次数过多，请稍后重试", null);
+        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.count", "6"))) {
+            return result(HttpStatus.BAD_REQUEST, null,
+                    MessageCodeConfig.E00030.getMsgZh(), null);
+        }
 
         // 校验appId
         Application app = authingUserDao.initAppClient(appId);
         if (app == null) {
-            return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
+            return result(HttpStatus.BAD_REQUEST, null,
+                    MessageCodeConfig.E00047.getMsgZh(), null);
         }
 
         String accountType = "";
@@ -249,13 +253,13 @@ public class AuthingService implements UserCenterServiceInter {
         if (accountType.equals("email")) { // 邮箱登录
             msg = StringUtils.isNotBlank(code)
                     ? authingUserDao.loginByEmailCode(app, account, code)
-                    : authingUserDao.loginByEmailPwd(app, account, password, pwdEncryptType);
+                    : authingUserDao.loginByEmailPwd(app, account, password);
         } else if (accountType.equals("phone")) { // 手机号登录
             msg = StringUtils.isNotBlank(code)
                     ? authingUserDao.loginByPhoneCode(app, account, code)
-                    : authingUserDao.loginByPhonePwd(app, account, password, pwdEncryptType);
+                    : authingUserDao.loginByPhonePwd(app, account, password);
         } else if (StringUtils.isNotBlank(username)) { // 用户名登录
-            msg = authingUserDao.loginByUsernamePwd(app, username, password, pwdEncryptType);
+            msg = authingUserDao.loginByUsernamePwd(app, username, password);
         } else {
             msg = accountType;
         }
@@ -926,16 +930,14 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     public ResponseEntity updatePassword(HttpServletRequest request) {
-        String msg = "密码修改失败";
+        String msg = MessageCodeConfig.E00050.getMsgZh();
         try {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
             String oldPwd = (String) getBodyPara(body, "old_pwd");
             String newPwd = (String) getBodyPara(body, "new_pwd");
-            String pwdEncryptType = (String) getBodyPara(body, "pwd_encrypt_type");
             Cookie cookie = getCookie(request, env.getProperty("cookie.token.name"));
-            pwdEncryptType = StringUtils.isBlank(pwdEncryptType) ? "none" : pwdEncryptType;
 
-            msg = authingUserDao.updatePassword(cookie.getValue(), oldPwd, newPwd, pwdEncryptType);
+            msg = authingUserDao.updatePassword(cookie.getValue(), oldPwd, newPwd);
             if (msg.equals("success")) {
                 return result(HttpStatus.OK, "success", null);
             }
@@ -946,7 +948,7 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     public ResponseEntity sendCodeLogged(HttpServletRequest request) {
-        String msg = "验证码发送失败";
+        String msg = MessageCodeConfig.E0008.getMsgZh();
         try {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
             String account = (String) getBodyPara(body, "account");
@@ -973,7 +975,7 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     public ResponseEntity resetPwdVerify(HttpServletRequest request) {
-        Object msg = "请求异常";
+        Object msg = MessageCodeConfig.E00012.getMsgZh();
         try {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
             String account = (String) getBodyPara(body, "account");
@@ -1005,11 +1007,9 @@ public class AuthingService implements UserCenterServiceInter {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
             String pwdResetToken = (String) getBodyPara(body, "pwd_reset_token");
             String newPwd = (String) getBodyPara(body, "new_pwd");
-            String pwdEncryptType = (String) getBodyPara(body, "pwd_encrypt_type");
-            pwdEncryptType = StringUtils.isBlank(pwdEncryptType) ? "none" : pwdEncryptType;
 
             String resetMsg =
-                    authingUserDao.resetPwd(pwdResetToken, newPwd, pwdEncryptType);
+                    authingUserDao.resetPwd(pwdResetToken, newPwd);
             if (resetMsg.equals("success")) {
                 return result(HttpStatus.OK, "change password success", null);
             } else {
@@ -1018,7 +1018,8 @@ public class AuthingService implements UserCenterServiceInter {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return result(HttpStatus.BAD_REQUEST, null, "密码修改失败", null);
+        return result(HttpStatus.BAD_REQUEST, null,
+                MessageCodeConfig.E00050.getMsgZh(), null);
     }
 
     private DecodedJWT decodedJwtFromCookie(Cookie cookie) throws Exception {
