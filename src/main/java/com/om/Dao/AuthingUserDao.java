@@ -189,20 +189,20 @@ public class AuthingUserDao {
 
             return msg;
         } catch (Exception e) {
-            return "注册失败";
+            return MessageCodeConfig.E00024.getMsgZh();
         }
     }
 
     // 邮箱验密码注册
     public String registerByEmailPwd(String appId, String email, String username,
-                                     String password, String pwdEncryptType) {
+                                     String password) {
         String msg = "success";
         try {
             String body = String.format("{\"connection\": \"PASSWORD\"," +
                     "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
                     "\"profile\":{\"username\":\"%s\"}," +
-                    "\"options\":{\"passwordEncryptType\":\"%s\"}}",
-                    email, password, username, pwdEncryptType);
+                    "\"options\":{\"passwordEncryptType\":\"rsa\"}}",
+                    email, password, username);
             HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signup")
                     .header("x-authing-app-id", appId)
                     .header("Content-Type", "application/json")
@@ -215,7 +215,7 @@ public class AuthingUserDao {
 
             return msg;
         } catch (Exception e) {
-            return "注册失败";
+            return MessageCodeConfig.E00024.getMsgZh();
         }
     }
 
@@ -279,19 +279,18 @@ public class AuthingUserDao {
         return msg;
     }
 
-    public Object loginByEmailPwd(Application app, String email,
-                                  String password, String pwdEncryptType) {
-        String msg = "登录失败";
+    public Object loginByEmailPwd(Application app, String email, String password) {
+        String msg = MessageCodeConfig.E00027.getMsgZh();
         try {
             if (!isUserExists(app.getId(), email, "email")) {
-                return "用户不存在";
+                return MessageCodeConfig.E00034.getMsgZh();
             }
 
             String body = String.format("{\"connection\": \"PASSWORD\"," +
                             "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
-                            "\"options\": {\"passwordEncryptType\": \"%s\"}," +
+                            "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
                             "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
-                    email, password, pwdEncryptType, app.getId(), app.getSecret());
+                    email, password, app.getId(), app.getSecret());
             HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
                     .header("x-authing-app-id", app.getId())
                     .header("Content-Type", "application/json")
@@ -308,19 +307,18 @@ public class AuthingUserDao {
         return msg;
     }
 
-    public Object loginByPhonePwd(Application app, String phone,
-                                  String password, String pwdEncryptType) {
-        String msg = "登录失败";
+    public Object loginByPhonePwd(Application app, String phone, String password) {
+        String msg = MessageCodeConfig.E00027.getMsgZh();
         try {
             if (!isUserExists(app.getId(), phone, "phone")) {
-                return "用户不存在";
+                return MessageCodeConfig.E00034.getMsgZh();
             }
 
             String body = String.format("{\"connection\": \"PASSWORD\"," +
                             "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"}," +
-                            "\"options\": {\"passwordEncryptType\": \"%s\"}," +
+                            "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
                             "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
-                    phone, password, pwdEncryptType, app.getId(), app.getSecret());
+                    phone, password, app.getId(), app.getSecret());
             HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
                     .header("x-authing-app-id", app.getId())
                     .header("Content-Type", "application/json")
@@ -337,19 +335,18 @@ public class AuthingUserDao {
         return msg;
     }
 
-    public Object loginByUsernamePwd(Application app, String username,
-                                     String password, String pwdEncryptType) {
-        String msg = "账号或密码有误";
+    public Object loginByUsernamePwd(Application app, String username, String password) {
+        String msg = MessageCodeConfig.E00049.getMsgZh();
         try {
             if (!isUserExists(app.getId(), username, "username")) {
-                return "用户不存在";
+                return MessageCodeConfig.E00034.getMsgZh();
             }
 
             String body = String.format("{\"connection\": \"PASSWORD\"," +
                             "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"}," +
-                            "\"options\": {\"passwordEncryptType\": \"%s\"}," +
+                            "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
                             "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
-                    username, password, pwdEncryptType, app.getId(), app.getSecret());
+                    username, password, app.getId(), app.getSecret());
             HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
                     .header("x-authing-app-id", app.getId())
                     .header("Content-Type", "application/json")
@@ -573,9 +570,8 @@ public class AuthingUserDao {
         return msg;
     }
 
-    public String updatePassword(String token, String oldPwd, String newPwd,
-                                 String pwdEncryptType) {
-        String msg = "密码修改失败";
+    public String updatePassword(String token, String oldPwd, String newPwd) {
+        String msg = MessageCodeConfig.E00050.getMsgZh();
         try {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
@@ -583,8 +579,8 @@ public class AuthingUserDao {
 
             String body = String.format("{\"newPassword\": \"%s\"," +
                             "\"oldPassword\": \"%s\"," +
-                            "\"passwordEncryptType\": \"%s\"}",
-                    newPwd, oldPwd, pwdEncryptType);
+                            "\"passwordEncryptType\": \"rsa\"}",
+                    newPwd, oldPwd);
             HttpResponse<JsonNode> response =
                     Unirest.post(AUTHINGAPIHOST_V3 + "/update-password")
                             .header("Authorization", user.getToken())
@@ -607,7 +603,7 @@ public class AuthingUserDao {
     }
 
     public Object resetPwdVerifyEmail(String token, String email, String code) {
-        Object msg = "请求异常";
+        Object msg = MessageCodeConfig.E00012.getMsgZh();
         try {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
@@ -637,7 +633,7 @@ public class AuthingUserDao {
     }
 
     public Object resetPwdVerifyPhone(String token, String phone, String code) {
-        Object msg = "请求异常";
+        Object msg = MessageCodeConfig.E00012.getMsgZh();
         try {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
@@ -658,22 +654,21 @@ public class AuthingUserDao {
             JSONObject resObj = response.getBody().getObject();
             int statusCode = resObj.getInt("statusCode");
             msg = (statusCode == 200)
-                ? resObj.getJSONObject("data")
-                : resObj.getString("message");
+                    ? resObj.getJSONObject("data")
+                    : resObj.getString("message");
         } catch (Exception ignored) {
         }
 
         return msg;
     }
 
-    public String resetPwd(String pwdResetToken, String newPwd,
-                                String pwdEncryptType) {
-        String msg = "密码修改失败";
+    public String resetPwd(String pwdResetToken, String newPwd) {
+        String msg = MessageCodeConfig.E00050.getMsgZh();
         try {
             String body = String.format("{\"passwordResetToken\": \"%s\"," +
                             "\"password\": \"%s\"," +
-                            "\"passwordEncryptType\": \"%s\"}",
-                    pwdResetToken, newPwd, pwdEncryptType);
+                            "\"passwordEncryptType\": \"rsa\"}",
+                    pwdResetToken, newPwd);
             HttpResponse<JsonNode> response =
                     Unirest.post(AUTHINGAPIHOST_V3 + "/reset-password")
                             .header("Content-Type", "application/json")
