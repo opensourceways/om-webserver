@@ -236,9 +236,11 @@ public class HttpClientUtils implements Serializable {
             while ((str = br.readLine()) != null) {
                 wholeStr.append(str);
             }
-            body = objectMapper.convertValue(objectMapper.readTree(wholeStr.toString()),
-                    new TypeReference<Map<String, Object>>() {
-                    });
+            if (StringUtils.isNotBlank(wholeStr)) {
+                body = objectMapper.convertValue(objectMapper.readTree(wholeStr.toString()),
+                        new TypeReference<Map<String, Object>>() {
+                        });
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
