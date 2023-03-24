@@ -911,46 +911,26 @@ public class AuthingService implements UserCenterServiceInter {
         return result(HttpStatus.BAD_REQUEST, null, msg, null);
     }
 
-    public ResponseEntity sendCodeLogged(HttpServletRequest request) {
-        String msg = MessageCodeConfig.E0008.getMsgZh();
-        try {
-            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
-            String account = (String) getBodyPara(body, "account");
-            String channel = (String) getBodyPara(body, "channel");
-
-            Cookie cookie = getCookie(request, env.getProperty("cookie.token.name"));
-            DecodedJWT decode = decodedJwtFromCookie(cookie);
-            String appId = decode.getClaim("client_id").asString();
-
-            String accountType = getAccountType(account);
-            if (accountType.equals("email")) {
-                msg = authingUserDao.sendEmailCodeV3(appId, account, channel);
-            } else if (accountType.equals("phone")) {
-                msg = authingUserDao.sendPhoneCodeV3(appId, account, channel);
-            } else {
-                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
-            }
-
-            return result(HttpStatus.OK, "success", null);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return result(HttpStatus.BAD_REQUEST, null, msg, null);
-        }
-    }
-
     public ResponseEntity resetPwdVerify(HttpServletRequest request) {
         Object msg = MessageCodeConfig.E00012.getMsgZh();
         try {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
             String account = (String) getBodyPara(body, "account");
             String code = (String) getBodyPara(body, "code");
-            Cookie cookie = getCookie(request, env.getProperty("cookie.token.name"));
+            String appId = (String) getBodyPara(body, "client_id");
+
+            // 校验appId
+            Application app = authingUserDao.initAppClient(appId);
+            if (app == null) {
+                return result(HttpStatus.BAD_REQUEST, null,
+                        MessageCodeConfig.E00047.getMsgZh(), null);
+            }
 
             String accountType = getAccountType(account);
             if (accountType.equals("email")) {
-                msg = authingUserDao.resetPwdVerifyEmail(cookie.getValue(), account, code);
+                msg = authingUserDao.resetPwdVerifyEmail(appId, account, code);
             } else if (accountType.equals("phone")) {
-                msg = authingUserDao.resetPwdVerifyPhone(cookie.getValue(), account, code);
+                msg = authingUserDao.resetPwdVerifyPhone(appId, account, code);
             } else {
                 return result(HttpStatus.BAD_REQUEST, null, accountType, null);
             }

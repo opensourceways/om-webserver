@@ -67,7 +67,7 @@ public class AuthingController {
         return service.accountExists(servletRequest, servletResponse);
     }
 
-    @RequestMapping(value = "/v3/sendCode")
+    @RequestMapping(value = "/captcha/sendCode")
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
         CaptchaVO captchaVO = new CaptchaVO();
@@ -289,19 +289,11 @@ public class AuthingController {
         return authingService.updatePassword(request);
     }
 
-    @AuthingUserToken
-    @RequestMapping(value = "/v3/sendCode/logged", method = RequestMethod.POST)
-    public ResponseEntity sendCodeLogged(HttpServletRequest request) {
-        return authingService.sendCodeLogged(request);
-    }
-
-    @AuthingUserToken
     @RequestMapping(value = "/reset/password/verify", method = RequestMethod.POST)
     public ResponseEntity resetPwdVerify(HttpServletRequest request) {
         return  authingService.resetPwdVerify(request);
     }
 
-    @AuthingUserToken
     @RequestMapping(value = "/reset/password", method = RequestMethod.POST)
     public ResponseEntity resetPwd(HttpServletRequest request) {
         return  authingService.resetPwd(request);

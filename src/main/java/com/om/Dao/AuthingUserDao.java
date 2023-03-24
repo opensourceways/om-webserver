@@ -19,6 +19,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
@@ -177,11 +178,8 @@ public class AuthingUserDao {
                     "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"}," +
                     "\"profile\":{\"username\":\"%s\"}}",
                     email, code, username);
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signup")
-                    .header("x-authing-app-id", appId)
-                    .header("Content-Type", "application/json")
-                    .body(body)
-                    .asJson();
+            HttpResponse<JsonNode> response =
+                    authPost("/signup", appId, body);
 
             JSONObject resObj = response.getBody().getObject();
             int statusCode = resObj.getInt("statusCode");
@@ -203,11 +201,8 @@ public class AuthingUserDao {
                     "\"profile\":{\"username\":\"%s\"}," +
                     "\"options\":{\"passwordEncryptType\":\"rsa\"}}",
                     email, password, username);
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signup")
-                    .header("x-authing-app-id", appId)
-                    .header("Content-Type", "application/json")
-                    .body(body)
-                    .asJson();
+            HttpResponse<JsonNode> response =
+                    authPost("/signup", appId, body);
 
             JSONObject resObj = response.getBody().getObject();
             int statusCode = resObj.getInt("statusCode");
@@ -291,11 +286,8 @@ public class AuthingUserDao {
                             "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
                             "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                     email, password, app.getId(), app.getSecret());
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
-                    .header("x-authing-app-id", app.getId())
-                    .header("Content-Type", "application/json")
-                    .body(body)
-                    .asJson();
+            HttpResponse<JsonNode> response =
+                    authPost("/signin", app.getId(), body);
 
             JSONObject resObj = response.getBody().getObject();
             int statusCode = resObj.getInt("statusCode");
@@ -319,11 +311,8 @@ public class AuthingUserDao {
                             "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
                             "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                     phone, password, app.getId(), app.getSecret());
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
-                    .header("x-authing-app-id", app.getId())
-                    .header("Content-Type", "application/json")
-                    .body(body)
-                    .asJson();
+            HttpResponse<JsonNode> response =
+                    authPost("/signin", app.getId(), body);
 
             JSONObject resObj = response.getBody().getObject();
             int statusCode = resObj.getInt("statusCode");
@@ -347,11 +336,8 @@ public class AuthingUserDao {
                             "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
                             "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                     username, password, app.getId(), app.getSecret());
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
-                    .header("x-authing-app-id", app.getId())
-                    .header("Content-Type", "application/json")
-                    .body(body)
-                    .asJson();
+            HttpResponse<JsonNode> response =
+                    authPost("/signin", app.getId(), body);
 
             JSONObject resObj = response.getBody().getObject();
             int statusCode = resObj.getInt("statusCode");
@@ -562,7 +548,9 @@ public class AuthingUserDao {
             HttpResponse<JsonNode> response =
                     Unirest.get(AUTHINGAPIHOST_V3 + "/system").asJson();
             if (response.getStatus() == 200) {
-                msg = response.getBody().getObject().toString();
+                JSONObject resObj = response.getBody().getObject();
+                resObj.remove("sm2");
+                msg = resObj.toString();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -582,12 +570,7 @@ public class AuthingUserDao {
                             "\"passwordEncryptType\": \"rsa\"}",
                     newPwd, oldPwd);
             HttpResponse<JsonNode> response =
-                    Unirest.post(AUTHINGAPIHOST_V3 + "/update-password")
-                            .header("Authorization", user.getToken())
-                            .header("x-authing-app-id", appId)
-                            .header("Content-Type", "application/json")
-                            .body(body)
-                            .asJson();
+                    authPost("/update-password", appId, user.getToken(), body);
 
             JSONObject resObj = response.getBody().getObject();
             int statusCode = resObj.getInt("statusCode");
@@ -602,24 +585,15 @@ public class AuthingUserDao {
         return msg;
     }
 
-    public Object resetPwdVerifyEmail(String token, String email, String code) {
+    public Object resetPwdVerifyEmail(String appId, String email, String code) {
         Object msg = MessageCodeConfig.E00012.getMsgZh();
         try {
-            Object[] appUserInfo = getAppUserInfo(token);
-            String appId = appUserInfo[0].toString();
-            User user = (User) appUserInfo[1];
-
             String body = String.format("{\"verifyMethod\": \"EMAIL_PASSCODE\"," +
                             "\"emailPassCodePayload\": " +
                             "{\"email\": \"%s\",\"passCode\": \"%s\"}}",
                     email, code);
             HttpResponse<JsonNode> response =
-                    Unirest.post(AUTHINGAPIHOST_V3 + "/verify-reset-password-request")
-                            .header("Authorization", user.getToken())
-                            .header("x-authing-app-id", appId)
-                            .header("Content-Type", "application/json")
-                            .body(body)
-                            .asJson();
+                    authPost("/verify-reset-password-request", appId, body);
 
             JSONObject resObj = response.getBody().getObject();
             int statusCode = resObj.getInt("statusCode");
@@ -632,24 +606,15 @@ public class AuthingUserDao {
         return msg;
     }
 
-    public Object resetPwdVerifyPhone(String token, String phone, String code) {
+    public Object resetPwdVerifyPhone(String appId, String phone, String code) {
         Object msg = MessageCodeConfig.E00012.getMsgZh();
         try {
-            Object[] appUserInfo = getAppUserInfo(token);
-            String appId = appUserInfo[0].toString();
-            User user = (User) appUserInfo[1];
-
             String body = String.format("{\"verifyMethod\": \"PHONE_PASSCODE\"," +
                             "\"phonePassCodePayload\": " +
                             "{\"phoneNumber\": \"%s\",\"passCode\": \"%s\"}}",
                     phone, code);
             HttpResponse<JsonNode> response =
-                    Unirest.post(AUTHINGAPIHOST_V3 + "/verify-reset-password-request")
-                            .header("Authorization", user.getToken())
-                            .header("x-authing-app-id", appId)
-                            .header("Content-Type", "application/json")
-                            .body(body)
-                            .asJson();
+                    authPost("/verify-reset-password-request", appId, body);
 
             JSONObject resObj = response.getBody().getObject();
             int statusCode = resObj.getInt("statusCode");
@@ -1003,5 +968,24 @@ public class AuthingUserDao {
     private List<String> getUsernameReserved() {
         if (StringUtils.isBlank(usernameReserved)) return null;
         return Arrays.stream(usernameReserved.split(",")).map(String::trim).collect(Collectors.toList());
+    }
+
+    public HttpResponse<JsonNode> authPost(String uriPath, String appId, String body)
+            throws UnirestException {
+        return Unirest.post(AUTHINGAPIHOST_V3 + uriPath)
+                .header("x-authing-app-id", appId)
+                .header("Content-Type", "application/json")
+                .body(body)
+                .asJson();
+    }
+
+    public HttpResponse<JsonNode> authPost(String uriPath, String appId, String token,
+                                           String body) throws UnirestException {
+        return Unirest.post(AUTHINGAPIHOST_V3 + uriPath)
+                .header("Authorization", token)
+                .header("x-authing-app-id", appId)
+                .header("Content-Type", "application/json")
+                .body(body)
+                .asJson();
     }
 }
