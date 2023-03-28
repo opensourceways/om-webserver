@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
+import com.om.mapper.userMapper;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Modules.mySqlUser;
 import com.om.Result.Constant;
@@ -521,6 +522,7 @@ public class AuthingService implements UserCenterServiceInter {
                 email = s.getEmail();
             } catch (Exception e) {
                 System.out.println("get data from mysql failed.");
+                // 获取用户
                 User user = authingUserDao.getUser(userId);
                 photo = user.getPhoto();
                 username = user.getUsername();
@@ -635,6 +637,9 @@ public class AuthingService implements UserCenterServiceInter {
                 mySqlUser s = userMapper.selectById(userId);
                 photo = s.getPhoto();
                 username = s.getUsername();
+                mySqlUser ui = userMapper.selectById(userId);
+                photo = ui.getPhoto();
+                username = ui.getUsername();
             } catch (Exception e) {
                 System.out.println("get data from mysql failed.");
                 User user = authingUserDao.getUser(userId);
