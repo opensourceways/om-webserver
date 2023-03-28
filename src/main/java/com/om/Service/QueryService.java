@@ -1183,9 +1183,9 @@ public class QueryService {
         if (all.get("data").get(user.toLowerCase()) != null) {
             JsonNode userData = all.get("data").get(user.toLowerCase());
             result = objectMapper.valueToTree(userData).toString();
+            return "{\"code\":200,\"data\":" + result + ",\"msg\":\"ok\"}";
         }
-        result = "{\"code\":200,\"data\":" + result + ",\"msg\":\"ok\"}";
-        return result;
+        return "{\"code\":400,\"data\":\"Not find\",\"msg\":\"Not find\"}";
     }
 
     public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
