@@ -1940,7 +1940,7 @@ public class QueryDao {
 
     private Map<String, Integer> getCommunityPartners(String yamlFile) {
         YamlUtil yamlUtil = new YamlUtil();
-        CommunityPartnersYaml communities= yamlUtil.readLocalYaml(yamlFile, CommunityPartnersYaml.class);
+        CommunityPartnersYaml communities = yamlUtil.readLocalYaml(yamlFile, CommunityPartnersYaml.class);
 
         HashMap<String, Integer> resMap = new HashMap<>();
         for (CommunityPartnersYamlInfo community : communities.getCommunity()) {
@@ -2996,7 +2996,7 @@ public class QueryDao {
         ArrayList<String> res = new ArrayList<>();
         res.add(name);
         YamlUtil yamlUtil = new YamlUtil();
-        CompanyYaml companies= yamlUtil.readLocalYaml(companyNameYaml, CompanyYaml.class);
+        CompanyYaml companies = yamlUtil.readLocalYaml(companyNameYaml, CompanyYaml.class);
         for (CompanyYamlInfo companyinfo : companies.getCompanies()) {
             String cnCompany = companyinfo.getCompany_cn().trim();
             String enCompany = companyinfo.getCompany_en().trim();
@@ -3017,7 +3017,7 @@ public class QueryDao {
     public String CompanyCN2Cla(String community, String company) {
         String resCompany = "";
         YamlUtil yamlUtil = new YamlUtil();
-        CompanyYaml companies= yamlUtil.readLocalYaml(companyNameYaml, CompanyYaml.class);
+        CompanyYaml companies = yamlUtil.readLocalYaml(companyNameYaml, CompanyYaml.class);
         for (CompanyYamlInfo companyinfo : companies.getCompanies()) {
             String cnCompany = companyinfo.getCompany_cn().trim();
             if (company.equals(cnCompany)) {
@@ -3553,7 +3553,7 @@ public class QueryDao {
 
     public Map<String, String> getUserNameCnEn(String yamlFile) {
         YamlUtil yamlUtil = new YamlUtil();
-        UserNameYaml users= yamlUtil.readLocalYaml(yamlFile, UserNameYaml.class);
+        UserNameYaml users = yamlUtil.readLocalYaml(yamlFile, UserNameYaml.class);
 
         HashMap<String, String> userMap = new HashMap<>();
         for (UserInfoYaml user : users.getUsers()) {
