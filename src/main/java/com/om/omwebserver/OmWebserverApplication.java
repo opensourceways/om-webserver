@@ -11,12 +11,14 @@
 
 package com.om.omwebserver;
 
+import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
 @ComponentScan(basePackages = {"com.om.*"})
+@MapperScan("com.om.mapper")
 public class OmWebserverApplication {
 
     public static void main(String[] args) {
