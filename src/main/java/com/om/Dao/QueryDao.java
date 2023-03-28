@@ -4338,7 +4338,7 @@ public class QueryDao {
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
-
+/* 
     public String queryMetricsData(String community, DatastatRequestBody body, String userQuery) {
         if (!community.equalsIgnoreCase("openeuler")) {
             return "{\"code\":400,\"data\":\"community error\",\"msg\":\"query error\"}";
@@ -5212,4 +5212,5 @@ public class QueryDao {
         }
         return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
     }
+    */
 }
