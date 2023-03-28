@@ -38,6 +38,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URL;
@@ -51,6 +52,9 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
+
+import javax.annotation.PostConstruct;
+
 import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.util.Lists;
 import org.asynchttpclient.*;
@@ -131,6 +135,8 @@ public class QueryDao {
     BlueZone blueZone;
     @Autowired
     StarFork starFork;
+
+    static String mistakeInfoStr;
 
     public HashMap<String, HashMap<String, String>> getcommunityFeature(String community) {
         String yamlFile;
@@ -747,9 +753,7 @@ public class QueryDao {
             case "openlookeng":
                 return "{\"code\":" + 404 + ",\"data\":{\"" + item + "\":" + 0 + "},\"msg\":\"Not Found!\"}";
             case "opengauss":
-                index = openGauss.getDownloadQueryIndex();
-                queryjson = openGauss.getDownloadQueryStr();
-                break;
+                return queryDownloadOpenGauss(community, item);
             case "mindspore":
                 index = mindSpore.getDownloadQueryIndex();
                 queryjson = mindSpore.getDownloadQueryStr();
@@ -775,6 +779,46 @@ public class QueryDao {
             if (community.toLowerCase().equals("opengauss") && buckets.hasNext()) {
                 JsonNode bucket = buckets.next();
                 count = bucket.get("doc_count").asInt();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return "{\"code\":" + statusCode + ",\"data\":{\"" + item + "\":" + count + "},\"msg\":\"" + statusText
+                + "\"}";
+
+    }
+
+    public String queryDownloadOpenGauss(String community, String item) throws NoSuchAlgorithmException, KeyManagementException,
+            ExecutionException, InterruptedException, JsonProcessingException {
+        AsyncHttpClient client = AsyncHttpUtil.getClient();
+        RequestBuilder builder = asyncHttpUtil.getBuilder();
+        String[] indexs = openGauss.getDownloadQueryIndex().split(";");
+        String[] queryjsons = openGauss.getDownloadQueryStr().split(";");
+
+        int count = 0;
+        int statusCode = 500;
+        String statusText = "请求内部错误";       
+        try {
+            for (int i = 0; i < queryjsons.length; i++) {
+                builder.setUrl(this.url + indexs[i] + "/_search");
+                builder.setBody(queryjsons[i]);
+                // 获取执行结果
+                ListenableFuture<Response> f = client.executeRequest(builder.build());       
+                Response response = f.get();
+                statusCode = response.getStatusCode();
+                statusText = response.getStatusText();
+                String responseBody = response.getResponseBody(UTF_8);
+                JsonNode dataNode = objectMapper.readTree(responseBody);
+                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets").elements();
+                if (buckets.hasNext()) {
+                    JsonNode bucket = buckets.next();
+                    if (bucket.has("dockerhub")) {
+                        count += bucket.get("dockerhub").get("value").asInt();
+                    } else {
+                        count += bucket.get("doc_count").asInt();
+                    }                   
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -976,8 +1020,9 @@ public class QueryDao {
 
         String index = blueZone.getBlueZoneUsersIndex();
         List<BlueZoneUser> users = userVo.getUsers();
-        HashMap<String, HashSet<String>> id2emails = esQueryUtils.queryBlueUserEmails(restHighLevelClient, index);
 
+        // 删除index,全量更新
+        esQueryUtils.deleteIndex(restHighLevelClient, index);
         for (BlueZoneUser user : users) {
             String id;
             if (StringUtils.isNotBlank(user.getGitee_id())) id = user.getGitee_id();
@@ -989,15 +1034,7 @@ public class QueryDao {
             String email = user.getEmail();
             List<String> inputEmails = Arrays.asList(email.split(";"));
 
-            HashSet<String> emails = id2emails.getOrDefault(id, new HashSet<>());
-            emails.addAll(inputEmails);
-            ArrayList<String> newEmails = new ArrayList<>(emails);
-
-            if (id2emails.containsKey(id)) {
-                HashSet<String> originalEmails = id2emails.get(id);
-                originalEmails.addAll(inputEmails);
-            }
-            resMap.put("emails", newEmails);
+            resMap.put("emails", inputEmails);
             resMap.remove("email");
             request.add(new IndexRequest(index, "_doc", id).source(resMap));
         }
@@ -1163,23 +1200,24 @@ public class QueryDao {
         String csvName;
         switch (community.toLowerCase()) {
             case "openeuler":
-                csvName = openEuler.getUserReportCsvData();
+                // csvName = openEuler.getUserReportCsvData();
                 break;
             case "opengauss":
-                csvName = openGauss.getUserReportCsvData();
+                // csvName = openGauss.getUserReportCsvData();
                 break;
             case "openlookeng":
-                csvName = openLookeng.getUserReportCsvData();
+                // csvName = openLookeng.getUserReportCsvData();
                 break;
             case "mindspore":
-                csvName = mindSpore.getUserReportCsvData();
+                // csvName = mindSpore.getUserReportCsvData();
                 break;
             default:
                 return "{\"code\":400,\"data\":{\"" + year + "\":\"query error\"},\"msg\":\"query error\"}";
         }
-        String localYamlPath = companyNameLocalYaml;
-        YamlUtil yamlUtil = new YamlUtil();
-        String localFile = yamlUtil.wget(csvName, localYamlPath);
+        // String localYamlPath = companyNameLocalYaml;
+        // YamlUtil yamlUtil = new YamlUtil();
+        // String localFile = yamlUtil.wget(csvName, localYamlPath);
+        String localFile = "om-data/" + community.toLowerCase() + "_" + year + ".csv";
         List<HashMap<String, Object>> datas = CsvFileUtil.readFile(localFile);
         HashMap<String, Object> resMap = new HashMap<>();
         resMap.put("code", 200);
@@ -1233,15 +1271,14 @@ public class QueryDao {
                 JsonNode bucket = buckets.next();
                 monthTime = bucket.get("key").asLong();
                 count = bucket.get("doc_count").asInt();
+                Calendar c = Calendar.getInstance();
+                c.setTimeInMillis(monthTime);
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM");
+                String monthString = sdf.format(c.getTime()).split("-")[1];
+                int month = Integer.parseInt(monthString);
+                dataMap.put("month", month);
+                dataMap.put("count", count);
             }
-            Calendar c = Calendar.getInstance();
-            c.setTimeInMillis(monthTime);
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM");
-            String monthString = sdf.format(c.getTime()).split("-")[1];
-            int month = Integer.parseInt(monthString);
-            dataMap.put("month", month);
-            dataMap.put("count", count);
-
             HashMap<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
             resMap.put("data", dataMap);
@@ -1644,7 +1681,8 @@ public class QueryDao {
 //                        company.contains("软通动力") ||
                         company.contains("中软国际") ||
                         company.contains("易宝软件") ||
-                        company.contains("华为合作方")) {
+                        company.contains("华为合作方") ||
+                        company.toLowerCase().equals("openeuler")) {
                     independent += contribute;
                     continue;
                 }
@@ -1997,8 +2035,7 @@ public class QueryDao {
         resultInfo = esQueryUtils.esScrollFromId(restHighLevelClient, item, Integer.parseInt(pageSize),
                 buildCheckInfoResultIndex, lastCursor, queryResultSourceBuilder);
         SearchSourceBuilder mistakeSourceBuilder = assembleMistakeSourceBuilder("update_at", queryBody);
-        String mistakeInfoStr = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoMistakeIndex, 5000,
-                mistakeSourceBuilder);
+        mistakeInfoStr = esQueryUtils.esScroll(restHighLevelClient, item, buildCheckInfoMistakeIndex, 5000, mistakeSourceBuilder);
 
         ArrayList<ObjectNode> finalResultJSONArray = new ArrayList<>();
         int totalCount = 0;
@@ -3391,7 +3428,8 @@ public class QueryDao {
 //                        company.contains("软通动力") ||
                         company.contains("中软国际") ||
                         company.contains("易宝软件") ||
-                        company.contains("华为合作方")) {
+                        company.contains("华为合作方") ||
+                        company.toLowerCase().equals("openeuler")) {
                     continue;
                 }
                 Iterator<JsonNode> its = bucket.get("sigs").get("buckets").elements();
@@ -4267,4 +4305,5 @@ public class QueryDao {
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }
+
 }

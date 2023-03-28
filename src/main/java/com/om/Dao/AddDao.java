@@ -51,7 +51,7 @@ public class AddDao {
     @Autowired
     protected openLookeng openLookeng;
 
-    public String putBugQuestionnaire(String community, String item, BugQuestionnaireVo bugQuestionnaireVo) {
+    public String putBugQuestionnaire(String community, String item, String lang, BugQuestionnaireVo bugQuestionnaireVo) {
         String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
         String host = env.getProperty("es.host");
         int port = Integer.parseInt(env.getProperty("es.port", "9200"));
@@ -83,7 +83,7 @@ public class AddDao {
 
         bugQuestionnaireVo.setCreated_at(nowStr);
 
-        ArrayList<String> validationMesseages = checkoutFieldValidate(bugQuestionnaireVo, community);
+        ArrayList<String> validationMesseages = checkoutFieldValidate(bugQuestionnaireVo, community, lang);
         if (validationMesseages.size() != 0) {
             return "{\"code\":400,\"data\":{\"" + item + "\":\"write error\"},\"msg:" + validationMesseages + "\"}";
         }
@@ -91,6 +91,9 @@ public class AddDao {
         RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
         BulkRequest request = new BulkRequest();
         Map bugQuestionnaireMap = objectMapper.convertValue(bugQuestionnaireVo, Map.class);
+        if (lang.equals("en")) {
+            bugQuestionnaireMap.put("is_en", 1);
+        }
         request.add(new IndexRequest(indexName, "_doc").source(bugQuestionnaireMap));
 
         if (request.requests().size() != 0) {
@@ -118,11 +121,16 @@ public class AddDao {
         return res;
     }
 
-    private ArrayList<String> checkoutFieldValidate(BugQuestionnaireVo bugQuestionnaireVo, String community) {
+    public ArrayList<String> checkoutFieldValidate(BugQuestionnaireVo bugQuestionnaireVo, String community, String lang) {
         List<String> existProblemTemplate;
         switch (community.toLowerCase()) {
             case "openeuler":
-                existProblemTemplate = Arrays.asList("规范和低错类", "易用性", "正确性", "风险提示", "内容合规");
+                if (lang.equals("en")) {
+                    existProblemTemplate = Arrays.asList("Specifications and Common Mistakes", "Correctness",
+                            "Risk Warnings", "Usability", "Content Compliance");
+                } else {
+                    existProblemTemplate = Arrays.asList("规范和低错类", "易用性", "正确性", "风险提示", "内容合规");
+                }                   
                 break;
             case "opengauss":
             case "openlookeng":
@@ -163,9 +171,9 @@ public class AddDao {
         if (!existProblemValidation) {
             errorMesseges.add("existProblem validate failure");
         }
-        if (!participateReasonValidation) {
-            errorMesseges.add("participateReason validate failure");
-        }
+        // if (!participateReasonValidation) {
+        //     errorMesseges.add("participateReason validate failure");
+        // }
         if (!comprehensiveSatisficationValidation) {
             errorMesseges.add("comprehensiveSatisfication validate failure");
         }
