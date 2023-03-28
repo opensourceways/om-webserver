@@ -1183,7 +1183,6 @@ public class QueryService {
         if (all.get("data").get(user.toLowerCase()) != null) {
             JsonNode userData = all.get("data").get(user.toLowerCase());
             result = objectMapper.valueToTree(userData).toString();
-            return "{\"code\":200,\"data\":" + result + ",\"msg\":\"ok\"}";
         } else {
             result = "[]";
         }
