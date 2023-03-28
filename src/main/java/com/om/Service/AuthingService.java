@@ -20,8 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
-import com.om.Dao.SqlDao;
+import com.om.mapper.userMapper;
 import com.om.Modules.MessageCodeConfig;
+import com.om.Modules.mySqlUser;
 import com.om.Result.Constant;
 import com.om.Result.Result;
 import com.om.Service.inter.UserCenterServiceInter;
@@ -75,7 +76,7 @@ public class AuthingService implements UserCenterServiceInter {
     JavaMailSender mailSender;
 
     @Autowired
-    SqlDao sqlDao;
+    userMapper userMapper;
 
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
@@ -473,20 +474,16 @@ public class AuthingService implements UserCenterServiceInter {
             //     permissions.add(inputPermission);
             // }
 
-            // 获取用户
-            // User user = authingUserDao.getUser(userId);
             String photo;
             String username;
 
             try {
-                String query = env.getProperty("mysql.query");
-                query = String.format(query, userId);
-                ArrayList<HashMap<String, String>> userinfo = sqlDao.getUserData(query);
-                HashMap<String, String> ui = userinfo.get(0);
-                photo = ui.get("photo");
-                username = ui.get("username");
+                mySqlUser s = userMapper.selectById(userId);
+                photo = s.getPhoto();
+                username = s.getUsername();
             } catch (Exception e) {
                 System.out.println("get data from mysql failed.");
+                // 获取用户
                 User user = authingUserDao.getUser(userId);
                 photo = user.getPhoto();
                 username = user.getUsername();
@@ -628,12 +625,9 @@ public class AuthingService implements UserCenterServiceInter {
             String photo;
             String username;
             try {
-                String query = env.getProperty("mysql.query");
-                query = String.format(query, userId);
-                ArrayList<HashMap<String, String>> userinfo = sqlDao.getUserData(query);
-                HashMap<String, String> ui = userinfo.get(0);
-                photo = ui.get("photo");
-                username = ui.get("username");
+                mySqlUser ui = userMapper.selectById(userId);
+                photo = ui.getPhoto();
+                username = ui.getUsername();
             } catch (Exception e) {
                 System.out.println("get data from mysql failed.");
                 User user = authingUserDao.getUser(userId);
