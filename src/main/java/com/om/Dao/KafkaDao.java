@@ -46,7 +46,7 @@ public class KafkaDao {
 
     @PostConstruct
     public void init() {
-        // initProducer();
+        initProducer();
     }
 
     public void sendMess(String topic, List<Tuple2<String, String>> messages) {
