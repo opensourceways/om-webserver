@@ -19,13 +19,19 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Utils.RSAUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Repository;
+import org.springframework.web.multipart.MultipartFile;
 
+import javax.annotation.PostConstruct;
+import javax.crypto.NoSuchPaddingException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -33,14 +39,6 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import javax.annotation.PostConstruct;
-import javax.crypto.NoSuchPaddingException;
-
-import org.apache.commons.lang3.StringUtils;
-import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Repository;
-import org.springframework.web.multipart.MultipartFile;
 
 
 @Repository
@@ -56,15 +54,6 @@ public class AuthingUserDao {
 
     @Value("${authing.secret}")
     String secret;
-
-    @Value("${authing.app.fuxi.id}")
-    String omAppId;
-
-    @Value("${authing.app.fuxi.host}")
-    String omAppHost;
-
-    @Value("${authing.app.fuxi.secret}")
-    String omAppSecret;
 
     @Value("${datastat.img.ak}")
     String datastatImgAk;
@@ -125,27 +114,26 @@ public class AuthingUserDao {
 
     public static ManagementClient managementClient;
 
-    public static AuthenticationClient authentication;
-
     public static ObsClient obsClient;
 
     private static List<String> reservedUsernames;
 
+    public Map<String, AuthenticationClient> appClientMap;
+
     @PostConstruct
     public void init() {
+        appClientMap = new HashMap<>();
         managementClient = new ManagementClient(userPoolId, secret);
-        authentication = new AuthenticationClient(omAppId, omAppHost);
-        authentication.setSecret(omAppSecret);
         obsClient = new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint);
         reservedUsernames = getUsernameReserved();
     }
 
-    public String sendPhoneCodeV3(String account, String channel) {
+    public String sendPhoneCodeV3(String appId, String account, String channel) {
         String msg = "success";
         try {
             String body = String.format("{\"phoneNumber\": \"%s\",\"channel\": \"%s\"}", account, channel.toUpperCase());
             HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/send-sms")
-                    .header("x-authing-app-id", omAppId)
+                    .header("x-authing-app-id", appId)
                     .header("Content-Type", "application/json")
                     .body(body)
                     .asJson();
@@ -160,12 +148,12 @@ public class AuthingUserDao {
         }
     }
 
-    public String sendEmailCodeV3(String account, String channel) {
+    public String sendEmailCodeV3(String appId, String account, String channel) {
         String msg = "success";
         try {
             String body = String.format("{\"email\": \"%s\",\"channel\": \"%s\"}", account, channel.toUpperCase());
             HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/send-email")
-                    .header("x-authing-app-id", omAppId)
+                    .header("x-authing-app-id", appId)
                     .header("Content-Type", "application/json")
                     .body(body)
                     .asJson();
@@ -181,12 +169,12 @@ public class AuthingUserDao {
     }
 
     // 邮箱注册
-    public String registerByEmail(String email, String code, String name) {
+    public String registerByEmail(String appId, String email, String code, String name) {
         String msg = "success";
         try {
             String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},\"profile\":{\"username\":\"%s\"}}", email, code, name);
             HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signup")
-                    .header("x-authing-app-id", omAppId)
+                    .header("x-authing-app-id", appId)
                     .header("Content-Type", "application/json")
                     .body(body)
                     .asJson();
@@ -203,12 +191,12 @@ public class AuthingUserDao {
     }
 
     // 手机号注册
-    public String registerByPhone(String phone, String code, String name) {
+    public String registerByPhone(String appId, String phone, String code, String name) {
         String msg = "success";
         try {
             String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"},\"profile\":{\"name\":\"%s\"}}", phone, code, name);
             HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signup")
-                    .header("x-authing-app-id", omAppId)
+                    .header("x-authing-app-id", appId)
                     .header("Content-Type", "application/json")
                     .body(body)
                     .asJson();
@@ -224,8 +212,9 @@ public class AuthingUserDao {
     }
 
     // 校验用户是否存在（用户名 or 邮箱 or 手机号）
-    public boolean isUserExists(String account, String accountType) {
+    public boolean isUserExists(String appId, String account, String accountType) {
         try {
+            AuthenticationClient authentication = appClientMap.get(appId);
             switch (accountType.toLowerCase()) {
                 case "username":
                     return authentication.isUserExists(account, null, null, null).execute();
@@ -241,13 +230,13 @@ public class AuthingUserDao {
         }
     }
 
-    public Object loginByEmailCode(String email, String code) {
+    public Object loginByEmailCode(Application app, String email, String code) {
         String msg = "登录失败";
         try {
-            if (!isUserExists(email, "email")) return "用户不存在";
-            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", email, code, omAppId, omAppSecret);
+            if (!isUserExists(app.getId(), email, "email")) return "用户不存在";
+            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", email, code, app.getId(), app.getSecret());
             HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
-                    .header("x-authing-app-id", omAppId)
+                    .header("x-authing-app-id", app.getId())
                     .header("Content-Type", "application/json")
                     .body(body)
                     .asJson();
@@ -261,13 +250,13 @@ public class AuthingUserDao {
         return msg;
     }
 
-    public Object loginByPhoneCode(String phone, String code) {
+    public Object loginByPhoneCode(Application app, String phone, String code) {
         String msg = "登录失败";
         try {
-            if (!isUserExists(phone, "phone")) return "用户不存在";
-            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, omAppId, omAppSecret);
+            if (!isUserExists(app.getId(), phone, "phone")) return "用户不存在";
+            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, app.getId(), app.getSecret());
             HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
-                    .header("x-authing-app-id", omAppId)
+                    .header("x-authing-app-id", app.getId())
                     .header("Content-Type", "application/json")
                     .body(body)
                     .asJson();
@@ -280,6 +269,17 @@ public class AuthingUserDao {
         }
 
         return msg;
+    }
+
+    public Application initAppClient(String appId) {
+        Application app = getAppById(appId);
+        if (app != null && !appClientMap.containsKey(appId)) {
+            String appHost = "https://" + app.getIdentifier() + ".authing.cn";
+            AuthenticationClient appClient = new AuthenticationClient(appId, appHost);
+            appClient.setSecret(app.getSecret());
+            appClientMap.put(appId, appClient);
+        }
+        return app;
     }
 
     public List<String> getAppRedirectUris(String appId) {
@@ -298,25 +298,10 @@ public class AuthingUserDao {
         }
     }
 
-    public HttpResponse<JsonNode> getAccessTokenByCode(String code, String appId, String grantType, String appSecret, String redirectUri) throws UnirestException {
-        return Unirest.post(AUTHINGAPIHOST + "/oidc/token")
-                .field("client_id", appId)
-                .field("client_secret", appSecret)
-                .field("grant_type", "authorization_code")
-                .field("redirect_uri", redirectUri)
-                .field("code", code)
-                .asJson();
-    }
-
-
-    public HttpResponse<JsonNode> getUserByAccessToken(String accessToken) throws UnirestException {
-        return Unirest.get(AUTHINGAPIHOST + "/oidc/me")
-                .header("Authorization", accessToken)
-                .asJson();
-    }
-
-    public Map getUserInfoByAccessToken(String code, String redirectUrl) {
+    public Map getUserInfoByAccessToken(String appId, String code, String redirectUrl) {
         try {
+            AuthenticationClient authentication = appClientMap.get(appId);
+
             // code换access_token
             authentication.setRedirectUri(redirectUrl);
             Map res = (Map) authentication.getAccessTokenByCode(code).execute();
@@ -332,9 +317,9 @@ public class AuthingUserDao {
         }
     }
 
-    public boolean logout(String idToken, String userId) {
+    public boolean logout(String appId, String idToken, String userId) {
         try {
-            HttpResponse<JsonNode> response = Unirest.get(String.format(AUTHINGAPIHOST + "/logout?appId=%s&userId=%s", omAppId, userId))
+            HttpResponse<JsonNode> response = Unirest.get(String.format(AUTHINGAPIHOST + "/logout?appId=%s&userId=%s", appId, userId))
                     .header("Authorization", idToken)
                     .header("x-authing-userpool-id", userPoolId)
                     .asJson();
@@ -355,14 +340,24 @@ public class AuthingUserDao {
         }
     }
 
+    public JSONObject getUserByName(String username) {
+        try {
+            User user = managementClient.users().find(new FindUserParam().withUsername(username)).execute();
+            return getUserById(user.getId());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     // 获取用户基本信息
-    public User getUserInfo(String token) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
+    public Object[] getAppUserInfo(String token) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
         RSAPrivateKey privateKey = RSAUtil.getPrivateKey(rsaAuthingPrivateKey);
         token = RSAUtil.privateDecrypt(token, privateKey);
         DecodedJWT decode = JWT.decode(token);
         String userId = decode.getAudience().get(0);
+        String appId = decode.getClaim("client_id").asString();
         User user = getUser(userId);
-        return user;
+        return new Object[]{appId, user};
     }
 
     // 获取用户详细信息
@@ -439,39 +434,12 @@ public class AuthingUserDao {
         }
     }
 
-    // TODO 此接口废弃 使用通过userID校验登录状态
-    public boolean checkLoginStatusOnAuthing(User user) {
+    public boolean sendCode(String token, String account, String type, String field) {
         try {
-            authentication.setCurrentUser(user);
-            JwtTokenStatus execute = authentication.checkLoginStatus().execute();
-            return execute.getStatus();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
+            Object[] appUserInfo = getAppUserInfo(token);
+            String appId = appUserInfo[0].toString();
+            AuthenticationClient authentication = appClientMap.get(appId);
 
-    // TODO 使用自己的个人中心后不再需要判断authing端的登录状态
-    public boolean checkLoginStatusOnAuthing(String userId) {
-        try {
-            String token = getManagementToken();
-            String loginStatusBody = String.format("{\"userId\":\"%s\",\"appId\":\"%s\"}", userId, omAppId);
-            HttpResponse<JsonNode> response1 = Unirest.post(AUTHINGAPIHOST_V2 + "/users/login/session-status")
-                    .header("Content-Type", "application/json")
-                    .header("x-authing-userpool-id", userPoolId)
-                    .header("authorization", token)
-                    .body(loginStatusBody)
-                    .asJson();
-
-            return response1.getBody().getObject().getJSONObject("data").getBoolean("active");
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    public boolean sendCode(String account, String type, String field) {
-        try {
             switch (type.toLowerCase()) {
                 case "email":
                     String label = "";
@@ -496,8 +464,9 @@ public class AuthingUserDao {
         return true;
     }
 
-    public boolean changePassword(String account, String code, String newPassword, String type) {
+    public boolean changePassword(String appId, String account, String code, String newPassword, String type) {
         try {
+            AuthenticationClient authentication = appClientMap.get(appId);
             switch (type.toLowerCase()) {
                 case "email":
                     authentication.resetPasswordByEmailCode(account, code, newPassword).execute();
@@ -514,16 +483,19 @@ public class AuthingUserDao {
         return true;
     }
 
-    public String updateAccount(String token, String oldaccount, String oldcode, String account, String code, String type) {
+    public String updateAccount(String token, String oldAccount, String oldCode, String account, String code, String type) {
         try {
-            User us = getUserInfo(token);
+            Object[] appUserInfo = getAppUserInfo(token);
+            String appId = appUserInfo[0].toString();
+            User us = (User) appUserInfo[1];
+            AuthenticationClient authentication = appClientMap.get(appId);
             authentication.setCurrentUser(us);
             switch (type.toLowerCase()) {
                 case "email":
-                    authentication.updateEmail(account, code, oldaccount, oldcode).execute();
+                    authentication.updateEmail(account, code, oldAccount, oldCode).execute();
                     break;
                 case "phone":
-                    authentication.updatePhone(account, code, oldaccount, oldcode).execute();
+                    authentication.updatePhone(account, code, oldAccount, oldCode).execute();
                     break;
                 default:
                     return "false";
@@ -537,7 +509,12 @@ public class AuthingUserDao {
     public String unbindAccount(String token, String account, String type) {
         String resFail = "unbind fail";
         try {
-            User us = getUserInfo(token);
+            Object[] appUserInfo = getAppUserInfo(token);
+            String appId = appUserInfo[0].toString();
+            User us = (User) appUserInfo[1];
+            AuthenticationClient authentication = appClientMap.get(appId);
+            authentication.setCurrentUser(us);
+
             if (StringUtils.isBlank(us.getEmail())) return "请先绑定邮箱";
 
             authentication.setCurrentUser(us);
@@ -566,8 +543,11 @@ public class AuthingUserDao {
 
     public String bindAccount(String token, String account, String code, String type) {
         try {
-            User us = getUserInfo(token);
-            authentication.setCurrentUser(us);
+            Object[] appUserInfo = getAppUserInfo(token);
+            String appId = appUserInfo[0].toString();
+            User user = (User) appUserInfo[1];
+            AuthenticationClient authentication = appClientMap.get(appId);
+            authentication.setCurrentUser(user);
             switch (type.toLowerCase()) {
                 case "email":
                     authentication.bindEmail(account, code).execute();
@@ -586,22 +566,27 @@ public class AuthingUserDao {
 
     public List<Map<String, String>> linkConnList(String token) {
         try {
-            User user = getUserInfo(token);
+            Object[] appUserInfo = getAppUserInfo(token);
+            String appId = appUserInfo[0].toString();
+            User user = (User) appUserInfo[1];
+            AuthenticationClient authentication = appClientMap.get(appId);
+            authentication.setCurrentUser(user);
+
             String userToken = user.getToken();
             List<Map<String, String>> list = new ArrayList<>();
 
             HashMap<String, String> mapGithub = new HashMap<>();
-            String authGithub = String.format(socialAuthUrlGithub, socialIdentifierGithub, omAppId, userToken);
+            String authGithub = String.format(socialAuthUrlGithub, socialIdentifierGithub, appId, userToken);
             mapGithub.put("name", "social_github");
             mapGithub.put("authorizationUrl", authGithub);
 
             HashMap<String, String> mapGitee = new HashMap<>();
-            String authGitee = String.format(enterAuthUrlGitee, omAppId, enterIdentifieGitee, userToken);
+            String authGitee = String.format(enterAuthUrlGitee, appId, enterIdentifieGitee, userToken);
             mapGitee.put("name", "enterprise_gitee");
             mapGitee.put("authorizationUrl", authGitee);
 
             HashMap<String, String> mapOpenatom = new HashMap<>();
-            String authOpenatom = String.format(enterAuthUrlOpenatom, omAppId, enterIdentifieOpenatom, userToken);
+            String authOpenatom = String.format(enterAuthUrlOpenatom, appId, enterIdentifieOpenatom, userToken);
             mapOpenatom.put("name", "enterprise_openatom");
             mapOpenatom.put("authorizationUrl", authOpenatom);
 
@@ -609,27 +594,20 @@ public class AuthingUserDao {
             list.add(mapGitee);
             list.add(mapOpenatom);
             return list;
-
-            /*TODO 该接口因为Cookie参数获取不到，所以无法使用
-            HttpResponse<JsonNode> response = Unirest.get(AUTHINGAPIHOST_V2 + "/users/identity/conn-list")
-                    .header("Cookie", "")
-                    .header("DNT", "1")
-                    .header("x-authing-app-id", omAppId)
-                    .header("x-authing-request-from", "userPortal")
-                    .header("x-authing-userpool-id", userPoolId)
-                    .asJson();
-            JSONObject object = response.getBody().getObject();
-            JSONArray jsonArray = response.getBody().getObject().getJSONObject("data").getJSONArray("list");*/
         } catch (Exception e) {
             return null;
         }
     }
 
-    public String linkAccount(String token, String secondtoken) {
+    public String linkAccount(String token, String secondToken) {
         try {
-            User us = getUserInfo(token);
+            Object[] appUserInfo = getAppUserInfo(token);
+            String appId = appUserInfo[0].toString();
+            User us = (User) appUserInfo[1];
+            AuthenticationClient authentication = appClientMap.get(appId);
             authentication.setCurrentUser(us);
-            authentication.linkAccount(token, secondtoken).execute();
+
+            authentication.linkAccount(token, secondToken).execute();
         } catch (Exception e) {
             return e.getMessage();
         }
@@ -658,7 +636,9 @@ public class AuthingUserDao {
                     return msg;
             }
 
-            User us = getUserInfo(token);
+            Object[] appUserInfo = getAppUserInfo(token);
+            User us = (User) appUserInfo[1];
+
             if (StringUtils.isBlank(us.getEmail())) return "请先绑定邮箱";
 
             // -- temporary (解决gitee多身份源解绑问题) -- TODO
@@ -709,8 +689,12 @@ public class AuthingUserDao {
     public String updateUserBaseInfo(String token, Map<String, Object> map) {
         String msg = "success";
         try {
-            User user = getUserInfo(token);
+            Object[] appUserInfo = getAppUserInfo(token);
+            String appId = appUserInfo[0].toString();
+            User user = (User) appUserInfo[1];
+            AuthenticationClient authentication = appClientMap.get(appId);
             authentication.setCurrentUser(user);
+
             UpdateUserInput updateUserInput = new UpdateUserInput();
 
             for (Map.Entry<String, Object> entry : map.entrySet()) {
@@ -724,9 +708,10 @@ public class AuthingUserDao {
                         updateUserInput.withCompany(inputValue);
                         break;
                     case "username":
-                        msg = checkUsername(inputValue);
+                        msg = checkUsername(appId, inputValue);
                         if (!msg.equals("success")) return msg;
-                        if (StringUtils.isNotBlank(user.getUsername()) && !user.getUsername().startsWith("oauth2_")) return "用户名唯一，不可修改";
+                        if (StringUtils.isNotBlank(user.getUsername()) && !user.getUsername().startsWith("oauth2_"))
+                            return "用户名唯一，不可修改";
                         updateUserInput.withUsername(inputValue);
                         break;
                     default:
@@ -742,8 +727,12 @@ public class AuthingUserDao {
 
     public boolean updatePhoto(String token, MultipartFile file) {
         try {
-            User user = getUserInfo(token);
+            Object[] appUserInfo = getAppUserInfo(token);
+            String appId = appUserInfo[0].toString();
+            User user = (User) appUserInfo[1];
+            AuthenticationClient authentication = appClientMap.get(appId);
             authentication.setCurrentUser(user);
+
             String photo = user.getPhoto();
 
             // 重命名文件
@@ -794,13 +783,13 @@ public class AuthingUserDao {
         }
     }
 
-    public String checkUsername(String userName) {
+    public String checkUsername(String appId, String userName) {
         String msg = "success";
         if (StringUtils.isBlank(userName))
             msg = "用户名不能为空";
         else if (!userName.matches(Constant.USERNAMEREGEX))
             msg = "请输入3到20个字符。只能由字母、数字或者下划线(_)组成。必须以字母开头，不能以下划线(_)结尾";
-        else if (reservedUsernames.contains(userName) || isUserExists(userName, "username"))
+        else if (reservedUsernames.contains(userName) || isUserExists(appId, userName, "username"))
             msg = "用户名已存在";
 
         return msg;
@@ -863,6 +852,7 @@ public class AuthingUserDao {
         map.put("请输入正确的公司名", MessageCodeConfig.E00044);
         map.put("请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。必须以字母或者汉字开头，不能以下划线(_)结尾", MessageCodeConfig.E00045);
         map.put("请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾", MessageCodeConfig.E00046);
+        map.put("应用不存在", MessageCodeConfig.E00047);
 
         return map;
     }

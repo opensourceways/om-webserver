@@ -263,9 +263,6 @@ public class propertiesObj {
         bean.setSigCountQuery(openconf.getProperty("SigCountQuery"));
         bean.setUserReportCsvData(openconf.getProperty("UserReportCsvData"));
         bean.setMonthCountQueryStr(openconf.getProperty("MonthCountQueryStr"));
-        bean.setuserCountIndex(openconf.getProperty("userCountIndex"));
-        bean.setuserCountquery(openconf.getProperty("userCountquery"));
-        bean.setuserActivequery(openconf.getProperty("userActivequery"));
     }
 
     private static Properties readProperties(String path) throws IOException {
