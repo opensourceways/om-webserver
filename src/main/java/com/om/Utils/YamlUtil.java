@@ -17,20 +17,6 @@ import org.yaml.snakeyaml.Yaml;
 
 
 public class YamlUtil {
-    public <T> T readUrlYaml(String yamlUrl, Class<T> classType) {
-        Yaml yaml = new Yaml();
-        InputStream inputStream;
-        T t = null;
-        try {
-            URL url = new URL(yamlUrl);
-            inputStream = url.openStream();
-            t = yaml.loadAs(inputStream, classType);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return t;
-    }
-
     public <T> T readLocalYaml(String yamlFile, Class<T> classType) {
         Yaml yaml = new Yaml();
         InputStream inputStream;
