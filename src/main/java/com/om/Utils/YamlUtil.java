@@ -17,7 +17,6 @@ import org.yaml.snakeyaml.Yaml;
 
 
 public class YamlUtil {
-
     public <T> T readLocalYaml(String yamlFile, Class<T> classType) {
         Yaml yaml = new Yaml();
         InputStream inputStream;
