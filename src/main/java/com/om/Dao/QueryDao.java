@@ -1250,7 +1250,7 @@ public class QueryDao {
         // String localYamlPath = companyNameLocalYaml;
         // YamlUtil yamlUtil = new YamlUtil();
         // String localFile = yamlUtil.wget(csvName, localYamlPath);
-        String localFile = "om-data/" + community.toLowerCase() + "_" + year + ".csv";
+        String localFile = "mydata/" + community.toLowerCase() + "_" + year + ".csv";
         List<HashMap<String, Object>> datas = CsvFileUtil.readFile(localFile);
         HashMap<String, Object> resMap = new HashMap<>();
         resMap.put("code", 200);
