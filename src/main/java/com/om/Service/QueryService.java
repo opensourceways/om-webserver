@@ -1507,15 +1507,5 @@ public class QueryService {
         }
         return result;
     }
-
-    // public String queryMetricsData(String community, DatastatRequestBody body) {
-    //     String result = null;
-    //     try {
-    //         result = queryDao.queryMetricsData(community, body, env.getProperty("user.query"));
-    //     } catch (Exception e) {
-    //         e.printStackTrace();
-    //     }
-    //     return result;
-    // }
 }
 
