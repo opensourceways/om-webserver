@@ -17,7 +17,7 @@ import lombok.Data;
 
 @Data
 @TableName(value="users")
-public class mySqlUser {
+public class MySqlUser {
     private int id;
     private String username;
     private String photo;
