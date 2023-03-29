@@ -19,17 +19,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
-import com.om.mapper.userMapper;
 import com.om.Modules.MessageCodeConfig;
-import com.om.Modules.mySqlUser;
+import com.om.Modules.MySqlUser;
 import com.om.Result.Constant;
 import com.om.Result.Result;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
-import com.om.mapper.userMapper;
-
+import com.om.mapper.UserMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -73,7 +71,7 @@ public class AuthingService implements UserCenterServiceInter {
     JavaMailSender mailSender;
 
     @Autowired
-    userMapper userMapper;
+    UserMapper userMapper;
 
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
@@ -516,7 +514,7 @@ public class AuthingService implements UserCenterServiceInter {
             String username;
             String email;
             try {
-                mySqlUser s = userMapper.selectById(userId);
+                MySqlUser s = userMapper.selectById(userId);
                 photo = s.getPhoto();
                 username = s.getUsername();
                 email = s.getEmail();
@@ -634,12 +632,9 @@ public class AuthingService implements UserCenterServiceInter {
             String photo;
             String username;
             try {
-                mySqlUser s = userMapper.selectById(userId);
+                MySqlUser s = userMapper.selectById(userId);
                 photo = s.getPhoto();
                 username = s.getUsername();
-                mySqlUser ui = userMapper.selectById(userId);
-                photo = ui.getPhoto();
-                username = ui.getUsername();
             } catch (Exception e) {
                 System.out.println("get data from mysql failed.");
                 User user = authingUserDao.getUser(userId);
@@ -790,15 +785,6 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
         }
     }
-
-    // 未使用
-    /*public ResponseEntity resetPassword(String account, String code, String ps, String type) {
-        boolean res = authingUserDao.changePassword(account, code, ps, type);
-        if (!res) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-        return result(HttpStatus.OK, "success", null);
-    }*/
 
     @Override
     public ResponseEntity updateAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
