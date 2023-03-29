@@ -116,14 +116,16 @@ public class CodeUtil {
      * @return 邮件模板 {标题， 内容}
      */
     public String[] buildEmailUnbindInfo(String email, String code) {
-        String title = "您正在解除绑定邮箱，验证码为：" + code;
-        String content = "亲爱的用户：" + email + "\n\n" + title + ", 请保管好验证码。\n\n";
+        String title = "社区用户验证码";
+        String codeContent = "您正在解除绑定邮箱，验证码为：" + code;
+        String content = "亲爱的用户：" + email + "\n\n" + codeContent + ", 请保管好验证码。\n\n";
         return new String[]{title, content};
     }
 
     public String[] buildEmailCodeInfo(String email, String code) {
-        String title = "您的验证码为：" + code;
-        String content = "亲爱的用户：" + email + "\n\n" + title + ", 请保管好验证码。\n\n";
+        String title = "社区用户验证码";
+        String codeContent = "您的验证码为：" + code;
+        String content = "亲爱的用户：" + email + "\n\n" + codeContent + ", 请保管好验证码。\n\n";
         return new String[]{title, content};
     }
 
