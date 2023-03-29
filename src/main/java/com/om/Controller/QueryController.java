@@ -445,9 +445,4 @@ public class QueryController {
         return queryService.getSigReadme(community, sig, lang);
     }
 
-    // @RequestMapping(value = "/metrics/data", method = RequestMethod.POST)
-    // public String queryMetricsData(@RequestParam(value = "community") String community, @RequestBody DatastatRequestBody body) throws JsonMappingException, JsonProcessingException {
-    //     String res = queryService.queryMetricsData(community, body);
-    //     return res;
-    // }
 }
