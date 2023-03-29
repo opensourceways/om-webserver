@@ -20,25 +20,32 @@ import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.exception.GeoIp2Exception;
 import com.maxmind.geoip2.model.CityResponse;
 import com.om.Modules.*;
-import com.om.Modules.yaml.CommunityPartnersYaml;
-import com.om.Modules.yaml.CommunityPartnersYamlInfo;
-import com.om.Modules.yaml.CompanyYaml;
-import com.om.Modules.yaml.CompanyYamlInfo;
-import com.om.Modules.yaml.GroupYamlInfo;
-import com.om.Modules.yaml.SigYaml;
-import com.om.Modules.yaml.SigYamlInfo;
-import com.om.Modules.yaml.UserInfoYaml;
-import com.om.Modules.yaml.UserNameYaml;
+import com.om.Modules.yaml.*;
 import com.om.Utils.*;
 import com.om.Vo.*;
 import io.netty.util.internal.StringUtil;
+import org.apache.commons.lang3.StringUtils;
+import org.assertj.core.util.Lists;
+import org.asynchttpclient.*;
+import org.elasticsearch.action.bulk.BulkRequest;
+import org.elasticsearch.action.index.IndexRequest;
+import org.elasticsearch.client.RequestOptions;
+import org.elasticsearch.client.RestHighLevelClient;
+import org.elasticsearch.index.query.BoolQueryBuilder;
+import org.elasticsearch.index.query.QueryBuilders;
+import org.elasticsearch.index.query.RangeQueryBuilder;
+import org.elasticsearch.index.query.TermQueryBuilder;
+import org.elasticsearch.index.reindex.DeleteByQueryRequest;
+import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.sort.SortOrder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Repository;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
 import java.net.URL;
@@ -52,28 +59,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
-
-import javax.annotation.PostConstruct;
-
-import org.apache.commons.lang3.StringUtils;
-import org.assertj.core.util.Lists;
-import org.asynchttpclient.*;
-import org.elasticsearch.action.bulk.BulkRequest;
-import org.elasticsearch.action.index.IndexRequest;
-import org.elasticsearch.client.RequestOptions;
-import org.elasticsearch.client.RestHighLevelClient;
-import org.elasticsearch.index.query.*;
-import org.elasticsearch.index.reindex.DeleteByQueryRequest;
-import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.sort.SortOrder;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Repository;
-
-
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -117,9 +102,6 @@ public class QueryDao {
     @Value("${mindspore.sig.yaml.zh}")
     String MindsporeSigYamlZh;
 
-    @Value("${company.query}")
-    String companyQuery;
-
     @Autowired
     KafkaDao kafkaDao;
 
@@ -141,17 +123,6 @@ public class QueryDao {
     StarFork starFork;
 
     static String mistakeInfoStr;
-    static JsonNode companyQueryMap;
-
-    @PostConstruct
-    public void init() {
-        try {
-            companyQuery = new String(companyQuery.getBytes("ISO8859-1"), "UTF-8");
-            companyQueryMap = objectMapper.readTree(companyQuery);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 
     public HashMap<String, HashMap<String, String>> getcommunityFeature(String community) {
         String yamlFile;
