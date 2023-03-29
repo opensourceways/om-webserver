@@ -117,6 +117,9 @@ public class QueryDao {
     @Value("${mindspore.sig.yaml.zh}")
     String MindsporeSigYamlZh;
 
+    @Value("${company.query}")
+    String companyQuery;
+
     @Autowired
     KafkaDao kafkaDao;
 
@@ -138,6 +141,17 @@ public class QueryDao {
     StarFork starFork;
 
     static String mistakeInfoStr;
+    static JsonNode companyQueryMap;
+
+    @PostConstruct
+    public void init() {
+        try {
+            companyQuery = new String(companyQuery.getBytes("ISO8859-1"), "UTF-8");
+            companyQueryMap = objectMapper.readTree(companyQuery);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 
     public HashMap<String, HashMap<String, String>> getcommunityFeature(String community) {
         String yamlFile;
@@ -153,7 +167,7 @@ public class QueryDao {
         }
 
         YamlUtil yamlUtil = new YamlUtil();
-        SigYaml res = yamlUtil.readUrlYaml(yamlFile, SigYaml.class);
+        SigYaml res = yamlUtil.readLocalYaml(yamlFile, SigYaml.class);
 
         List<GroupYamlInfo> features = res.getFeatures();
         HashMap<String, HashMap<String, String>> resData = new HashMap<>();
@@ -1236,7 +1250,7 @@ public class QueryDao {
         // String localYamlPath = companyNameLocalYaml;
         // YamlUtil yamlUtil = new YamlUtil();
         // String localFile = yamlUtil.wget(csvName, localYamlPath);
-        String localFile = "om-data/" + community.toLowerCase() + "_" + year + ".csv";
+        String localFile = "mydata/" + community.toLowerCase() + "_" + year + ".csv";
         List<HashMap<String, Object>> datas = CsvFileUtil.readFile(localFile);
         HashMap<String, Object> resMap = new HashMap<>();
         resMap.put("code", 200);
@@ -1900,9 +1914,7 @@ public class QueryDao {
 
     private List<Map<String, String>> getCompanyNameCnEn(String yamlFile, String localYamlPath) throws Exception {
         YamlUtil yamlUtil = new YamlUtil();
-        String localFile = yamlUtil.wget(yamlFile, localYamlPath);
-        CompanyYaml companies = yamlUtil.readLocalYaml(localFile, CompanyYaml.class);
-        // System.out.println(companies);
+        CompanyYaml companies = yamlUtil.readLocalYaml(yamlFile, CompanyYaml.class);
 
         HashMap<String, String> company_enMap = new HashMap<>();
         HashMap<String, String> company_cnMap = new HashMap<>();
@@ -1926,8 +1938,7 @@ public class QueryDao {
 
     private Map<String, Integer> getCommunityPartners(String yamlFile) {
         YamlUtil yamlUtil = new YamlUtil();
-        CommunityPartnersYaml communities = yamlUtil.readUrlYaml(yamlFile, CommunityPartnersYaml.class);
-        // System.out.println(communities);
+        CommunityPartnersYaml communities = yamlUtil.readLocalYaml(yamlFile, CommunityPartnersYaml.class);
 
         HashMap<String, Integer> resMap = new HashMap<>();
         for (CommunityPartnersYamlInfo community : communities.getCommunity()) {
@@ -2983,7 +2994,7 @@ public class QueryDao {
         ArrayList<String> res = new ArrayList<>();
         res.add(name);
         YamlUtil yamlUtil = new YamlUtil();
-        CompanyYaml companies = yamlUtil.readUrlYaml(companyNameYaml, CompanyYaml.class);
+        CompanyYaml companies = yamlUtil.readLocalYaml(companyNameYaml, CompanyYaml.class);
         for (CompanyYamlInfo companyinfo : companies.getCompanies()) {
             String cnCompany = companyinfo.getCompany_cn().trim();
             String enCompany = companyinfo.getCompany_en().trim();
@@ -3004,7 +3015,7 @@ public class QueryDao {
     public String CompanyCN2Cla(String community, String company) {
         String resCompany = "";
         YamlUtil yamlUtil = new YamlUtil();
-        CompanyYaml companies = yamlUtil.readUrlYaml(companyNameYaml, CompanyYaml.class);
+        CompanyYaml companies = yamlUtil.readLocalYaml(companyNameYaml, CompanyYaml.class);
         for (CompanyYamlInfo companyinfo : companies.getCompanies()) {
             String cnCompany = companyinfo.getCompany_cn().trim();
             if (company.equals(cnCompany)) {
@@ -3540,7 +3551,7 @@ public class QueryDao {
 
     public Map<String, String> getUserNameCnEn(String yamlFile) {
         YamlUtil yamlUtil = new YamlUtil();
-        UserNameYaml users = yamlUtil.readUrlYaml(yamlFile, UserNameYaml.class);
+        UserNameYaml users = yamlUtil.readLocalYaml(yamlFile, UserNameYaml.class);
 
         HashMap<String, String> userMap = new HashMap<>();
         for (UserInfoYaml user : users.getUsers()) {
@@ -4322,143 +4333,6 @@ public class QueryDao {
         } catch (IOException e) {
             e.printStackTrace();
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
-
-    public String queryMetricsData(String community, DatastatRequestBody body, String userQuery) {
-        if (!community.toLowerCase().equals("openeuler")) {
-            return "{\"code\":400,\"data\":\"community error\",\"msg\":\"query error\"}";
-        }
-
-        String operation = body.geoperation(); // increase, active
-        String start = body.getstart();
-        String end = body.getend();
-        switch (operation.toLowerCase()) {
-            case "increase":
-                return queryMetricUserCount(community, start, end, body);
-            case "active":
-                return queryMetricUserActiveCount(community, start, end, body, userQuery);
-            default:
-                return "{\"code\":400,\"data\":\"operation error\",\"msg\":\"query error\"}";
-        }
-    }
-
-    public String queryMetricUserCount(String community, String start, String end, DatastatRequestBody body) {
-        String index;
-        String queryjson;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getuserCountIndex();
-                queryjson = openEuler.getuserCountquery();
-                break;
-            default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-        try {
-            ArrayList<String> metrics = body.getmetrics(); // D0 D1 D2
-            HashMap<String, Object> variables = body.getvariables();
-            ArrayList<String> orgs = (ArrayList<String>) variables.get("org"); // openeuler,src-openeuler
-            ArrayList<String> internals = (ArrayList<String>) variables.get("internal"); // 0,1
-
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            HashMap<String, Object> data = new HashMap<>();
-
-            List<String> intervals = Arrays.asList("1d", "1w", "1M");
-            for (String metric : metrics) {
-                for (String interval : intervals) {
-                    String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), interval, metric);
-                    builder.setUrl(this.url + index + "/_search");
-                    builder.setBody(query);
-                    ListenableFuture<Response> f = client.executeRequest(builder.build());
-                    String responseBody = f.get().getResponseBody(UTF_8);
-                    JsonNode dataNode = objectMapper.readTree(responseBody);
-                    Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-                    ArrayList<HashMap<String, Object>> list = new ArrayList<>();
-                    long total = 0l;
-                    while (buckets.hasNext()) {                       
-                        JsonNode bucket = buckets.next();
-                        String timedelta = bucket.get("key_as_string").asText().split("T")[0];
-                        long increase = bucket.get("res").get("value").asLong();
-                        total += increase;
-
-                        HashMap<String, Object> datamap = new HashMap<>();
-                        datamap.put("date", timedelta);
-                        datamap.put("increase", increase);
-                        datamap.put("total", total);
-                        list.add(datamap);
-                    }
-                    data.put(metric + "_" + interval, list);
-                }
-            }
-            String s = objectMapper.valueToTree(data).toString();
-            return "{\"code\":200,\"data\":" + s + ",\"msg\":\"ok\"}";
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\": \"query error\",\"totalCount\": 0,\"msg\":\"ok\"}";
-        }
-    }
-
-    public String convertList2queryStr(ArrayList<String> res) {
-        String names = "(";
-        for (String r : res) {
-            names = names + "\\\"" + r + "\\\",";
-        }
-        names = names + ")";
-        return names;
-    }
-
-    public String queryMetricUserActiveCount(String community, String start, String end, DatastatRequestBody body, String userQuery) {
-        String index;
-        String queryjson;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getGiteeAllIndex();
-                queryjson = openEuler.getuserActivequery();
-                break;
-            default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-        try {
-            JsonNode userQueryMap = objectMapper.readTree(userQuery);
-            ArrayList<String> metrics = body.getmetrics(); // D0 D1 D2
-            HashMap<String, Object> variables = body.getvariables();
-            ArrayList<String> orgs = (ArrayList<String>) variables.get("org"); // openeuler,src-openeuler
-            ArrayList<String> internals = (ArrayList<String>) variables.get("internal"); // 0,1
-
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            HashMap<String, Object> data = new HashMap<>();
-
-            List<String> intervals = Arrays.asList("1d", "1w", "1M");
-            for (String metric : metrics) {
-                String userquery = userQueryMap.get(metric).asText();
-                for (String interval : intervals) {
-                    String query = String.format(queryjson, start, end, convertList2queryStr(internals), convertList2queryStr(orgs), userquery, interval);
-                    builder.setUrl(this.url + index + "/_search");
-                    builder.setBody(query);
-                    ListenableFuture<Response> f = client.executeRequest(builder.build());
-                    String responseBody = f.get().getResponseBody(UTF_8);
-                    JsonNode dataNode = objectMapper.readTree(responseBody);
-                    Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-                    ArrayList<HashMap<String, Object>> list = new ArrayList<>();
-                    while (buckets.hasNext()) {                       
-                        JsonNode bucket = buckets.next();
-                        String timedelta = bucket.get("key_as_string").asText().split("T")[0];
-                        long active = bucket.get("res").get("value").asLong();
-                        HashMap<String, Object> datamap = new HashMap<>();
-                        datamap.put("date", timedelta);
-                        datamap.put("active", active);
-                        list.add(datamap);
-                    }
-                    data.put(metric + "_" + interval, list);
-                }
-            }
-            String s = objectMapper.valueToTree(data).toString();
-            return "{\"code\":200,\"data\":" + s + ",\"msg\":\"ok\"}";
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\": \"query error\",\"totalCount\": 0,\"msg\":\"ok\"}";
         }
     }
 
