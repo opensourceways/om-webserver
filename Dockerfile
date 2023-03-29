@@ -24,7 +24,7 @@ RUN git clone -b ${BRANCH} https://gitee.com/opensourceway/om-webserver.git && \
         mv ./target/om-webserver-0.0.1-SNAPSHOT.jar ../om-webserver.jar
 
 RUN git clone https://${NEW_YEAR_USER}@gitee.com/lixianlin01/new-year.git
-RUN git clone https://${NEW_YEAR_2022}@gitee.com/kaede10/om-data.git
+RUN git clone https://${NEW_YEAR_2022}@gitee.com/kaede10/mydata.git
 RUN git clone https://gitee.com/opensourceway/om-data.git
 
 CMD java -jar om-webserver.jar
