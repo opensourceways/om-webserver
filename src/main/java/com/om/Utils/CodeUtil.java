@@ -11,6 +11,16 @@
 
 package com.om.Utils;
 
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
+import com.mashape.unirest.http.Unirest;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.core.env.Environment;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+
+import javax.mail.internet.MimeMessage;
 import java.math.BigInteger;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
@@ -21,14 +31,6 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
-
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.core.env.Environment;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 
 
 public class CodeUtil {
@@ -69,7 +71,7 @@ public class CodeUtil {
         String resMsg = "fail";
         long codeExpire = 60L;
         String code = null;
-        try{
+        try {
             // 生成验证码
             code = randomNumBuilder(Integer.parseInt(env.getProperty("code.length", "6")));
 
@@ -81,7 +83,7 @@ public class CodeUtil {
                     // 邮件信息
                     String[] info = buildEmailCodeInfo(account, code);
                     // 发送验证码
-                    resMsg = sendSimpleMail(mailSender, from, account, info[0], info[1]);
+                    resMsg = sendHtmlMail(mailSender, from, account, info[0], info[1]);
                     break;
                 case "phone":
                     codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", "60"));
@@ -134,6 +136,29 @@ public class CodeUtil {
         return "send code success";
     }
 
+    /**
+     * 发送html邮件
+     *
+     * @param mailSender 邮箱服务
+     * @param from       发件邮箱
+     * @param to         收件邮箱
+     * @param title      标题
+     * @param content    html格式的内容
+     */
+    public String sendHtmlMail(JavaMailSender mailSender, String from, String to, String title, String content) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper messageHelper = new MimeMessageHelper(message);
+            messageHelper.setFrom(from);
+            messageHelper.setTo(to);
+            messageHelper.setSubject(title);
+            messageHelper.setText(content, true);
+            mailSender.send(message);
+            return "send code success";
+        } catch (Exception e) {
+            return "send code fail";
+        }
+    }
 
     /**
      * 解除绑定邮箱，邮件信息
@@ -244,6 +269,7 @@ public class CodeUtil {
 
     /**
      * 随机生成字符串
+     *
      * @param strLength 字符串长度
      * @return 随机字符串
      */
