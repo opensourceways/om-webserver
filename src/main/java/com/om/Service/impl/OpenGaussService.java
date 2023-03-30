@@ -102,12 +102,12 @@ public class OpenGaussService implements UserCenterServiceInter {
             String community = servletRequest.getParameter("community");
             String appId = servletRequest.getParameter("client_id");
             String userName = servletRequest.getParameter("username");
-            String phone = servletRequest.getParameter("account");
-            String phoneCode = servletRequest.getParameter("code");
+            String account = servletRequest.getParameter("account");
+            String code = servletRequest.getParameter("code");
             String company = servletRequest.getParameter("company");
 
             // 限制一分钟内失败次数
-            String registerErrorCountKey = phone + "registerCount";
+            String registerErrorCountKey = account + "registerCount";
             Object v = redisDao.get(registerErrorCountKey);
             int registerErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
             if (registerErrorCount >= Integer.parseInt(env.getProperty("login.error.count", "6")))
@@ -132,17 +132,20 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, "用户名已存在", null);
             userInfo.put("username", userName);
 
-            // 手机号校验
-            if (StringUtils.isBlank(phone) || !phone.matches(Constant.PHONEREGEX))
-                return result(HttpStatus.BAD_REQUEST, null, "请输入正确的手机号码", null);
-            if (oneidDao.isUserExists(poolId, poolSecret, phone, "phone"))
+            // 手机号或者邮箱校验
+            String accountType = getAccountType(account);
+            if (accountType.equals("请输入正确的手机号或者邮箱")) {
+                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            }
+            if (oneidDao.isUserExists(poolId, poolSecret, account, accountType)) {
                 return result(HttpStatus.BAD_REQUEST, null, "该账号已注册", null);
-            userInfo.put("phone", phone);
+            }
+            userInfo.put(accountType, account);
 
             // 验证码校验
-            String redisKey = phone + "_sendCode_" + community + "_register";
+            String redisKey = account + "_sendCode_" + community + "_register";
             String codeTemp = (String) redisDao.get(redisKey);
-            String codeCheck = checkCode(phoneCode, codeTemp);
+            String codeCheck = checkCode(code, codeTemp);
             if (!codeCheck.equals("success")) {
                 long codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
                 registerErrorCount += 1;
@@ -446,14 +449,14 @@ public class OpenGaussService implements UserCenterServiceInter {
             // 只允许修改 nickname 和 company
             map.entrySet().removeIf(entry -> !(entry.getKey().equals("nickname") || entry.getKey().equals("company")));
             String nickname = (String) map.getOrDefault("nickname", null);
-            if (nickname != null && !nickname.equals("") && !nickname.matches(Constant.NICKNAMEREGEX)){
+            if (nickname != null && !nickname.equals("") && !nickname.matches(Constant.NICKNAMEREGEX)) {
                 String msg = "请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。" +
                         "必须以字母或者汉字开头，不能以下划线(_)结尾";
                 return result(HttpStatus.BAD_REQUEST, null, msg, null);
             }
 
             String company = (String) map.getOrDefault("company", null);
-            if (company != null && !company.matches(Constant.COMPANYNAMEREGEX)){
+            if (company != null && !company.matches(Constant.COMPANYNAMEREGEX)) {
                 String msg = "请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。" +
                         "必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾";
                 return result(HttpStatus.BAD_REQUEST, null, msg, null);
@@ -461,7 +464,7 @@ public class OpenGaussService implements UserCenterServiceInter {
 
             String userJsonStr = objectMapper.writeValueAsString(map);
             JSONObject user = oneidDao.updateUser(poolId, poolSecret, userId, userJsonStr);
-            if (user != null){
+            if (user != null) {
                 return result(HttpStatus.OK, null, "update base info success", null);
             }
         } catch (Exception e) {
@@ -589,7 +592,10 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity unbindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
-        String community = servletRequest.getParameter("community");
+        // TODO 暂不支持解绑
+        return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+
+        /*String community = servletRequest.getParameter("community");
         String appId = servletRequest.getParameter("client_id");
         String account = servletRequest.getParameter("account");
         String code = servletRequest.getParameter("code");
@@ -597,7 +603,7 @@ public class OpenGaussService implements UserCenterServiceInter {
 
         // todo 暂不支持解绑手机
         if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType) ||
-                (!accountType.toLowerCase().equals("email")/* && !accountType.toLowerCase().equals("phone")*/))
+                (!accountType.toLowerCase().equals("email")*//* && !accountType.toLowerCase().equals("phone")*//*))
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
 
         // app校验
@@ -627,7 +633,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
+        return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);*/
     }
 
     @Override
@@ -638,9 +644,8 @@ public class OpenGaussService implements UserCenterServiceInter {
         String code = servletRequest.getParameter("code");
         String accountType = servletRequest.getParameter("account_type");
 
-        // todo 暂不支持绑定手机（必须使用手机号注册）
         if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType) ||
-                (!accountType.toLowerCase().equals("email")/* && !accountType.toLowerCase().equals("phone")*/))
+                (!accountType.toLowerCase().equals("email") && !accountType.toLowerCase().equals("phone")))
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
 
         // app校验
@@ -674,15 +679,17 @@ public class OpenGaussService implements UserCenterServiceInter {
     }
 
     private String getAccountType(String account) {
-        String accountType;
-        if (account.matches(Constant.EMAILREGEX))
-            accountType = "email";
-        else if (account.matches(Constant.PHONEREGEX))
-            accountType = "phone";
-        else
-            accountType = "请输入正确的手机号或者邮箱";
-
-        return accountType;
+        String accountTypeError = "请输入正确的手机号或者邮箱";
+        if (StringUtils.isBlank(account)) {
+            return accountTypeError;
+        }
+        if (account.matches(Constant.EMAILREGEX)) {
+            return "email";
+        }
+        if (account.matches(Constant.PHONEREGEX)) {
+            return "phone";
+        }
+        return accountTypeError;
     }
 
     private String checkPhoneAndEmail(String poolId, String poolSecret, String account) {
