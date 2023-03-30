@@ -53,13 +53,13 @@ public class CodeUtil {
             "          <div style=\"padding:25px 35px 40px; background-color:#fff;\">\n" +
             "            <h2 style=\"margin: 5px 0px; \">\n" +
             "              <font color=\"#333333\" style=\"line-height: 20px; \">\n" +
-            "                <font style=\"line-height: 22px; \" size=\"4\">亲爱的用户：%s </font>\n" +
+            "                <font style=\"line-height: 22px; \" size=\"4\">Dear user：%s </font>\n" +
             "              </font>\n" +
             "            </h2>\n" +
-            "            <p>您的验证码是：%s </p >\n" +
+            "            <p>Your verification code：%s </p >\n" +
             "            <br/>\n" +
             "            <br/>\n" +
-            "            <p align=\"right\">开源社区</p >\n" +
+            "            <p align=\"right\">Open Source Community</p >\n" +
             "          </div>\n" +
             "        </td>\n" +
             "      </tr>\n" +
@@ -168,7 +168,7 @@ public class CodeUtil {
      * @return 邮件模板 {标题， 内容}
      */
     public String[] buildEmailCodeInfo(String email, String code) {
-        String title = "社区用户验证码";
+        String title = "Verification code for Open Source Community";
         String content = String.format(emailTemplate, title, email, code);
         return new String[]{title, content};
     }
