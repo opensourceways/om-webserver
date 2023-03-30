@@ -38,6 +38,33 @@ public class CodeUtil {
     // 华为云MSGSMS，用于格式化鉴权头域，给"X-WSSE"参数赋值
     private static final String WSSE_HEADER_FORMAT = "UsernameToken Username=\"%s\",PasswordDigest=\"%s\",Nonce=\"%s\",Created=\"%s\"";
 
+    private static String emailTemplate = "<div style=\"padding: 35px;\">\n" +
+            "  <table cellpadding=\"0\" align=\"center\" style=\"width: 600px; margin: 0px auto; text-align: left; position: relative; border-top-left-radius: 5px; border-top-right-radius: 5px; border-bottom-right-radius: 5px; border-bottom-left-radius: 5px; font-size: 14px; font-family:Microsoft YaHei, SimHei; line-height: 1.5; box-shadow: rgb(153, 153, 153) 0px 0px 5px; border-collapse: collapse; background-position: initial initial; background-repeat: initial initial;background:#fff;\">\n" +
+            "    <tbody>\n" +
+            "      <tr>\n" +
+            "        <th valign=\"middle\" style=\"height: 25px; line-height: 25px; padding: 15px 35px; border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: rgba(18, 24, 37, 0.87); background-color: #484f60; border-top-left-radius: 5px; border-top-right-radius: 5px; border-bottom-right-radius: 0px; border-bottom-left-radius: 0px;\">\n" +
+            "          <font face=\"Microsoft YaHei\" size=\"5\" style=\"color: rgb(255, 255, 255); \"> %s </font>\n" +
+            "        </th>\n" +
+            "      </tr>\n" +
+            "      <tr>\n" +
+            "        <td>\n" +
+            "          <div style=\"padding:25px 35px 40px; background-color:#fff;\">\n" +
+            "            <h2 style=\"margin: 5px 0px; \">\n" +
+            "              <font color=\"#333333\" style=\"line-height: 20px; \">\n" +
+            "                <font style=\"line-height: 22px; \" size=\"4\">亲爱的用户：%s </font>\n" +
+            "              </font>\n" +
+            "            </h2>\n" +
+            "            <p>您的验证码是：%s </p >\n" +
+            "            <br/>\n" +
+            "            <br/>\n" +
+            "            <p align=\"right\">开源社区</p >\n" +
+            "          </div>\n" +
+            "        </td>\n" +
+            "      </tr>\n" +
+            "    </tbody>\n" +
+            "  </table>\n" +
+            "</div>\n";
+
     public String[] sendCode(String accountType, String account, JavaMailSender mailSender, Environment env, String community) {
         String resMsg = "fail";
         long codeExpire = 60L;
@@ -115,17 +142,9 @@ public class CodeUtil {
      * @param code  验证码
      * @return 邮件模板 {标题， 内容}
      */
-    public String[] buildEmailUnbindInfo(String email, String code) {
-        String title = "社区用户验证码";
-        String codeContent = "您正在解除绑定邮箱，验证码为：" + code;
-        String content = "亲爱的用户：" + email + "\n\n" + codeContent + ", 请保管好验证码。\n\n";
-        return new String[]{title, content};
-    }
-
     public String[] buildEmailCodeInfo(String email, String code) {
         String title = "社区用户验证码";
-        String codeContent = "您的验证码为：" + code;
-        String content = "亲爱的用户：" + email + "\n\n" + codeContent + ", 请保管好验证码。\n\n";
+        String content = String.format(emailTemplate, title, email, code);
         return new String[]{title, content};
     }
 
