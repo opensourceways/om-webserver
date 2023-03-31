@@ -45,7 +45,7 @@ public class CodeUtil {
             "    <tbody>\n" +
             "      <tr>\n" +
             "        <th valign=\"middle\" style=\"height: 25px; line-height: 25px; padding: 15px 35px; border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: rgba(18, 24, 37, 0.87); background-color: #484f60; border-top-left-radius: 5px; border-top-right-radius: 5px; border-bottom-right-radius: 0px; border-bottom-left-radius: 0px;\">\n" +
-            "          <font face=\"Microsoft YaHei\" size=\"5\" style=\"color: rgb(255, 255, 255); \"> %s </font>\n" +
+            "          <font face=\"Microsoft YaHei\" size=\"5\" style=\"color: rgb(255, 255, 255); \">%s</font>\n" +
             "        </th>\n" +
             "      </tr>\n" +
             "      <tr>\n" +
@@ -56,7 +56,7 @@ public class CodeUtil {
             "                <font style=\"line-height: 22px; \" size=\"4\">Dear user：%s </font>\n" +
             "              </font>\n" +
             "            </h2>\n" +
-            "            <p>Your verification code：%s </p >\n" +
+            "            <p>Your verification code:%s</p >\n" +
             "            <br/>\n" +
             "            <br/>\n" +
             "            <p align=\"right\">Open Source Community</p >\n" +
