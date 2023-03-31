@@ -11,6 +11,16 @@
 
 package com.om.Utils;
 
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
+import com.mashape.unirest.http.Unirest;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.core.env.Environment;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+
+import javax.mail.internet.MimeMessage;
 import java.math.BigInteger;
 import java.net.URLEncoder;
 import java.security.MessageDigest;
@@ -22,14 +32,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.core.env.Environment;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-
 
 public class CodeUtil {
     // 华为云MSGSMS，用于格式化鉴权头域，给"Authorization"参数赋值
@@ -38,11 +40,38 @@ public class CodeUtil {
     // 华为云MSGSMS，用于格式化鉴权头域，给"X-WSSE"参数赋值
     private static final String WSSE_HEADER_FORMAT = "UsernameToken Username=\"%s\",PasswordDigest=\"%s\",Nonce=\"%s\",Created=\"%s\"";
 
+    private static String emailTemplate = "<div style=\"padding: 35px;\">\n" +
+            "  <table cellpadding=\"0\" align=\"center\" style=\"width: 600px; margin: 0px auto; text-align: left; position: relative; border-top-left-radius: 5px; border-top-right-radius: 5px; border-bottom-right-radius: 5px; border-bottom-left-radius: 5px; font-size: 14px; font-family:Microsoft YaHei, SimHei; line-height: 1.5; box-shadow: rgb(153, 153, 153) 0px 0px 5px; border-collapse: collapse; background-position: initial initial; background-repeat: initial initial;background:#fff;\">\n" +
+            "    <tbody>\n" +
+            "      <tr>\n" +
+            "        <th valign=\"middle\" style=\"height: 25px; line-height: 25px; padding: 15px 35px; border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: rgba(18, 24, 37, 0.87); background-color: #484f60; border-top-left-radius: 5px; border-top-right-radius: 5px; border-bottom-right-radius: 0px; border-bottom-left-radius: 0px;\">\n" +
+            "          <font face=\"Microsoft YaHei\" size=\"5\" style=\"color: rgb(255, 255, 255); \">%s</font>\n" +
+            "        </th>\n" +
+            "      </tr>\n" +
+            "      <tr>\n" +
+            "        <td>\n" +
+            "          <div style=\"padding:25px 35px 40px; background-color:#fff;\">\n" +
+            "            <h2 style=\"margin: 5px 0px; \">\n" +
+            "              <font color=\"#333333\" style=\"line-height: 20px; \">\n" +
+            "                <font style=\"line-height: 22px; \" size=\"4\">Dear user：%s </font>\n" +
+            "              </font>\n" +
+            "            </h2>\n" +
+            "            <p>Your verification code:%s</p >\n" +
+            "            <br/>\n" +
+            "            <br/>\n" +
+            "            <p align=\"right\">Open Source Community</p >\n" +
+            "          </div>\n" +
+            "        </td>\n" +
+            "      </tr>\n" +
+            "    </tbody>\n" +
+            "  </table>\n" +
+            "</div>\n";
+
     public String[] sendCode(String accountType, String account, JavaMailSender mailSender, Environment env, String community) {
         String resMsg = "fail";
         long codeExpire = 60L;
         String code = null;
-        try{
+        try {
             // 生成验证码
             code = randomNumBuilder(Integer.parseInt(env.getProperty("code.length", "6")));
 
@@ -54,7 +83,7 @@ public class CodeUtil {
                     // 邮件信息
                     String[] info = buildEmailCodeInfo(account, code);
                     // 发送验证码
-                    resMsg = sendSimpleMail(mailSender, from, account, info[0], info[1]);
+                    resMsg = sendHtmlMail(mailSender, from, account, info[0], info[1]);
                     break;
                 case "phone":
                     codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", "60"));
@@ -107,6 +136,29 @@ public class CodeUtil {
         return "send code success";
     }
 
+    /**
+     * 发送html邮件
+     *
+     * @param mailSender 邮箱服务
+     * @param from       发件邮箱
+     * @param to         收件邮箱
+     * @param title      标题
+     * @param content    html格式的内容
+     */
+    public String sendHtmlMail(JavaMailSender mailSender, String from, String to, String title, String content) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper messageHelper = new MimeMessageHelper(message);
+            messageHelper.setFrom(from);
+            messageHelper.setTo(to);
+            messageHelper.setSubject(title);
+            messageHelper.setText(content, true);
+            mailSender.send(message);
+            return "send code success";
+        } catch (Exception e) {
+            return "send code fail";
+        }
+    }
 
     /**
      * 解除绑定邮箱，邮件信息
@@ -115,15 +167,9 @@ public class CodeUtil {
      * @param code  验证码
      * @return 邮件模板 {标题， 内容}
      */
-    public String[] buildEmailUnbindInfo(String email, String code) {
-        String title = "您正在解除绑定邮箱，验证码为：" + code;
-        String content = "亲爱的用户：" + email + "\n\n" + title + ", 请保管好验证码。\n\n";
-        return new String[]{title, content};
-    }
-
     public String[] buildEmailCodeInfo(String email, String code) {
-        String title = "您的验证码为：" + code;
-        String content = "亲爱的用户：" + email + "\n\n" + title + ", 请保管好验证码。\n\n";
+        String title = "Verification code for Open Source Community";
+        String content = String.format(emailTemplate, title, email, code);
         return new String[]{title, content};
     }
 
@@ -223,6 +269,7 @@ public class CodeUtil {
 
     /**
      * 随机生成字符串
+     *
      * @param strLength 字符串长度
      * @return 随机字符串
      */
