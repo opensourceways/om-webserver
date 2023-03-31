@@ -11,6 +11,7 @@
 
 package com.om.Utils;
 
+import java.io.BufferedReader;
 import java.io.Serializable;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
@@ -23,6 +24,9 @@ import javax.net.ssl.X509TrustManager;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
@@ -220,5 +224,26 @@ public class HttpClientUtils implements Serializable {
             cookie.setDomain(domain);
             servletResponse.addCookie(cookie);
         }
+    }
+
+    public static Map<String, Object> getBodyFromRequest(HttpServletRequest request) {
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, Object> body = new HashMap<>();
+        try {
+            BufferedReader br = request.getReader();
+            StringBuilder wholeStr = new StringBuilder();
+            String str;
+            while ((str = br.readLine()) != null) {
+                wholeStr.append(str);
+            }
+            if (StringUtils.isNotBlank(wholeStr)) {
+                body = objectMapper.convertValue(objectMapper.readTree(wholeStr.toString()),
+                        new TypeReference<Map<String, Object>>() {
+                        });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return body;
     }
 }
