@@ -19,6 +19,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
@@ -168,16 +169,17 @@ public class AuthingUserDao {
         }
     }
 
-    // 邮箱注册
-    public String registerByEmail(String appId, String email, String code, String name) {
+    // 邮箱验证码注册
+    public String registerByEmailCode(String appId, String email, String code,
+                                      String username) {
         String msg = "success";
         try {
-            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},\"profile\":{\"username\":\"%s\"}}", email, code, name);
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signup")
-                    .header("x-authing-app-id", appId)
-                    .header("Content-Type", "application/json")
-                    .body(body)
-                    .asJson();
+            String body = String.format("{\"connection\": \"PASSCODE\"," +
+                    "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"}," +
+                    "\"profile\":{\"username\":\"%s\"}}",
+                    email, code, username);
+            HttpResponse<JsonNode> response =
+                    authPost("/signup", appId, body);
 
             JSONObject resObj = response.getBody().getObject();
             int statusCode = resObj.getInt("statusCode");
@@ -185,21 +187,22 @@ public class AuthingUserDao {
 
             return msg;
         } catch (Exception e) {
-            return "注册失败";
+            return MessageCodeConfig.E00024.getMsgZh();
         }
-
     }
 
-    // 手机号注册
-    public String registerByPhone(String appId, String phone, String code, String name) {
+    // 邮箱验密码注册
+    public String registerByEmailPwd(String appId, String email, String username,
+                                     String password) {
         String msg = "success";
         try {
-            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"},\"profile\":{\"name\":\"%s\"}}", phone, code, name);
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signup")
-                    .header("x-authing-app-id", appId)
-                    .header("Content-Type", "application/json")
-                    .body(body)
-                    .asJson();
+            String body = String.format("{\"connection\": \"PASSWORD\"," +
+                    "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
+                    "\"profile\":{\"username\":\"%s\"}," +
+                    "\"options\":{\"passwordEncryptType\":\"rsa\"}}",
+                    email, password, username);
+            HttpResponse<JsonNode> response =
+                    authPost("/signup", appId, body);
 
             JSONObject resObj = response.getBody().getObject();
             int statusCode = resObj.getInt("statusCode");
@@ -207,7 +210,7 @@ public class AuthingUserDao {
 
             return msg;
         } catch (Exception e) {
-            return "注册失败";
+            return MessageCodeConfig.E00024.getMsgZh();
         }
     }
 
@@ -260,6 +263,81 @@ public class AuthingUserDao {
                     .header("Content-Type", "application/json")
                     .body(body)
                     .asJson();
+
+            JSONObject resObj = response.getBody().getObject();
+            int statusCode = resObj.getInt("statusCode");
+            if (statusCode != 200) msg = resObj.getString("message");
+            else return resObj.get("data");
+        } catch (Exception ignored) {
+        }
+
+        return msg;
+    }
+
+    public Object loginByEmailPwd(Application app, String email, String password) {
+        String msg = MessageCodeConfig.E00027.getMsgZh();
+        try {
+            if (!isUserExists(app.getId(), email, "email")) {
+                return MessageCodeConfig.E00034.getMsgZh();
+            }
+
+            String body = String.format("{\"connection\": \"PASSWORD\"," +
+                            "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
+                            "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
+                            "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
+                    email, password, app.getId(), app.getSecret());
+            HttpResponse<JsonNode> response =
+                    authPost("/signin", app.getId(), body);
+
+            JSONObject resObj = response.getBody().getObject();
+            int statusCode = resObj.getInt("statusCode");
+            if (statusCode != 200) msg = resObj.getString("message");
+            else return resObj.get("data");
+        } catch (Exception ignored) {
+        }
+
+        return msg;
+    }
+
+    public Object loginByPhonePwd(Application app, String phone, String password) {
+        String msg = MessageCodeConfig.E00027.getMsgZh();
+        try {
+            if (!isUserExists(app.getId(), phone, "phone")) {
+                return MessageCodeConfig.E00034.getMsgZh();
+            }
+
+            String body = String.format("{\"connection\": \"PASSWORD\"," +
+                            "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"}," +
+                            "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
+                            "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
+                    phone, password, app.getId(), app.getSecret());
+            HttpResponse<JsonNode> response =
+                    authPost("/signin", app.getId(), body);
+
+            JSONObject resObj = response.getBody().getObject();
+            int statusCode = resObj.getInt("statusCode");
+            if (statusCode != 200) msg = resObj.getString("message");
+            else return resObj.get("data");
+        } catch (Exception ignored) {
+        }
+
+        return msg;
+    }
+
+    public Object loginByUsernamePwd(Application app, String username, String password) {
+        String msg = MessageCodeConfig.E00049.getMsgZh();
+        try {
+            if (!isUserExists(app.getId(), username, "username")) {
+                return MessageCodeConfig.E00034.getMsgZh();
+            }
+
+            String body = String.format("{\"connection\": \"PASSWORD\"," +
+                            "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"}," +
+                            "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
+                            "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
+                    username, password, app.getId(), app.getSecret());
+            HttpResponse<JsonNode> response =
+                    authPost("/signin", app.getId(), body);
 
             JSONObject resObj = response.getBody().getObject();
             int statusCode = resObj.getInt("statusCode");
@@ -464,23 +542,115 @@ public class AuthingUserDao {
         return true;
     }
 
-    public boolean changePassword(String appId, String account, String code, String newPassword, String type) {
+    public String getPublicKey() {
+        String msg = "Internal Server Error";
         try {
-            AuthenticationClient authentication = appClientMap.get(appId);
-            switch (type.toLowerCase()) {
-                case "email":
-                    authentication.resetPasswordByEmailCode(account, code, newPassword).execute();
-                    break;
-                case "phone":
-                    authentication.resetPasswordByPhoneCode(account, code, newPassword).execute();
-                    break;
-                default:
-                    return false;
+            HttpResponse<JsonNode> response =
+                    Unirest.get(AUTHINGAPIHOST_V3 + "/system").asJson();
+            if (response.getStatus() == 200) {
+                JSONObject resObj = response.getBody().getObject();
+                resObj.remove("sm2");
+                msg = resObj.toString();
             }
         } catch (Exception e) {
-            return false;
+            e.printStackTrace();
         }
-        return true;
+        return msg;
+    }
+
+    public String updatePassword(String token, String oldPwd, String newPwd) {
+        String msg = MessageCodeConfig.E00050.getMsgZh();
+        try {
+            Object[] appUserInfo = getAppUserInfo(token);
+            String appId = appUserInfo[0].toString();
+            User user = (User) appUserInfo[1];
+
+            String body = String.format("{\"newPassword\": \"%s\"," +
+                            "\"oldPassword\": \"%s\"," +
+                            "\"passwordEncryptType\": \"rsa\"}",
+                    newPwd, oldPwd);
+            HttpResponse<JsonNode> response =
+                    authPost("/update-password", appId, user.getToken(), body);
+
+            JSONObject resObj = response.getBody().getObject();
+            int statusCode = resObj.getInt("statusCode");
+            if (statusCode != 200) {
+                msg = resObj.getString("message");
+            } else {
+                msg = "success";
+            }
+        } catch (Exception ignored) {
+        }
+
+        return msg;
+    }
+
+    public Object resetPwdVerifyEmail(String appId, String email, String code) {
+        Object msg = MessageCodeConfig.E00012.getMsgZh();
+        try {
+            String body = String.format("{\"verifyMethod\": \"EMAIL_PASSCODE\"," +
+                            "\"emailPassCodePayload\": " +
+                            "{\"email\": \"%s\",\"passCode\": \"%s\"}}",
+                    email, code);
+            HttpResponse<JsonNode> response =
+                    authPost("/verify-reset-password-request", appId, body);
+
+            JSONObject resObj = response.getBody().getObject();
+            int statusCode = resObj.getInt("statusCode");
+            msg = (statusCode == 200)
+                    ? resObj.getJSONObject("data")
+                    : resObj.getString("message");
+        } catch (Exception ignored) {
+        }
+
+        return msg;
+    }
+
+    public Object resetPwdVerifyPhone(String appId, String phone, String code) {
+        Object msg = MessageCodeConfig.E00012.getMsgZh();
+        try {
+            String body = String.format("{\"verifyMethod\": \"PHONE_PASSCODE\"," +
+                            "\"phonePassCodePayload\": " +
+                            "{\"phoneNumber\": \"%s\",\"passCode\": \"%s\"}}",
+                    phone, code);
+            HttpResponse<JsonNode> response =
+                    authPost("/verify-reset-password-request", appId, body);
+
+            JSONObject resObj = response.getBody().getObject();
+            int statusCode = resObj.getInt("statusCode");
+            msg = (statusCode == 200)
+                    ? resObj.getJSONObject("data")
+                    : resObj.getString("message");
+        } catch (Exception ignored) {
+        }
+
+        return msg;
+    }
+
+    public String resetPwd(String pwdResetToken, String newPwd) {
+        String msg = MessageCodeConfig.E00050.getMsgZh();
+        try {
+            String body = String.format("{\"passwordResetToken\": \"%s\"," +
+                            "\"password\": \"%s\"," +
+                            "\"passwordEncryptType\": \"rsa\"}",
+                    pwdResetToken, newPwd);
+            HttpResponse<JsonNode> response =
+                    Unirest.post(AUTHINGAPIHOST_V3 + "/reset-password")
+                            .header("Content-Type", "application/json")
+                            .body(body)
+                            .asJson();
+
+            JSONObject resObj = response.getBody().getObject();
+            int statusCode = resObj.getInt("statusCode");
+            if (statusCode != 200) {
+                msg = resObj.getString("message");
+            } else {
+                msg = "success";
+            }
+        } catch (Exception ignored) {
+        }
+
+        return msg;
     }
 
     public String updateAccount(String token, String oldAccount, String oldCode, String account, String code, String type) {
@@ -800,60 +970,22 @@ public class AuthingUserDao {
         return Arrays.stream(usernameReserved.split(",")).map(String::trim).collect(Collectors.toList());
     }
 
-    public Map<String, MessageCodeConfig> getErrorCode() {
-        HashMap<String, MessageCodeConfig> map = new HashMap<>();
-        map.put("验证码已失效", MessageCodeConfig.E0001);
-        map.put("验证码无效或已过期", MessageCodeConfig.E0001);
-        map.put("验证码不正确", MessageCodeConfig.E0002);
-        map.put("该手机号已被绑定", MessageCodeConfig.E0003);
-        map.put("该手机号已被其它账户绑定", MessageCodeConfig.E0003);
-        map.put("该邮箱已被其它账户绑定", MessageCodeConfig.E0004);
-        map.put("该邮箱已被绑定", MessageCodeConfig.E0004);
-        map.put("Duplicate entry", MessageCodeConfig.E0004);
-        map.put("没有配置其他登录方式", MessageCodeConfig.E0005);
-        map.put("解绑三方账号失败", MessageCodeConfig.E0006);
-        map.put("更新失败", MessageCodeConfig.E0007);
-        map.put("验证码发送失败", MessageCodeConfig.E0008);
-        map.put("一分钟之内已发送过验证码", MessageCodeConfig.E0009);
-        map.put("注销用户失败", MessageCodeConfig.E00010);
-        map.put("旧手机号非用户账号绑定的手机号", MessageCodeConfig.E00011);
-        map.put("请求异常", MessageCodeConfig.E00012);
-        map.put("新邮箱和旧邮箱一样", MessageCodeConfig.E00013);
-        map.put("新手机号和旧手机号一样", MessageCodeConfig.E00014);
-        map.put("已经绑定了手机号", MessageCodeConfig.E00015);
-        map.put("已经绑定了邮箱", MessageCodeConfig.E00016);
-        map.put("退出登录失败", MessageCodeConfig.E00017);
-        map.put("用户名不能为空", MessageCodeConfig.E00018);
-        map.put("用户名已存在", MessageCodeConfig.E00019);
-        map.put("手机号或者邮箱不能为空", MessageCodeConfig.E00020);
-        map.put("请输入正确的手机号或者邮箱", MessageCodeConfig.E00021);
-        map.put("该账号已注册", MessageCodeConfig.E00022);
-        map.put("请求过于频繁", MessageCodeConfig.E00023);
-        map.put("注册失败", MessageCodeConfig.E00024);
-        map.put("该手机号 1 分钟内已发送过验证码", MessageCodeConfig.E00025);
-        map.put("验证码已失效，请重新获取验证码", MessageCodeConfig.E00026);
-        map.put("登录失败", MessageCodeConfig.E00027);
-        map.put("mobile number every day exceeds the upper limit", MessageCodeConfig.E00028);
-        map.put("仅登录和注册使用", MessageCodeConfig.E00029);
-        map.put("失败次数过多，请稍后重试", MessageCodeConfig.E00030);
-        map.put("新邮箱与已绑定邮箱相同", MessageCodeConfig.E00031);
-        map.put("新手机号与已绑定手机号相同", MessageCodeConfig.E00032);
-        map.put("用户名唯一，不可修改", MessageCodeConfig.E00033);
-        map.put("用户不存在", MessageCodeConfig.E00034);
-        map.put("回调地址与配置不符", MessageCodeConfig.E00035);
-        map.put("请指定应用的id、secret、host", MessageCodeConfig.E00036);
-        map.put("授权失败", MessageCodeConfig.E00037);
-        map.put("请先绑定邮箱", MessageCodeConfig.E00038);
-        map.put("邮箱不能为空", MessageCodeConfig.E00039);
-        map.put("请输入正确的邮箱", MessageCodeConfig.E00040);
-        map.put("请输入3到20个字符。只能由字母、数字或者下划线(_)组成。必须以字母开头，不能以下划线(_)结尾", MessageCodeConfig.E00041);
-        map.put("应用未找到", MessageCodeConfig.E00042);
-        map.put("请输入正确的手机号码", MessageCodeConfig.E00043);
-        map.put("请输入正确的公司名", MessageCodeConfig.E00044);
-        map.put("请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。必须以字母或者汉字开头，不能以下划线(_)结尾", MessageCodeConfig.E00045);
-        map.put("请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾", MessageCodeConfig.E00046);
-        map.put("应用不存在", MessageCodeConfig.E00047);
+    public HttpResponse<JsonNode> authPost(String uriPath, String appId, String body)
+            throws UnirestException {
+        return Unirest.post(AUTHINGAPIHOST_V3 + uriPath)
+                .header("x-authing-app-id", appId)
+                .header("Content-Type", "application/json")
+                .body(body)
+                .asJson();
+    }
 
-        return map;
+    public HttpResponse<JsonNode> authPost(String uriPath, String appId, String token,
+                                           String body) throws UnirestException {
+        return Unirest.post(AUTHINGAPIHOST_V3 + uriPath)
+                .header("Authorization", token)
+                .header("x-authing-app-id", appId)
+                .header("Content-Type", "application/json")
+                .body(body)
+                .asJson();
     }
 }
