@@ -237,25 +237,25 @@ public class QueryController {
         return res;
     }
 
-//     @RequestMapping("/sig/name")
-//     public String querySigName(@RequestParam(value = "community") String community,
-//             @RequestParam(value = "lang", required = false) String lang)
-//             throws JsonProcessingException, InterruptedException, ExecutionException {
-//         String res = queryService.querySigName(community, lang);
-//         return res;
-//     }
-//
-//     @RequestMapping("/sig/info")
-//     public String querySigInfo(@RequestParam(value = "community") String community,
-//             @RequestParam(value = "sig", required = false) String sig,
-//             @RequestParam(value = "repo", required = false) String repo,
-//             @RequestParam(value = "user", required = false) String user,
-//             @RequestParam(value = "search", required = false) String search,
-//             @RequestParam(value = "page", required = false) String page,
-//             @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
-//         String res = queryService.querySigInfo(community, sig, repo, user, search, page, pageSize);
-//         return res;
-//     }
+    @RequestMapping("/sig/name")
+    public String querySigName(@RequestParam(value = "community") String community,
+            @RequestParam(value = "lang", required = false) String lang)
+            throws JsonProcessingException, InterruptedException, ExecutionException {
+        String res = queryService.querySigName(community, lang);
+        return res;
+    }
+
+    @RequestMapping("/sig/info")
+    public String querySigInfo(@RequestParam(value = "community") String community,
+            @RequestParam(value = "sig", required = false) String sig,
+            @RequestParam(value = "repo", required = false) String repo,
+            @RequestParam(value = "user", required = false) String user,
+            @RequestParam(value = "search", required = false) String search,
+            @RequestParam(value = "page", required = false) String page,
+            @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
+        String res = queryService.querySigInfo(community, sig, repo, user, search, page, pageSize);
+        return res;
+    }
 
     @RequestMapping("/sig/repo")
     public String querySigRepo(@RequestParam(value = "community") String community,
@@ -347,11 +347,11 @@ public class QueryController {
 //         return res;
 //     }
 
-//     @RequestMapping("/sig/scoreAll")
-//     public String querySigScoreAll(@RequestParam(value = "community") String community) {
-//         String res = queryService.querySigScoreAll(community);
-//         return res;
-//     }
+    @RequestMapping("/sig/scoreAll")
+    public String querySigScoreAll(@RequestParam(value = "community") String community) {
+        String res = queryService.querySigScoreAll(community);
+        return res;
+    }
 
 //     @AuthingToken
 //     @SigToken
