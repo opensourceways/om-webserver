@@ -88,11 +88,11 @@ public class QueryController {
         return modulenums;
     }
 
-    @RequestMapping("/all")
-    public String queryAll(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String all = queryService.queryAll(community);
-        return all;
-    }
+//     @RequestMapping("/all")
+//     public String queryAll(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+//         String all = queryService.queryAll(community);
+//         return all;
+//     }
 
     //TODO 以下四个接口，仅测试过MindSpore
     @RequestMapping("/stars")
@@ -194,23 +194,23 @@ public class QueryController {
         return res;
     }
 
-    @RequestMapping("/company/contribute")
-    public String queryCompanyContributors(@RequestParam(value = "community") String community,
-                                           @RequestParam(value = "contributeType") String contributeType,
-                                           @RequestParam(value = "timeRange") String timeRange,
-                                           @RequestParam(value = "repo", required = false) String repo) {
-        String res = queryService.queryCompanyContributors(community, "companyContribute", contributeType, timeRange, repo);
-        return res;
-    }
-
-    @RequestMapping("/user/contribute")
-    public String queryUserContributors(@RequestParam(value = "community") String community,
-                                        @RequestParam(value = "contributeType") String contributeType,
-                                        @RequestParam(value = "timeRange") String timeRange,
-                                        @RequestParam(value = "repo", required = false) String repo) {
-        String res = queryService.queryUserContributors(community, "userContribute", contributeType, timeRange, repo);
-        return res;
-    }
+//     @RequestMapping("/company/contribute")
+//     public String queryCompanyContributors(@RequestParam(value = "community") String community,
+//                                            @RequestParam(value = "contributeType") String contributeType,
+//                                            @RequestParam(value = "timeRange") String timeRange,
+//                                            @RequestParam(value = "repo", required = false) String repo) {
+//         String res = queryService.queryCompanyContributors(community, "companyContribute", contributeType, timeRange, repo);
+//         return res;
+//     }
+//
+//     @RequestMapping("/user/contribute")
+//     public String queryUserContributors(@RequestParam(value = "community") String community,
+//                                         @RequestParam(value = "contributeType") String contributeType,
+//                                         @RequestParam(value = "timeRange") String timeRange,
+//                                         @RequestParam(value = "repo", required = false) String repo) {
+//         String res = queryService.queryUserContributors(community, "userContribute", contributeType, timeRange, repo);
+//         return res;
+//     }
 
     @RequestMapping(value = "/issueScore", method = RequestMethod.GET)
     public String queryIssueScore(@RequestParam(value = "community") String community,
@@ -347,11 +347,11 @@ public class QueryController {
         return res;
     }
 
-    @RequestMapping("/sig/scoreAll")
-    public String querySigScoreAll(@RequestParam(value = "community") String community) {
-        String res = queryService.querySigScoreAll(community);
-        return res;
-    }
+//     @RequestMapping("/sig/scoreAll")
+//     public String querySigScoreAll(@RequestParam(value = "community") String community) {
+//         String res = queryService.querySigScoreAll(community);
+//         return res;
+//     }
 
     @AuthingToken
     @SigToken
@@ -368,11 +368,11 @@ public class QueryController {
         return res;
     }
 
-    @RequestMapping("/TC/sigs")
-    public String querySigsOfTCOwners(@RequestParam(value = "community") String community) {
-        String res = queryService.querySigsOfTCOwners(community);
-        return res;
-    }
+//     @RequestMapping("/TC/sigs")
+//     public String querySigsOfTCOwners(@RequestParam(value = "community") String community) {
+//         String res = queryService.querySigsOfTCOwners(community);
+//         return res;
+//     }
 
     @RequestMapping("/user/sigcontribute")
     public String queryUserSigcontribute(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user, 
