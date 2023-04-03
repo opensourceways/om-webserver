@@ -6,20 +6,18 @@
  IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
  PURPOSE.
  See the Mulan PSL v2 for more details.
- Create: 2022
+ Create: 2023
 */
 
-package com.om.Modules;
+package com.om.token;
 
-import com.baomidou.mybatisplus.annotation.TableName;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import lombok.Data;
-
-@Data
-@TableName(value="users")
-public class mySqlUser {
-    private int id;
-    private String username;
-    private String photo;
-    private String email;
+@Target({ElementType.METHOD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface ManageToken {
+    boolean required() default true;
 }

@@ -14,9 +14,9 @@ package com.om.mapper;
 import org.apache.ibatis.annotations.Mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import com.om.Modules.mySqlUser;
+import com.om.Modules.MySqlUser;
 
 @Mapper
-public interface userMapper extends BaseMapper<mySqlUser> {
+public interface UserMapper extends BaseMapper<MySqlUser> {
 
 }

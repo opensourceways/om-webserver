@@ -13,7 +13,7 @@ package com.om.Controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.om.Modules.DatastatRequestBody;
+// import com.om.Modules.DatastatRequestBody;
 import com.om.Service.QueryService;
 import com.om.Vo.*;
 import com.om.authing.AuthingToken;
@@ -382,8 +382,10 @@ public class QueryController {
     }
 
     @RequestMapping("/user/ownertype")
-    public String queryUserOwnertype(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user) throws JsonMappingException, JsonProcessingException {
-        String res = queryService.queryUserOwnertype(community, user);
+    public String queryUserOwnertype(@RequestParam(value = "community") String community,
+                                     @RequestParam(value = "user") String user)
+            throws JsonProcessingException {
+        String res = queryService.queryUserOwnertype(community, user, null);
         return res;
     }
 
@@ -443,9 +445,4 @@ public class QueryController {
         return queryService.getSigReadme(community, sig, lang);
     }
 
-    @RequestMapping(value = "/metrics/data", method = RequestMethod.POST)
-    public String queryMetricsData(@RequestParam(value = "community") String community, @RequestBody DatastatRequestBody body) throws JsonMappingException, JsonProcessingException {
-        String res = queryService.queryMetricsData(community, body);
-        return res;
-    }
 }
