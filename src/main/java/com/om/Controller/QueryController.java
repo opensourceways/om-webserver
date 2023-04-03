@@ -13,7 +13,6 @@ package com.om.Controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
-// import com.om.Modules.DatastatRequestBody;
 import com.om.Service.QueryService;
 import com.om.Vo.*;
 import com.om.authing.AuthingToken;
@@ -88,11 +87,11 @@ public class QueryController {
         return modulenums;
     }
 
-    @RequestMapping("/all")
-    public String queryAll(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String all = queryService.queryAll(community);
-        return all;
-    }
+//     @RequestMapping("/all")
+//     public String queryAll(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+//         String all = queryService.queryAll(community);
+//         return all;
+//     }
 
     //TODO 以下四个接口，仅测试过MindSpore
     @RequestMapping("/stars")
@@ -194,23 +193,23 @@ public class QueryController {
         return res;
     }
 
-    @RequestMapping("/company/contribute")
-    public String queryCompanyContributors(@RequestParam(value = "community") String community,
-                                           @RequestParam(value = "contributeType") String contributeType,
-                                           @RequestParam(value = "timeRange") String timeRange,
-                                           @RequestParam(value = "repo", required = false) String repo) {
-        String res = queryService.queryCompanyContributors(community, "companyContribute", contributeType, timeRange, repo);
-        return res;
-    }
+//     @RequestMapping("/company/contribute")
+//     public String queryCompanyContributors(@RequestParam(value = "community") String community,
+//                                            @RequestParam(value = "contributeType") String contributeType,
+//                                            @RequestParam(value = "timeRange") String timeRange,
+//                                            @RequestParam(value = "repo", required = false) String repo) {
+//         String res = queryService.queryCompanyContributors(community, "companyContribute", contributeType, timeRange, repo);
+//         return res;
+//     }
 
-    @RequestMapping("/user/contribute")
-    public String queryUserContributors(@RequestParam(value = "community") String community,
-                                        @RequestParam(value = "contributeType") String contributeType,
-                                        @RequestParam(value = "timeRange") String timeRange,
-                                        @RequestParam(value = "repo", required = false) String repo) {
-        String res = queryService.queryUserContributors(community, "userContribute", contributeType, timeRange, repo);
-        return res;
-    }
+//     @RequestMapping("/user/contribute")
+//     public String queryUserContributors(@RequestParam(value = "community") String community,
+//                                         @RequestParam(value = "contributeType") String contributeType,
+//                                         @RequestParam(value = "timeRange") String timeRange,
+//                                         @RequestParam(value = "repo", required = false) String repo) {
+//         String res = queryService.queryUserContributors(community, "userContribute", contributeType, timeRange, repo);
+//         return res;
+//     }
 
     @RequestMapping(value = "/issueScore", method = RequestMethod.GET)
     public String queryIssueScore(@RequestParam(value = "community") String community,
@@ -347,11 +346,11 @@ public class QueryController {
         return res;
     }
 
-    @RequestMapping("/sig/scoreAll")
-    public String querySigScoreAll(@RequestParam(value = "community") String community) {
-        String res = queryService.querySigScoreAll(community);
-        return res;
-    }
+//     @RequestMapping("/sig/scoreAll")
+//     public String querySigScoreAll(@RequestParam(value = "community") String community) {
+//         String res = queryService.querySigScoreAll(community);
+//         return res;
+//     }
 
     @AuthingToken
     @SigToken
@@ -368,11 +367,11 @@ public class QueryController {
         return res;
     }
 
-    @RequestMapping("/TC/sigs")
-    public String querySigsOfTCOwners(@RequestParam(value = "community") String community) {
-        String res = queryService.querySigsOfTCOwners(community);
-        return res;
-    }
+//     @RequestMapping("/TC/sigs")
+//     public String querySigsOfTCOwners(@RequestParam(value = "community") String community) {
+//         String res = queryService.querySigsOfTCOwners(community);
+//         return res;
+//     }
 
     @RequestMapping("/user/sigcontribute")
     public String queryUserSigcontribute(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user, 
@@ -443,6 +442,11 @@ public class QueryController {
             @RequestParam(value = "lang", required = false) String lang)
             throws JsonMappingException, JsonProcessingException {
         return queryService.getSigReadme(community, sig, lang);
+    }
+
+    @RequestMapping(value = "test/user")
+    public String queryAuthingUserInfo(@RequestParam(value = "userid") String userid) {
+        return queryService.queryAuthingUserInfo(userid);
     }
 
 }
