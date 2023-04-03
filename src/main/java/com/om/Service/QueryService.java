@@ -1508,28 +1508,5 @@ public class QueryService {
         return result;
     }
 
-    public String queryAuthingUserInfo(String userid) {
-        org.json.JSONObject userObj = authingUserDao.getUserById(userid);
-        HashMap<String, Object> resmap = new HashMap<>();
-        HashMap<String, Map<String, Object>> map = new HashMap<>();
-        org.json.JSONArray jsonArray = userObj.getJSONArray("identities");
-
-        String email = userObj.get("email") != null ? userObj.get("email").toString() : "";
-        String nickname = userObj.get("nickname") != null ? userObj.get("nickname").toString() : "";
-        String username = userObj.get("username") != null ? userObj.get("username").toString() : "";
-        resmap.put("username", username);
-        resmap.put("email", email);
-        resmap.put("nickname", nickname);
-        for (Object o : jsonArray) {
-            org.json.JSONObject obj = (org.json.JSONObject) o;
-            authingUserIdentityIdp(obj, map);
-        }
-        if (null != map.get("oauth2") && null != map.get("oauth2").get("login_name")) {
-            String login = map.get("oauth2").get("login_name").toString();
-            resmap.put("gitee_id", login);
-        }
-        ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.valueToTree(resmap).toString();
-    }
 }
 

@@ -444,9 +444,4 @@ public class QueryController {
         return queryService.getSigReadme(community, sig, lang);
     }
 
-    @RequestMapping(value = "test/user")
-    public String queryAuthingUserInfo(@RequestParam(value = "userid") String userid) {
-        return queryService.queryAuthingUserInfo(userid);
-    }
-
 }
