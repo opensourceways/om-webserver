@@ -165,6 +165,7 @@ public class QueryController {
         return res;
     }
 
+    @UserLoginToken
     @RequestMapping("/bugQuestionnaires")
     public String queryBugQuestionnaires(@RequestParam(value = "community") String community,
                                          @RequestParam(value = "lastCursor", required = false) String lastCursor,
