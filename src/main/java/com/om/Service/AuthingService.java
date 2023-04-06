@@ -331,7 +331,7 @@ public class AuthingService implements UserCenterServiceInter {
 
             List<String> accessibleApps = authingUserDao.userAccessibleApps(userId);
             if (!accessibleApps.contains(appId)) {
-                return resultOidc(HttpStatus.BAD_REQUEST, "have no permission to login the application", null);
+                return resultOidc(HttpStatus.BAD_REQUEST, "No permission to login the application", null);
             }
 
             // 生成code和state
