@@ -329,6 +329,11 @@ public class AuthingService implements UserCenterServiceInter {
             String headToken = decode.getClaim("verifyToken").asString();
             String idToken = (String) redisDao.get("idToken_" + headToken);
 
+            List<String> accessibleApps = authingUserDao.userAccessibleApps(userId);
+            if (!accessibleApps.contains(appId)) {
+                return resultOidc(HttpStatus.BAD_REQUEST, "have no permission to login the application", null);
+            }
+
             // 生成code和state
             String code = codeUtil.randomStrBuilder(32);
             state = StringUtils.isNotBlank(state) ? state : UUID.randomUUID().toString().replaceAll("-", "");
