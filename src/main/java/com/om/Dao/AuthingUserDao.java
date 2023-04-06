@@ -877,7 +877,6 @@ public class AuthingUserDao {
         map.put("请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。必须以字母或者汉字开头，不能以下划线(_)结尾", MessageCodeConfig.E00045);
         map.put("请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾", MessageCodeConfig.E00046);
         map.put("应用不存在", MessageCodeConfig.E00047);
-        map.put("have no permission to login the application", MessageCodeConfig.E00055);
 
         return map;
     }
