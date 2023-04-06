@@ -65,6 +65,7 @@ public enum MessageCodeConfig {
     E00045("E00045", "contain 3 to 20 characters. nickname include only letters, digits, Chinese and underscores (_). must start with a letter or Chinese. cannot end with underscore (_)", "请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。必须以字母或者汉字开头，不能以下划线(_)结尾"),
     E00046("E00046", "contain 2 to 100 characters. company include only letters, digits, Chinese, parentheses, point (.), comma (,) and &. must start with a letter, digits or Chinese. cannot end with parentheses, comma (,) and &", "请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾"),
     E00047("E00047", "app not found", "应用不存在"),
+    E00055("E00055", "have no permission to login the application", "尚无权限登录此应用"),
     ;
 
     private String code;
