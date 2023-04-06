@@ -20,6 +20,8 @@ import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.authing.AuthingUserToken;
+import com.om.log.userLog.LogAnnotation;
+import com.om.log.userLog.MethodType;
 import com.om.token.ManageToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -79,12 +81,14 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "/register")
+    @LogAnnotation(methodType = MethodType.REGISTER)
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.register(servletRequest, servletResponse);
     }
 
     @RequestMapping(value = "/login")
+    @LogAnnotation(methodType = MethodType.LOGIN)
     public ResponseEntity login(HttpServletRequest servletRequest,
                                 HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
@@ -154,6 +158,7 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "/token/apply")
+    @LogAnnotation(methodType = MethodType.LOGIN)
     public ResponseEntity tokenApply(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
                                      @RequestParam(value = "community") String community,
