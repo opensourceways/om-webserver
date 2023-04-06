@@ -29,7 +29,6 @@ public class AddController {
     @Autowired
     AddService addService;
 
-    @UserLoginToken
     @RequestMapping(value = "/bugquestionnaire", method = RequestMethod.POST)
     public String addBugQuestionnaire(@RequestParam String community, @RequestParam(value = "lang", required = false) String lang, @RequestBody BugQuestionnaireVo bugQuestionnaireVo) {
         String res = addService.putBugQuestionnaire(community, lang, bugQuestionnaireVo);
