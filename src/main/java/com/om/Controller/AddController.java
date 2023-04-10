@@ -12,8 +12,12 @@
 package com.om.Controller;
 
 
+import com.om.Modules.meetup.MeetupApplyForm;
+import com.om.Modules.meetup.MeetupTranscript;
+import com.om.Modules.meetup.MeetupVenueInfo;
 import com.om.Service.AddService;
 import com.om.Vo.BugQuestionnaireVo;
+import com.om.authing.AuthingToken;
 import com.om.token.UserLoginToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -36,5 +40,27 @@ public class AddController {
         return res;
     }
 
+    @AuthingToken
+    @RequestMapping(value = "/meetupApplyForm", method = RequestMethod.POST)
+    public String addMeetupApplyForm(@RequestParam String community, @RequestBody MeetupApplyForm meetupApplyForm,
+            @CookieValue(value = "_Y_G_", required = false) String token) {
+        String res = addService.putMeetupApplyForm(community, meetupApplyForm, token);
+        return res;
+    }
 
+    @AuthingToken
+    @RequestMapping(value = "/meetupVenueInfo", method = RequestMethod.POST)
+    public String addMeetupVenueInfo(@RequestParam String community, @RequestBody MeetupVenueInfo meetupVenueInfo,
+            @CookieValue(value = "_Y_G_", required = false) String token) {
+        String res = addService.putMeetupVenueInfo(community, meetupVenueInfo, token);
+        return res;
+    }
+
+    @AuthingToken
+    @RequestMapping(value = "/meetupTranscript", method = RequestMethod.POST)
+    public String addMeetupTranscript(@RequestParam String community, @RequestBody MeetupTranscript meetupTranscript,
+            @CookieValue(value = "_Y_G_", required = false) String token) {
+        String res = addService.putMeetupTranscript(community, meetupTranscript, token);
+        return res;
+    }
 }
