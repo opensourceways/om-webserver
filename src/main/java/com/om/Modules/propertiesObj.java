@@ -263,6 +263,9 @@ public class propertiesObj {
         bean.setSigCountQuery(openconf.getProperty("SigCountQuery"));
         bean.setUserReportCsvData(openconf.getProperty("UserReportCsvData"));
         bean.setMonthCountQueryStr(openconf.getProperty("MonthCountQueryStr"));
+        bean.setMeetupApplyFormIndex(openconf.getProperty("meetupApplyFormIndex"));
+        bean.setMeetupVenueInfoIndex(openconf.getProperty("meetupVenueInfoIndex"));
+        bean.setMeetupTranscriptIndex(openconf.getProperty("meetupTranscriptIndex"));
     }
 
     private static Properties readProperties(String path) throws IOException {
