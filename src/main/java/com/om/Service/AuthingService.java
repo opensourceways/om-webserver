@@ -111,18 +111,17 @@ public class AuthingService implements UserCenterServiceInter {
 
         // 校验appId
         if (authingUserDao.initAppClient(appId) == null) {
-            return result(HttpStatus.NOT_FOUND, null, "App not found", null);
+            return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
         }
 
         if (StringUtils.isNotBlank(userName)) {
             boolean username = authingUserDao.isUserExists(appId, userName, "username");
-            if (username) return result(HttpStatus.OK, null, "username already exists", null);
+            if (username) return result(HttpStatus.BAD_REQUEST, null, "用户名已存在", null);
         } else if (StringUtils.isNotBlank(account)) {
             String accountType = checkPhoneAndEmail(appId, account);
             if (!accountType.equals("email") && !accountType.equals("phone"))
-                return result(HttpStatus.OK, null, accountType, null);
+                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
         }
-
         return result(HttpStatus.OK, "success", null);
     }
 
