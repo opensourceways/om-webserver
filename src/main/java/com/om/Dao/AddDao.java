@@ -248,7 +248,7 @@ public class AddDao {
     }
 
     public String getUserId(String token){
-        String userId = null;
+        String userId = "test_user_id";
         try {
             RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
             DecodedJWT decode = JWT.decode(RSAUtil.privateDecrypt(token, privateKey));
