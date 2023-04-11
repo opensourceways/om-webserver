@@ -122,6 +122,7 @@ public class AuthingService implements UserCenterServiceInter {
             if (!accountType.equals("email") && !accountType.equals("phone"))
                 return result(HttpStatus.BAD_REQUEST, null, accountType, null);
         }
+
         return result(HttpStatus.OK, "success", null);
     }
 
