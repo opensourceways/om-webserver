@@ -849,6 +849,7 @@ public class AuthingUserDao {
         map.put("退出登录失败", MessageCodeConfig.E00017);
         map.put("用户名不能为空", MessageCodeConfig.E00018);
         map.put("用户名已存在", MessageCodeConfig.E00019);
+        map.put("username already exists", MessageCodeConfig.E00019);
         map.put("手机号或者邮箱不能为空", MessageCodeConfig.E00020);
         map.put("请输入正确的手机号或者邮箱", MessageCodeConfig.E00021);
         map.put("该账号已注册", MessageCodeConfig.E00022);
@@ -877,6 +878,7 @@ public class AuthingUserDao {
         map.put("请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。必须以字母或者汉字开头，不能以下划线(_)结尾", MessageCodeConfig.E00045);
         map.put("请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾", MessageCodeConfig.E00046);
         map.put("应用不存在", MessageCodeConfig.E00047);
+        map.put("App not found", MessageCodeConfig.E00047);
 
         return map;
     }
