@@ -12,12 +12,27 @@
 package com.om.Utils;
 
 import java.io.*;
-import java.net.URL;
+
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.internal.storage.file.FileRepository;
 import org.yaml.snakeyaml.Yaml;
 
 
 public class YamlUtil {
+    public void GitPull(String repoPath) {
+        try {
+            FileRepository localRepo = new FileRepository(repoPath + "/.git");
+            Git git = new Git(localRepo);
+            git.pull().call();
+            git.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public <T> T readLocalYaml(String yamlFile, Class<T> classType) {
+        String repoPath = yamlFile.split("/")[0];
+        GitPull(repoPath);
         Yaml yaml = new Yaml();
         InputStream inputStream;
         T t = null;
