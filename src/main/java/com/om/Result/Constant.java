@@ -30,4 +30,9 @@ public class Constant {
     public static final String USERNAMEREGEX = "^[a-zA-Z][0-9a-zA-Z_]{1,18}[0-9a-zA-Z]$";
     public static final String NICKNAMEREGEX = "^[a-zA-Z\\u4e00-\\u9fa5][0-9a-zA-Z_\\u4e00-\\u9fa5]{1,18}[0-9a-zA-Z\\u4e00-\\u9fa5]$";
     public static final String COMPANYNAMEREGEX = "^[0-9a-zA-Z\\u4e00-\\u9fa5][0-9a-zA-Z,\\.&\\(\\)（）\\s\\u4e00-\\u9fa5]{0,98}[0-9a-zA-Z\\.\\u4e00-\\u9fa5]$";
+
+    public static final String FULL_SENSITIVE_REG = "^.*(password|secret|token|code).*$";
+    public static final String HALF_SENSITIVE_REG = "^.*(account).*$";
+    public static final String PHONE_REPLACE_REG = "(^\\d{3})\\d.*(\\d{4})";
+    public static final String EMAIL_REPLACE_REG = "(^\\w)[^@]*(@.*$)";
 }
