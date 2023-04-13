@@ -15,6 +15,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Modules.UserBehaviorLog;
 import com.om.Utils.HttpClientUtils;
+import com.om.Utils.IpUtil;
 import com.om.log.LogCollector;
 import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -75,8 +76,8 @@ public class LogAspect {
         Map<String, String[]> parameters = request.getParameterMap();
         Cookie[] cookies = request.getCookies();
 
-        String ip = request.getHeader("x-forwarded-for");
-        ip = (StringUtils.isBlank(ip) || "unknown".equalsIgnoreCase(ip)) ? request.getRemoteAddr() : ip;
+        // 获取客户端ip
+        String ip = IpUtil.getIpFromRequest(request);
         body.put("ip", ip);
 
         // 调用异步方法，整理日志以及入库
