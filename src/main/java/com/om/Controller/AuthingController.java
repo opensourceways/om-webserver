@@ -253,6 +253,7 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/update/baseInfo", method = RequestMethod.POST)
+    @LogAnnotation(methodType = MethodType.UPDATE)
     public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest,
                                              HttpServletResponse servletResponse,
                                              @CookieValue(value = "_Y_G_", required = false) String token,

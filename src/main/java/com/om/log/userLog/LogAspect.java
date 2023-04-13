@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Modules.UserBehaviorLog;
 import com.om.Utils.HttpClientUtils;
 import com.om.log.LogCollector;
+import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -74,6 +75,10 @@ public class LogAspect {
         Map<String, String[]> parameters = request.getParameterMap();
         Cookie[] cookies = request.getCookies();
 
+        String ip = request.getHeader("x-forwarded-for");
+        ip = (StringUtils.isBlank(ip) || "unknown".equalsIgnoreCase(ip)) ? request.getRemoteAddr() : ip;
+        body.put("ip", ip);
+
         // 调用异步方法，整理日志以及入库
         logCollector.pushToKafka(userBehaviorLog, body, parameters, cookies);
 
@@ -104,5 +109,12 @@ public class LogAspect {
         }
 
         return userBehaviorLog;
+    }
+
+    private String getRemoteIp() {
+        String ip = request.getHeader("x-forwarded-for");
+        return (StringUtils.isBlank(ip) || "unknown".equalsIgnoreCase(ip))
+                ? request.getRemoteAddr()
+                : ip;
     }
 }
