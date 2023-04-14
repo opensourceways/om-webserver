@@ -774,7 +774,7 @@ public class AuthingService implements UserCenterServiceInter {
 
         boolean res = authingUserDao.sendCode(token, account, type, field);
         if (!res) {
-            return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
         }
 
         redisDao.set(redisKey, "code", 60L);
@@ -803,12 +803,12 @@ public class AuthingService implements UserCenterServiceInter {
             // 发送验证码
             String[] strings = codeUtil.sendCode(accountType, account, mailSender, env, "");
             if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success"))
-                return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
+                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
 
             redisDao.set(redisKey, strings[0], Long.parseLong(strings[1]));
             return result(HttpStatus.OK, strings[2], null);
         } catch (Exception ex) {
-            return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
         }
     }
 

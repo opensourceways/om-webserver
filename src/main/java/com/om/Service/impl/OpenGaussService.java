@@ -511,7 +511,7 @@ public class OpenGaussService implements UserCenterServiceInter {
 
         // app校验
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+            return result(HttpStatus.NOT_FOUND, null, MessageCodeConfig.E00042.getMsgZh(), null);
 
         try {
             String redisKey = account.toLowerCase() + "_sendCode_" + community;
@@ -519,7 +519,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             // 限制1分钟只能发送一次
             String codeOld = (String) redisDao.get(redisKey);
             if (codeOld != null) {
-                return result(HttpStatus.BAD_REQUEST, null, "一分钟之内已发送过验证码", null);
+                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
             }
 
             String accountTypeCheck = getAccountType(account);
@@ -530,12 +530,12 @@ public class OpenGaussService implements UserCenterServiceInter {
             // 发送验证码
             String[] strings = codeUtil.sendCode(accountType, account, mailSender, env, community.toLowerCase());
             if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success"))
-                return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
+                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
 
             redisDao.set(redisKey, strings[0], Long.parseLong(strings[1]));
             return result(HttpStatus.OK, null, strings[2], null);
         } catch (Exception ex) {
-            return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
         }
     }
 
