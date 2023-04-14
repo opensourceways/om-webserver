@@ -1690,6 +1690,9 @@ public class QueryDao {
                     independent += contribute;
                     continue;
                 }
+                if (company.contains("华为技术有限公司")) {
+                    continue;
+                }
 //                if (company.equals("软通动力信息技术（集团）股份有限公司")) {
 //                    contribute += partner;
 //                }
@@ -3431,6 +3434,9 @@ public class QueryDao {
                         company.contains("易宝软件") ||
                         company.contains("华为合作方") ||
                         company.toLowerCase().equals("openeuler")) {
+                    continue;
+                }
+                if (company.contains("华为技术有限公司")) {
                     continue;
                 }
                 Iterator<JsonNode> its = bucket.get("sigs").get("buckets").elements();
