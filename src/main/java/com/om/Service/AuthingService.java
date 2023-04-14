@@ -759,10 +759,25 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     public ResponseEntity sendCode(String token, String account, String type, String field) {
+        // 邮箱或者手机号格式校验
+        String accountType = getAccountType(account);
+        if (!accountType.equals("email") && !accountType.equals("phone")) {
+            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        }
+
+        // 限制1分钟只能发送一次
+        String redisKey = account.toLowerCase() + "_sendcode";
+        String codeOld = (String) redisDao.get(redisKey);
+        if (codeOld != null) {
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
+        }
+
         boolean res = authingUserDao.sendCode(token, account, type, field);
         if (!res) {
-            return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
         }
+
+        redisDao.set(redisKey, "code", 60L);
         return result(HttpStatus.OK, "success", null);
     }
 
@@ -771,23 +786,29 @@ public class AuthingService implements UserCenterServiceInter {
         String account = servletRequest.getParameter("account");
         String accountType = servletRequest.getParameter("account_type");
 
-        String redisKey = account + "_CodeUnbind";
+        // 邮箱或者手机号格式校验
+        String accountTypeCheck = getAccountType(account);
+        if (!accountTypeCheck.equals("email") && !accountTypeCheck.equals("phone")) {
+            return result(HttpStatus.BAD_REQUEST, null, accountTypeCheck, null);
+        }
+
+        String redisKey = account.toLowerCase() + "_CodeUnbind";
         try {
             // 限制1分钟只能发送一次
             String codeOld = (String) redisDao.get(redisKey);
             if (codeOld != null) {
-                return result(HttpStatus.BAD_REQUEST, null, "一分钟之内已发送过验证码", null);
+                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
             }
 
             // 发送验证码
             String[] strings = codeUtil.sendCode(accountType, account, mailSender, env, "");
             if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success"))
-                return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
+                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
 
             redisDao.set(redisKey, strings[0], Long.parseLong(strings[1]));
             return result(HttpStatus.OK, strings[2], null);
         } catch (Exception ex) {
-            return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
         }
     }
 
