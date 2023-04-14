@@ -514,12 +514,17 @@ public class OpenGaussService implements UserCenterServiceInter {
             return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
 
         try {
-            String redisKey = account + "_sendCode_" + community;
+            String redisKey = account.toLowerCase() + "_sendCode_" + community;
 
             // 限制1分钟只能发送一次
             String codeOld = (String) redisDao.get(redisKey);
             if (codeOld != null) {
                 return result(HttpStatus.BAD_REQUEST, null, "一分钟之内已发送过验证码", null);
+            }
+
+            String accountTypeCheck = getAccountType(account);
+            if (!accountTypeCheck.equals("email") && !accountTypeCheck.equals("phone")) {
+                return result(HttpStatus.BAD_REQUEST, null, accountTypeCheck, null);
             }
 
             // 发送验证码
