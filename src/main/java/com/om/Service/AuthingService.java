@@ -781,7 +781,11 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-    public ResponseEntity sendCode(String token, String account, String type, String field) {
+    public ResponseEntity sendCode(String token, String account, String type, String field, boolean isSuccess) {
+        // 图片验证码二次校验
+        if (!isSuccess)
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
+
         // 邮箱或者手机号格式校验
         String accountType = getAccountType(account);
         if (!accountType.equals("email") && !accountType.equals("phone")) {
@@ -805,9 +809,14 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     @Override
-    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                         boolean isSuccess) {
         String account = servletRequest.getParameter("account");
         String accountType = servletRequest.getParameter("account_type");
+
+        // 图片验证码二次校验
+        if (!isSuccess)
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
 
         // 邮箱或者手机号格式校验
         String accountTypeCheck = getAccountType(account);
