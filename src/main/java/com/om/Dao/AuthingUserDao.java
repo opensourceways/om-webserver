@@ -22,6 +22,7 @@ import com.mashape.unirest.http.Unirest;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
+import com.om.Modules.ServerErrorException;
 import com.om.Result.Constant;
 import com.om.Utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
@@ -213,7 +214,7 @@ public class AuthingUserDao {
     }
 
     // 校验用户是否存在（用户名 or 邮箱 or 手机号）
-    public boolean isUserExists(String appId, String account, String accountType) {
+    public boolean isUserExists(String appId, String account, String accountType) throws ServerErrorException {
         try {
             AuthenticationClient authentication = appClientMap.get(appId);
             switch (accountType.toLowerCase()) {
@@ -227,11 +228,12 @@ public class AuthingUserDao {
                     return true;
             }
         } catch (Exception e) {
-            return true;
+            e.printStackTrace();
+            throw new ServerErrorException();
         }
     }
 
-    public Object loginByEmailCode(Application app, String email, String code) {
+    public Object loginByEmailCode(Application app, String email, String code) throws ServerErrorException {
         String msg = "登录失败";
         try {
             if (!isUserExists(app.getId(), email, "email")) return "用户不存在";
@@ -246,12 +248,15 @@ public class AuthingUserDao {
             int statusCode = resObj.getInt("statusCode");
             if (statusCode != 200) msg = resObj.getString("message");
             else return resObj.get("data");
-        } catch (Exception ignored) {
+        } catch (ServerErrorException ex) {
+            throw ex;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return msg;
     }
 
-    public Object loginByPhoneCode(Application app, String phone, String code) {
+    public Object loginByPhoneCode(Application app, String phone, String code) throws ServerErrorException {
         String msg = "登录失败";
         try {
             if (!isUserExists(app.getId(), phone, "phone")) return "用户不存在";
@@ -266,7 +271,10 @@ public class AuthingUserDao {
             int statusCode = resObj.getInt("statusCode");
             if (statusCode != 200) msg = resObj.getString("message");
             else return resObj.get("data");
-        } catch (Exception ignored) {
+        } catch (ServerErrorException ex) {
+            throw ex;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         return msg;
@@ -687,7 +695,7 @@ public class AuthingUserDao {
         return flag;
     }
 
-    public String updateUserBaseInfo(String token, Map<String, Object> map) {
+    public String updateUserBaseInfo(String token, Map<String, Object> map) throws ServerErrorException {
         String msg = "success";
         try {
             Object[] appUserInfo = getAppUserInfo(token);
@@ -721,6 +729,8 @@ public class AuthingUserDao {
             }
             authentication.updateProfile(updateUserInput).execute();
             return msg;
+        } catch (ServerErrorException e) {
+            throw e;
         } catch (Exception ex) {
             return "更新失败";
         }
@@ -784,7 +794,7 @@ public class AuthingUserDao {
         }
     }
 
-    public String checkUsername(String appId, String userName) {
+    public String checkUsername(String appId, String userName) throws ServerErrorException {
         String msg = "success";
         if (StringUtils.isBlank(userName))
             msg = "用户名不能为空";
@@ -877,6 +887,7 @@ public class AuthingUserDao {
         map.put("请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。必须以字母或者汉字开头，不能以下划线(_)结尾", MessageCodeConfig.E00045);
         map.put("请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾", MessageCodeConfig.E00046);
         map.put("应用不存在", MessageCodeConfig.E00047);
+        map.put("服务错误", MessageCodeConfig.E00048);
 
         return map;
     }
