@@ -196,7 +196,8 @@ public class AuthingUserDao {
     public String registerByPhone(String appId, String phone, String code, String name) {
         String msg = "success";
         try {
-            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"},\"profile\":{\"name\":\"%s\"}}", phone, code, name);
+            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": " +
+                    "{\"phone\": \"%s\",\"passCode\": \"%s\"},\"profile\":{\"username\":\"%s\"}}", phone, code, name);
             HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signup")
                     .header("x-authing-app-id", appId)
                     .header("Content-Type", "application/json")
