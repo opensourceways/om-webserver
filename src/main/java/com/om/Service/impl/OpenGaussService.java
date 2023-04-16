@@ -503,7 +503,8 @@ public class OpenGaussService implements UserCenterServiceInter {
     }
 
     @Override
-    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                         boolean isSuccess) {
         String community = servletRequest.getParameter("community");
         String appId = servletRequest.getParameter("client_id");
         String account = servletRequest.getParameter("account");
