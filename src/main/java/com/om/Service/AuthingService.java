@@ -21,6 +21,7 @@ import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Modules.MySqlUser;
+import com.om.Modules.ServerErrorException;
 import com.om.Result.Constant;
 import com.om.Result.Result;
 import com.om.Service.inter.UserCenterServiceInter;
@@ -114,14 +115,20 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
         }
 
-        if (StringUtils.isNotBlank(userName)) {
-            boolean username = authingUserDao.isUserExists(appId, userName, "username");
-            if (username) return result(HttpStatus.BAD_REQUEST, null, "用户名已存在", null);
-        } else if (StringUtils.isNotBlank(account)) {
-            String accountType = checkPhoneAndEmail(appId, account);
-            if (!accountType.equals("email") && !accountType.equals("phone"))
-                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        try {
+            if (StringUtils.isNotBlank(userName)) {
+                boolean username = authingUserDao.isUserExists(appId, userName, "username");
+                if (username) return result(HttpStatus.BAD_REQUEST, null, "用户名已存在", null);
+            } else if (StringUtils.isNotBlank(account)) {
+                String accountType = checkPhoneAndEmail(appId, account);
+                if (!accountType.equals("email") && !accountType.equals("phone"))
+                    return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            }
+        } catch (ServerErrorException e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048,
+                    MessageCodeConfig.E00048.getMsgZh(), null);
         }
+
         return result(HttpStatus.OK, "success", null);
     }
 
@@ -179,7 +186,13 @@ public class AuthingService implements UserCenterServiceInter {
         }
 
         // 用户名校验
-        msg = authingUserDao.checkUsername(appId, userName);
+        try {
+            msg = authingUserDao.checkUsername(appId, userName);
+        } catch (ServerErrorException e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048,
+                    "Internal Server Error", null);
+        }
+
         if (!msg.equals("success"))
             return result(HttpStatus.BAD_REQUEST, null, msg, null);
         if (StringUtils.isBlank(account))
@@ -190,17 +203,22 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
 
         // 邮箱 OR 手机号校验
-        String accountType = checkPhoneAndEmail(appId, account);
-
-        if (accountType.equals("email")) {
-            // 邮箱注册
-            msg = authingUserDao.registerByEmail(appId, account, code, userName);
-        } else if (accountType.equals("phone")) {
-            // 手机注册
-            msg = authingUserDao.registerByPhone(appId, account, code, userName);
-        } else {
-            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        try {
+            String accountType = checkPhoneAndEmail(appId, account);
+            if (accountType.equals("email")) {
+                // 邮箱注册
+                msg = authingUserDao.registerByEmail(appId, account, code, userName);
+            } else if (accountType.equals("phone")) {
+                // 手机注册
+                msg = authingUserDao.registerByPhone(appId, account, code, userName);
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            }
+        } catch (ServerErrorException e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048,
+                    "Internal Server Error", null);
         }
+
         if (!msg.equals("success"))
             return result(HttpStatus.BAD_REQUEST, null, msg, null);
 
@@ -231,12 +249,17 @@ public class AuthingService implements UserCenterServiceInter {
         // 登录
         String accountType = getAccountType(account);
         Object msg;
-        if (accountType.equals("email")) {
-            msg = authingUserDao.loginByEmailCode(app, account, code);
-        } else if (accountType.equals("phone")) {
-            msg = authingUserDao.loginByPhoneCode(app, account, code);
-        } else {
-            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        try {
+            if (accountType.equals("email")) {
+                msg = authingUserDao.loginByEmailCode(app, account, code);
+            } else if (accountType.equals("phone")) {
+                msg = authingUserDao.loginByPhoneCode(app, account, code);
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            }
+        } catch (ServerErrorException e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048,
+                    MessageCodeConfig.E00048.getMsgZh(), null);
         }
 
         String idToken;
@@ -894,7 +917,14 @@ public class AuthingService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token, Map<String, Object> map) {
-        String res = authingUserDao.updateUserBaseInfo(token, map);
+        String res;
+        try {
+            res = authingUserDao.updateUserBaseInfo(token, map);
+        } catch (ServerErrorException e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048,
+                    "Internal Server Error", null);
+        }
+
         if (res.equals("success"))
             return result(HttpStatus.OK, "update base info success", null);
         else return result(HttpStatus.BAD_REQUEST, null, res, null);
@@ -1071,7 +1101,7 @@ public class AuthingService implements UserCenterServiceInter {
         return accountType;
     }
 
-    private String checkPhoneAndEmail(String appId, String account) {
+    private String checkPhoneAndEmail(String appId, String account) throws ServerErrorException {
         String accountType = getAccountType(account);
         if (!accountType.equals("email") && !accountType.equals("phone"))
             return accountType;
