@@ -17,6 +17,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import java.io.*;
 import java.nio.charset.Charset;
+import java.util.Map;
 
 /**
  * 包装HttpServletRequest，目的是让其输入流可重复读
@@ -35,6 +36,12 @@ public class RequestWrapper extends HttpServletRequestWrapper {
      */
     public RequestWrapper(HttpServletRequest request) throws IOException {
         super(request);
+
+        // parameters回写
+        Map<String, String[]> parameterMap = request.getParameterMap();
+        for (Map.Entry<String, String[]> entry : parameterMap.entrySet()) {
+            request.setAttribute(entry.getKey(), entry.getValue());
+        }
 
         StringBuilder sb = new StringBuilder();
         BufferedReader reader = null;
