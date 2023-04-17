@@ -12,9 +12,6 @@
 package com.om.Service;
 
 import com.om.Dao.AddDao;
-import com.om.Modules.meetup.MeetupApplyForm;
-import com.om.Modules.meetup.MeetupTranscript;
-import com.om.Modules.meetup.MeetupVenueInfo;
 import com.om.Vo.BugQuestionnaireVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -41,39 +38,6 @@ public class AddService {
         }
 
 
-        return res;
-    }
-
-    public String putMeetupApplyForm(String community, MeetupApplyForm meetupApplyForm, String token) {
-        String item = "meetupApplyForm";
-        String res = "";
-        try {
-            res = addDao.putMeetupApplyForm(community, item, meetupApplyForm, token);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return res;
-    }
-
-    public String putMeetupVenueInfo(String community, MeetupVenueInfo meetupVenueInfo, String token) {
-        String item = "meetupVenueInfo";
-        String res = "";
-        try {
-            res = addDao.putMeetupVenueInfo(community, item, meetupVenueInfo, token);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return res;
-    }
-
-    public String putMeetupTranscript(String community, MeetupTranscript meetupTranscript, String token) {
-        String item = "meetupTranscript";
-        String res = "";
-        try {
-            res = addDao.putMeetupTranscript(community, item, meetupTranscript, token);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         return res;
     }
 
