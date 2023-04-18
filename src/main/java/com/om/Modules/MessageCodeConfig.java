@@ -66,6 +66,8 @@ public enum MessageCodeConfig {
     E00046("E00046", "Contain 2 to 100 characters. company include only letters, digits, Chinese, parentheses, point (.), comma (,) and &. Must start with a letter, digits or Chinese. cannot end with parentheses, comma (,) and &", "请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾"),
     E00047("E00047", "App not found", "应用不存在"),
     E00048("E00048", "Internal Server Error", "服务异常"),
+    E00049("E00049", "Verification code has been sent within a minute.Please try again later", "该邮箱 1 分钟内已发送过验证码，请稍后再试"),
+    E00050("E00050", "The verification code sent by this phone number within 24 hours exceeds the maximum limit", "该手机号 24 小时内已发送过验证码超过最大上限，请稍后尝试"),
     ;
 
     private String code;
