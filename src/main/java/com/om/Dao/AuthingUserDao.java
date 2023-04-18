@@ -194,7 +194,8 @@ public class AuthingUserDao {
     public String registerByPhone(String appId, String phone, String code, String name) {
         String msg = "success";
         try {
-            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"},\"profile\":{\"name\":\"%s\"}}", phone, code, name);
+            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": " +
+                    "{\"phone\": \"%s\",\"passCode\": \"%s\"},\"profile\":{\"username\":\"%s\"}}", phone, code, name);
             HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signup")
                     .header("x-authing-app-id", appId)
                     .header("Content-Type", "application/json")
@@ -853,6 +854,7 @@ public class AuthingUserDao {
         map.put("请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。必须以字母或者汉字开头，不能以下划线(_)结尾", MessageCodeConfig.E00045);
         map.put("请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾", MessageCodeConfig.E00046);
         map.put("应用不存在", MessageCodeConfig.E00047);
+        map.put("服务错误", MessageCodeConfig.E00048);
 
         return map;
     }
