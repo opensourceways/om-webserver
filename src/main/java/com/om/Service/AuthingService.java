@@ -184,8 +184,6 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, msg, null);
         if (StringUtils.isBlank(account))
             return result(HttpStatus.BAD_REQUEST, null, "邮箱不能为空", null);
-        if (!account.matches(Constant.EMAILREGEX))
-            return result(HttpStatus.BAD_REQUEST, null, "请输入正确的邮箱", null);
         if (StringUtils.isBlank(code))
             return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
 
