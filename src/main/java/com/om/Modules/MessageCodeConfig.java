@@ -67,7 +67,7 @@ public enum MessageCodeConfig {
     E00047("E00047", "App not found", "应用不存在"),
     E00048("E00048", "Internal Server Error", "服务异常"),
     E00049("E00049", "Verification code has been sent within a minute.Please try again later", "该邮箱 1 分钟内已发送过验证码，请稍后再试"),
-    E00050("E00049", "The verification code sent by this phone number within 24 hours exceeds the maximum limit", "该手机号 24 小时内已发送过验证码超过最大上限，请稍后尝试"),
+    E00050("E00050", "The verification code sent by this phone number within 24 hours exceeds the maximum limit", "该手机号 24 小时内已发送过验证码超过最大上限，请稍后尝试"),
     ;
 
     private String code;
