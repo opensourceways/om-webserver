@@ -39,7 +39,7 @@ public interface UserCenterServiceInter {
 
     ResponseEntity updatePhoto(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token, MultipartFile file);
 
-    ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+    ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse, boolean isSuccess);
 
     ResponseEntity updateAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 
