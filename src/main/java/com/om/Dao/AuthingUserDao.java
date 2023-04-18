@@ -22,9 +22,11 @@ import com.mashape.unirest.http.Unirest;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
+import com.om.Modules.ServerErrorException;
 import com.om.Result.Constant;
 import com.om.Utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
@@ -213,7 +215,7 @@ public class AuthingUserDao {
     }
 
     // 校验用户是否存在（用户名 or 邮箱 or 手机号）
-    public boolean isUserExists(String appId, String account, String accountType) {
+    public boolean isUserExists(String appId, String account, String accountType) throws ServerErrorException {
         try {
             AuthenticationClient authentication = appClientMap.get(appId);
             switch (accountType.toLowerCase()) {
@@ -227,11 +229,12 @@ public class AuthingUserDao {
                     return true;
             }
         } catch (Exception e) {
-            return true;
+            e.printStackTrace();
+            throw new ServerErrorException();
         }
     }
 
-    public Object loginByEmailCode(Application app, String email, String code) {
+    public Object loginByEmailCode(Application app, String email, String code) throws ServerErrorException {
         String msg = "登录失败";
         try {
             if (!isUserExists(app.getId(), email, "email")) return "用户不存在";
@@ -246,12 +249,15 @@ public class AuthingUserDao {
             int statusCode = resObj.getInt("statusCode");
             if (statusCode != 200) msg = resObj.getString("message");
             else return resObj.get("data");
-        } catch (Exception ignored) {
+        } catch (ServerErrorException ex) {
+            throw ex;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return msg;
     }
 
-    public Object loginByPhoneCode(Application app, String phone, String code) {
+    public Object loginByPhoneCode(Application app, String phone, String code) throws ServerErrorException {
         String msg = "登录失败";
         try {
             if (!isUserExists(app.getId(), phone, "phone")) return "用户不存在";
@@ -266,7 +272,10 @@ public class AuthingUserDao {
             int statusCode = resObj.getInt("statusCode");
             if (statusCode != 200) msg = resObj.getString("message");
             else return resObj.get("data");
-        } catch (Exception ignored) {
+        } catch (ServerErrorException ex) {
+            throw ex;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
 
         return msg;
@@ -687,7 +696,7 @@ public class AuthingUserDao {
         return flag;
     }
 
-    public String updateUserBaseInfo(String token, Map<String, Object> map) {
+    public String updateUserBaseInfo(String token, Map<String, Object> map) throws ServerErrorException {
         String msg = "success";
         try {
             Object[] appUserInfo = getAppUserInfo(token);
@@ -721,6 +730,8 @@ public class AuthingUserDao {
             }
             authentication.updateProfile(updateUserInput).execute();
             return msg;
+        } catch (ServerErrorException e) {
+            throw e;
         } catch (Exception ex) {
             return "更新失败";
         }
@@ -784,7 +795,7 @@ public class AuthingUserDao {
         }
     }
 
-    public String checkUsername(String appId, String userName) {
+    public String checkUsername(String appId, String userName) throws ServerErrorException {
         String msg = "success";
         if (StringUtils.isBlank(userName))
             msg = "用户名不能为空";
