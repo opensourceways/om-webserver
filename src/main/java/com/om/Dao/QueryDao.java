@@ -3970,14 +3970,14 @@ public class QueryDao {
         }
     }
 
-    public Boolean matchList(ArrayList<String> arraylist, String str) {
+    public Boolean matchList(ArrayList<String> arrayList, String str) {
         if (str == null) {
             return true;
         }
-        if (arraylist == null) {
+        if (arrayList == null) {
             return false;
         }
-        for (String list : arraylist) {
+        for (String list : arrayList) {
             if (list.toLowerCase().contains(str.toLowerCase())) {
                 return true;
             }
