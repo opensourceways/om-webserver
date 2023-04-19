@@ -3974,6 +3974,9 @@ public class QueryDao {
         if (str == null) {
             return true;
         }
+        if (arrayList == null) {
+            return false;
+        }
         for (String list : arrylist) {
             if (list.toLowerCase().contains(str.toLowerCase())) {
                 return true;
