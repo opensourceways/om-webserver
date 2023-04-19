@@ -112,33 +112,6 @@ public class openComObject {
     protected String SigCountQuery;
     protected String UserReportCsvData;
     protected String MonthCountQueryStr;
-    protected String meetupApplyFormIndex;
-    protected String meetupVenueInfoIndex;
-    protected String meetupTranscriptIndex;
-
-    public String getMeetupApplyFormIndex() {
-        return meetupApplyFormIndex;
-    }
-
-    public void setMeetupApplyFormIndex(String meetupApplyFormIndex) {
-        this.meetupApplyFormIndex = meetupApplyFormIndex;
-    }
-
-    public String getMeetupVenueInfoIndex() {
-        return meetupVenueInfoIndex;
-    }
-
-    public void setMeetupVenueInfoIndex(String meetupVenueInfoIndex) {
-        this.meetupVenueInfoIndex = meetupVenueInfoIndex;
-    }
-
-    public String getMeetupTranscriptIndex() {
-        return meetupTranscriptIndex;
-    }
-
-    public void setMeetupTranscriptIndex(String meetupTranscriptIndex) {
-        this.meetupTranscriptIndex = meetupTranscriptIndex;
-    }
 
     public String getMonthCountQueryStr() {
         return MonthCountQueryStr;
