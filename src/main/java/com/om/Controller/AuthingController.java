@@ -179,11 +179,10 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/sendcode")
     public ResponseEntity sendCode(@RequestParam(value = "account") String account,
-                                   @RequestParam(value = "field") String field,
-                                   @RequestParam(value = "account_type") String account_type,
+                                   @RequestParam(value = "channel") String channel,
                                    @CookieValue(value = "_Y_G_", required = false) String token,
                                    @RequestParam("captchaVerification") String captchaVerification) {
-        return authingService.sendCode(token, account, account_type, field, verifyCaptcha(captchaVerification));
+        return authingService.sendCode(token, account, channel, verifyCaptcha(captchaVerification));
     }
 
     @AuthingUserToken
