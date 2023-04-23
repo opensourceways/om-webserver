@@ -1690,6 +1690,9 @@ public class QueryDao {
                     independent += contribute;
                     continue;
                 }
+                if (company.contains("华为技术有限公司")) {
+                    continue;
+                }
 //                if (company.equals("软通动力信息技术（集团）股份有限公司")) {
 //                    contribute += partner;
 //                }
@@ -3433,6 +3436,9 @@ public class QueryDao {
                         company.toLowerCase().equals("openeuler")) {
                     continue;
                 }
+                if (company.contains("华为技术有限公司")) {
+                    continue;
+                }
                 Iterator<JsonNode> its = bucket.get("sigs").get("buckets").elements();
                 ArrayList<String> sigList = new ArrayList<>();
                 while (its.hasNext()) {
@@ -3964,11 +3970,14 @@ public class QueryDao {
         }
     }
 
-    public Boolean matchList(ArrayList<String> arrylist, String str) {
+    public Boolean matchList(ArrayList<String> arrayList, String str) {
         if (str == null) {
             return true;
         }
-        for (String list : arrylist) {
+        if (arrayList == null) {
+            return false;
+        }
+        for (String list : arrayList) {
             if (list.toLowerCase().contains(str.toLowerCase())) {
                 return true;
             }
