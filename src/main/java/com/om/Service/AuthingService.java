@@ -779,16 +779,10 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-    public ResponseEntity sendCode(String token, String account, String type, String field, boolean isSuccess) {
+    public ResponseEntity sendCode(String token, String account, String channel, boolean isSuccess) {
         // 图片验证码二次校验
         if (!isSuccess)
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
-
-        // 邮箱或者手机号格式校验
-        String accountType = getAccountType(account);
-        if (!accountType.equals("email") && !accountType.equals("phone")) {
-            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
-        }
 
         // 限制1分钟只能发送一次
         String redisKey = account.toLowerCase() + "_sendcode";
@@ -797,13 +791,29 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
         }
 
-        boolean res = authingUserDao.sendCode(token, account, type, field);
-        if (!res) {
+        String msg;
+        String accountType = getAccountType(account);
+        try {
+            token = rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(token);
+            String appId = decode.getClaim("client_id").asString();
+            if (accountType.equals("email")) {
+                msg = authingUserDao.sendEmailCodeV3(appId, account, channel);
+            } else if (accountType.equals("phone")) {
+                msg = authingUserDao.sendPhoneCodeV3(appId, account, channel);
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            }
+        } catch (Exception e) {
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
         }
 
-        redisDao.set(redisKey, "code", 60L);
-        return result(HttpStatus.OK, "success", null);
+        if (!msg.equals("success")) {
+            redisDao.set(redisKey, "code", 60L);
+            return result(HttpStatus.BAD_REQUEST, null, msg, null);
+        } else {
+            return result(HttpStatus.OK, "success", null);
+        }
     }
 
     @Override
