@@ -21,6 +21,7 @@ import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Modules.MySqlUser;
+import com.om.Modules.ServerErrorException;
 import com.om.Result.Constant;
 import com.om.Result.Result;
 import com.om.Service.inter.UserCenterServiceInter;
@@ -114,14 +115,20 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
         }
 
-        if (StringUtils.isNotBlank(userName)) {
-            boolean username = authingUserDao.isUserExists(appId, userName, "username");
-            if (username) return result(HttpStatus.BAD_REQUEST, null, "用户名已存在", null);
-        } else if (StringUtils.isNotBlank(account)) {
-            String accountType = checkPhoneAndEmail(appId, account);
-            if (!accountType.equals("email") && !accountType.equals("phone"))
-                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        try {
+            if (StringUtils.isNotBlank(userName)) {
+                boolean username = authingUserDao.isUserExists(appId, userName, "username");
+                if (username) return result(HttpStatus.BAD_REQUEST, null, "用户名已存在", null);
+            } else if (StringUtils.isNotBlank(account)) {
+                String accountType = checkPhoneAndEmail(appId, account);
+                if (!accountType.equals("email") && !accountType.equals("phone"))
+                    return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            }
+        } catch (ServerErrorException e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048,
+                    MessageCodeConfig.E00048.getMsgZh(), null);
         }
+
         return result(HttpStatus.OK, "success", null);
     }
 
@@ -179,28 +186,37 @@ public class AuthingService implements UserCenterServiceInter {
         }
 
         // 用户名校验
-        msg = authingUserDao.checkUsername(appId, userName);
+        try {
+            msg = authingUserDao.checkUsername(appId, userName);
+        } catch (ServerErrorException e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048,
+                    "Internal Server Error", null);
+        }
+
         if (!msg.equals("success"))
             return result(HttpStatus.BAD_REQUEST, null, msg, null);
         if (StringUtils.isBlank(account))
             return result(HttpStatus.BAD_REQUEST, null, "邮箱不能为空", null);
-        if (!account.matches(Constant.EMAILREGEX))
-            return result(HttpStatus.BAD_REQUEST, null, "请输入正确的邮箱", null);
         if (StringUtils.isBlank(code))
             return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
 
         // 邮箱 OR 手机号校验
-        String accountType = checkPhoneAndEmail(appId, account);
-
-        if (accountType.equals("email")) {
-            // 邮箱注册
-            msg = authingUserDao.registerByEmail(appId, account, code, userName);
-        } else if (accountType.equals("phone")) {
-            // 手机注册
-            msg = authingUserDao.registerByPhone(appId, account, code, userName);
-        } else {
-            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        try {
+            String accountType = checkPhoneAndEmail(appId, account);
+            if (accountType.equals("email")) {
+                // 邮箱注册
+                msg = authingUserDao.registerByEmail(appId, account, code, userName);
+            } else if (accountType.equals("phone")) {
+                // 手机注册
+                msg = authingUserDao.registerByPhone(appId, account, code, userName);
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            }
+        } catch (ServerErrorException e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048,
+                    "Internal Server Error", null);
         }
+
         if (!msg.equals("success"))
             return result(HttpStatus.BAD_REQUEST, null, msg, null);
 
@@ -231,12 +247,17 @@ public class AuthingService implements UserCenterServiceInter {
         // 登录
         String accountType = getAccountType(account);
         Object msg;
-        if (accountType.equals("email")) {
-            msg = authingUserDao.loginByEmailCode(app, account, code);
-        } else if (accountType.equals("phone")) {
-            msg = authingUserDao.loginByPhoneCode(app, account, code);
-        } else {
-            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        try {
+            if (accountType.equals("email")) {
+                msg = authingUserDao.loginByEmailCode(app, account, code);
+            } else if (accountType.equals("phone")) {
+                msg = authingUserDao.loginByPhoneCode(app, account, code);
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            }
+        } catch (ServerErrorException e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048,
+                    MessageCodeConfig.E00048.getMsgZh(), null);
         }
 
         String idToken;
@@ -753,36 +774,66 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-    public ResponseEntity sendCode(String token, String account, String type, String field) {
+    public ResponseEntity sendCode(String token, String account, String type, String field, boolean isSuccess) {
+        // 图片验证码二次校验
+        if (!isSuccess)
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
+
+        // 邮箱或者手机号格式校验
+        String accountType = getAccountType(account);
+        if (!accountType.equals("email") && !accountType.equals("phone")) {
+            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        }
+
+        // 限制1分钟只能发送一次
+        String redisKey = account.toLowerCase() + "_sendcode";
+        String codeOld = (String) redisDao.get(redisKey);
+        if (codeOld != null) {
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
+        }
+
         boolean res = authingUserDao.sendCode(token, account, type, field);
         if (!res) {
-            return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
         }
+
+        redisDao.set(redisKey, "code", 60L);
         return result(HttpStatus.OK, "success", null);
     }
 
     @Override
-    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                         boolean isSuccess) {
         String account = servletRequest.getParameter("account");
         String accountType = servletRequest.getParameter("account_type");
 
-        String redisKey = account + "_CodeUnbind";
+        // 图片验证码二次校验
+        if (!isSuccess)
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
+
+        // 邮箱或者手机号格式校验
+        String accountTypeCheck = getAccountType(account);
+        if (!accountTypeCheck.equals("email") && !accountTypeCheck.equals("phone")) {
+            return result(HttpStatus.BAD_REQUEST, null, accountTypeCheck, null);
+        }
+
+        String redisKey = account.toLowerCase() + "_CodeUnbind";
         try {
             // 限制1分钟只能发送一次
             String codeOld = (String) redisDao.get(redisKey);
             if (codeOld != null) {
-                return result(HttpStatus.BAD_REQUEST, null, "一分钟之内已发送过验证码", null);
+                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
             }
 
             // 发送验证码
             String[] strings = codeUtil.sendCode(accountType, account, mailSender, env, "");
             if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success"))
-                return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
+                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
 
             redisDao.set(redisKey, strings[0], Long.parseLong(strings[1]));
             return result(HttpStatus.OK, strings[2], null);
         } catch (Exception ex) {
-            return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
         }
     }
 
@@ -868,7 +919,14 @@ public class AuthingService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token, Map<String, Object> map) {
-        String res = authingUserDao.updateUserBaseInfo(token, map);
+        String res;
+        try {
+            res = authingUserDao.updateUserBaseInfo(token, map);
+        } catch (ServerErrorException e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048,
+                    "Internal Server Error", null);
+        }
+
         if (res.equals("success"))
             return result(HttpStatus.OK, "update base info success", null);
         else return result(HttpStatus.BAD_REQUEST, null, res, null);
@@ -1045,7 +1103,7 @@ public class AuthingService implements UserCenterServiceInter {
         return accountType;
     }
 
-    private String checkPhoneAndEmail(String appId, String account) {
+    private String checkPhoneAndEmail(String appId, String account) throws ServerErrorException {
         String accountType = getAccountType(account);
         if (!accountType.equals("email") && !accountType.equals("phone"))
             return accountType;

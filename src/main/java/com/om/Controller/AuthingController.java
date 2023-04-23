@@ -69,13 +69,8 @@ public class AuthingController {
     @RequestMapping(value = "/v3/sendCode")
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
-        CaptchaVO captchaVO = new CaptchaVO();
-        captchaVO.setCaptchaVerification(captchaVerification);
-        ResponseModel response = captchaService.verification(captchaVO);
-        boolean isSuccess = response.isSuccess();
-
         UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.sendCodeV3(servletRequest, servletResponse, isSuccess);
+        return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
     @RequestMapping(value = "/register")
@@ -186,8 +181,9 @@ public class AuthingController {
     public ResponseEntity sendCode(@RequestParam(value = "account") String account,
                                    @RequestParam(value = "field") String field,
                                    @RequestParam(value = "account_type") String account_type,
-                                   @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.sendCode(token, account, account_type, field);
+                                   @CookieValue(value = "_Y_G_", required = false) String token,
+                                   @RequestParam("captchaVerification") String captchaVerification) {
+        return authingService.sendCode(token, account, account_type, field, verifyCaptcha(captchaVerification));
     }
 
     @AuthingUserToken
@@ -195,7 +191,8 @@ public class AuthingController {
     public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest,
                                          HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.sendCodeUnbind(servletRequest, servletResponse);
+        String captchaVerification = servletRequest.getParameter("captchaVerification");
+        return service.sendCodeUnbind(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
     @AuthingUserToken
@@ -280,5 +277,12 @@ public class AuthingController {
         String community = servletRequest.getParameter("community");
         String serviceType = community == null || community.toLowerCase().equals("openeuler") ? "authing" : community.toLowerCase();
         return userCenterServiceContext.getUserCenterService(serviceType);
+    }
+
+    private boolean verifyCaptcha(String captchaVerification) {
+        CaptchaVO captchaVO = new CaptchaVO();
+        captchaVO.setCaptchaVerification(captchaVerification);
+        ResponseModel response = captchaService.verification(captchaVO);
+        return response.isSuccess();
     }
 }
