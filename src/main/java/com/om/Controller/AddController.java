@@ -11,7 +11,6 @@
 
 package com.om.Controller;
 
-
 import com.om.Service.AddService;
 import com.om.Vo.BugQuestionnaireVo;
 import com.om.token.UserLoginToken;
@@ -34,6 +33,5 @@ public class AddController {
         String res = addService.putBugQuestionnaire(community, lang, bugQuestionnaireVo);
         return res;
     }
-
 
 }

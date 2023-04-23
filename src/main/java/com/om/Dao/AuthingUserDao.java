@@ -807,6 +807,29 @@ public class AuthingUserDao {
         return msg;
     }
 
+    public List<String> userAccessibleApps(String userId) {
+        ArrayList<String> appIds = new ArrayList<>();
+        try {
+            String token = getUser(userId).getToken();
+            HttpResponse<JsonNode> response = Unirest.get(AUTHINGAPIHOST_V3 + "/get-my-accessible-apps")
+                    .header("Authorization", token)
+                    .header("x-authing-userpool-id", userPoolId)
+                    .asJson();
+            if (response.getStatus() == 200) {
+                JSONArray data = response.getBody().getObject().getJSONArray("data");
+                for (Object item : data) {
+                    if (item instanceof JSONObject) {
+                        JSONObject app = (JSONObject) item;
+                        appIds.add(app.getString("appId"));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return appIds;
+    }
+
     private List<String> getUsernameReserved() {
         if (StringUtils.isBlank(usernameReserved)) return null;
         return Arrays.stream(usernameReserved.split(",")).map(String::trim).collect(Collectors.toList());
