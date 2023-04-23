@@ -869,6 +869,7 @@ public class AuthingUserDao {
         map.put("验证码已失效，请重新获取验证码", MessageCodeConfig.E00026);
         map.put("登录失败", MessageCodeConfig.E00027);
         map.put("mobile number every day exceeds the upper limit", MessageCodeConfig.E00028);
+        map.put("手机号每天发送的验证次数超过上限", MessageCodeConfig.E00028);
         map.put("仅登录和注册使用", MessageCodeConfig.E00029);
         map.put("失败次数过多，请稍后重试", MessageCodeConfig.E00030);
         map.put("新邮箱与已绑定邮箱相同", MessageCodeConfig.E00031);
@@ -889,6 +890,8 @@ public class AuthingUserDao {
         map.put("请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾", MessageCodeConfig.E00046);
         map.put("应用不存在", MessageCodeConfig.E00047);
         map.put("服务错误", MessageCodeConfig.E00048);
+        map.put("该邮箱 1 分钟内已发送过验证码", MessageCodeConfig.E00049);
+        map.put("已发送过验证码超过最大上限", MessageCodeConfig.E00050);
 
         return map;
     }
