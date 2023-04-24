@@ -35,4 +35,6 @@ public class Constant {
     public static final String HALF_SENSITIVE_REG = "^.*(account).*$";
     public static final String PHONE_REPLACE_REG = "(^\\d{3})\\d.*(\\d{4})";
     public static final String EMAIL_REPLACE_REG = "(^\\w)[^@]*(@.*$)";
+
+    public static final String DEFAULT_EXPIRE_SECOND = "60";
 }
