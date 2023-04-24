@@ -14,11 +14,15 @@ package com.om.Utils;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
+import com.om.Result.Constant;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.core.env.Environment;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
+import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import javax.mail.internet.MimeMessage;
 import java.math.BigInteger;
@@ -40,33 +44,6 @@ public class CodeUtil {
     // 华为云MSGSMS，用于格式化鉴权头域，给"X-WSSE"参数赋值
     private static final String WSSE_HEADER_FORMAT = "UsernameToken Username=\"%s\",PasswordDigest=\"%s\",Nonce=\"%s\",Created=\"%s\"";
 
-    private static String emailTemplate = "<div style=\"padding: 35px;\">\n" +
-            "  <table cellpadding=\"0\" align=\"center\" style=\"width: 600px; margin: 0px auto; text-align: left; position: relative; border-top-left-radius: 5px; border-top-right-radius: 5px; border-bottom-right-radius: 5px; border-bottom-left-radius: 5px; font-size: 14px; font-family:Microsoft YaHei, SimHei; line-height: 1.5; box-shadow: rgb(153, 153, 153) 0px 0px 5px; border-collapse: collapse; background-position: initial initial; background-repeat: initial initial;background:#fff;\">\n" +
-            "    <tbody>\n" +
-            "      <tr>\n" +
-            "        <th valign=\"middle\" style=\"height: 25px; line-height: 25px; padding: 15px 35px; border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: rgba(18, 24, 37, 0.87); background-color: #484f60; border-top-left-radius: 5px; border-top-right-radius: 5px; border-bottom-right-radius: 0px; border-bottom-left-radius: 0px;\">\n" +
-            "          <font face=\"Microsoft YaHei\" size=\"5\" style=\"color: rgb(255, 255, 255); \">%s</font>\n" +
-            "        </th>\n" +
-            "      </tr>\n" +
-            "      <tr>\n" +
-            "        <td>\n" +
-            "          <div style=\"padding:25px 35px 40px; background-color:#fff;\">\n" +
-            "            <h2 style=\"margin: 5px 0px; \">\n" +
-            "              <font color=\"#333333\" style=\"line-height: 20px; \">\n" +
-            "                <font style=\"line-height: 22px; \" size=\"4\">Dear user：%s </font>\n" +
-            "              </font>\n" +
-            "            </h2>\n" +
-            "            <p>Your verification code:%s</p >\n" +
-            "            <br/>\n" +
-            "            <br/>\n" +
-            "            <p align=\"right\">Open Source Community</p >\n" +
-            "          </div>\n" +
-            "        </td>\n" +
-            "      </tr>\n" +
-            "    </tbody>\n" +
-            "  </table>\n" +
-            "</div>\n";
-
     public String[] sendCode(String accountType, String account, JavaMailSender mailSender, Environment env, String community) {
         String resMsg = "fail";
         long codeExpire = 60L;
@@ -77,28 +54,32 @@ public class CodeUtil {
 
             switch (accountType.toLowerCase()) {
                 case "email":
-                    codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
+                    codeExpire = Long.parseLong(env.getProperty("mail.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
                     // 邮件服务器
                     String from = env.getProperty("spring.mail.username");
                     // 邮件信息
-                    String[] info = buildEmailCodeInfo(account, code);
+                    String[] info = buildEmailCodeInfo(account, code,
+                            env.getProperty("mail.template.expire.minutes", "1"));
                     // 发送验证码
                     resMsg = sendHtmlMail(mailSender, from, account, info[0], info[1]);
                     break;
                 case "phone":
-                    codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", "60"));
+                    codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
                     // 短信发送服务器
                     String communityTemp = StringUtils.isBlank(community) ? "" : community + ".";
-                    String msgsms_app_key = env.getProperty("msgsms.app_key");
-                    String msgsms_app_secret = env.getProperty("msgsms.app_secret");
-                    String msgsms_url = env.getProperty("msgsms.url");
+                    String msgsms_app_key = env.getProperty(communityTemp + "msgsms.app_key");
+                    String msgsms_app_secret = env.getProperty(communityTemp + "msgsms.app_secret");
+                    String msgsms_url = env.getProperty(communityTemp + "msgsms.url");
                     String msgsms_signature = env.getProperty(communityTemp + "msgsms.signature");
                     String msgsms_sender = env.getProperty(communityTemp + "msgsms.sender");
                     String msgsms_template_id = env.getProperty(communityTemp + "msgsms.template.id");
-                    // 短信发送请求
-                    String templateParas = String.format("[\"%s\",\"%s\"]", code, env.getProperty("msgsms.template.context.expire", "1"));
+                    // 短信发送模板赋值
+                    String templateParas = (community.equalsIgnoreCase("opengauss"))
+                            ? String.format("[\"%s\",\"%s\"]", code, env.getProperty("msgsms.template.expire.minutes"))
+                            : String.format("[\"%s\"]", code);
                     String wsseHeader = buildWsseHeader(msgsms_app_key, msgsms_app_secret);
-                    String body = buildSmsBody(msgsms_sender, account, msgsms_template_id, templateParas, "", msgsms_signature);
+                    String body = buildSmsBody(msgsms_sender, account, msgsms_template_id,
+                            templateParas, "", msgsms_signature);
                     // 发送验证码
                     HttpResponse<JsonNode> response = Unirest.post(msgsms_url)
                             .header("Content-Type", "application/x-www-form-urlencoded")
@@ -149,7 +130,8 @@ public class CodeUtil {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper messageHelper = new MimeMessageHelper(message);
-            messageHelper.setFrom(from);
+            String format = String.format("Open Source Community<%s>", from); // 发件人名称<发件人邮箱>
+            messageHelper.setFrom(format);
             messageHelper.setTo(to);
             messageHelper.setSubject(title);
             messageHelper.setText(content, true);
@@ -167,10 +149,24 @@ public class CodeUtil {
      * @param code  验证码
      * @return 邮件模板 {标题， 内容}
      */
-    public String[] buildEmailCodeInfo(String email, String code) {
-        String title = "Verification code for Open Source Community";
-        String content = String.format(emailTemplate, title, email, code);
-        return new String[]{title, content};
+    public String[] buildEmailCodeInfo(String email, String code, String expireMinutes) {
+        String title = "Verification of Community User";
+
+        // 构造模板引擎
+        ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
+        resolver.setPrefix("templates/");
+        resolver.setSuffix(".html");
+        TemplateEngine templateEngine = new TemplateEngine();
+        templateEngine.setTemplateResolver(resolver);
+
+        // 注入变量值
+        Context context = new Context();
+        context.setVariable("email", email);
+        context.setVariable("code", code);
+        context.setVariable("expire", expireMinutes);
+
+        String emailContent = templateEngine.process("emailTemplate", context);
+        return new String[]{title, emailContent};
     }
 
     /**
