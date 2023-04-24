@@ -16,11 +16,13 @@ import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+
 import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.HashOperations;
@@ -42,6 +44,18 @@ public class RedisDao {
     protected StringRedisTemplate redisTemplate;
 
     static ObjectMapper objectMapper = new ObjectMapper();
+
+    /**
+     * 获取过期时间
+     * 没有设置过期时间，返回-1
+     * 没有找到该key，返回-2
+     *
+     * @param key key
+     * @return 还剩多少秒过期
+     */
+    public long expire(String key) {
+        return redisTemplate.opsForValue().getOperations().getExpire(key);
+    }
 
     /**
      * 通过设置偏移量来修改value，不会更改过期时间
