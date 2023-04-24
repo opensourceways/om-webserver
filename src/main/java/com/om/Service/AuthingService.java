@@ -146,7 +146,7 @@ public class AuthingService implements UserCenterServiceInter {
         String loginErrorCountKey = account + "loginCount";
         Object v = redisDao.get(loginErrorCountKey);
         int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
-        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.count", "6")))
+        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6")))
             return result(HttpStatus.BAD_REQUEST, null, "失败次数过多，请稍后重试", null);
 
         if (!channel.equalsIgnoreCase("channel_login") && !channel.equalsIgnoreCase("channel_register")) {
@@ -235,7 +235,7 @@ public class AuthingService implements UserCenterServiceInter {
         String loginErrorCountKey = account + "loginCount";
         Object v = redisDao.get(loginErrorCountKey);
         int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
-        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.count", "6")))
+        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6")))
             return result(HttpStatus.BAD_REQUEST, null, "失败次数过多，请稍后重试", null);
 
         // 校验appId
@@ -265,7 +265,8 @@ public class AuthingService implements UserCenterServiceInter {
             JSONObject user = (JSONObject) msg;
             idToken = user.getString("id_token");
         } else {
-            long codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
+            long codeExpire =
+                    Long.parseLong(env.getProperty("login.error.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
             loginErrorCount += 1;
             redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
             return result(HttpStatus.BAD_REQUEST, null, (String) msg, null);
@@ -278,7 +279,8 @@ public class AuthingService implements UserCenterServiceInter {
             userId = decode.getSubject();
             user = authingUserDao.getUser(userId);
         } catch (Exception e) {
-            long codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
+            long codeExpire =
+                    Long.parseLong(env.getProperty("login.error.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
             loginErrorCount += 1;
             redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
             return result(HttpStatus.BAD_REQUEST, null, "登录失败", null);
@@ -826,17 +828,23 @@ public class AuthingService implements UserCenterServiceInter {
         if (!isSuccess)
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
 
-        // 邮箱或者手机号格式校验
-        String accountTypeCheck = getAccountType(account);
-        if (!accountTypeCheck.equals("email") && !accountTypeCheck.equals("phone")) {
-            return result(HttpStatus.BAD_REQUEST, null, accountTypeCheck, null);
-        }
-
         String redisKey = account.toLowerCase() + "_CodeUnbind";
         try {
-            // 限制1分钟只能发送一次
-            String codeOld = (String) redisDao.get(redisKey);
-            if (codeOld != null) {
+            // 邮箱or手机号格式校验，并获取验证码过期时间
+            long codeExpire;
+            String accountTypeCheck = getAccountType(account);
+            if (accountTypeCheck.equals("email")) {
+                codeExpire = Long.parseLong(env.getProperty("mail.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
+            } else if (accountTypeCheck.equals("phone")) {
+                codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, accountTypeCheck, null);
+            }
+
+            // 限制1分钟只能发送一次 （剩余的过期时间 + 60s > 验证码过期时间，表示一分钟之内发送过验证码）
+            long limit = Long.parseLong(env.getProperty("send.code.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
+            long remainingExpirationSecond = redisDao.expire(redisKey);
+            if (remainingExpirationSecond + limit > codeExpire) {
                 return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
             }
 
