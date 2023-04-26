@@ -29,6 +29,7 @@ import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
 import com.om.mapper.UserMapper;
+import com.om.provider.oauth2.OidcProvider;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -221,6 +222,25 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, msg, null);
 
         return result(HttpStatus.OK, "success", null);
+    }
+
+    @Override
+    public ResponseEntity providerLogin(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                        OidcProvider oidcProvider) {
+
+        return null;
+    }
+
+    @Override
+    public ResponseEntity registerByIdentity(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+
+        return null;
+    }
+
+    @Override
+    public ResponseEntity bindIdentityToExistUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse){
+
+        return null;
     }
 
     @Override

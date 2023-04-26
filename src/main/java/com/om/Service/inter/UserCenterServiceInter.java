@@ -11,6 +11,7 @@
 
 package com.om.Service.inter;
 
+import com.om.provider.oauth2.OidcProvider;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,6 +25,8 @@ public interface UserCenterServiceInter {
     ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse, boolean isSuccess);
 
     ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+
+    ResponseEntity providerLogin(HttpServletRequest servletRequest, HttpServletResponse servletResponse, OidcProvider oidcProvider);
 
     ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
@@ -46,4 +49,8 @@ public interface UserCenterServiceInter {
     ResponseEntity unbindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 
     ResponseEntity bindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
+
+    ResponseEntity bindIdentityToExistUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+
+    ResponseEntity registerByIdentity(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 }

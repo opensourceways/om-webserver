@@ -16,8 +16,10 @@ import java.io.Serializable;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -172,6 +174,18 @@ public class HttpClientUtils implements Serializable {
         }
         return res;
     }
+
+    public static Cookie getCookie(HttpServletRequest httpServletRequest, String cookieName) {
+        Cookie[] cookies = httpServletRequest.getCookies();
+        Cookie cookie = null;
+        if (cookies != null) {
+            // 获取某一个cookie
+            Optional<Cookie> first = Arrays.stream(cookies).filter(c -> cookieName.equals(c.getName())).findFirst();
+            if (first.isPresent()) cookie = first.get();
+        }
+        return cookie;
+    }
+
 
     public static void setCookie(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String name, String value,
                                  boolean isHttpOnly, int maxAge, String path, HashMap<String, Boolean> domain2Secure) {
