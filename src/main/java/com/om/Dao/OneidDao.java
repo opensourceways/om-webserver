@@ -141,6 +141,19 @@ public class OneidDao {
         return user;
     }
 
+    public JSONObject getUserByIdInIdp(String userIdInIdp) {
+        return null;
+    }
+
+    public void createUserIdentity() {
+
+    }
+
+    public void createUserIdentityRelation() {
+
+    }
+
+
     // 校验用户是否存在（用户名 or 邮箱 or 手机号）
     public boolean isUserExists(String poolId, String poolSecret, String account, String accountType) {
         switch (accountType.toLowerCase()) {

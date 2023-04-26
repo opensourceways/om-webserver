@@ -22,6 +22,8 @@ import com.om.Service.inter.UserCenterServiceInter;
 import com.om.authing.AuthingUserToken;
 import com.om.log.userLog.LogAnnotation;
 import com.om.log.userLog.MethodType;
+import com.om.provider.oauth2.OidcProvider;
+import com.om.provider.context.ProviderContext;
 import com.om.token.ManageToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -75,7 +77,7 @@ public class AuthingController {
         return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
-    @RequestMapping(value = "/register")
+    @RequestMapping(value = "/register", method = RequestMethod.POST)
     @LogAnnotation(methodType = MethodType.REGISTER)
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
@@ -89,6 +91,38 @@ public class AuthingController {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.login(servletRequest, servletResponse);
     }
+
+
+    @Autowired
+    ProviderContext providerContext;
+
+    @RequestMapping(value = "/provider/login")
+    public ResponseEntity providerLogin(HttpServletRequest request, HttpServletResponse response) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        OidcProvider oidcProvider = getOidcProvider(request);
+        return oidcProvider.oidcAuthorize(request, response, oidcProvider);
+    }
+
+    @RequestMapping(value = "/{provider}/callback")
+    public ResponseEntity providerCallback(HttpServletRequest request, HttpServletResponse response,
+                               @PathVariable String provider) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        OidcProvider oidcProvider = providerContext.getOidcProvider(provider);
+        return service.providerLogin(request, response, oidcProvider);
+    }
+
+    @RequestMapping(value = "/bind/user", method = RequestMethod.POST)
+    public ResponseEntity bindIdentityToExistUser(HttpServletRequest request, HttpServletResponse response) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        return service.bindIdentityToExistUser(request, response);
+    }
+
+    @RequestMapping(value = "/register-by-identity", method = RequestMethod.POST)
+    public ResponseEntity registerByIdentity(HttpServletRequest request, HttpServletResponse response) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        return service.registerByIdentity(request, response);
+    }
+
 
     @RequestMapping(value = "/app/verify")
     public ResponseEntity appVerify(@RequestParam(value = "client_id") String clientId,
@@ -276,6 +310,11 @@ public class AuthingController {
             throws JsonProcessingException {
         String res = queryService.queryUserOwnertype(community, user, username);
         return res;
+    }
+
+    private OidcProvider getOidcProvider(HttpServletRequest servletRequest) {
+        String provider = servletRequest.getParameter("provider");
+        return providerContext.getOidcProvider(provider);
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
