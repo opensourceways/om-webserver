@@ -15,11 +15,13 @@ public class GithubProvider extends OidcProvider {
         String email = getUserEmail(accessToken);
 
         return new UserIdentity()
-                .setUserIdInIdp(userObj.get("id"))
-                .setUsername(userObj.get("login"))
-                .setNickname(userObj.get("name"))
-                .setPhoto(userObj.get("avatar_url"))
+                .setUserIdInIdp(getJsonValue(userObj, "id"))
+                .setProvider(this.getName())
+                .setUsername(getJsonValue(userObj, "login"))
+                .setNickname(getJsonValue(userObj, "name"))
+                .setPhoto(getJsonValue(userObj, "avatar_url"))
                 .setEmail(email)
+                .setBlog(getJsonValue(userObj, "blog"))
                 .setAccessToken(accessToken);
     }
 

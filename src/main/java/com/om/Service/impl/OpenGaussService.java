@@ -13,6 +13,7 @@ package com.om.Service.impl;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.OneidDao;
@@ -28,6 +29,7 @@ import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
 import com.om.provider.oauth2.OidcProvider;
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -95,6 +97,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         result = new Result();
         channels = getSendCodeChannel();
         objectMapper = new ObjectMapper();
+        objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         poolId = env.getProperty("opengauss.pool.key");
         poolSecret = env.getProperty("opengauss.pool.secret");
         domain2secure = HttpClientUtils.getConfigCookieInfo(Objects.requireNonNull(env.getProperty("cookie.token.domains")), Objects.requireNonNull(env.getProperty("cookie.token.secures")));
@@ -103,13 +106,14 @@ public class OpenGaussService implements UserCenterServiceInter {
     @Override
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         try {
-            Map<String, Object> body  = HttpClientUtils.getBodyFromRequest(servletRequest);
-            String community = (String) getBodyPara(body,"community");
-            String appId = (String) getBodyPara(body,"client_id");
-            String userName = (String) getBodyPara(body,"username");
-            String account = (String) getBodyPara(body,"account");
-            String code = (String) getBodyPara(body,"code");
-            String company = (String) getBodyPara(body,"company");
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+            String community = (String) getBodyPara(body, "community");
+            String appId = (String) getBodyPara(body, "client_id");
+            String userName = (String) getBodyPara(body, "username");
+            String account = (String) getBodyPara(body, "account");
+            String code = (String) getBodyPara(body, "code");
+            String company = (String) getBodyPara(body, "company");
+            String registerType = (String) getBodyPara(body, "register_type");
 
             // 限制一分钟内失败次数
             String registerErrorCountKey = account + "registerCount";
@@ -156,6 +160,20 @@ public class OpenGaussService implements UserCenterServiceInter {
                 registerErrorCount += 1;
                 redisDao.set(registerErrorCountKey, String.valueOf(registerErrorCount), codeExpire);
                 return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
+            }
+
+            // 通过三方用户注册
+            if (registerType.equalsIgnoreCase("provider")) {
+                Cookie cookie = HttpClientUtils.getCookie(servletRequest, env.getProperty("identity.cookie.name"));
+                // 三方用户信息
+                if (cookie == null) {
+                    return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null, null);
+                }
+                String value = cookie.getValue();
+                RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
+                value = RSAUtil.privateDecrypt(value, privateKey);
+                UserIdentity userIdentity = objectMapper.readValue(value, UserIdentity.class);
+                userInfo.put("identities", userIdentity);
             }
 
             // 用户注册
@@ -247,20 +265,92 @@ public class OpenGaussService implements UserCenterServiceInter {
     }
 
     @Override
-    public ResponseEntity registerByIdentity(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        ResponseEntity register = this.register(servletRequest, servletResponse);
-        if (register.getStatusCodeValue() != 200) {
-            return register;
-        }
+    public ResponseEntity providerCallback(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                           OidcProvider oidcProvider) {
+        try {
+            // code获取access_token
+            String accessTokenByCode = oidcProvider.getAccessTokenByCode(servletRequest, oidcProvider);
 
-        ResponseEntity responseEntity = this.bindIdentityToExistUser(servletRequest, servletResponse);
-        return responseEntity;
+            // access_token获取用户
+            Object identity = oidcProvider.getUserByAccessToken(oidcProvider, accessTokenByCode);
+            UserIdentity userIdentity;
+            if (identity instanceof UserIdentity) {
+                userIdentity = (UserIdentity) identity;
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, identity.toString(), null);
+            }
+
+            // 生成自己的code，储存三方用户信息
+            String userJson = "code:" + objectMapper.writeValueAsString(userIdentity);
+            String code = codeUtil.randomStrBuilder(16);
+            redisDao.set(code, userJson, Long.parseLong(env.getProperty("oidc.code.expire", "60")));
+
+            // 回调到loading页面
+            String loadingPage =
+                    env.getProperty(servletRequest.getParameter("community") + ".provider.loading.page")
+                            + "?code=" + code;
+            servletResponse.sendRedirect(loadingPage);
+            return result(HttpStatus.OK, null, "success", null);
+
+            /*// 是否已经绑定账号
+            JSONObject user = oneidDao.getUserByIdInIdp(poolId, poolSecret, userIdentity.getUserIdInIdp());
+
+            // 授权用途
+            String purpose = servletRequest.getParameter("purpose");
+            if (purpose.equalsIgnoreCase("login")) {
+                return providerCallbackLogin(servletRequest, servletResponse, user, userIdentity);
+            } else if (purpose.equalsIgnoreCase("link")) {
+                return providerCallbackLink(servletRequest, servletResponse, user, userIdentity);
+            } else {
+                return result(HttpStatus.INTERNAL_SERVER_ERROR, null, "Internal Server Error", null);
+            }*/
+        } catch (Exception e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
+        }
     }
 
     @Override
-    public ResponseEntity bindIdentityToExistUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        Map<String, Object> body  = HttpClientUtils.getBodyFromRequest(servletRequest);
+    public ResponseEntity providerLogin(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        try {
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+            String code = (String) getBodyPara(body, "code");
+            String appId = (String) getBodyPara(body, "client_id");
+
+            // code获取三方用户
+            String userJson = (String) redisDao.get(code);
+            if (StringUtils.isBlank(userJson)) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00055, null, null);
+            }
+            UserIdentity userIdentity = objectMapper.readValue(
+                    userJson.replace("code:", ""), UserIdentity.class);
+
+            // 是否已经绑定账号
+            JSONObject user = oneidDao.getUserByIdInIdp(poolId, poolSecret, userIdentity.getUserIdInIdp());
+
+            // 未绑定账号，跳转到绑定页面
+            if (user == null) {
+                setCookieBeforeLogin(servletRequest, servletResponse, userIdentity);
+                redisDao.remove(code);
+                return result(HttpStatus.OK, null, "to_bind", null);
+            }
+
+            // 已绑定账号登录成功。生成token,写入cookie
+            setCookieAfterLogin(servletRequest, servletResponse, appId, user);
+
+            // 返回结果
+            HashMap<String, Object> userData = userSimple(user);
+            redisDao.remove(code);
+            return result(HttpStatus.OK, null, "login_success", userData);
+        } catch (Exception e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
+        }
+    }
+
+    @Override
+    public ResponseEntity linkToExistUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
         String appId = (String) getBodyPara(body, "client_id");
+        String community = (String) getBodyPara(body, "community");
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
         Cookie cookie = HttpClientUtils.getCookie(servletRequest, env.getProperty("identity.cookie.name"));
@@ -288,66 +378,87 @@ public class OpenGaussService implements UserCenterServiceInter {
             value = RSAUtil.privateDecrypt(value, privateKey);
             UserIdentity userIdentity = objectMapper.readValue(value, UserIdentity.class);
 
-            // TODO userIdentity插入数据
-            oneidDao.createUserIdentity();
+            // 用户已绑定有相同身份源账户
+            if (getUserProviders(user).contains(userIdentity.getProvider().toString())) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
+            }
 
-            // TODO user-identity关系表新增数据
-            oneidDao.createUserIdentityRelation();
+            // 验证码校验
+            String redisKey = account.toLowerCase() + "_sendCode_" + community;
+            String codeTemp = (String) redisDao.get(redisKey);
+            String codeCheck = checkCode(code, codeTemp);
+            /*if (!codeCheck.equals("success")) {
+                return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
+            }*/
+
+            JSONObject jsonObject = oneidDao.bindIdentityToUser(poolId, poolSecret, user.getString("id"), userIdentity);
+            if (jsonObject == null) {
+                return result(HttpStatus.INTERNAL_SERVER_ERROR, null, "Internal Server Error", null);
+            }
 
             // 生成token,写入cookie
-            setCookieAfterLogin(servletRequest, servletResponse, user);
+            setCookieAfterLogin(servletRequest, servletResponse, appId, user);
+
+            // 绑定成功，删除三方用户信息的cookie
+            HttpClientUtils.setCookie(servletRequest, servletResponse, env.getProperty("identity.cookie.name"),
+                    null, true, -1, "/", domain2secure);
+            redisDao.remove(redisKey);
 
             // 返回结果
-            HashMap<String, Object> userData = new HashMap<>();
-            userData.put("photo", jsonObjStringValue(user, "photo"));
-            userData.put("username", jsonObjStringValue(user, "username"));
-            userData.put("email_exist", !user.isNull("email"));
-
+            HashMap<String, Object> userData = userSimple(user);
             return result(HttpStatus.OK, null, "success", userData);
         } catch (Exception e) {
-            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E00052.getMsgZh(), null);
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
         }
     }
 
     @Override
-    public ResponseEntity providerLogin(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-                                        OidcProvider oidcProvider) {
+    public ResponseEntity userLink(HttpServletRequest request, HttpServletResponse response) {
         try {
-            String accessTokenByCode = oidcProvider.getAccessTokenByCode(servletRequest, oidcProvider);
-            Object identity = oidcProvider.getUserByAccessToken(oidcProvider, accessTokenByCode);
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
+            String code = (String) getBodyPara(body, "code");
 
-            UserIdentity userIdentity;
-            if (identity instanceof UserIdentity) {
-                userIdentity = (UserIdentity) identity;
-            } else {
-                return result(HttpStatus.BAD_REQUEST, null, identity.toString(), null);
+            Cookie cookie = HttpClientUtils.getCookie(request, env.getProperty("cookie.token.name"));
+            if (cookie == null) {
+                return result(HttpStatus.UNAUTHORIZED, null, "unauthorized", null);
             }
 
-            // TODO 查询是否已经绑定账号，未绑定，跳转到绑定页面
-            JSONObject user = oneidDao.getUserByIdInIdp(userIdentity.getUserIdInIdp().toString());
-            if (user == null) {
-                if (!setCookieBeforeLogin(servletRequest, servletResponse, userIdentity)) {
-                    return result(HttpStatus.INTERNAL_SERVER_ERROR, null, "Internal Server Error", null);
-                }
-                servletResponse.sendRedirect(env.getProperty("provider.bind.page"));
-                return result(HttpStatus.OK, null, null, null);
+            // code获取三方用户
+            String userJson = (String) redisDao.get(code);
+            if (StringUtils.isBlank(userJson)) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00055, null, null);
+            }
+            UserIdentity userIdentity = objectMapper.readValue(
+                    userJson.replace("code:", ""), UserIdentity.class);
+
+            // 是否已经绑定其他账号
+            JSONObject user = oneidDao.getUserByIdInIdp(poolId, poolSecret, userIdentity.getUserIdInIdp());
+            if (user != null) {
+                redisDao.remove(code);
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00054, null, null);
             }
 
-            // 生成token,写入cookie
-            setCookieAfterLogin(servletRequest, servletResponse, user);
+            // 获取登录的用户
+            RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
+            String token = RSAUtil.privateDecrypt(cookie.getValue(), privateKey);
+            DecodedJWT decode = JWT.decode(token);
+            String userId = decode.getAudience().get(0);
+            String appId = decode.getClaim("client_id").asString();
+
+            // 未绑定其它账号，绑定到该用户
+            JSONObject userObj = oneidDao.bindIdentityToUser(poolId, poolSecret, userId, userIdentity);
+            if (userObj == null) {
+                return result(HttpStatus.INTERNAL_SERVER_ERROR, null, "Internal Server Error", null);
+            }
+
+            redisDao.remove(code);
 
             // 返回结果
-            HashMap<String, Object> userData = new HashMap<>();
-            userData.put("photo", jsonObjStringValue(user, "photo"));
-            userData.put("username", jsonObjStringValue(user, "username"));
-            userData.put("email_exist", !user.isNull("email"));
-
+            HashMap<String, Object> userData = userWithIdentities(userObj);
             return result(HttpStatus.OK, null, "success", userData);
         } catch (Exception e) {
-            e.printStackTrace();
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
         }
-
-        return null;
     }
 
     private boolean setCookieBeforeLogin(HttpServletRequest request, HttpServletResponse response,
@@ -366,10 +477,8 @@ public class OpenGaussService implements UserCenterServiceInter {
     }
 
     private void setCookieAfterLogin(HttpServletRequest request, HttpServletResponse response,
-                                     JSONObject user) {
+                                     String appId, JSONObject user) {
         // 生成token
-        String appId = request.getParameter("app_id");
-        appId = StringUtils.isNotBlank(appId) ? appId : request.getParameter("client_id");
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"),
                 user.getString("username"), "", "", "idToken");
         String token = tokens[0];
@@ -389,10 +498,11 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        String community = servletRequest.getParameter("community");
-        String appId = servletRequest.getParameter("client_id");
-        String account = servletRequest.getParameter("account");
-        String code = servletRequest.getParameter("code");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String community = (String) getBodyPara(body, "community");
+        String appId = (String) getBodyPara(body, "client_id");
+        String account = (String) getBodyPara(body, "account");
+        String code = (String) getBodyPara(body, "code");
 
         // app校验
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
@@ -453,15 +563,11 @@ public class OpenGaussService implements UserCenterServiceInter {
         int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
         HttpClientUtils.setCookie(servletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
 
-        // 返回结果
-        HashMap<String, Object> userData = new HashMap<>();
-        userData.put("token", verifyToken);
-        userData.put("photo", jsonObjStringValue(user, "photo"));
-        userData.put("username", jsonObjStringValue(user, "username"));
-        userData.put("email_exist", !user.isNull("email"));
-
         // 登录成功，验证码失效
         redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+
+        // 返回结果
+        HashMap<String, Object> userData = userSimple(user);
         return result(HttpStatus.OK, null, "success", userData);
     }
 
@@ -483,14 +589,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             e.printStackTrace();
         }
 
-        HashMap<String, Object> userData = new HashMap<>();
-        userData.put("username", jsonObjStringValue(userObj, "username"));
-        userData.put("email", jsonObjStringValue(userObj, "email"));
-        userData.put("phone", jsonObjStringValue(userObj, "phone"));
-        userData.put("signedUp", jsonObjStringValue(userObj, "createAt"));
-        userData.put("nickname", jsonObjStringValue(userObj, "nickname"));
-        userData.put("company", jsonObjStringValue(userObj, "company"));
-        userData.put("photo", jsonObjStringValue(userObj, "photo"));
+        HashMap<String, Object> userData = userWithIdentities(userObj);
 
         // 返回结果
         return result(HttpStatus.OK, null, "success", userData);
@@ -951,5 +1050,61 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     private Object getBodyPara(Map<String, Object> body, String paraName) {
         return body.getOrDefault(paraName, null);
+    }
+
+    private List<String> getUserProviders(JSONObject user) {
+        ArrayList<String> providers = new ArrayList<>();
+        try {
+            JSONArray identities = user.getJSONArray("identities");
+            for (Object identity : identities) {
+                JSONObject identityObj = (JSONObject) identity;
+                providers.add(identityObj.getString("provider"));
+            }
+        } catch (Exception ignored) {
+        }
+        return providers;
+    }
+
+    private HashMap<String, Object> userSimple(JSONObject user) {
+        HashMap<String, Object> userData = new HashMap<>();
+        userData.put("photo", jsonObjStringValue(user, "photo"));
+        userData.put("username", jsonObjStringValue(user, "username"));
+        userData.put("email_exist", !user.isNull("email"));
+
+        return userData;
+    }
+
+    private HashMap<String, Object> userWithIdentities(JSONObject userObj) {
+        HashMap<String, Object> userData = new HashMap<>();
+        userData.put("username", jsonObjStringValue(userObj, "username"));
+        userData.put("email", jsonObjStringValue(userObj, "email"));
+        userData.put("phone", jsonObjStringValue(userObj, "phone"));
+        userData.put("signedUp", jsonObjStringValue(userObj, "signedUp"));
+        userData.put("nickname", jsonObjStringValue(userObj, "nickname"));
+        userData.put("company", jsonObjStringValue(userObj, "company"));
+        userData.put("photo", jsonObjStringValue(userObj, "photo"));
+        ArrayList<Map<String, Object>> identities = userIdentity(userObj);
+        userData.put("identities", identities);
+
+        return userData;
+    }
+
+    private ArrayList<Map<String, Object>> userIdentity(JSONObject userObj) {
+        ArrayList<Map<String, Object>> res = new ArrayList<>();
+        try {
+            HashMap<String, Object> map = new HashMap<>();
+            JSONArray jsonArray = userObj.getJSONArray("identities");
+            for (Object o : jsonArray) {
+                JSONObject obj = (JSONObject) o;
+                map.put("identity", jsonObjStringValue(obj, "provider"));
+                map.put("login_name", jsonObjStringValue(obj, "username"));
+                map.put("user_name", jsonObjStringValue(obj, "nickname"));
+                map.put("userIdInIdp", jsonObjStringValue(obj, "userIdInIdp"));
+                map.put("accessToken", jsonObjStringValue(obj, "accessToken"));
+                res.add(map);
+            }
+        } catch (Exception ignored) {
+        }
+        return res;
     }
 }

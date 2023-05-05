@@ -46,7 +46,7 @@ public class OidcProvider {
         clientId = env.getProperty(name + ".client.id");
         clientSecret = env.getProperty(name + ".client.secret");
         scope = env.getProperty(name + ".scope");
-        callback = env.getProperty(name + ".callback");
+        callback = env.getProperty("oidc.provider.callback");
         authorizationEndpoint = env.getProperty(name + ".authorization.endpoint");
         tokenEndpoint = env.getProperty(name + ".token.endpoint");
         userEndpoint = env.getProperty(name + ".user.endpoint");
@@ -105,8 +105,8 @@ public class OidcProvider {
             }
 
             // TODO 校验app
-            String appId = request.getParameter("app_id");
-            if (StringUtils.isBlank(appId) || !appId.equalsIgnoreCase("1234567")) {
+            String appId = request.getParameter("client_id");
+            if (StringUtils.isBlank(appId)) {
                 return result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00047);
             }
 
@@ -178,7 +178,8 @@ public class OidcProvider {
      */
     protected UserIdentity initUserIdentity(JSONObject userObj, String accessToken) {
         return new UserIdentity()
-                .setUserIdInIdp(userObj.get("id"))
+                .setUserIdInIdp(getJsonValue(userObj, "id"))
+                .setProvider(this.getName())
                 .setAccessToken(accessToken);
     }
 
@@ -192,10 +193,11 @@ public class OidcProvider {
     private String redirectUriEncode(HttpServletRequest request, OidcProvider oidcProvider)
             throws UnsupportedEncodingException {
         String callback = String.format(oidcProvider.getCallback(), oidcProvider.getName());
-        String redirectUri = callback
-                + "?community=" + request.getParameter("community")
-                + "&app_id=" + request.getParameter("app_id");
+        String redirectUri = callback + "?community=" + request.getParameter("community");
         return URLEncoder.encode(redirectUri, "utf-8");
     }
 
+    protected Object getJsonValue(JSONObject jsonObject, String key) {
+        return jsonObject.isNull(key) ? null : jsonObject.get(key);
+    }
 }

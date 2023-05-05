@@ -11,11 +11,12 @@ public class OpenAtomProvider extends OidcProvider {
     protected UserIdentity initUserIdentity(JSONObject userObj, String accessToken) {
         JSONObject data = userObj.getJSONObject("data");
         return new UserIdentity()
-                .setUserIdInIdp(data.get("userId"))
-                .setNickname(data.get("nickName"))
-                .setPhoto(data.get("headImageUrl"))
-                .setEmail(data.get("email"))
-                .setPhone(data.get("phone"))
+                .setUserIdInIdp(getJsonValue(data, "userId"))
+                .setProvider(this.getName())
+                .setNickname(getJsonValue(data, "nickName"))
+                .setPhoto(getJsonValue(data, "headImageUrl"))
+                .setEmail(getJsonValue(data, "email"))
+                .setPhone(getJsonValue(data, "phone"))
                 .setAccessToken(accessToken);
     }
 }
