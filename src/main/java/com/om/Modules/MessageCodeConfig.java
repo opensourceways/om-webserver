@@ -67,6 +67,9 @@ public enum MessageCodeConfig {
     E00050("E00050", "The verification code sent by this phone number within 24 hours exceeds the maximum limit", "该手机号 24 小时内已发送过验证码超过最大上限，请稍后尝试"),
     E00051("E00051", "The provider is not currently supported", "暂不支持该身份源"),
     E00052("E00052", "Missing authorized user", "已授权用户缺失"),
+    E00053("E00053", "This account has been bound another same identity source, please unbind it first", "该账户已绑定其它相同身份源，请先解绑"),
+    E00054("E00054", "This identity has been bound by another user", "已被其他用户绑定"),
+    E00055("E00055", "Authorization code is invalid", "授权码无效"),
     ;
 
     private String code;

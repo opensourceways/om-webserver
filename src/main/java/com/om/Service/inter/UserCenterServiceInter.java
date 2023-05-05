@@ -26,8 +26,6 @@ public interface UserCenterServiceInter {
 
     ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
-    ResponseEntity providerLogin(HttpServletRequest servletRequest, HttpServletResponse servletResponse, OidcProvider oidcProvider);
-
     ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
     ResponseEntity personalCenterUserInfo(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
@@ -50,7 +48,11 @@ public interface UserCenterServiceInter {
 
     ResponseEntity bindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 
-    ResponseEntity bindIdentityToExistUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+    ResponseEntity providerCallback(HttpServletRequest servletRequest, HttpServletResponse servletResponse, OidcProvider oidcProvider);
 
-    ResponseEntity registerByIdentity(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+    ResponseEntity providerLogin(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+
+    ResponseEntity linkToExistUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+
+    ResponseEntity userLink(HttpServletRequest request, HttpServletResponse response);
 }

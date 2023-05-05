@@ -176,10 +176,11 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         String msg;
-        String userName = servletRequest.getParameter("username");
-        String account = servletRequest.getParameter("account");
-        String code = servletRequest.getParameter("code");
-        String appId = servletRequest.getParameter("client_id");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String userName = (String) getBodyPara(body, "username");
+        String account = (String) getBodyPara(body, "account");
+        String code = (String) getBodyPara(body, "code");
+        String appId = (String) getBodyPara(body, "client_id");
 
         // 校验appId
         if (authingUserDao.initAppClient(appId) == null) {
@@ -225,31 +226,34 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     @Override
-    public ResponseEntity providerLogin(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-                                        OidcProvider oidcProvider) {
-
+    public ResponseEntity providerCallback(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                           OidcProvider oidcProvider) {
         return null;
     }
 
     @Override
-    public ResponseEntity registerByIdentity(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-
+    public ResponseEntity providerLogin(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         return null;
     }
 
     @Override
-    public ResponseEntity bindIdentityToExistUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse){
+    public ResponseEntity linkToExistUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        return null;
+    }
 
+    @Override
+    public ResponseEntity userLink(HttpServletRequest request, HttpServletResponse response) {
         return null;
     }
 
     @Override
     public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        String appId = servletRequest.getParameter("client_id");
-        String community = servletRequest.getParameter("community");
-        String permission = servletRequest.getParameter("permission");
-        String account = servletRequest.getParameter("account");
-        String code = servletRequest.getParameter("code");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String appId = (String) getBodyPara(body, "client_id");
+        String community = (String) getBodyPara(body, "community");
+        String permission = (String) getBodyPara(body, "permission");
+        String account = (String) getBodyPara(body, "account");
+        String code = (String) getBodyPara(body, "code");
 
         // 限制一分钟登录失败次数
         String loginErrorCountKey = account + "loginCount";
@@ -1320,6 +1324,10 @@ public class AuthingService implements UserCenterServiceInter {
             e.printStackTrace();
             return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
         }
+    }
+
+    private Object getBodyPara(Map<String, Object> body, String paraName) {
+        return body.getOrDefault(paraName, null);
     }
 
 }
