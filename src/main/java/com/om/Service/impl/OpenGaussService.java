@@ -522,6 +522,10 @@ public class OpenGaussService implements UserCenterServiceInter {
         String account = servletRequest.getParameter("account");
         String accountType = servletRequest.getParameter("account_type");
 
+        // 验证码二次校验
+        if (!isSuccess)
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, null);
+
         // app校验
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
             return result(HttpStatus.NOT_FOUND, null, MessageCodeConfig.E00042.getMsgZh(), null);
