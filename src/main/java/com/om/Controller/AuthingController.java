@@ -76,14 +76,14 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "/register")
-    @LogAnnotation(methodType = MethodType.REGISTER)
+//    @LogAnnotation(methodType = MethodType.REGISTER)
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.register(servletRequest, servletResponse);
     }
 
     @RequestMapping(value = "/login")
-    @LogAnnotation(methodType = MethodType.LOGIN)
+//    @LogAnnotation(methodType = MethodType.LOGIN)
     public ResponseEntity login(HttpServletRequest servletRequest,
                                 HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
@@ -153,7 +153,7 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "/token/apply")
-    @LogAnnotation(methodType = MethodType.LOGIN)
+//    @LogAnnotation(methodType = MethodType.LOGIN)
     public ResponseEntity tokenApply(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
                                      @RequestParam(value = "community") String community,
@@ -249,7 +249,7 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/update/baseInfo", method = RequestMethod.POST)
-    @LogAnnotation(methodType = MethodType.UPDATE)
+//    @LogAnnotation(methodType = MethodType.UPDATE)
     public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest,
                                              HttpServletResponse servletResponse,
                                              @CookieValue(value = "_Y_G_", required = false) String token,
