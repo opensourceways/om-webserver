@@ -17,6 +17,7 @@ import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
+import com.om.Modules.UserIdentity;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -139,6 +140,65 @@ public class OneidDao {
             e.printStackTrace();
         }
         return user;
+    }
+
+    public JSONObject getUserByIdInIdp(String poolId, String poolSecret, Object userIdInIdp) {
+        //TODO
+        return null;
+    }
+
+    public JSONObject updateUserIdentity(String poolId, String poolSecret, String userId, String identityJsonStr) {
+        JSONObject user = null;
+        try {
+            String mToken = getManagementToken(poolId, poolSecret);
+            HttpResponse<JsonNode> response = Unirest.put(apiHost + "/external-user/" + userId)
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", mToken)
+                    .body(identityJsonStr)
+                    .asJson();
+            if (response.getStatus() == 200) {
+                user = response.getBody().getObject().getJSONObject("data");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return user;
+    }
+
+    public JSONObject bindIdentityToUser(String poolId, String poolSecret, String userId, String identityJsonStr) {
+        JSONObject user = null;
+        try {
+            String mToken = getManagementToken(poolId, poolSecret);
+            HttpResponse<JsonNode> response = Unirest.post(apiHost + "/external-user/" + userId)
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", mToken)
+                    .body(identityJsonStr)
+                    .asJson();
+            if (response.getStatus() == 200) {
+                user = response.getBody().getObject().getJSONObject("data");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return user;
+    }
+
+    public boolean unbindIdentityByUser(String poolId, String poolSecret, String userId, String provider) {
+        boolean res = false;
+        try {
+            String mToken = getManagementToken(poolId, poolSecret);
+            HttpResponse<JsonNode> response = Unirest.delete(apiHost + "/external-user/" + userId)
+                    .header("Content-Type", "application/json")
+                    .header("Authorization", mToken)
+                    .queryString("provider", provider)
+                    .asJson();
+            if (response.getStatus() == 200) {
+                res = true;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return res;
     }
 
     // 校验用户是否存在（用户名 or 邮箱 or 手机号）
