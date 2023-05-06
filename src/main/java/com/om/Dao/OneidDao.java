@@ -17,6 +17,7 @@ import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
+import com.om.Modules.UserIdentity;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
@@ -139,6 +140,16 @@ public class OneidDao {
             e.printStackTrace();
         }
         return user;
+    }
+
+    public JSONObject getUserByIdInIdp(String poolId, String poolSecret, Object userIdInIdp) {
+        //TODO
+        return null;
+    }
+
+    public JSONObject bindIdentityToUser(String poolId, String poolSecret, String userId, UserIdentity userIdentity) {
+        // TODO
+        return null;
     }
 
     // 校验用户是否存在（用户名 or 邮箱 or 手机号）
