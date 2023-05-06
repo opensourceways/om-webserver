@@ -39,11 +39,11 @@ public class QueryController {
     @Autowired
     QueryService queryService;
 
-    @RequestMapping("/contributors")
-    public String queryContributors(@RequestParam(value = "community") String community) {
-        String contributors = queryService.queryContributors(community);
-        return contributors;
-    }
+    // @RequestMapping("/contributors")
+    // public String queryContributors(@RequestParam(value = "community") String community) {
+    //     String contributors = queryService.queryContributors(community);
+    //     return contributors;
+    // }
 
     @RequestMapping("/avgduration")
     public String queryDurationAggFromProjectHostarchPackage(@RequestParam(value = "community") String community) {
@@ -51,41 +51,41 @@ public class QueryController {
         return avgDuration;
     }
 
-    @RequestMapping("/sigs")
-    public String querySigs(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String sigs = queryService.querySigs(community);
-        return sigs;
-    }
+    // @RequestMapping("/sigs")
+    // public String querySigs(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+    //     String sigs = queryService.querySigs(community);
+    //     return sigs;
+    // }
 
-    @RequestMapping("/users")
-    public String queryUsers(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String users = queryService.queryUsers(community);
-        return users;
-    }
+    // @RequestMapping("/users")
+    // public String queryUsers(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+    //     String users = queryService.queryUsers(community);
+    //     return users;
+    // }
 
-    @RequestMapping("/noticeusers")
-    public String queryNoticeusers(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String noticusers = queryService.queryNoticeusers(community);
-        return noticusers;
-    }
+    // @RequestMapping("/noticeusers")
+    // public String queryNoticeusers(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+    //     String noticusers = queryService.queryNoticeusers(community);
+    //     return noticusers;
+    // }
 
-    @RequestMapping("/modulenums")
-    public String queryModulenums(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String modulenums = queryService.queryModulenums(community);
-        return modulenums;
-    }
+    // @RequestMapping("/modulenums")
+    // public String queryModulenums(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+    //     String modulenums = queryService.queryModulenums(community);
+    //     return modulenums;
+    // }
 
-    @RequestMapping("/businessosv")
-    public String queryBusinessOsv(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String modulenums = queryService.queryBusinessOsv(community);
-        return modulenums;
-    }
+    // @RequestMapping("/businessosv")
+    // public String queryBusinessOsv(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+    //     String modulenums = queryService.queryBusinessOsv(community);
+    //     return modulenums;
+    // }
 
-    @RequestMapping("/communitymembers")
-    public String querycommunitymembers(@RequestParam(value = "community") String community) {
-        String modulenums = queryService.querycommunitymembers(community);
-        return modulenums;
-    }
+    // @RequestMapping("/communitymembers")
+    // public String querycommunitymembers(@RequestParam(value = "community") String community) {
+    //     String modulenums = queryService.querycommunitymembers(community);
+    //     return modulenums;
+    // }
 
 //     @RequestMapping("/all")
 //     public String queryAll(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
@@ -112,29 +112,29 @@ public class QueryController {
         return prs;
     }
 
-    @RequestMapping("/downloads")
-    public String queryDownloads(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String res = queryService.queryDownload(community, "download");
-        return res;
-    }
+    // @RequestMapping("/downloads")
+    // public String queryDownloads(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+    //     String res = queryService.queryDownload(community, "download");
+    //     return res;
+    // }
 
-    @RequestMapping(value = "/blueZone/contributes", method = RequestMethod.POST)
-    public String queryBlueZoneContributes(@RequestBody BlueZoneContributeVo body) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String res = queryService.queryBlueZoneContributes(body, "contributes");
-        return res;
-    }
+    // @RequestMapping(value = "/blueZone/contributes", method = RequestMethod.POST)
+    // public String queryBlueZoneContributes(@RequestBody BlueZoneContributeVo body) throws InterruptedException, ExecutionException, JsonProcessingException {
+    //     String res = queryService.queryBlueZoneContributes(body, "contributes");
+    //     return res;
+    // }
 
-    @RequestMapping(value = "/blueZone/users", method = RequestMethod.POST)
-    public String putBlueZoneUser(@RequestBody BlueZoneUserVo userVo) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String res = queryService.putBlueZoneUser(userVo, "users");
-        return res;
-    }
+    // @RequestMapping(value = "/blueZone/users", method = RequestMethod.POST)
+    // public String putBlueZoneUser(@RequestBody BlueZoneUserVo userVo) throws InterruptedException, ExecutionException, JsonProcessingException {
+    //     String res = queryService.putBlueZoneUser(userVo, "users");
+    //     return res;
+    // }
 
-    @RequestMapping(value = "/starFork", method = RequestMethod.GET)
-    public String queryOrgStarAndFork(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String res = queryService.queryOrgStarAndFork(community, "starFork");
-        return res;
-    }
+    // @RequestMapping(value = "/starFork", method = RequestMethod.GET)
+    // public String queryOrgStarAndFork(@RequestParam(value = "community") String community) throws InterruptedException, ExecutionException, JsonProcessingException {
+    //     String res = queryService.queryOrgStarAndFork(community, "starFork");
+    //     return res;
+    // }
 
     @UserLoginToken
     @RequestMapping(value = "/cveDetails", method = RequestMethod.GET)
@@ -146,32 +146,32 @@ public class QueryController {
         return res;
     }
 
-    @RequestMapping("/lts/2203")
-    public String queryNewYear(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user) {
-        String res = queryService.queryNewYear(community, user, "2203lts");
-        return res;
-    }
+    // @RequestMapping("/lts/2203")
+    // public String queryNewYear(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user) {
+    //     String res = queryService.queryNewYear(community, user, "2203lts");
+    //     return res;
+    // }
 
-    @RequestMapping("/newYear/report")
-    public String queryNewYear(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user, @RequestParam(value = "year") String year) {
-        String res = queryService.queryNewYear(community, user, year);
-        return res;
-    }
+    // @RequestMapping("/newYear/report")
+    // public String queryNewYear(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user, @RequestParam(value = "year") String year) {
+    //     String res = queryService.queryNewYear(community, user, year);
+    //     return res;
+    // }
 
-    @RequestMapping("/newYear/monthcount")
-    public String queryNewYearMonthCount(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user) {
-        String res = queryService.queryNewYearMonthCount(community, user);
-        return res;
-    }
+    // @RequestMapping("/newYear/monthcount")
+    // public String queryNewYearMonthCount(@RequestParam(value = "community") String community, @RequestParam(value = "user") String user) {
+    //     String res = queryService.queryNewYearMonthCount(community, user);
+    //     return res;
+    // }
 
-    @UserLoginToken
-    @RequestMapping("/bugQuestionnaires")
-    public String queryBugQuestionnaires(@RequestParam(value = "community") String community,
-                                         @RequestParam(value = "lastCursor", required = false) String lastCursor,
-                                         @RequestParam(value = "pageSize", required = false) String pageSize) {
-        String res = queryService.queryBugQuestionnaire(community, "bugQuestionnaire", lastCursor, pageSize);
-        return res;
-    }
+    // @UserLoginToken
+    // @RequestMapping("/bugQuestionnaires")
+    // public String queryBugQuestionnaires(@RequestParam(value = "community") String community,
+    //                                      @RequestParam(value = "lastCursor", required = false) String lastCursor,
+    //                                      @RequestParam(value = "pageSize", required = false) String pageSize) {
+    //     String res = queryService.queryBugQuestionnaire(community, "bugQuestionnaire", lastCursor, pageSize);
+    //     return res;
+    // }
 
     @RequestMapping("/obsDetails")
     public String queryObsDetails(@RequestParam(value = "community") String community,
@@ -187,11 +187,11 @@ public class QueryController {
         return res;
     }
 
-    @RequestMapping(value = "/sigDetails", method = RequestMethod.POST)
-    public String querySigDetails(@RequestBody SigDetailsVo body) {
-        String res = queryService.querySigDetails(body, "sigDetails");
-        return res;
-    }
+    // @RequestMapping(value = "/sigDetails", method = RequestMethod.POST)
+    // public String querySigDetails(@RequestBody SigDetailsVo body) {
+    //     String res = queryService.querySigDetails(body, "sigDetails");
+    //     return res;
+    // }
 
 //     @RequestMapping("/company/contribute")
 //     public String queryCompanyContributors(@RequestParam(value = "community") String community,
@@ -211,13 +211,13 @@ public class QueryController {
 //         return res;
 //     }
 
-    @RequestMapping(value = "/issueScore", method = RequestMethod.GET)
-    public String queryIssueScore(@RequestParam(value = "community") String community,
-                                  @RequestParam(value = "start_date", required = false) String start_date,
-                                  @RequestParam(value = "end_date", required = false) String end_date) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String res = queryService.queryIssueScore(community, start_date, end_date, "issueScore");
-        return res;
-    }
+    // @RequestMapping(value = "/issueScore", method = RequestMethod.GET)
+    // public String queryIssueScore(@RequestParam(value = "community") String community,
+    //                               @RequestParam(value = "start_date", required = false) String start_date,
+    //                               @RequestParam(value = "end_date", required = false) String end_date) throws InterruptedException, ExecutionException, JsonProcessingException {
+    //     String res = queryService.queryIssueScore(community, start_date, end_date, "issueScore");
+    //     return res;
+    // }
 
 
     @RequestMapping(value = "/buildCheckInfo", method = RequestMethod.POST)
@@ -228,42 +228,42 @@ public class QueryController {
         return res;
     }
 
-    @RequestMapping(value = "/track", method = RequestMethod.GET)
-    public String putUserActionsinfo(@RequestParam(value = "community") String community, 
-                                     @RequestParam(value = "data") String data, 
-                                     @RequestParam(value = "ext") String ext) throws InterruptedException, ExecutionException, JsonProcessingException {
-        String res = queryService.putUserActionsinfo(community, data);
-        return res;
-    }
+    // @RequestMapping(value = "/track", method = RequestMethod.GET)
+    // public String putUserActionsinfo(@RequestParam(value = "community") String community, 
+    //                                  @RequestParam(value = "data") String data, 
+    //                                  @RequestParam(value = "ext") String ext) throws InterruptedException, ExecutionException, JsonProcessingException {
+    //     String res = queryService.putUserActionsinfo(community, data);
+    //     return res;
+    // }
 
-    @RequestMapping("/sig/name")
-    public String querySigName(@RequestParam(value = "community") String community,
-            @RequestParam(value = "lang", required = false) String lang)
-            throws JsonProcessingException, InterruptedException, ExecutionException {
-        String res = queryService.querySigName(community, lang);
-        return res;
-    }
+    // @RequestMapping("/sig/name")
+    // public String querySigName(@RequestParam(value = "community") String community,
+    //         @RequestParam(value = "lang", required = false) String lang)
+    //         throws JsonProcessingException, InterruptedException, ExecutionException {
+    //     String res = queryService.querySigName(community, lang);
+    //     return res;
+    // }
 
-    @RequestMapping("/sig/info")
-    public String querySigInfo(@RequestParam(value = "community") String community,
-            @RequestParam(value = "sig", required = false) String sig,
-            @RequestParam(value = "repo", required = false) String repo,
-            @RequestParam(value = "user", required = false) String user,
-            @RequestParam(value = "search", required = false) String search,
-            @RequestParam(value = "page", required = false) String page,
-            @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
-        String res = queryService.querySigInfo(community, sig, repo, user, search, page, pageSize);
-        return res;
-    }
+    // @RequestMapping("/sig/info")
+    // public String querySigInfo(@RequestParam(value = "community") String community,
+    //         @RequestParam(value = "sig", required = false) String sig,
+    //         @RequestParam(value = "repo", required = false) String repo,
+    //         @RequestParam(value = "user", required = false) String user,
+    //         @RequestParam(value = "search", required = false) String search,
+    //         @RequestParam(value = "page", required = false) String page,
+    //         @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
+    //     String res = queryService.querySigInfo(community, sig, repo, user, search, page, pageSize);
+    //     return res;
+    // }
 
-    @RequestMapping("/sig/repo")
-    public String querySigRepo(@RequestParam(value = "community") String community,
-            @RequestParam(value = "sig", required = false) String sig,
-            @RequestParam(value = "page", required = false) String page,
-            @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
-        String res = queryService.querySigRepo(community, sig, page, pageSize);
-        return res;
-    }
+    // @RequestMapping("/sig/repo")
+    // public String querySigRepo(@RequestParam(value = "community") String community,
+    //         @RequestParam(value = "sig", required = false) String sig,
+    //         @RequestParam(value = "page", required = false) String page,
+    //         @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
+    //     String res = queryService.querySigRepo(community, sig, page, pageSize);
+    //     return res;
+    // }
 
     // @AuthingToken
 //     @RequestMapping("sig/company/contribute")
@@ -346,11 +346,11 @@ public class QueryController {
 //         return res;
 //     }
 
-    @RequestMapping("/sig/scoreAll")
-    public String querySigScoreAll(@RequestParam(value = "community") String community) {
-        String res = queryService.querySigScoreAll(community);
-        return res;
-    }
+    // @RequestMapping("/sig/scoreAll")
+    // public String querySigScoreAll(@RequestParam(value = "community") String community) {
+    //     String res = queryService.querySigScoreAll(community);
+    //     return res;
+    // }
 
 //     @AuthingToken
 //     @SigToken
@@ -408,27 +408,27 @@ public class QueryController {
 //         return res;
 //     }
 
-    @RequestMapping("/sig/repo/committers")
-    public String querySigRepoCommitters(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig) {
-        String res = queryService.querySigRepoCommitters(community, sig);
-        return res;
-    }
+    // @RequestMapping("/sig/repo/committers")
+    // public String querySigRepoCommitters(@RequestParam(value = "community") String community, @RequestParam(value = "sig") String sig) {
+    //     String res = queryService.querySigRepoCommitters(community, sig);
+    //     return res;
+    // }
 
-    @RequestMapping(value = "/ip/location")
-    public String getIPLocation(@RequestParam(value = "ip") String ip) {
-        return queryService.getIPLocation(ip);
-    }
+    // @RequestMapping(value = "/ip/location")
+    // public String getIPLocation(@RequestParam(value = "ip") String ip) {
+    //     return queryService.getIPLocation(ip);
+    // }
 
-    @RequestMapping(value = "ecosystem/repo/info")
-    public String getEcosystemRepoInfo(@RequestParam(value = "community") String community,
-            @RequestParam(value = "ecosystem_type") String ecosystem_type,
-            @RequestParam(value = "lang", required = false) String lang,
-            @RequestParam(value = "sort_type", required = false) String sort_type,
-            @RequestParam(value = "sort_order", required = false) String sort_order,
-            @RequestParam(value = "page", required = false) String page,
-            @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
-        return queryService.getEcosystemRepoInfo(community, ecosystem_type, lang, sort_type, sort_order, page, pageSize);
-    }
+    // @RequestMapping(value = "ecosystem/repo/info")
+    // public String getEcosystemRepoInfo(@RequestParam(value = "community") String community,
+    //         @RequestParam(value = "ecosystem_type") String ecosystem_type,
+    //         @RequestParam(value = "lang", required = false) String lang,
+    //         @RequestParam(value = "sort_type", required = false) String sort_type,
+    //         @RequestParam(value = "sort_order", required = false) String sort_order,
+    //         @RequestParam(value = "page", required = false) String page,
+    //         @RequestParam(value = "pageSize", required = false) String pageSize) throws JsonMappingException, JsonProcessingException {
+    //     return queryService.getEcosystemRepoInfo(community, ecosystem_type, lang, sort_type, sort_order, page, pageSize);
+    // }
 
     @RequestMapping(value = "/reviewer/recommend", method = RequestMethod.POST)
     public ResponseEntity queryReviewerRecommend(@RequestBody PrReviewerVo input) {
@@ -436,12 +436,12 @@ public class QueryController {
         return res;
     }
 
-    @RequestMapping(value = "sig/readme")
-    public String getSigReadme(@RequestParam(value = "community") String community,
-            @RequestParam(value = "sig", required = false) String sig,
-            @RequestParam(value = "lang", required = false) String lang)
-            throws JsonMappingException, JsonProcessingException {
-        return queryService.getSigReadme(community, sig, lang);
-    }
+    // @RequestMapping(value = "sig/readme")
+    // public String getSigReadme(@RequestParam(value = "community") String community,
+    //         @RequestParam(value = "sig", required = false) String sig,
+    //         @RequestParam(value = "lang", required = false) String lang)
+    //         throws JsonMappingException, JsonProcessingException {
+    //     return queryService.getSigReadme(community, sig, lang);
+    // }
 
 }
