@@ -892,6 +892,8 @@ public class AuthingUserDao {
         map.put("服务错误", MessageCodeConfig.E00048);
         map.put("该邮箱 1 分钟内已发送过验证码", MessageCodeConfig.E00049);
         map.put("已发送过验证码超过最大上限", MessageCodeConfig.E00050);
+        map.put("暂不支持该身份源", MessageCodeConfig.E00051);
+        map.put("已授权用户缺失", MessageCodeConfig.E00052);
 
         return map;
     }

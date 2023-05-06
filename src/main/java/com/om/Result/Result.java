@@ -72,6 +72,24 @@ public class Result {
         return this;
     }
 
+    public ResponseEntity setResult(HttpStatus status, MessageCodeConfig msgCode) {
+        HashMap<String, Object> res = new HashMap<>();
+        if (status.value() == 200) {
+            res.put("code", status.value());
+            res.put("msg", status.getReasonPhrase());
+            return new ResponseEntity<>(res, status);
+        }
+
+        if (msgCode != null) {
+            HashMap<String, Object> msgMap = new HashMap<>();
+            msgMap.put("code", msgCode.getCode());
+            msgMap.put("message_en", msgCode.getMsgEn());
+            msgMap.put("message_zh", msgCode.getMsgZh());
+            res.put("msg", msgMap);
+        }
+        return new ResponseEntity<>(res, status);
+    }
+
     public ResponseEntity setResult(HttpStatus status, MessageCodeConfig msgCode, String msg, Object data, Map<String, MessageCodeConfig> error2code) {
         HashMap<String, Object> res = new HashMap<>();
         res.put("code", status.value());
