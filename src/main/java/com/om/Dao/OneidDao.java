@@ -77,7 +77,7 @@ public class OneidDao {
         JSONObject user = null;
         try {
             String mToken = getManagementToken(poolId, poolSecret);
-            HttpResponse<JsonNode> response = Unirest.post(apiHost + "/users")
+            HttpResponse<JsonNode> response = Unirest.post(apiHost + "/composite-user")
                     .header("Content-Type", "application/json")
                     .header("Authorization", mToken)
                     .body(userJsonStr)
@@ -95,7 +95,7 @@ public class OneidDao {
         boolean res = false;
         try {
             String mToken = getManagementToken(poolId, poolSecret);
-            HttpResponse<JsonNode> response = Unirest.delete(apiHost + "/users/" + userId)
+            HttpResponse<JsonNode> response = Unirest.delete(apiHost + "/composite-user/" + userId)
                     .header("Authorization", mToken)
                     .asJson();
             if (response.getStatus() == 200) res = true;
@@ -109,7 +109,7 @@ public class OneidDao {
         JSONObject user = null;
         try {
             String mToken = getManagementToken(poolId, poolSecret);
-            HttpResponse<JsonNode> response = Unirest.put(apiHost + "/users/" + userId)
+            HttpResponse<JsonNode> response = Unirest.put(apiHost + "/composite-user/" + userId)
                     .header("Content-Type", "application/json")
                     .header("Authorization", mToken)
                     .body(userJsonStr)
@@ -128,7 +128,7 @@ public class OneidDao {
         JSONObject user = null;
         try {
             String mToken = getManagementToken(poolId, poolSecret);
-            HttpResponse<JsonNode> response = Unirest.get(apiHost + "/users/" + account)
+            HttpResponse<JsonNode> response = Unirest.get(apiHost + "/composite-user/" + account)
                     .header("Authorization", mToken)
                     .queryString("userIdType", accountType)
                     .asJson();
@@ -176,6 +176,7 @@ public class OneidDao {
                     .asJson();
             if (response.getStatus() == 200) {
                 user = response.getBody().getObject().getJSONObject("data");
+                user.accumulate("id_token", user.getString("id")); //TODO
             }
         } catch (Exception e) {
             e.printStackTrace();
