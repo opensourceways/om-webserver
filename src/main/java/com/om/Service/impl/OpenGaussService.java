@@ -291,19 +291,6 @@ public class OpenGaussService implements UserCenterServiceInter {
                             + "?code=" + code;
             servletResponse.sendRedirect(loadingPage);
             return result(HttpStatus.OK, null, "success", null);
-
-            /*// 是否已经绑定账号
-            JSONObject user = oneidDao.getUserByIdInIdp(poolId, poolSecret, userIdentity.getUserIdInIdp());
-
-            // 授权用途
-            String purpose = servletRequest.getParameter("purpose");
-            if (purpose.equalsIgnoreCase("login")) {
-                return providerCallbackLogin(servletRequest, servletResponse, user, userIdentity);
-            } else if (purpose.equalsIgnoreCase("link")) {
-                return providerCallbackLink(servletRequest, servletResponse, user, userIdentity);
-            } else {
-                return result(HttpStatus.INTERNAL_SERVER_ERROR, null, "Internal Server Error", null);
-            }*/
         } catch (Exception e) {
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
         }
@@ -316,13 +303,17 @@ public class OpenGaussService implements UserCenterServiceInter {
             String code = (String) getBodyPara(body, "code");
             String appId = (String) getBodyPara(body, "client_id");
 
+            // app校验
+            if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
+                return result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null);
+
             // code获取三方用户
             String userJson = (String) redisDao.get(code);
             if (StringUtils.isBlank(userJson)) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00055, null, null);
             }
-            UserIdentity userIdentity = objectMapper.readValue(
-                    userJson.replace("code:", ""), UserIdentity.class);
+            String identityJsonStr = userJson.replace("code:", "");
+            UserIdentity userIdentity = objectMapper.readValue(identityJsonStr, UserIdentity.class);
 
             // 是否已经绑定账号
             JSONObject user = oneidDao.getUserByIdInIdp(poolId, poolSecret, userIdentity.getUserIdInIdp());
@@ -336,6 +327,9 @@ public class OpenGaussService implements UserCenterServiceInter {
 
             // 已绑定账号登录成功。生成token,写入cookie
             setCookieAfterLogin(servletRequest, servletResponse, appId, user);
+
+            // 更新三方用户信息
+            oneidDao.updateUserIdentity(poolId, poolSecret, user.getString("id"), identityJsonStr);
 
             // 返回结果
             HashMap<String, Object> userData = userSimple(user);
@@ -361,6 +355,10 @@ public class OpenGaussService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, accountType, null);
         }
 
+        // app校验
+        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
+            return result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null);
+
         // 获取用户信息
         JSONObject user = oneidDao.getUser(poolId, poolSecret, account, accountType);
         if (user == null) {
@@ -375,7 +373,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         try {
             String value = cookie.getValue();
             RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
-            value = RSAUtil.privateDecrypt(value, privateKey);
+            String identityJsonStr = RSAUtil.privateDecrypt(value, privateKey);
             UserIdentity userIdentity = objectMapper.readValue(value, UserIdentity.class);
 
             // 用户已绑定有相同身份源账户
@@ -387,11 +385,11 @@ public class OpenGaussService implements UserCenterServiceInter {
             String redisKey = account.toLowerCase() + "_sendCode_" + community;
             String codeTemp = (String) redisDao.get(redisKey);
             String codeCheck = checkCode(code, codeTemp);
-            /*if (!codeCheck.equals("success")) {
+            if (!codeCheck.equals("success")) {
                 return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
-            }*/
+            }
 
-            JSONObject jsonObject = oneidDao.bindIdentityToUser(poolId, poolSecret, user.getString("id"), userIdentity);
+            JSONObject jsonObject = oneidDao.bindIdentityToUser(poolId, poolSecret, user.getString("id"), identityJsonStr);
             if (jsonObject == null) {
                 return result(HttpStatus.INTERNAL_SERVER_ERROR, null, "Internal Server Error", null);
             }
@@ -418,18 +416,13 @@ public class OpenGaussService implements UserCenterServiceInter {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
             String code = (String) getBodyPara(body, "code");
 
-            Cookie cookie = HttpClientUtils.getCookie(request, env.getProperty("cookie.token.name"));
-            if (cookie == null) {
-                return result(HttpStatus.UNAUTHORIZED, null, "unauthorized", null);
-            }
-
             // code获取三方用户
             String userJson = (String) redisDao.get(code);
             if (StringUtils.isBlank(userJson)) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00055, null, null);
             }
-            UserIdentity userIdentity = objectMapper.readValue(
-                    userJson.replace("code:", ""), UserIdentity.class);
+            String identityJsonStr = userJson.replace("code:", "");
+            UserIdentity userIdentity = objectMapper.readValue(identityJsonStr, UserIdentity.class);
 
             // 是否已经绑定其他账号
             JSONObject user = oneidDao.getUserByIdInIdp(poolId, poolSecret, userIdentity.getUserIdInIdp());
@@ -439,14 +432,16 @@ public class OpenGaussService implements UserCenterServiceInter {
             }
 
             // 获取登录的用户
-            RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
-            String token = RSAUtil.privateDecrypt(cookie.getValue(), privateKey);
-            DecodedJWT decode = JWT.decode(token);
+            DecodedJWT decode = cookieTokenJwtDecode(request);
             String userId = decode.getAudience().get(0);
             String appId = decode.getClaim("client_id").asString();
 
+            // app校验
+            if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
+                return result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null);
+
             // 未绑定其它账号，绑定到该用户
-            JSONObject userObj = oneidDao.bindIdentityToUser(poolId, poolSecret, userId, userIdentity);
+            JSONObject userObj = oneidDao.bindIdentityToUser(poolId, poolSecret, userId, identityJsonStr);
             if (userObj == null) {
                 return result(HttpStatus.INTERNAL_SERVER_ERROR, null, "Internal Server Error", null);
             }
@@ -460,6 +455,37 @@ public class OpenGaussService implements UserCenterServiceInter {
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
         }
     }
+
+    public ResponseEntity userUnlink(HttpServletRequest request, HttpServletResponse response) {
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
+        String provider = (String) getBodyPara(body, "provider");
+        try {
+            DecodedJWT decode = cookieTokenJwtDecode(request);
+            String userId = decode.getAudience().get(0);
+            String appId = decode.getClaim("client_id").asString();
+
+            // app校验
+            if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
+                return result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null);
+
+            boolean isSuccess = oneidDao.unbindIdentityByUser(poolId, poolSecret, userId, provider);
+            if (!isSuccess) {
+                return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
+            }
+            return result(HttpStatus.OK, null, "success", null);
+        } catch (Exception e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
+        }
+    }
+
+    private DecodedJWT cookieTokenJwtDecode(HttpServletRequest request)
+            throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
+        Cookie cookie = HttpClientUtils.getCookie(request, env.getProperty("cookie.token.name"));
+        RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
+        String token = RSAUtil.privateDecrypt(cookie.getValue(), privateKey);
+        return JWT.decode(token);
+    }
+
 
     private boolean setCookieBeforeLogin(HttpServletRequest request, HttpServletResponse response,
                                          UserIdentity userIdentity) {

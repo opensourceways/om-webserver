@@ -55,4 +55,6 @@ public interface UserCenterServiceInter {
     ResponseEntity linkToExistUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
     ResponseEntity userLink(HttpServletRequest request, HttpServletResponse response);
+
+    ResponseEntity userUnlink(HttpServletRequest request, HttpServletResponse response);
 }

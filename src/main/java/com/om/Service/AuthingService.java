@@ -247,6 +247,11 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     @Override
+    public ResponseEntity userUnlink(HttpServletRequest request, HttpServletResponse response) {
+        return null;
+    }
+
+    @Override
     public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
         String appId = (String) getBodyPara(body, "client_id");
