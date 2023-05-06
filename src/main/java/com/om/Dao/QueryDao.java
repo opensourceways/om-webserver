@@ -12,20 +12,20 @@
 package com.om.Dao;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonMappingException;
+// import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.maxmind.geoip2.DatabaseReader;
-import com.maxmind.geoip2.exception.GeoIp2Exception;
-import com.maxmind.geoip2.model.CityResponse;
+// import com.maxmind.geoip2.DatabaseReader;
+// import com.maxmind.geoip2.exception.GeoIp2Exception;
+// import com.maxmind.geoip2.model.CityResponse;
 import com.om.Modules.*;
-import com.om.Modules.yaml.*;
+// import com.om.Modules.yaml.*;
 import com.om.Utils.*;
 import com.om.Vo.*;
 import io.netty.util.internal.StringUtil;
-import org.apache.commons.lang3.StringUtils;
-import org.assertj.core.util.Lists;
+// import org.apache.commons.lang3.StringUtils;
+// import org.assertj.core.util.Lists;
 import org.asynchttpclient.*;
 import org.elasticsearch.action.bulk.BulkRequest;
 import org.elasticsearch.action.index.IndexRequest;
@@ -35,7 +35,7 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.index.query.TermQueryBuilder;
-import org.elasticsearch.index.reindex.DeleteByQueryRequest;
+// import org.elasticsearch.index.reindex.DeleteByQueryRequest;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.sort.SortOrder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,10 +46,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Repository;
 
 import java.io.*;
-import java.net.HttpURLConnection;
-import java.net.InetAddress;
-import java.net.URL;
-import java.net.URLConnection;
+// import java.net.HttpURLConnection;
+// import java.net.InetAddress;
+// import java.net.URL;
+// import java.net.URLConnection;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.text.DecimalFormat;
@@ -124,115 +124,115 @@ public class QueryDao {
 
     static String mistakeInfoStr;
 
-    public HashMap<String, HashMap<String, String>> getcommunityFeature(String community) {
-        String yamlFile;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                yamlFile = openEuler.getSigsFeature();
-                break;
-            case "opengauss":
-                yamlFile = openGauss.getSigsFeature();
-                break;
-            default:
-                return null;
-        }
+//     public HashMap<String, HashMap<String, String>> getcommunityFeature(String community) {
+//         String yamlFile;
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 yamlFile = openEuler.getSigsFeature();
+//                 break;
+//             case "opengauss":
+//                 yamlFile = openGauss.getSigsFeature();
+//                 break;
+//             default:
+//                 return null;
+//         }
 
-        YamlUtil yamlUtil = new YamlUtil();
-        SigYaml res = yamlUtil.readLocalYaml(yamlFile, SigYaml.class);
+//         YamlUtil yamlUtil = new YamlUtil();
+//         SigYaml res = yamlUtil.readLocalYaml(yamlFile, SigYaml.class);
 
-        List<GroupYamlInfo> features = res.getFeatures();
-        HashMap<String, HashMap<String, String>> resData = new HashMap<>();
-        for (GroupYamlInfo feature : features) {
-            String group = feature.getgroup();
-            String en_group = feature.getEngroup();
-            List<SigYamlInfo> groupInfo = feature.getgroup_list();
-            for (SigYamlInfo item : groupInfo) {
-                List<String> sigs = item.getSigs();
-                for (String sig : sigs) {
-                    HashMap<String, String> it = new HashMap<>();
-                    String name = item.getName();
-                    String en_name = item.getEnName();
-                    it.put("group", group);
-                    it.put("feature", name);
-                    it.put("en_group", en_group);
-                    it.put("en_feature", en_name);
-                    resData.put(sig, it);
-                }
-            }
-        }
-        return resData;
-    }
+//         List<GroupYamlInfo> features = res.getFeatures();
+//         HashMap<String, HashMap<String, String>> resData = new HashMap<>();
+//         for (GroupYamlInfo feature : features) {
+//             String group = feature.getgroup();
+//             String en_group = feature.getEngroup();
+//             List<SigYamlInfo> groupInfo = feature.getgroup_list();
+//             for (SigYamlInfo item : groupInfo) {
+//                 List<String> sigs = item.getSigs();
+//                 for (String sig : sigs) {
+//                     HashMap<String, String> it = new HashMap<>();
+//                     String name = item.getName();
+//                     String en_name = item.getEnName();
+//                     it.put("group", group);
+//                     it.put("feature", name);
+//                     it.put("en_group", en_group);
+//                     it.put("en_feature", en_name);
+//                     resData.put(sig, it);
+//                 }
+//             }
+//         }
+//         return resData;
+//     }
 
-    //openeuler openlookeng opengauss 测试通过
-    public String queryContributors(String community) throws NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
-        String index = "";
-        String queryjson = "";
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getContributors_index();
-                queryjson = openEuler.getContributors_queryStr();
-                break;
-            case "opengauss":
-                index = openGauss.getContributors_index();
-                queryjson = openGauss.getContributors_queryStr();
-                break;
-            case "openlookeng":
-                index = openLookeng.getContributors_index();
-                queryjson = openLookeng.getContributors_queryStr();
-                String[] indexs = index.split(";");
-                double contributors_count = 0d;
-                int statusCode = 500;
-                String statusText = "query error";
-                for (int i = 0; i < indexs.length; i++) {
-                    index = indexs[i];
-                    builder.setUrl(this.url + index + "/_search");
-                    builder.setBody(queryjson);
-                    //获取执行结果
-                    ListenableFuture<Response> f = client.executeRequest(builder.build());
-                    String users = getBucketCount(f, "contributors");
-                    JsonNode dataNode = objectMapper.readTree(users);
-                    statusCode = dataNode.get("code").intValue();
-                    contributors_count += dataNode.get("data").get("contributors").intValue();
-                    statusText = dataNode.get("msg").textValue();
-                }
-                return "{\"code\":" + statusCode + ",\"data\":{\"contributors\":" + Math.round(contributors_count) + "},\"msg\":\"" + statusText + "\"}";
-            case "mindspore":
-                index = mindSpore.getContributors_index();
-                queryjson = mindSpore.getContributors_queryStr();
-                break;
-            default:
-                return "";
-        }
-        builder.setUrl(this.url + index + "/_search");
-        builder.setBody(queryjson);
-        //获取执行结果
-        ListenableFuture<Response> f = client.executeRequest(builder.build());
-        String contributors = getBucketCount(f, "contributors");
-        return contributors;
-    }
+//     //openeuler openlookeng opengauss 测试通过
+//     public String queryContributors(String community) throws NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
+//         AsyncHttpClient client = AsyncHttpUtil.getClient();
+//         RequestBuilder builder = asyncHttpUtil.getBuilder();
+//         String index = "";
+//         String queryjson = "";
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getContributors_index();
+//                 queryjson = openEuler.getContributors_queryStr();
+//                 break;
+//             case "opengauss":
+//                 index = openGauss.getContributors_index();
+//                 queryjson = openGauss.getContributors_queryStr();
+//                 break;
+//             case "openlookeng":
+//                 index = openLookeng.getContributors_index();
+//                 queryjson = openLookeng.getContributors_queryStr();
+//                 String[] indexs = index.split(";");
+//                 double contributors_count = 0d;
+//                 int statusCode = 500;
+//                 String statusText = "query error";
+//                 for (int i = 0; i < indexs.length; i++) {
+//                     index = indexs[i];
+//                     builder.setUrl(this.url + index + "/_search");
+//                     builder.setBody(queryjson);
+//                     //获取执行结果
+//                     ListenableFuture<Response> f = client.executeRequest(builder.build());
+//                     String users = getBucketCount(f, "contributors");
+//                     JsonNode dataNode = objectMapper.readTree(users);
+//                     statusCode = dataNode.get("code").intValue();
+//                     contributors_count += dataNode.get("data").get("contributors").intValue();
+//                     statusText = dataNode.get("msg").textValue();
+//                 }
+//                 return "{\"code\":" + statusCode + ",\"data\":{\"contributors\":" + Math.round(contributors_count) + "},\"msg\":\"" + statusText + "\"}";
+//             case "mindspore":
+//                 index = mindSpore.getContributors_index();
+//                 queryjson = mindSpore.getContributors_queryStr();
+//                 break;
+//             default:
+//                 return "";
+//         }
+//         builder.setUrl(this.url + index + "/_search");
+//         builder.setBody(queryjson);
+//         //获取执行结果
+//         ListenableFuture<Response> f = client.executeRequest(builder.build());
+//         String contributors = getBucketCount(f, "contributors");
+//         return contributors;
+//     }
 
-    private String getBucketCount(ListenableFuture<Response> f, String dataFlag) {
-        Response response;
-        String statusText = "请求内部错误";
-        long count = 0;
-        int statusCode = 500;
-        try {
-            response = f.get();
-            statusCode = response.getStatusCode();
-            statusText = response.getStatusText();
-            String responseBody = response.getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("distinct_field").get("buckets").elements();
-            count = Lists.newArrayList(buckets).size();
-            return "{\"code\":" + statusCode + ",\"data\":{\"" + dataFlag + "\":" + Math.round(count) + "},\"msg\":\"" + statusText + "\"}";
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//     private String getBucketCount(ListenableFuture<Response> f, String dataFlag) {
+//         Response response;
+//         String statusText = "请求内部错误";
+//         long count = 0;
+//         int statusCode = 500;
+//         try {
+//             response = f.get();
+//             statusCode = response.getStatusCode();
+//             statusText = response.getStatusText();
+//             String responseBody = response.getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+//             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("distinct_field").get("buckets").elements();
+//             count = Lists.newArrayList(buckets).size();
+//             return "{\"code\":" + statusCode + ",\"data\":{\"" + dataFlag + "\":" + Math.round(count) + "},\"msg\":\"" + statusText + "\"}";
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//         }
 
-        return "{\"code\":" + statusCode + ",\"data\":{\"" + dataFlag + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
-    }
+//         return "{\"code\":" + statusCode + ",\"data\":{\"" + dataFlag + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
+//     }
 
     public String queryDurationAggFromProjectHostarchPackage(String community) throws NoSuchAlgorithmException, KeyManagementException {
         AsyncHttpClient client = AsyncHttpUtil.getClient();
@@ -260,336 +260,336 @@ public class QueryDao {
         return avgDuration;
     }
 
-    //测试通过
-    public String querySigs(String community) throws ExecutionException, InterruptedException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
-        String index = "";
-        String queryjson = "";
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getSigs_index();
-                queryjson = openEuler.getSigs_queryStr();
-                break;
-            case "opengauss":
-                index = openGauss.getSigs_index();
-                queryjson = openGauss.getSigs_queryStr();
-                break;
-            case "mindspore":
-                index = mindSpore.getSigs_index();
-                queryjson = mindSpore.getSigs_queryStr();
-                return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + queryjson + "},\"msg\":\"not Found!\"}";
-            case "openlookeng":
-                return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
-            default:
-                return "";
-        }
-        builder.setUrl(this.url + index + "/_search");
-        builder.setBody(queryjson);
-        //获取执行结果
-        ListenableFuture<Response> f = client.executeRequest(builder.build());
+//     //测试通过
+//     public String querySigs(String community) throws ExecutionException, InterruptedException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
+//         AsyncHttpClient client = AsyncHttpUtil.getClient();
+//         RequestBuilder builder = asyncHttpUtil.getBuilder();
+//         String index = "";
+//         String queryjson = "";
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getSigs_index();
+//                 queryjson = openEuler.getSigs_queryStr();
+//                 break;
+//             case "opengauss":
+//                 index = openGauss.getSigs_index();
+//                 queryjson = openGauss.getSigs_queryStr();
+//                 break;
+//             case "mindspore":
+//                 index = mindSpore.getSigs_index();
+//                 queryjson = mindSpore.getSigs_queryStr();
+//                 return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + queryjson + "},\"msg\":\"not Found!\"}";
+//             case "openlookeng":
+//                 return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
+//             default:
+//                 return "";
+//         }
+//         builder.setUrl(this.url + index + "/_search");
+//         builder.setBody(queryjson);
+//         //获取执行结果
+//         ListenableFuture<Response> f = client.executeRequest(builder.build());
 
-        Response response = f.get();
-        int statusCode = response.getStatusCode();
-        String statusText = response.getStatusText();
-        String responseBody = response.getResponseBody(UTF_8);
-        JsonNode dataNode = objectMapper.readTree(responseBody);
-        Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
-        long count = 0;
-        while (buckets.hasNext()) {
-            JsonNode bucket = buckets.next();
-            count += bucket.get("1").get("value").asLong();
-        }
+//         Response response = f.get();
+//         int statusCode = response.getStatusCode();
+//         String statusText = response.getStatusText();
+//         String responseBody = response.getResponseBody(UTF_8);
+//         JsonNode dataNode = objectMapper.readTree(responseBody);
+//         Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+//         long count = 0;
+//         while (buckets.hasNext()) {
+//             JsonNode bucket = buckets.next();
+//             count += bucket.get("1").get("value").asLong();
+//         }
 
-        return "{\"code\":" + statusCode + ",\"data\":{\"sigs\":" + count + "},\"msg\":\"" + statusText + "\"}";
-    }
+//         return "{\"code\":" + statusCode + ",\"data\":{\"sigs\":" + count + "},\"msg\":\"" + statusText + "\"}";
+//     }
 
-    //测试通过
-    public String queryUsers(String community) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
-        String index = "";
-        String queryjson = "";
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getUsers_index();
-                queryjson = openEuler.getUsers_queryStr();
+//     //测试通过
+//     public String queryUsers(String community) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+//         AsyncHttpClient client = AsyncHttpUtil.getClient();
+//         RequestBuilder builder = asyncHttpUtil.getBuilder();
+//         String index = "";
+//         String queryjson = "";
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getUsers_index();
+//                 queryjson = openEuler.getUsers_queryStr();
 
-                // String[] indexs = index.split(";");
-                String[] queryjsons = queryjson.split(";");
-                double user_count = 0d;
-                int statusCode = 500;
-                String statusText = "请求内部错误";
-                for (int i = 0; i < queryjsons.length; i++) {
-                    // index = indexs[i];
-                    queryjson = queryjsons[i];
+//                 // String[] indexs = index.split(";");
+//                 String[] queryjsons = queryjson.split(";");
+//                 double user_count = 0d;
+//                 int statusCode = 500;
+//                 String statusText = "请求内部错误";
+//                 for (int i = 0; i < queryjsons.length; i++) {
+//                     // index = indexs[i];
+//                     queryjson = queryjsons[i];
 
-                    builder.setUrl(this.url + index + "/_search");
-                    builder.setBody(queryjson);
-                    //获取执行结果
-                    ListenableFuture<Response> f = client.executeRequest(builder.build());
-                    String users = getResult(f, "users");
-                    JsonNode dataNode = objectMapper.readTree(users);
-                    statusCode = dataNode.get("code").intValue();
-                    user_count += dataNode.get("data").get("users").intValue();
-                    statusText = dataNode.get("msg").textValue();
-                }
-                return "{\"code\":" + statusCode + ",\"data\":{\"users\":" + Math.round(user_count) + "},\"msg\":\"" + statusText + "\"}";
-            case "opengauss":
-                index = openGauss.getUsers_index();
-                queryjson = openGauss.getUsers_queryStr();
-                break;
-            case "openlookeng":
-                index = openLookeng.getUsers_index();
-                queryjson = openLookeng.getUsers_queryStr();
-                builder.setUrl(this.url + index + "/_count");
-                builder.setBody(queryjson);
-                ListenableFuture<Response> f = client.executeRequest(builder.build());
-                return getCountResult(f, "users");
-            case "mindspore":
-                return "{\"code\":" + 404 + ",\"data\":{\"users\":" + 0 + "},\"msg\":\"not Found!\"}";
-            default:
-                return "";
-        }
-        builder.setUrl(this.url + index + "/_search");
-        builder.setBody(queryjson);
-        //获取执行结果
-        ListenableFuture<Response> f = client.executeRequest(builder.build());
-        String users = getResult(f, "users");
-        return users;
-    }
+//                     builder.setUrl(this.url + index + "/_search");
+//                     builder.setBody(queryjson);
+//                     //获取执行结果
+//                     ListenableFuture<Response> f = client.executeRequest(builder.build());
+//                     String users = getResult(f, "users");
+//                     JsonNode dataNode = objectMapper.readTree(users);
+//                     statusCode = dataNode.get("code").intValue();
+//                     user_count += dataNode.get("data").get("users").intValue();
+//                     statusText = dataNode.get("msg").textValue();
+//                 }
+//                 return "{\"code\":" + statusCode + ",\"data\":{\"users\":" + Math.round(user_count) + "},\"msg\":\"" + statusText + "\"}";
+//             case "opengauss":
+//                 index = openGauss.getUsers_index();
+//                 queryjson = openGauss.getUsers_queryStr();
+//                 break;
+//             case "openlookeng":
+//                 index = openLookeng.getUsers_index();
+//                 queryjson = openLookeng.getUsers_queryStr();
+//                 builder.setUrl(this.url + index + "/_count");
+//                 builder.setBody(queryjson);
+//                 ListenableFuture<Response> f = client.executeRequest(builder.build());
+//                 return getCountResult(f, "users");
+//             case "mindspore":
+//                 return "{\"code\":" + 404 + ",\"data\":{\"users\":" + 0 + "},\"msg\":\"not Found!\"}";
+//             default:
+//                 return "";
+//         }
+//         builder.setUrl(this.url + index + "/_search");
+//         builder.setBody(queryjson);
+//         //获取执行结果
+//         ListenableFuture<Response> f = client.executeRequest(builder.build());
+//         String users = getResult(f, "users");
+//         return users;
+//     }
 
-    public String queryNoticeusers(String community) throws JsonProcessingException, ExecutionException, InterruptedException, NoSuchAlgorithmException, KeyManagementException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
-        String index = "";
-        switch (community.toLowerCase()) {
-            case "openeuler":
-            case "mindspore":
-            case "openlookeng":
-            case "opengauss":
-                return "{\"code\":" + 404 + ",\"data\":{\"noticeusers\":" + 0 + "},\"msg\":\"not Found!\"}";
-            default:
-                return "";
-        }
-//        builder.setUrl(QueryDao.url+index+"/_search");
-//        builder.setBody(queryjson);
-//        //获取执行结果
-//        ListenableFuture<Response> f = client.executeRequest(builder.build() );
-//        String noticsusers = getResult(f, "noticusers");
-//        return noticsusers;
-    }
+//     public String queryNoticeusers(String community) throws JsonProcessingException, ExecutionException, InterruptedException, NoSuchAlgorithmException, KeyManagementException {
+//         AsyncHttpClient client = AsyncHttpUtil.getClient();
+//         RequestBuilder builder = asyncHttpUtil.getBuilder();
+//         String index = "";
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//             case "mindspore":
+//             case "openlookeng":
+//             case "opengauss":
+//                 return "{\"code\":" + 404 + ",\"data\":{\"noticeusers\":" + 0 + "},\"msg\":\"not Found!\"}";
+//             default:
+//                 return "";
+//         }
+// //        builder.setUrl(QueryDao.url+index+"/_search");
+// //        builder.setBody(queryjson);
+// //        //获取执行结果
+// //        ListenableFuture<Response> f = client.executeRequest(builder.build() );
+// //        String noticsusers = getResult(f, "noticusers");
+// //        return noticsusers;
+//     }
 
-    public String queryModulenums(String community) throws ExecutionException, InterruptedException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
-        String index = "";
-        String queryjson = "{\"size\":0,\"aggs\":{\"data\":{\"cardinality\":{\"field\":\"gitee_repo.keyword\"}}}}";
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                String result = "";
-                String[] communitys = openEuler.getMulticommunity().split(",");
-                int temp = 0;
-                for (int i = 0; i < communitys.length; i++) {
-                    if (i == communitys.length - 1) {
-                        temp = temp + objectMapper.readTree(getGiteeResNum(openEuler.getAccess_token(), communitys[i])).get("data").get("modulenums").intValue();
-                        result = "{\"code\":200,\"data\":{\"modulenums\":" + temp + "},\"msg\":\"OK\"}";
-                    } else {
-                        temp = temp + objectMapper.readTree(getGiteeResNum(openEuler.getAccess_token(), communitys[i])).get("data").get("modulenums").intValue();
-                    }
-                }
-                return result;
-            case "opengauss":
-            case "openlookeng":
-            case "mindspore":
-                return "{\"code\":" + 404 + ",\"data\":{\"modulenums\":" + 0 + "},\"msg\":\"not Found!\"}";
-            default:
-                return "";
-        }
-//        builder.setUrl(QueryDao.url+index+"/_search");
-//        builder.setBody(queryjson);
-//        //获取执行结果
-//        ListenableFuture<Response> f = client.executeRequest(builder.build() );
-//        String modulenums = getResult(f, "modulenums");
-//        return modulenums;
-    }
+//     public String queryModulenums(String community) throws ExecutionException, InterruptedException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
+//         AsyncHttpClient client = AsyncHttpUtil.getClient();
+//         RequestBuilder builder = asyncHttpUtil.getBuilder();
+//         String index = "";
+//         String queryjson = "{\"size\":0,\"aggs\":{\"data\":{\"cardinality\":{\"field\":\"gitee_repo.keyword\"}}}}";
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 String result = "";
+//                 String[] communitys = openEuler.getMulticommunity().split(",");
+//                 int temp = 0;
+//                 for (int i = 0; i < communitys.length; i++) {
+//                     if (i == communitys.length - 1) {
+//                         temp = temp + objectMapper.readTree(getGiteeResNum(openEuler.getAccess_token(), communitys[i])).get("data").get("modulenums").intValue();
+//                         result = "{\"code\":200,\"data\":{\"modulenums\":" + temp + "},\"msg\":\"OK\"}";
+//                     } else {
+//                         temp = temp + objectMapper.readTree(getGiteeResNum(openEuler.getAccess_token(), communitys[i])).get("data").get("modulenums").intValue();
+//                     }
+//                 }
+//                 return result;
+//             case "opengauss":
+//             case "openlookeng":
+//             case "mindspore":
+//                 return "{\"code\":" + 404 + ",\"data\":{\"modulenums\":" + 0 + "},\"msg\":\"not Found!\"}";
+//             default:
+//                 return "";
+//         }
+// //        builder.setUrl(QueryDao.url+index+"/_search");
+// //        builder.setBody(queryjson);
+// //        //获取执行结果
+// //        ListenableFuture<Response> f = client.executeRequest(builder.build() );
+// //        String modulenums = getResult(f, "modulenums");
+// //        return modulenums;
+//     }
 
-    public String getGiteeResNum(String access_token, String community) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
-        Param access_tokenParam = new Param("access_token", access_token);
-        Param visibility = new Param("visibility", "public");
-        Param affiliation = new Param("affiliation", "admin");
-        Param sort = new Param("sort", "full_name");
-        Param direction = new Param("direction", "asc");
-        Param q = new Param("q", community);
-        Param page = new Param("page", "1");
-        Param per_page = new Param("per_page", "1");
-        ArrayList<Param> params = new ArrayList<>();
-        params.add(access_tokenParam);
-        params.add(visibility);
-        params.add(affiliation);
-        params.add(sort);
-        params.add(direction);
-        params.add(q);
-        params.add(page);
-        params.add(per_page);
-        Request request = builder.setUrl("https://gitee.com/api/v5/user/repos").setQueryParams(params).addHeader("Content-Type", "application/json;charset=UTF-8").setMethod("GET").build();
-        ListenableFuture<Response> responseListenableFuture = client.executeRequest(request);
-        Response response = responseListenableFuture.get();
-        String total_count = response.getHeader("total_count");
-        return "{\"code\":" + response.getStatusCode() + ",\"data\":{\"modulenums\":" + (total_count == null ? 0 : total_count) + "},\"msg\":\"" + response.getStatusText() + "\"}";
-    }
+//     public String getGiteeResNum(String access_token, String community) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException {
+//         AsyncHttpClient client = AsyncHttpUtil.getClient();
+//         RequestBuilder builder = asyncHttpUtil.getBuilder();
+//         Param access_tokenParam = new Param("access_token", access_token);
+//         Param visibility = new Param("visibility", "public");
+//         Param affiliation = new Param("affiliation", "admin");
+//         Param sort = new Param("sort", "full_name");
+//         Param direction = new Param("direction", "asc");
+//         Param q = new Param("q", community);
+//         Param page = new Param("page", "1");
+//         Param per_page = new Param("per_page", "1");
+//         ArrayList<Param> params = new ArrayList<>();
+//         params.add(access_tokenParam);
+//         params.add(visibility);
+//         params.add(affiliation);
+//         params.add(sort);
+//         params.add(direction);
+//         params.add(q);
+//         params.add(page);
+//         params.add(per_page);
+//         Request request = builder.setUrl("https://gitee.com/api/v5/user/repos").setQueryParams(params).addHeader("Content-Type", "application/json;charset=UTF-8").setMethod("GET").build();
+//         ListenableFuture<Response> responseListenableFuture = client.executeRequest(request);
+//         Response response = responseListenableFuture.get();
+//         String total_count = response.getHeader("total_count");
+//         return "{\"code\":" + response.getStatusCode() + ",\"data\":{\"modulenums\":" + (total_count == null ? 0 : total_count) + "},\"msg\":\"" + response.getStatusText() + "\"}";
+//     }
 
-    public String queryBusinessOsv(String community) throws ExecutionException, InterruptedException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
-        String index = "";
-        String queryjson = "";
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = "{\"code\":" + 200 + ",\"data\":{\"businessOsv\":" + openEuler.getBusinessOsv_index() + "},\"msg\":\"OK\"}";
-                break;
-            case "mindspore":
-                index = "{\"code\":" + 404 + ",\"data\":{\"businessOsv\":" + 0 + "},\"msg\":\"not Found!\"}";
-                break;
-            case "opengauss":
-                index = "{\"code\":" + 200 + ",\"data\":{\"businessOsv\":" + openGauss.getBusinessOsv_index() + "},\"msg\":\"OK\"}";
-                break;
-            case "openlookeng":
-                index = "{\"code\":" + 200 + ",\"data\":{\"businessOsv\":" + openLookeng.getBusinessOsv_index() + "},\"msg\":\"OK\"}";
-                break;
-            default:
-                return "";
-        }
+//     public String queryBusinessOsv(String community) throws ExecutionException, InterruptedException, JsonProcessingException, NoSuchAlgorithmException, KeyManagementException {
+//         AsyncHttpClient client = AsyncHttpUtil.getClient();
+//         RequestBuilder builder = asyncHttpUtil.getBuilder();
+//         String index = "";
+//         String queryjson = "";
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = "{\"code\":" + 200 + ",\"data\":{\"businessOsv\":" + openEuler.getBusinessOsv_index() + "},\"msg\":\"OK\"}";
+//                 break;
+//             case "mindspore":
+//                 index = "{\"code\":" + 404 + ",\"data\":{\"businessOsv\":" + 0 + "},\"msg\":\"not Found!\"}";
+//                 break;
+//             case "opengauss":
+//                 index = "{\"code\":" + 200 + ",\"data\":{\"businessOsv\":" + openGauss.getBusinessOsv_index() + "},\"msg\":\"OK\"}";
+//                 break;
+//             case "openlookeng":
+//                 index = "{\"code\":" + 200 + ",\"data\":{\"businessOsv\":" + openLookeng.getBusinessOsv_index() + "},\"msg\":\"OK\"}";
+//                 break;
+//             default:
+//                 return "";
+//         }
 
-        //获取执行结果
-        return index;
-    }
+//         //获取执行结果
+//         return index;
+//     }
 
-    public String querycommunitymembers(String community) throws NoSuchAlgorithmException, KeyManagementException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
-        String index = "";
-        String queryjson = "";
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getCommunitymembers_index();
-                queryjson = openEuler.getCommunitymembers_queryStr();
-                break;
-            case "opengauss":
-                index = openGauss.getCommunitymembers_index();
-                queryjson = openGauss.getCommunitymembers_queryStr();
-                break;
-            case "openlookeng":
-                index = openLookeng.getCommunitymembers_index();
-                queryjson = openLookeng.getCommunitymembers_queryStr();
-                break;
-            case "mindspore":
-                return "{\"code\":" + 404 + ",\"data\":{\"communitymembers\":" + 0 + "},\"msg\":\"not Found!\"}";
-            default:
-                return "";
-        }
-        builder.setUrl(this.url + index + "/_search");
-        builder.setBody(queryjson);
-        //获取执行结果
-        ListenableFuture<Response> f = client.executeRequest(builder.build());
-        String communitymembers = getResult(f, "communitymembers");
-        return communitymembers;
-    }
+//     public String querycommunitymembers(String community) throws NoSuchAlgorithmException, KeyManagementException {
+//         AsyncHttpClient client = AsyncHttpUtil.getClient();
+//         RequestBuilder builder = asyncHttpUtil.getBuilder();
+//         String index = "";
+//         String queryjson = "";
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getCommunitymembers_index();
+//                 queryjson = openEuler.getCommunitymembers_queryStr();
+//                 break;
+//             case "opengauss":
+//                 index = openGauss.getCommunitymembers_index();
+//                 queryjson = openGauss.getCommunitymembers_queryStr();
+//                 break;
+//             case "openlookeng":
+//                 index = openLookeng.getCommunitymembers_index();
+//                 queryjson = openLookeng.getCommunitymembers_queryStr();
+//                 break;
+//             case "mindspore":
+//                 return "{\"code\":" + 404 + ",\"data\":{\"communitymembers\":" + 0 + "},\"msg\":\"not Found!\"}";
+//             default:
+//                 return "";
+//         }
+//         builder.setUrl(this.url + index + "/_search");
+//         builder.setBody(queryjson);
+//         //获取执行结果
+//         ListenableFuture<Response> f = client.executeRequest(builder.build());
+//         String communitymembers = getResult(f, "communitymembers");
+//         return communitymembers;
+//     }
 
-    public String queryAll(String community) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
-        Map<String, Object> contributes = queryContributes(community, "contributes");
-        JsonNode contributorsNode = objectMapper.readTree(this.queryContributors(community)).get("data").get("contributors");
-        JsonNode usersNode = objectMapper.readTree(this.queryUsers(community)).get("data").get("users");
-        Object users = usersNode == null ? null : usersNode.intValue();
-        JsonNode noticeusersNode = objectMapper.readTree(this.queryNoticeusers(community)).get("data").get("noticeusers");
-        Object noticeusers = noticeusersNode == null ? null : noticeusersNode.intValue();
-        JsonNode sigsNode = objectMapper.readTree(this.querySigs(community)).get("data").get("sigs");
-        Object sigs = sigsNode == null ? null : sigsNode.intValue();
-        JsonNode modulenumsNode = objectMapper.readTree(this.queryModulenums(community)).get("data").get("modulenums");
-        Object modulenums = modulenumsNode == null ? null : modulenumsNode.intValue();
-        JsonNode businessOsvNode = objectMapper.readTree(this.queryBusinessOsv(community)).get("data").get("businessOsv");
-        Object businessOsv = businessOsvNode == null ? null : businessOsvNode.intValue();
-        JsonNode communityMembersNode = objectMapper.readTree(this.querycommunitymembers(community)).get("data").get("communitymembers");
-        Object communityMembers = businessOsvNode == null ? null : communityMembersNode.intValue();
-        JsonNode downloadNode = objectMapper.readTree(this.queryDownload(community, "download")).get("data").get("download");
-        Object downloads = downloadNode == null ? null : downloadNode.intValue();
-        Object downloadUser = 0;
-        if (community.toLowerCase().equals("mindspore") || community.toLowerCase().equals("opengauss")) {
-            downloadUser = users;
-            users = downloads;
-        }
-        contributes.put("downloads", downloads);
-        contributes.put("contributors", contributorsNode.intValue());
-        contributes.put("users", users);
-        contributes.put("noticeusers", noticeusers);
-        contributes.put("sigs", sigs);
-        contributes.put("modulenums", modulenums);
-        contributes.put("businessosv", businessOsv);
-        contributes.put("communitymembers", communityMembers);
-        contributes.put("downloaduser", downloadUser);
+//     public String queryAll(String community) throws InterruptedException, ExecutionException, NoSuchAlgorithmException, KeyManagementException, JsonProcessingException {
+//         Map<String, Object> contributes = queryContributes(community, "contributes");
+//         JsonNode contributorsNode = objectMapper.readTree(this.queryContributors(community)).get("data").get("contributors");
+//         JsonNode usersNode = objectMapper.readTree(this.queryUsers(community)).get("data").get("users");
+//         Object users = usersNode == null ? null : usersNode.intValue();
+//         JsonNode noticeusersNode = objectMapper.readTree(this.queryNoticeusers(community)).get("data").get("noticeusers");
+//         Object noticeusers = noticeusersNode == null ? null : noticeusersNode.intValue();
+//         JsonNode sigsNode = objectMapper.readTree(this.querySigs(community)).get("data").get("sigs");
+//         Object sigs = sigsNode == null ? null : sigsNode.intValue();
+//         JsonNode modulenumsNode = objectMapper.readTree(this.queryModulenums(community)).get("data").get("modulenums");
+//         Object modulenums = modulenumsNode == null ? null : modulenumsNode.intValue();
+//         JsonNode businessOsvNode = objectMapper.readTree(this.queryBusinessOsv(community)).get("data").get("businessOsv");
+//         Object businessOsv = businessOsvNode == null ? null : businessOsvNode.intValue();
+//         JsonNode communityMembersNode = objectMapper.readTree(this.querycommunitymembers(community)).get("data").get("communitymembers");
+//         Object communityMembers = businessOsvNode == null ? null : communityMembersNode.intValue();
+//         JsonNode downloadNode = objectMapper.readTree(this.queryDownload(community, "download")).get("data").get("download");
+//         Object downloads = downloadNode == null ? null : downloadNode.intValue();
+//         Object downloadUser = 0;
+//         if (community.toLowerCase().equals("mindspore") || community.toLowerCase().equals("opengauss")) {
+//             downloadUser = users;
+//             users = downloads;
+//         }
+//         contributes.put("downloads", downloads);
+//         contributes.put("contributors", contributorsNode.intValue());
+//         contributes.put("users", users);
+//         contributes.put("noticeusers", noticeusers);
+//         contributes.put("sigs", sigs);
+//         contributes.put("modulenums", modulenums);
+//         contributes.put("businessosv", businessOsv);
+//         contributes.put("communitymembers", communityMembers);
+//         contributes.put("downloaduser", downloadUser);
 
-        HashMap<String, Object> resMap = new HashMap<>();
-        resMap.put("code", 200);
-        resMap.put("data", contributes);
-        resMap.put("msg", "success");
-        resMap.put("update_at", (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")).format(new Date()));
-        return objectMapper.valueToTree(resMap).toString();
-    }
+//         HashMap<String, Object> resMap = new HashMap<>();
+//         resMap.put("code", 200);
+//         resMap.put("data", contributes);
+//         resMap.put("msg", "success");
+//         resMap.put("update_at", (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")).format(new Date()));
+//         return objectMapper.valueToTree(resMap).toString();
+//     }
 
-    public String getCountResult(ListenableFuture<Response> f, String dataflage) {
-        Response response = null;
-        String statusText = "请求内部错误";
-        double count = 0d;
-        int statusCode = 500;
-        try {
-            response = f.get();
-            statusCode = response.getStatusCode();
-            statusText = response.getStatusText();
-            String responseBody = response.getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            count = dataNode.get("count").asLong();
-            String result = "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + Math.round(count) + "},\"msg\":\"" + statusText + "\"}";
-            return result;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
-    }
+//     public String getCountResult(ListenableFuture<Response> f, String dataflage) {
+//         Response response = null;
+//         String statusText = "请求内部错误";
+//         double count = 0d;
+//         int statusCode = 500;
+//         try {
+//             response = f.get();
+//             statusCode = response.getStatusCode();
+//             statusText = response.getStatusText();
+//             String responseBody = response.getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+//             count = dataNode.get("count").asLong();
+//             String result = "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + Math.round(count) + "},\"msg\":\"" + statusText + "\"}";
+//             return result;
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//         }
+//         return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
+//     }
 
-    public String getResult(ListenableFuture<Response> f, String dataflage) {
-        Response response = null;
-        String statusText = "请求内部错误";
-        double count = 0d;
-        int statusCode = 500;
-        try {
-            response = f.get();
-            statusCode = response.getStatusCode();
-            statusText = response.getStatusText();
-            String responseBody = response.getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            if (dataNode.get("aggregations").get("datamap") == null) {
-                count = dataNode.get("aggregations").get("data").get("value").asDouble();
+//     public String getResult(ListenableFuture<Response> f, String dataflage) {
+//         Response response = null;
+//         String statusText = "请求内部错误";
+//         double count = 0d;
+//         int statusCode = 500;
+//         try {
+//             response = f.get();
+//             statusCode = response.getStatusCode();
+//             statusText = response.getStatusText();
+//             String responseBody = response.getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+//             if (dataNode.get("aggregations").get("datamap") == null) {
+//                 count = dataNode.get("aggregations").get("data").get("value").asDouble();
 
-            } else {
-                for (JsonNode jsonNode : dataNode.get("aggregations").get("datamap").get("buckets")) {
-                    count += jsonNode.get("data").get("value").asDouble();
-                }
-            }
-            String result = "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + Math.round(count) + "},\"msg\":\"" + statusText + "\"}";
-            return result;
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (JsonMappingException e) {
-            e.printStackTrace();
-        } catch (JsonProcessingException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
-        return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
-    }
+//             } else {
+//                 for (JsonNode jsonNode : dataNode.get("aggregations").get("datamap").get("buckets")) {
+//                     count += jsonNode.get("data").get("value").asDouble();
+//                 }
+//             }
+//             String result = "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + Math.round(count) + "},\"msg\":\"" + statusText + "\"}";
+//             return result;
+//         } catch (InterruptedException e) {
+//             e.printStackTrace();
+//         } catch (JsonMappingException e) {
+//             e.printStackTrace();
+//         } catch (JsonProcessingException e) {
+//             e.printStackTrace();
+//         } catch (ExecutionException e) {
+//             e.printStackTrace();
+//         }
+//         return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
+//     }
 
     public String parseDurationAggFromProjectHostarchPackageResult(ListenableFuture<Response> f, String dataflage) {
         Response response = null;
@@ -722,397 +722,397 @@ public class QueryDao {
         return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText + "\"}";
     }
 
-    public String queryDownload(String community, String item) throws NoSuchAlgorithmException, KeyManagementException,
-            ExecutionException, InterruptedException, JsonProcessingException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
-        String index = "";
-        String queryjson = "";
-        String valueField = "";
+    // public String queryDownload(String community, String item) throws NoSuchAlgorithmException, KeyManagementException,
+    //         ExecutionException, InterruptedException, JsonProcessingException {
+    //     AsyncHttpClient client = AsyncHttpUtil.getClient();
+    //     RequestBuilder builder = asyncHttpUtil.getBuilder();
+    //     String index = "";
+    //     String queryjson = "";
+    //     String valueField = "";
 
-        int count = 0;
-        int statusCode = 500;
-        String statusText = "请求内部错误";
+    //     int count = 0;
+    //     int statusCode = 500;
+    //     String statusText = "请求内部错误";
 
-        switch (community.toLowerCase()) {
-            case "openeuler":
-            case "openlookeng":
-                return "{\"code\":" + 404 + ",\"data\":{\"" + item + "\":" + 0 + "},\"msg\":\"Not Found!\"}";
-            case "opengauss":
-                return queryDownloadOpenGauss(community, item);
-            case "mindspore":
-                index = mindSpore.getDownloadQueryIndex();
-                queryjson = mindSpore.getDownloadQueryStr();
-                break;
-            default:
-                return "";
-        }
-        builder.setUrl(this.url + index + "/_search");
-        builder.setBody(queryjson);
-        // 获取执行结果
-        ListenableFuture<Response> f = client.executeRequest(builder.build());
-        try {
-            Response response = f.get();
-            statusCode = response.getStatusCode();
-            statusText = response.getStatusText();
-            String responseBody = response.getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets").elements();
-            if (community.toLowerCase().equals("mindspore") && buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                count = bucket.get("count").get("value").asInt();
-            }
-            if (community.toLowerCase().equals("opengauss") && buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                count = bucket.get("doc_count").asInt();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    //     switch (community.toLowerCase()) {
+    //         case "openeuler":
+    //         case "openlookeng":
+    //             return "{\"code\":" + 404 + ",\"data\":{\"" + item + "\":" + 0 + "},\"msg\":\"Not Found!\"}";
+    //         case "opengauss":
+    //             return queryDownloadOpenGauss(community, item);
+    //         case "mindspore":
+    //             index = mindSpore.getDownloadQueryIndex();
+    //             queryjson = mindSpore.getDownloadQueryStr();
+    //             break;
+    //         default:
+    //             return "";
+    //     }
+    //     builder.setUrl(this.url + index + "/_search");
+    //     builder.setBody(queryjson);
+    //     // 获取执行结果
+    //     ListenableFuture<Response> f = client.executeRequest(builder.build());
+    //     try {
+    //         Response response = f.get();
+    //         statusCode = response.getStatusCode();
+    //         statusText = response.getStatusText();
+    //         String responseBody = response.getResponseBody(UTF_8);
+    //         JsonNode dataNode = objectMapper.readTree(responseBody);
+    //         Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets").elements();
+    //         if (community.toLowerCase().equals("mindspore") && buckets.hasNext()) {
+    //             JsonNode bucket = buckets.next();
+    //             count = bucket.get("count").get("value").asInt();
+    //         }
+    //         if (community.toLowerCase().equals("opengauss") && buckets.hasNext()) {
+    //             JsonNode bucket = buckets.next();
+    //             count = bucket.get("doc_count").asInt();
+    //         }
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
 
-        return "{\"code\":" + statusCode + ",\"data\":{\"" + item + "\":" + count + "},\"msg\":\"" + statusText
-                + "\"}";
+    //     return "{\"code\":" + statusCode + ",\"data\":{\"" + item + "\":" + count + "},\"msg\":\"" + statusText
+    //             + "\"}";
 
-    }
+    // }
 
-    public String queryDownloadOpenGauss(String community, String item) throws NoSuchAlgorithmException, KeyManagementException,
-            ExecutionException, InterruptedException, JsonProcessingException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
-        String[] indexs = openGauss.getDownloadQueryIndex().split(";");
-        String[] queryjsons = openGauss.getDownloadQueryStr().split(";");
+    // public String queryDownloadOpenGauss(String community, String item) throws NoSuchAlgorithmException, KeyManagementException,
+    //         ExecutionException, InterruptedException, JsonProcessingException {
+    //     AsyncHttpClient client = AsyncHttpUtil.getClient();
+    //     RequestBuilder builder = asyncHttpUtil.getBuilder();
+    //     String[] indexs = openGauss.getDownloadQueryIndex().split(";");
+    //     String[] queryjsons = openGauss.getDownloadQueryStr().split(";");
 
-        int count = 0;
-        int statusCode = 500;
-        String statusText = "请求内部错误";       
-        try {
-            for (int i = 0; i < queryjsons.length; i++) {
-                builder.setUrl(this.url + indexs[i] + "/_search");
-                builder.setBody(queryjsons[i]);
-                // 获取执行结果
-                ListenableFuture<Response> f = client.executeRequest(builder.build());       
-                Response response = f.get();
-                statusCode = response.getStatusCode();
-                statusText = response.getStatusText();
-                String responseBody = response.getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets").elements();
-                if (buckets.hasNext()) {
-                    JsonNode bucket = buckets.next();
-                    if (bucket.has("dockerhub")) {
-                        count += bucket.get("dockerhub").get("value").asInt();
-                    } else {
-                        count += bucket.get("doc_count").asInt();
-                    }                   
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    //     int count = 0;
+    //     int statusCode = 500;
+    //     String statusText = "请求内部错误";       
+    //     try {
+    //         for (int i = 0; i < queryjsons.length; i++) {
+    //             builder.setUrl(this.url + indexs[i] + "/_search");
+    //             builder.setBody(queryjsons[i]);
+    //             // 获取执行结果
+    //             ListenableFuture<Response> f = client.executeRequest(builder.build());       
+    //             Response response = f.get();
+    //             statusCode = response.getStatusCode();
+    //             statusText = response.getStatusText();
+    //             String responseBody = response.getResponseBody(UTF_8);
+    //             JsonNode dataNode = objectMapper.readTree(responseBody);
+    //             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets").elements();
+    //             if (buckets.hasNext()) {
+    //                 JsonNode bucket = buckets.next();
+    //                 if (bucket.has("dockerhub")) {
+    //                     count += bucket.get("dockerhub").get("value").asInt();
+    //                 } else {
+    //                     count += bucket.get("doc_count").asInt();
+    //                 }                   
+    //             }
+    //         }
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
 
-        return "{\"code\":" + statusCode + ",\"data\":{\"" + item + "\":" + count + "},\"msg\":\"" + statusText
-                + "\"}";
+    //     return "{\"code\":" + statusCode + ",\"data\":{\"" + item + "\":" + count + "},\"msg\":\"" + statusText
+    //             + "\"}";
 
-    }
+    // }
 
-    public String getDownload(ListenableFuture<Response> f, String valueField, ListenableFuture<Response> fDockerHub, String dataflage) {
-        Response response;
-        String statusText = "请求内部错误";
-        long count = 0;
-        int statusCode = 500;
+    // public String getDownload(ListenableFuture<Response> f, String valueField, ListenableFuture<Response> fDockerHub, String dataflage) {
+    //     Response response;
+    //     String statusText = "请求内部错误";
+    //     long count = 0;
+    //     int statusCode = 500;
 
-        try {
-            response = f.get();
-            statusCode = response.getStatusCode();
-            statusText = response.getStatusText();
-            String responseBody = response.getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets").elements();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                if (StringUtils.isBlank(valueField)) {
-                    count = bucket.get("doc_count").asLong();
-                    break;
-                }
-                Iterator<JsonNode> hits = bucket.get("last").get("hits").get("hits").elements();
-                while (hits.hasNext()) {
-                    JsonNode hit = hits.next();
-                    count = hit.get("_source").get(valueField).asLong();
-                    break;
-                }
-                break;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    //     try {
+    //         response = f.get();
+    //         statusCode = response.getStatusCode();
+    //         statusText = response.getStatusText();
+    //         String responseBody = response.getResponseBody(UTF_8);
+    //         JsonNode dataNode = objectMapper.readTree(responseBody);
+    //         Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets").elements();
+    //         while (buckets.hasNext()) {
+    //             JsonNode bucket = buckets.next();
+    //             if (StringUtils.isBlank(valueField)) {
+    //                 count = bucket.get("doc_count").asLong();
+    //                 break;
+    //             }
+    //             Iterator<JsonNode> hits = bucket.get("last").get("hits").get("hits").elements();
+    //             while (hits.hasNext()) {
+    //                 JsonNode hit = hits.next();
+    //                 count = hit.get("_source").get(valueField).asLong();
+    //                 break;
+    //             }
+    //             break;
+    //         }
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
 
-        if (fDockerHub != null) {
-            try {
-                response = fDockerHub.get();
-                statusCode = response.getStatusCode();
-                statusText = response.getStatusText();
-                String responseBody = response.getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets")
-                        .elements();
-                while (buckets.hasNext()) {
-                    JsonNode bucket = buckets.next();
-                    count += bucket.get("sum").get("value").asLong();
-                    break;
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+    //     if (fDockerHub != null) {
+    //         try {
+    //             response = fDockerHub.get();
+    //             statusCode = response.getStatusCode();
+    //             statusText = response.getStatusText();
+    //             String responseBody = response.getResponseBody(UTF_8);
+    //             JsonNode dataNode = objectMapper.readTree(responseBody);
+    //             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_by_field").get("buckets")
+    //                     .elements();
+    //             while (buckets.hasNext()) {
+    //                 JsonNode bucket = buckets.next();
+    //                 count += bucket.get("sum").get("value").asLong();
+    //                 break;
+    //             }
+    //         } catch (Exception e) {
+    //             e.printStackTrace();
+    //         }
+    //     }
 
-        return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText
-                + "\"}";
-    }
+    //     return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + count + "},\"msg\":\"" + statusText
+    //             + "\"}";
+    // }
 
-    public String queryBlueZoneContributes(BlueZoneContributeVo body, String item) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
+    // public String queryBlueZoneContributes(BlueZoneContributeVo body, String item) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+    //     AsyncHttpClient client = AsyncHttpUtil.getClient();
+    //     RequestBuilder builder = asyncHttpUtil.getBuilder();
 
-        String index = blueZone.getBlueZoneContributesIndex();
-        String queryjson = getBlueZoneContributesQuery(body);
+    //     String index = blueZone.getBlueZoneContributesIndex();
+    //     String queryjson = getBlueZoneContributesQuery(body);
 
-        builder.setUrl(this.url + index + "/_search");
-        builder.setBody(queryjson);
-        ListenableFuture<Response> f = client.executeRequest(builder.build());
+    //     builder.setUrl(this.url + index + "/_search");
+    //     builder.setBody(queryjson);
+    //     ListenableFuture<Response> f = client.executeRequest(builder.build());
 
-        return getBlueZoneContributesRes(f, item);
-    }
+    //     return getBlueZoneContributesRes(f, item);
+    // }
 
-    private String getBlueZoneContributesQuery(BlueZoneContributeVo body) {
-        List<String> giteeIds = body.getGitee_id();
-        List<String> githubIds = body.getGithub_id();
-        String startTime = body.getStartTime();
-        String endTime = body.getEndTime();
-        String query;
+    // private String getBlueZoneContributesQuery(BlueZoneContributeVo body) {
+    //     List<String> giteeIds = body.getGitee_id();
+    //     List<String> githubIds = body.getGithub_id();
+    //     String startTime = body.getStartTime();
+    //     String endTime = body.getEndTime();
+    //     String query;
 
-        //请求参数是否有gitee_id和github_id
-        StringBuilder queryString = new StringBuilder();
-        if (giteeIds != null && !giteeIds.isEmpty()) {
-            for (String giteeId : giteeIds) {
-                queryString.append("gitee_id.keyword:\\\"").append(giteeId).append("\\\" OR ");
-            }
-        }
-        if (githubIds != null && !githubIds.isEmpty()) {
-            for (String githubId : githubIds) {
-                queryString.append("github_id.keyword:\\\"").append(githubId).append("\\\" OR ");
-            }
-        }
-        String qStr = queryString.toString();
-        if (StringUtils.isBlank(qStr)) qStr = "*";
-        else qStr = qStr.substring(0, qStr.length() - 4);
+    //     //请求参数是否有gitee_id和github_id
+    //     StringBuilder queryString = new StringBuilder();
+    //     if (giteeIds != null && !giteeIds.isEmpty()) {
+    //         for (String giteeId : giteeIds) {
+    //             queryString.append("gitee_id.keyword:\\\"").append(giteeId).append("\\\" OR ");
+    //         }
+    //     }
+    //     if (githubIds != null && !githubIds.isEmpty()) {
+    //         for (String githubId : githubIds) {
+    //             queryString.append("github_id.keyword:\\\"").append(githubId).append("\\\" OR ");
+    //         }
+    //     }
+    //     String qStr = queryString.toString();
+    //     if (StringUtils.isBlank(qStr)) qStr = "*";
+    //     else qStr = qStr.substring(0, qStr.length() - 4);
 
-        //请求参数是否有时间范围
-        if (StringUtils.isNotBlank(startTime) && StringUtils.isNotBlank(endTime)) {
-            String queryStr = "{\"size\": 10000,\"query\": {\"bool\": {\"filter\": [" +
-                    "{\"range\": {\"created_at\": {\"gte\": \"%s\",\"lte\": \"%s\"}}}," +
-                    "{\"query_string\": {\"analyze_wildcard\": true,\"query\": \"%s\"}}]}}}";
-            query = String.format(queryStr, startTime, endTime, qStr);
-        } else {
-            String queryStr = "{\"size\": 10000,\"query\": {\"bool\": {\"filter\": [" +
-                    "{\"query_string\": {\"analyze_wildcard\": true,\"query\": \"%s\"}}]}}}";
-            query = String.format(queryStr, qStr);
-        }
+    //     //请求参数是否有时间范围
+    //     if (StringUtils.isNotBlank(startTime) && StringUtils.isNotBlank(endTime)) {
+    //         String queryStr = "{\"size\": 10000,\"query\": {\"bool\": {\"filter\": [" +
+    //                 "{\"range\": {\"created_at\": {\"gte\": \"%s\",\"lte\": \"%s\"}}}," +
+    //                 "{\"query_string\": {\"analyze_wildcard\": true,\"query\": \"%s\"}}]}}}";
+    //         query = String.format(queryStr, startTime, endTime, qStr);
+    //     } else {
+    //         String queryStr = "{\"size\": 10000,\"query\": {\"bool\": {\"filter\": [" +
+    //                 "{\"query_string\": {\"analyze_wildcard\": true,\"query\": \"%s\"}}]}}}";
+    //         query = String.format(queryStr, qStr);
+    //     }
 
-        return query;
-    }
+    //     return query;
+    // }
 
-    public String getBlueZoneContributesRes(ListenableFuture<Response> f, String dataflage) {
-        Response response = null;
-        String statusText = "请求内部错误";
-        String badReq = "参数有误";
-        int statusCode = 500;
-        try {
-            response = f.get();
-            statusCode = response.getStatusCode();
-            statusText = response.getStatusText();
-            String responseBody = response.getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            JsonNode hits = dataNode.get("hits").get("hits");
-            Iterator<JsonNode> it = hits.elements();
-            ArrayList<Object> prList = new ArrayList<>();
-            ArrayList<Object> issueList = new ArrayList<>();
-            ArrayList<Object> commentList = new ArrayList<>();
-            ArrayList<Object> commitList = new ArrayList<>();
-            while (it.hasNext()) {
-                JsonNode hit = it.next();
-                String id = hit.get("_id").asText();
-                JsonNode source = hit.get("_source");
-                if (source.has("is_pr")) {
-                    Map sourceMap = objectMapper.convertValue(source, Map.class);
-                    sourceMap.put("id", id);
-                    JsonNode pr = objectMapper.valueToTree(sourceMap);
-                    prList.add(pr);
-                }
-                if (source.has("is_issue")) {
-                    Map sourceMap = objectMapper.convertValue(source, Map.class);
-                    sourceMap.put("id", id);
-                    sourceMap.remove("url");
-                    JsonNode pr = objectMapper.valueToTree(sourceMap);
-                    issueList.add(sourceMap);
-                }
-                if (source.has("is_comment")) {
-                    Map sourceMap = objectMapper.convertValue(source, Map.class);
-                    sourceMap.put("id", id);
-                    sourceMap.remove("url");
-                    JsonNode pr = objectMapper.valueToTree(sourceMap);
-                    commentList.add(sourceMap);
-                }
-                if (source.has("is_commit")) {
-                    Map sourceMap = objectMapper.convertValue(source, Map.class);
-                    sourceMap.put("id", id);
-                    sourceMap.remove("url");
-                    JsonNode pr = objectMapper.valueToTree(sourceMap);
-                    commitList.add(sourceMap);
-                }
-            }
-            HashMap dataMap = new HashMap();
-            dataMap.put("prs", prList);
-            dataMap.put("issues", issueList);
-            dataMap.put("comments", commentList);
-            dataMap.put("commits", commitList);
-            JsonNode jsonNode1 = objectMapper.valueToTree(dataMap);
+    // public String getBlueZoneContributesRes(ListenableFuture<Response> f, String dataflage) {
+    //     Response response = null;
+    //     String statusText = "请求内部错误";
+    //     String badReq = "参数有误";
+    //     int statusCode = 500;
+    //     try {
+    //         response = f.get();
+    //         statusCode = response.getStatusCode();
+    //         statusText = response.getStatusText();
+    //         String responseBody = response.getResponseBody(UTF_8);
+    //         JsonNode dataNode = objectMapper.readTree(responseBody);
+    //         JsonNode hits = dataNode.get("hits").get("hits");
+    //         Iterator<JsonNode> it = hits.elements();
+    //         ArrayList<Object> prList = new ArrayList<>();
+    //         ArrayList<Object> issueList = new ArrayList<>();
+    //         ArrayList<Object> commentList = new ArrayList<>();
+    //         ArrayList<Object> commitList = new ArrayList<>();
+    //         while (it.hasNext()) {
+    //             JsonNode hit = it.next();
+    //             String id = hit.get("_id").asText();
+    //             JsonNode source = hit.get("_source");
+    //             if (source.has("is_pr")) {
+    //                 Map sourceMap = objectMapper.convertValue(source, Map.class);
+    //                 sourceMap.put("id", id);
+    //                 JsonNode pr = objectMapper.valueToTree(sourceMap);
+    //                 prList.add(pr);
+    //             }
+    //             if (source.has("is_issue")) {
+    //                 Map sourceMap = objectMapper.convertValue(source, Map.class);
+    //                 sourceMap.put("id", id);
+    //                 sourceMap.remove("url");
+    //                 JsonNode pr = objectMapper.valueToTree(sourceMap);
+    //                 issueList.add(sourceMap);
+    //             }
+    //             if (source.has("is_comment")) {
+    //                 Map sourceMap = objectMapper.convertValue(source, Map.class);
+    //                 sourceMap.put("id", id);
+    //                 sourceMap.remove("url");
+    //                 JsonNode pr = objectMapper.valueToTree(sourceMap);
+    //                 commentList.add(sourceMap);
+    //             }
+    //             if (source.has("is_commit")) {
+    //                 Map sourceMap = objectMapper.convertValue(source, Map.class);
+    //                 sourceMap.put("id", id);
+    //                 sourceMap.remove("url");
+    //                 JsonNode pr = objectMapper.valueToTree(sourceMap);
+    //                 commitList.add(sourceMap);
+    //             }
+    //         }
+    //         HashMap dataMap = new HashMap();
+    //         dataMap.put("prs", prList);
+    //         dataMap.put("issues", issueList);
+    //         dataMap.put("comments", commentList);
+    //         dataMap.put("commits", commitList);
+    //         JsonNode jsonNode1 = objectMapper.valueToTree(dataMap);
 
-            HashMap resMap = new HashMap();
-            resMap.put("code", statusCode);
-            resMap.put("data", jsonNode1);
-            resMap.put("msg", statusText);
-            String s = objectMapper.valueToTree(resMap).toString();
+    //         HashMap resMap = new HashMap();
+    //         resMap.put("code", statusCode);
+    //         resMap.put("data", jsonNode1);
+    //         resMap.put("msg", statusText);
+    //         String s = objectMapper.valueToTree(resMap).toString();
 
-            return s;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + badReq + "},\"msg\":\"" + statusText + "\"}";
-    }
+    //         return s;
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
+    //     return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":" + badReq + "},\"msg\":\"" + statusText + "\"}";
+    // }
 
-    public String putBlueZoneUser(BlueZoneUserVo userVo, String item, Environment env) throws NoSuchAlgorithmException, KeyManagementException, IOException {
-        EsQueryUtils esQueryUtils = new EsQueryUtils();
-        String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
-        String host = env.getProperty("es.host");
-        int port = Integer.parseInt(env.getProperty("es.port", "9200"));
-        String scheme = env.getProperty("es.scheme");
-        String esUser = userpass[0];
-        String password = userpass[1];
-        RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
-        BulkRequest request = new BulkRequest();
+    // public String putBlueZoneUser(BlueZoneUserVo userVo, String item, Environment env) throws NoSuchAlgorithmException, KeyManagementException, IOException {
+    //     EsQueryUtils esQueryUtils = new EsQueryUtils();
+    //     String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
+    //     String host = env.getProperty("es.host");
+    //     int port = Integer.parseInt(env.getProperty("es.port", "9200"));
+    //     String scheme = env.getProperty("es.scheme");
+    //     String esUser = userpass[0];
+    //     String password = userpass[1];
+    //     RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
+    //     BulkRequest request = new BulkRequest();
 
-        LocalDateTime now = LocalDateTime.now();
-        String nowStr = now.toString().split("\\.")[0] + "+08:00";
+    //     LocalDateTime now = LocalDateTime.now();
+    //     String nowStr = now.toString().split("\\.")[0] + "+08:00";
 
-        String index = blueZone.getBlueZoneUsersIndex();
-        List<BlueZoneUser> users = userVo.getUsers();
-        String productLineCode = userVo.getProductLineCode();
-        productLineCode = productLineCode == null ? "" : productLineCode;
+    //     String index = blueZone.getBlueZoneUsersIndex();
+    //     List<BlueZoneUser> users = userVo.getUsers();
+    //     String productLineCode = userVo.getProductLineCode();
+    //     productLineCode = productLineCode == null ? "" : productLineCode;
 
-        List<String> products = Arrays.asList(env.getProperty("product.line.code.all.update").split(";"));
-        if (StringUtils.isNotBlank(productLineCode) && products.contains(productLineCode)) {
-            // 某些产品线需要全量更新
-            DeleteByQueryRequest requestDelete = new DeleteByQueryRequest(index);
-            requestDelete.setConflicts("proceed");
-            requestDelete.setQuery(new TermQueryBuilder("product_line_code", productLineCode));
-            esQueryUtils.deleteByQuery(restHighLevelClient, index, requestDelete);
-        }
+    //     List<String> products = Arrays.asList(env.getProperty("product.line.code.all.update").split(";"));
+    //     if (StringUtils.isNotBlank(productLineCode) && products.contains(productLineCode)) {
+    //         // 某些产品线需要全量更新
+    //         DeleteByQueryRequest requestDelete = new DeleteByQueryRequest(index);
+    //         requestDelete.setConflicts("proceed");
+    //         requestDelete.setQuery(new TermQueryBuilder("product_line_code", productLineCode));
+    //         esQueryUtils.deleteByQuery(restHighLevelClient, index, requestDelete);
+    //     }
 
-        HashMap<String, HashSet<String>> id2emails = esQueryUtils.queryBlueUserEmails(restHighLevelClient, index);
-        for (BlueZoneUser user : users) {
-            String id;
-            if (StringUtils.isNotBlank(user.getGitee_id())) id = user.getGitee_id();
-            else if (StringUtils.isNotBlank(user.getGithub_id())) id = user.getGithub_id();
-            else continue;
+    //     HashMap<String, HashSet<String>> id2emails = esQueryUtils.queryBlueUserEmails(restHighLevelClient, index);
+    //     for (BlueZoneUser user : users) {
+    //         String id;
+    //         if (StringUtils.isNotBlank(user.getGitee_id())) id = user.getGitee_id();
+    //         else if (StringUtils.isNotBlank(user.getGithub_id())) id = user.getGithub_id();
+    //         else continue;
 
-            Map resMap = objectMapper.convertValue(user, Map.class);
-            resMap.put("created_at", nowStr);
-            String email = user.getEmail();
-            List<String> inputEmails = Arrays.asList(email.split(";"));
+    //         Map resMap = objectMapper.convertValue(user, Map.class);
+    //         resMap.put("created_at", nowStr);
+    //         String email = user.getEmail();
+    //         List<String> inputEmails = Arrays.asList(email.split(";"));
 
-            if (StringUtils.isNotBlank(productLineCode) && products.contains(productLineCode)) {
-                resMap.put("emails", inputEmails);
-            } else {
-                HashSet<String> emails = id2emails.getOrDefault(id, new HashSet<>());
-                emails.addAll(inputEmails);
-                resMap.put("emails", new ArrayList<>(emails));
-            }
+    //         if (StringUtils.isNotBlank(productLineCode) && products.contains(productLineCode)) {
+    //             resMap.put("emails", inputEmails);
+    //         } else {
+    //             HashSet<String> emails = id2emails.getOrDefault(id, new HashSet<>());
+    //             emails.addAll(inputEmails);
+    //             resMap.put("emails", new ArrayList<>(emails));
+    //         }
 
-            resMap.remove("email");
-            resMap.put("product_line_code", productLineCode);
-            request.add(new IndexRequest(index, "_doc", id).source(resMap));
-        }
+    //         resMap.remove("email");
+    //         resMap.put("product_line_code", productLineCode);
+    //         request.add(new IndexRequest(index, "_doc", id).source(resMap));
+    //     }
 
-        if (request.requests().size() != 0)
-            restHighLevelClient.bulk(request, RequestOptions.DEFAULT);
-        restHighLevelClient.close();
+    //     if (request.requests().size() != 0)
+    //         restHighLevelClient.bulk(request, RequestOptions.DEFAULT);
+    //     restHighLevelClient.close();
 
-        String res = "{\"code\":200,\"data\":{\"users_count\":\"0\"},\"msg\":\"there`s no user\"}";
-        if (users.size() > 0) {
-            res = String.format("{\"code\":200,\"data\":{\"%s_count\":\"%s\"},\"msg\":\"update success\"}", item, users.size());
-        }
-        return res;
-    }
+    //     String res = "{\"code\":200,\"data\":{\"users_count\":\"0\"},\"msg\":\"there`s no user\"}";
+    //     if (users.size() > 0) {
+    //         res = String.format("{\"code\":200,\"data\":{\"%s_count\":\"%s\"},\"msg\":\"update success\"}", item, users.size());
+    //     }
+    //     return res;
+    // }
 
-    public String queryOrgStarAndFork(String community, String item) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
+    // public String queryOrgStarAndFork(String community, String item) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+    //     AsyncHttpClient client = AsyncHttpUtil.getClient();
+    //     RequestBuilder builder = asyncHttpUtil.getBuilder();
 
-        String index = starFork.getStar_fork_index();
-        String queryjson = starFork.getStar_fork_queryStr();
+    //     String index = starFork.getStar_fork_index();
+    //     String queryjson = starFork.getStar_fork_queryStr();
 
-        builder.setUrl(this.url + index + "/_search");
-        builder.setBody(queryjson);
-        //获取执行结果
-        ListenableFuture<Response> f = client.executeRequest(builder.build());
-        return getOrgStarAndForkRes(f, item, community);
-    }
+    //     builder.setUrl(this.url + index + "/_search");
+    //     builder.setBody(queryjson);
+    //     //获取执行结果
+    //     ListenableFuture<Response> f = client.executeRequest(builder.build());
+    //     return getOrgStarAndForkRes(f, item, community);
+    // }
 
-    public String getOrgStarAndForkRes(ListenableFuture<Response> f, String dataflage, String community) {
-        Response response;
-        String statusText;
-        String badReq;
-        int statusCode;
-        List<String> communities = Arrays.stream(community.split(",")).map(String::toLowerCase).collect(Collectors.toList());
-        try {
-            response = f.get();
-            statusCode = response.getStatusCode();
-            statusText = response.getStatusText();
-            String responseBody = response.getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            JsonNode buckets = dataNode.get("aggregations").get("owner").get("buckets");
-            Iterator<JsonNode> it = buckets.elements();
+    // public String getOrgStarAndForkRes(ListenableFuture<Response> f, String dataflage, String community) {
+    //     Response response;
+    //     String statusText;
+    //     String badReq;
+    //     int statusCode;
+    //     List<String> communities = Arrays.stream(community.split(",")).map(String::toLowerCase).collect(Collectors.toList());
+    //     try {
+    //         response = f.get();
+    //         statusCode = response.getStatusCode();
+    //         statusText = response.getStatusText();
+    //         String responseBody = response.getResponseBody(UTF_8);
+    //         JsonNode dataNode = objectMapper.readTree(responseBody);
+    //         JsonNode buckets = dataNode.get("aggregations").get("owner").get("buckets");
+    //         Iterator<JsonNode> it = buckets.elements();
 
-            ArrayList<Object> res = new ArrayList<>();
-            while (it.hasNext()) {
-                JsonNode bucket = it.next();
-                String com = bucket.get("key").asText();
-                if (!communities.get(0).equals("allproject") && !communities.contains(com)) {
-                    continue;
-                }
-                HashMap dataMap = new HashMap();
-                dataMap.put("community", com);
-                dataMap.put("stars", bucket.get("stars").get("value").asInt());
-                dataMap.put("forks", bucket.get("forks").get("value").asInt());
-                dataMap.put("commits", bucket.get("commits").get("value").asInt());
-                res.add(objectMapper.valueToTree(dataMap));
-            }
+    //         ArrayList<Object> res = new ArrayList<>();
+    //         while (it.hasNext()) {
+    //             JsonNode bucket = it.next();
+    //             String com = bucket.get("key").asText();
+    //             if (!communities.get(0).equals("allproject") && !communities.contains(com)) {
+    //                 continue;
+    //             }
+    //             HashMap dataMap = new HashMap();
+    //             dataMap.put("community", com);
+    //             dataMap.put("stars", bucket.get("stars").get("value").asInt());
+    //             dataMap.put("forks", bucket.get("forks").get("value").asInt());
+    //             dataMap.put("commits", bucket.get("commits").get("value").asInt());
+    //             res.add(objectMapper.valueToTree(dataMap));
+    //         }
 
-            HashMap resMap = new HashMap();
-            resMap.put("code", statusCode);
-            resMap.put("data", res);
-            resMap.put("msg", statusText);
-            String s = objectMapper.valueToTree(resMap).toString();
+    //         HashMap resMap = new HashMap();
+    //         resMap.put("code", statusCode);
+    //         resMap.put("data", res);
+    //         resMap.put("msg", statusText);
+    //         String s = objectMapper.valueToTree(resMap).toString();
 
-            return s;
-        } catch (Exception e) {
-            statusText = "fail";
-            badReq = "query error";
-            statusCode = 500;
-            e.printStackTrace();
-        }
-        return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":\"" + badReq + "\"},\"msg\":\"" + statusText + "\"}";
-    }
+    //         return s;
+    //     } catch (Exception e) {
+    //         statusText = "fail";
+    //         badReq = "query error";
+    //         statusCode = 500;
+    //         e.printStackTrace();
+    //     }
+    //     return "{\"code\":" + statusCode + ",\"data\":{\"" + dataflage + "\":\"" + badReq + "\"},\"msg\":\"" + statusText + "\"}";
+    // }
 
     public String queryCveDetails(String community, String item, String lastCursor, String pageSize, Environment env) {
         String indexName;
@@ -1200,43 +1200,43 @@ public class QueryDao {
         return s;
     }
 
-    public String queryNewYear(String community, String user, String year) {
-        String csvName;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                // csvName = openEuler.getUserReportCsvData();
-                break;
-            case "opengauss":
-                // csvName = openGauss.getUserReportCsvData();
-                break;
-            case "openlookeng":
-                // csvName = openLookeng.getUserReportCsvData();
-                break;
-            case "mindspore":
-                // csvName = mindSpore.getUserReportCsvData();
-                break;
-            default:
-                return "{\"code\":400,\"data\":{\"" + year + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
-        // String localYamlPath = companyNameLocalYaml;
-        // YamlUtil yamlUtil = new YamlUtil();
-        // String localFile = yamlUtil.wget(csvName, localYamlPath);
-        String localFile = "mydata/" + community.toLowerCase() + "_" + year + ".csv";
-        List<HashMap<String, Object>> datas = CsvFileUtil.readFile(localFile);
-        HashMap<String, Object> resMap = new HashMap<>();
-        resMap.put("code", 200);
-        resMap.put("msg", "OK");
-        if (datas == null) {
-            resMap.put("data", new ArrayList<>());
-        } else if (user == null){
-            resMap.put("data", datas);
-        } else {
-            List<HashMap<String, Object>> user_login = datas.stream().filter(m -> m.getOrDefault("user_login", "").equals(user)).collect(Collectors.toList());
-            resMap.put("data", user_login);
-        }
-        String s = objectMapper.valueToTree(resMap).toString();
-        return s;
-    }
+    // public String queryNewYear(String community, String user, String year) {
+    //     String csvName;
+    //     switch (community.toLowerCase()) {
+    //         case "openeuler":
+    //             // csvName = openEuler.getUserReportCsvData();
+    //             break;
+    //         case "opengauss":
+    //             // csvName = openGauss.getUserReportCsvData();
+    //             break;
+    //         case "openlookeng":
+    //             // csvName = openLookeng.getUserReportCsvData();
+    //             break;
+    //         case "mindspore":
+    //             // csvName = mindSpore.getUserReportCsvData();
+    //             break;
+    //         default:
+    //             return "{\"code\":400,\"data\":{\"" + year + "\":\"query error\"},\"msg\":\"query error\"}";
+    //     }
+    //     // String localYamlPath = companyNameLocalYaml;
+    //     // YamlUtil yamlUtil = new YamlUtil();
+    //     // String localFile = yamlUtil.wget(csvName, localYamlPath);
+    //     String localFile = "mydata/" + community.toLowerCase() + "_" + year + ".csv";
+    //     List<HashMap<String, Object>> datas = CsvFileUtil.readFile(localFile);
+    //     HashMap<String, Object> resMap = new HashMap<>();
+    //     resMap.put("code", 200);
+    //     resMap.put("msg", "OK");
+    //     if (datas == null) {
+    //         resMap.put("data", new ArrayList<>());
+    //     } else if (user == null){
+    //         resMap.put("data", datas);
+    //     } else {
+    //         List<HashMap<String, Object>> user_login = datas.stream().filter(m -> m.getOrDefault("user_login", "").equals(user)).collect(Collectors.toList());
+    //         resMap.put("data", user_login);
+    //     }
+    //     String s = objectMapper.valueToTree(resMap).toString();
+    //     return s;
+    // }
 
     public String queryNewYearMonthCount(String community, String user) {
         String index;
@@ -1294,39 +1294,39 @@ public class QueryDao {
         }
     }
 
-    public String queryBugQuestionnaire(String community, String item, String lastCursor, String pageSize, Environment env) {
-        String indexName;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                indexName = openEuler.getBug_questionnaire_index();
-                break;
-            case "opengauss":
-            case "openlookeng":
-                indexName = openLookeng.getBug_questionnaire_index();
-                break;
-            case "mindspore":
-            default:
-                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
-        if (indexName == null) {
-            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"indexname is null\"}";
-        }
-        indexName = indexName.substring(1);
+    // public String queryBugQuestionnaire(String community, String item, String lastCursor, String pageSize, Environment env) {
+    //     String indexName;
+    //     switch (community.toLowerCase()) {
+    //         case "openeuler":
+    //             indexName = openEuler.getBug_questionnaire_index();
+    //             break;
+    //         case "opengauss":
+    //         case "openlookeng":
+    //             indexName = openLookeng.getBug_questionnaire_index();
+    //             break;
+    //         case "mindspore":
+    //         default:
+    //             return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+    //     }
+    //     if (indexName == null) {
+    //         return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"indexname is null\"}";
+    //     }
+    //     indexName = indexName.substring(1);
 
-        String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
-        String host = env.getProperty("es.host");
-        int port = Integer.parseInt(env.getProperty("es.port", "9200"));
-        String scheme = env.getProperty("es.scheme");
-        String esUser = userpass[0];
-        String password = userpass[1];
-        RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
-        EsQueryUtils esQueryUtils = new EsQueryUtils();
+    //     String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
+    //     String host = env.getProperty("es.host");
+    //     int port = Integer.parseInt(env.getProperty("es.port", "9200"));
+    //     String scheme = env.getProperty("es.scheme");
+    //     String esUser = userpass[0];
+    //     String password = userpass[1];
+    //     RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
+    //     EsQueryUtils esQueryUtils = new EsQueryUtils();
 
-        if (pageSize == null) {
-            return esQueryUtils.esScroll(restHighLevelClient, item, indexName);
-        }
-        return esQueryUtils.esFromId(restHighLevelClient, item, lastCursor, Integer.parseInt(pageSize), indexName);
-    }
+    //     if (pageSize == null) {
+    //         return esQueryUtils.esScroll(restHighLevelClient, item, indexName);
+    //     }
+    //     return esQueryUtils.esFromId(restHighLevelClient, item, lastCursor, Integer.parseInt(pageSize), indexName);
+    // }
 
     public String queryObsDetails(String community, String item, String branch, String limit) {
         String indexName;
@@ -1528,481 +1528,481 @@ public class QueryDao {
         return dataList;
     }
 
-    public String querySigDetails(SigDetailsVo body, String item) {
-        String indexName;
-        String queryjson;
-        String community = body.getCommunity();
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                indexName = openEuler.getSigDetailsIndex();
-                queryjson = openEuler.getSigDetailsIndexQueryStr();
-                break;
-            case "opengauss":
-            case "openlookeng":
-            case "mindspore":
-            default:
-                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
-        try {
-            ArrayList<JsonNode> dataList = getSigDetails(indexName, queryjson, body);
-            HashMap resMap = new HashMap();
-            resMap.put("code", 200);
-            resMap.put("data", dataList);
-            resMap.put("msg", "success");
-            String s = objectMapper.valueToTree(resMap).toString();
-            return s;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
-    }
+//     public String querySigDetails(SigDetailsVo body, String item) {
+//         String indexName;
+//         String queryjson;
+//         String community = body.getCommunity();
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 indexName = openEuler.getSigDetailsIndex();
+//                 queryjson = openEuler.getSigDetailsIndexQueryStr();
+//                 break;
+//             case "opengauss":
+//             case "openlookeng":
+//             case "mindspore":
+//             default:
+//                 return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+//         }
+//         try {
+//             ArrayList<JsonNode> dataList = getSigDetails(indexName, queryjson, body);
+//             HashMap resMap = new HashMap();
+//             resMap.put("code", 200);
+//             resMap.put("data", dataList);
+//             resMap.put("msg", "success");
+//             String s = objectMapper.valueToTree(resMap).toString();
+//             return s;
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+//         }
+//     }
 
-    public ArrayList<JsonNode> getSigDetails(String index, String query, SigDetailsVo body) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
-        List<String> sig_names = body.getSigs();
+//     public ArrayList<JsonNode> getSigDetails(String index, String query, SigDetailsVo body) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+//         List<String> sig_names = body.getSigs();
 
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
-        builder.setUrl(this.url + index + "/_search");
+//         AsyncHttpClient client = AsyncHttpUtil.getClient();
+//         RequestBuilder builder = asyncHttpUtil.getBuilder();
+//         builder.setUrl(this.url + index + "/_search");
 
-        builder.setBody(query);
-        ListenableFuture<Response> f = client.executeRequest(builder.build());
-        String responseBody = f.get().getResponseBody(UTF_8);
-        JsonNode dataNode = objectMapper.readTree(responseBody);
+//         builder.setBody(query);
+//         ListenableFuture<Response> f = client.executeRequest(builder.build());
+//         String responseBody = f.get().getResponseBody(UTF_8);
+//         JsonNode dataNode = objectMapper.readTree(responseBody);
 
-        ArrayList<JsonNode> dataList = new ArrayList<>();
-        JsonNode jsonNode = dataNode.get("hits").get("hits");
-        Iterator<JsonNode> it = jsonNode.elements();
-        while (it.hasNext()) {
-            SigDetails sig = new SigDetails();
-            JsonNode hit = it.next();
-            JsonNode source = hit.get("_source");
+//         ArrayList<JsonNode> dataList = new ArrayList<>();
+//         JsonNode jsonNode = dataNode.get("hits").get("hits");
+//         Iterator<JsonNode> it = jsonNode.elements();
+//         while (it.hasNext()) {
+//             SigDetails sig = new SigDetails();
+//             JsonNode hit = it.next();
+//             JsonNode source = hit.get("_source");
 
-            ArrayList<SigDetailsMaintainer> maintainers = new ArrayList<>();
-            JsonNode maintainerInfo = source.get("maintainer_info");
-            if (maintainerInfo != null) {
-                Iterator<JsonNode> jsonNodes = maintainerInfo.elements();
-                while (jsonNodes.hasNext()) {
-                    JsonNode maintainer = jsonNodes.next();
-                    JsonNode giteeId = maintainer.get("gitee_id");
-                    String giteeIdStr = giteeId == null ? "" : giteeId.asText();
-                    JsonNode email = maintainer.get("email");
-                    String emailStr = email == null ? "" : email.asText();
-                    maintainers.add(new SigDetailsMaintainer(giteeIdStr, emailStr));
-                }
-            } else {
-                Iterator<JsonNode> jsonNodes = source.get("maintainers").elements();
-                while (jsonNodes.hasNext()) {
-                    JsonNode maintainer = jsonNodes.next();
-                    maintainers.add(new SigDetailsMaintainer(maintainer.textValue(), ""));
-                }
-            }
+//             ArrayList<SigDetailsMaintainer> maintainers = new ArrayList<>();
+//             JsonNode maintainerInfo = source.get("maintainer_info");
+//             if (maintainerInfo != null) {
+//                 Iterator<JsonNode> jsonNodes = maintainerInfo.elements();
+//                 while (jsonNodes.hasNext()) {
+//                     JsonNode maintainer = jsonNodes.next();
+//                     JsonNode giteeId = maintainer.get("gitee_id");
+//                     String giteeIdStr = giteeId == null ? "" : giteeId.asText();
+//                     JsonNode email = maintainer.get("email");
+//                     String emailStr = email == null ? "" : email.asText();
+//                     maintainers.add(new SigDetailsMaintainer(giteeIdStr, emailStr));
+//                 }
+//             } else {
+//                 Iterator<JsonNode> jsonNodes = source.get("maintainers").elements();
+//                 while (jsonNodes.hasNext()) {
+//                     JsonNode maintainer = jsonNodes.next();
+//                     maintainers.add(new SigDetailsMaintainer(maintainer.textValue(), ""));
+//                 }
+//             }
 
-            ArrayList<String> repos = new ArrayList<>();
-            Iterator<JsonNode> repoNodes = source.get("repos").elements();
-            while (repoNodes.hasNext()) {
-                JsonNode repo = repoNodes.next();
-                repos.add(repo.textValue());
-            }
-            String description = source.get("description") == null ? "" : source.get("description").asText();
+//             ArrayList<String> repos = new ArrayList<>();
+//             Iterator<JsonNode> repoNodes = source.get("repos").elements();
+//             while (repoNodes.hasNext()) {
+//                 JsonNode repo = repoNodes.next();
+//                 repos.add(repo.textValue());
+//             }
+//             String description = source.get("description") == null ? "" : source.get("description").asText();
 
-            sig.setName(source.get("sig_name").asText());
-            sig.setDescription(description);
-            sig.setMaintainer(maintainers);
-            sig.setRepositories(repos);
-            JsonNode resNode = objectMapper.convertValue(sig, JsonNode.class);
+//             sig.setName(source.get("sig_name").asText());
+//             sig.setDescription(description);
+//             sig.setMaintainer(maintainers);
+//             sig.setRepositories(repos);
+//             JsonNode resNode = objectMapper.convertValue(sig, JsonNode.class);
 
-            if (sig_names == null) {
-                dataList.add(resNode);
-            } else if (sig_names.contains(sig.getName())) {
-                dataList.add(resNode);
-            }
-        }
+//             if (sig_names == null) {
+//                 dataList.add(resNode);
+//             } else if (sig_names.contains(sig.getName())) {
+//                 dataList.add(resNode);
+//             }
+//         }
 
-        return dataList;
-    }
+//         return dataList;
+//     }
 
-    public String queryCompanyContributors(String community, String item, String contributeType, String timeRange, String repo, String sig) {
-        String index;
-        String queryStr;
-        String claIndex;
-        String groupField = "company";
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getGiteeAllIndex();
-                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
-                claIndex = openEuler.getClaCorporationIndex();
-                break;
-            case "opengauss":
-                index = openGauss.getGiteeAllIndex();
-                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
-                claIndex = openGauss.getClaCorporationIndex();
-                break;
-            case "openlookeng":
-                index = openLookeng.getGiteeAllIndex();
-                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
-                claIndex = openLookeng.getClaCorporationIndex();
-                break;
-            case "mindspore":
-                index = mindSpore.getGiteeAllIndex();
-                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
-                claIndex = mindSpore.getClaCorporationIndex();
-                break;
-            default:
-                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
+//     public String queryCompanyContributors(String community, String item, String contributeType, String timeRange, String repo, String sig) {
+//         String index;
+//         String queryStr;
+//         String claIndex;
+//         String groupField = "company";
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getGiteeAllIndex();
+//                 queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
+//                 claIndex = openEuler.getClaCorporationIndex();
+//                 break;
+//             case "opengauss":
+//                 index = openGauss.getGiteeAllIndex();
+//                 queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
+//                 claIndex = openGauss.getClaCorporationIndex();
+//                 break;
+//             case "openlookeng":
+//                 index = openLookeng.getGiteeAllIndex();
+//                 queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
+//                 claIndex = openLookeng.getClaCorporationIndex();
+//                 break;
+//             case "mindspore":
+//                 index = mindSpore.getGiteeAllIndex();
+//                 queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
+//                 claIndex = mindSpore.getClaCorporationIndex();
+//                 break;
+//             default:
+//                 return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+//         }
 
-        try {
-            List<String> claCompanys = queryClaCompany(claIndex);
-            List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml, companyNameLocalYaml);
-            Map<String, String> companyNameCnEn = companys.get(0);
-            Map<String, String> companyNameAlCn = companys.get(1);
+//         try {
+//             List<String> claCompanys = queryClaCompany(claIndex);
+//             List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml, companyNameLocalYaml);
+//             Map<String, String> companyNameCnEn = companys.get(0);
+//             Map<String, String> companyNameAlCn = companys.get(1);
 
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
 
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-            //获取执行结果
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+//             builder.setUrl(this.url + index + "/_search");
+//             builder.setBody(queryStr);
+//             //获取执行结果
+//             ListenableFuture<Response> f = client.executeRequest(builder.build());
+//             String responseBody = f.get().getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+//             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
 
-            ArrayList<JsonNode> dataList = new ArrayList<>();
-            HashMap<String, Object> dataMap = new HashMap<>();
-            long independent = 0;
-//            long partner = 0;
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String company = bucket.get("key").asText();
-                long contribute = bucket.get("sum_field").get("value").asLong();
+//             ArrayList<JsonNode> dataList = new ArrayList<>();
+//             HashMap<String, Object> dataMap = new HashMap<>();
+//             long independent = 0;
+// //            long partner = 0;
+//             while (buckets.hasNext()) {
+//                 JsonNode bucket = buckets.next();
+//                 String company = bucket.get("key").asText();
+//                 long contribute = bucket.get("sum_field").get("value").asLong();
 
-//                if (company.equals("华为合作方")) {
-//                    partner += contribute;
-//                    continue;
-//                }
-                if (!claCompanys.contains(company) || contribute == 0 ||
-//                        company.contains("软通动力") ||
-                        company.contains("中软国际") ||
-                        company.contains("易宝软件") ||
-                        company.contains("华为合作方") ||
-                        company.toLowerCase().equals("openeuler")) {
-                    independent += contribute;
-                    continue;
-                }
-                if (company.contains("华为技术有限公司")) {
-                    continue;
-                }
-//                if (company.equals("软通动力信息技术（集团）股份有限公司")) {
-//                    contribute += partner;
-//                }
-                String companyCn = companyNameAlCn.getOrDefault(company.trim(), company.trim());
-                String companyEn = companyNameCnEn.getOrDefault(company.trim(), companyCn);
-                dataMap.put("company_cn", companyCn);
-                dataMap.put("company_en", companyEn);
-                dataMap.put("contribute", contribute);
-                JsonNode resNode = objectMapper.valueToTree(dataMap);
-                dataList.add(resNode);
-            }
-            dataMap.put("company_cn", "个人贡献者");
-            dataMap.put("company_en", "independent");
-            dataMap.put("contribute", independent);
-            JsonNode resNode = objectMapper.valueToTree(dataMap);
-            dataList.add(resNode);
+// //                if (company.equals("华为合作方")) {
+// //                    partner += contribute;
+// //                    continue;
+// //                }
+//                 if (!claCompanys.contains(company) || contribute == 0 ||
+// //                        company.contains("软通动力") ||
+//                         company.contains("中软国际") ||
+//                         company.contains("易宝软件") ||
+//                         company.contains("华为合作方") ||
+//                         company.toLowerCase().equals("openeuler")) {
+//                     independent += contribute;
+//                     continue;
+//                 }
+//                 if (company.contains("华为技术有限公司")) {
+//                     continue;
+//                 }
+// //                if (company.equals("软通动力信息技术（集团）股份有限公司")) {
+// //                    contribute += partner;
+// //                }
+//                 String companyCn = companyNameAlCn.getOrDefault(company.trim(), company.trim());
+//                 String companyEn = companyNameCnEn.getOrDefault(company.trim(), companyCn);
+//                 dataMap.put("company_cn", companyCn);
+//                 dataMap.put("company_en", companyEn);
+//                 dataMap.put("contribute", contribute);
+//                 JsonNode resNode = objectMapper.valueToTree(dataMap);
+//                 dataList.add(resNode);
+//             }
+//             dataMap.put("company_cn", "个人贡献者");
+//             dataMap.put("company_en", "independent");
+//             dataMap.put("contribute", independent);
+//             JsonNode resNode = objectMapper.valueToTree(dataMap);
+//             dataList.add(resNode);
 
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", dataList);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
-    }
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("code", 200);
+//             resMap.put("data", dataList);
+//             resMap.put("msg", "success");
+//             return objectMapper.valueToTree(resMap).toString();
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+//         }
+//     }
 
-    public String queryUserContributors(String community, String item, String contributeType, String timeRange, String repo) {
-        String index;
-        String queryStr;
-        String groupField = "gitee_id";
-        String sig = null;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getGiteeAllIndex();
-                queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
-                break;
-            case "opengauss":
-                index = openGauss.getGiteeAllIndex();
-                queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
-                break;
-            case "openlookeng":
-                index = openLookeng.getGiteeAllIndex();
-                queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
-                break;
-            case "mindspore":
-                index = mindSpore.getGiteeAllIndex();
-                queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
-                break;
-            default:
-                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
+//     public String queryUserContributors(String community, String item, String contributeType, String timeRange, String repo) {
+//         String index;
+//         String queryStr;
+//         String groupField = "gitee_id";
+//         String sig = null;
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getGiteeAllIndex();
+//                 queryStr = openEuler.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
+//                 break;
+//             case "opengauss":
+//                 index = openGauss.getGiteeAllIndex();
+//                 queryStr = openGauss.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
+//                 break;
+//             case "openlookeng":
+//                 index = openLookeng.getGiteeAllIndex();
+//                 queryStr = openLookeng.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
+//                 break;
+//             case "mindspore":
+//                 index = mindSpore.getGiteeAllIndex();
+//                 queryStr = mindSpore.getAggCountQueryStr(groupField, contributeType, timeRange, community, repo, sig);
+//                 break;
+//             default:
+//                 return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+//         }
 
-        try {
-            List<String> robotUsers = Arrays.asList(robotUser.split(","));
+//         try {
+//             List<String> robotUsers = Arrays.asList(robotUser.split(","));
 
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
 
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-            //获取执行结果
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+//             builder.setUrl(this.url + index + "/_search");
+//             builder.setBody(queryStr);
+//             //获取执行结果
+//             ListenableFuture<Response> f = client.executeRequest(builder.build());
+//             String responseBody = f.get().getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+//             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
 
-            ArrayList<JsonNode> dataList = new ArrayList<>();
-            HashMap<String, Object> dataMap = new HashMap<>();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String giteeId = bucket.get("key").asText();
-                long contribute = bucket.get("sum_field").get("value").asLong();
-                if (contribute == 0 || robotUsers.contains(giteeId)) {
-                    continue;
-                }
-                dataMap.put("gitee_id", giteeId);
-                dataMap.put("contribute", contribute);
-                JsonNode resNode = objectMapper.valueToTree(dataMap);
-                dataList.add(resNode);
-            }
+//             ArrayList<JsonNode> dataList = new ArrayList<>();
+//             HashMap<String, Object> dataMap = new HashMap<>();
+//             while (buckets.hasNext()) {
+//                 JsonNode bucket = buckets.next();
+//                 String giteeId = bucket.get("key").asText();
+//                 long contribute = bucket.get("sum_field").get("value").asLong();
+//                 if (contribute == 0 || robotUsers.contains(giteeId)) {
+//                     continue;
+//                 }
+//                 dataMap.put("gitee_id", giteeId);
+//                 dataMap.put("contribute", contribute);
+//                 JsonNode resNode = objectMapper.valueToTree(dataMap);
+//                 dataList.add(resNode);
+//             }
 
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", dataList);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("code", 200);
+//             resMap.put("data", dataList);
+//             resMap.put("msg", "success");
+//             return objectMapper.valueToTree(resMap).toString();
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+//         }
 
-    }
+//     }
 
-    public Map<String, Object> queryContributes(String community, String item) {
-        String giteeIndex;
-        String claIndex;
-        String contributesQueryStr;
-        long prs = 0;
-        long issues = 0;
-        long comments = 0;
-        long repos = 0;
-        HashMap<String, Object> dataMap = new HashMap<>();
-        dataMap.put("prs", prs);
-        dataMap.put("issues", issues);
-        dataMap.put("comments", comments);
-        dataMap.put("repos", repos);
+//     public Map<String, Object> queryContributes(String community, String item) {
+//         String giteeIndex;
+//         String claIndex;
+//         String contributesQueryStr;
+//         long prs = 0;
+//         long issues = 0;
+//         long comments = 0;
+//         long repos = 0;
+//         HashMap<String, Object> dataMap = new HashMap<>();
+//         dataMap.put("prs", prs);
+//         dataMap.put("issues", issues);
+//         dataMap.put("comments", comments);
+//         dataMap.put("repos", repos);
 
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                giteeIndex = openEuler.getGiteeAllIndex();
-                contributesQueryStr = openEuler.getGiteeContributesQueryStr();
-                claIndex = openEuler.getClaCorporationIndex();
-                break;
-            case "opengauss":
-                giteeIndex = openGauss.getGiteeAllIndex();
-                contributesQueryStr = openGauss.getGiteeContributesQueryStr();
-                claIndex = openGauss.getClaCorporationIndex();
-                break;
-            case "openlookeng":
-                giteeIndex = openLookeng.getGiteeAllIndex();
-                contributesQueryStr = openLookeng.getGiteeContributesQueryStr();
-                claIndex = openLookeng.getClaCorporationIndex();
-                break;
-            case "mindspore":
-                giteeIndex = mindSpore.getGiteeAllIndex();
-                contributesQueryStr = mindSpore.getGiteeContributesQueryStr();
-                claIndex = mindSpore.getClaCorporationIndex();
-                break;
-            default:
-                return dataMap;
-        }
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 giteeIndex = openEuler.getGiteeAllIndex();
+//                 contributesQueryStr = openEuler.getGiteeContributesQueryStr();
+//                 claIndex = openEuler.getClaCorporationIndex();
+//                 break;
+//             case "opengauss":
+//                 giteeIndex = openGauss.getGiteeAllIndex();
+//                 contributesQueryStr = openGauss.getGiteeContributesQueryStr();
+//                 claIndex = openGauss.getClaCorporationIndex();
+//                 break;
+//             case "openlookeng":
+//                 giteeIndex = openLookeng.getGiteeAllIndex();
+//                 contributesQueryStr = openLookeng.getGiteeContributesQueryStr();
+//                 claIndex = openLookeng.getClaCorporationIndex();
+//                 break;
+//             case "mindspore":
+//                 giteeIndex = mindSpore.getGiteeAllIndex();
+//                 contributesQueryStr = mindSpore.getGiteeContributesQueryStr();
+//                 claIndex = mindSpore.getClaCorporationIndex();
+//                 break;
+//             default:
+//                 return dataMap;
+//         }
 
-        Map<String, Integer> communityPartners = getCommunityPartners(communityPartnersYaml);
-        Integer otherPartners = communityPartners.getOrDefault(community.toLowerCase(), 0);
-        try {
-            List<String> companys = queryClaCompany(claIndex);
-            dataMap.put("partners", companys.size() + otherPartners);
-        } catch (Exception ex) {
-            dataMap.put("partners", otherPartners);
-            ex.printStackTrace();
-        }
+//         Map<String, Integer> communityPartners = getCommunityPartners(communityPartnersYaml);
+//         Integer otherPartners = communityPartners.getOrDefault(community.toLowerCase(), 0);
+//         try {
+//             List<String> companys = queryClaCompany(claIndex);
+//             dataMap.put("partners", companys.size() + otherPartners);
+//         } catch (Exception ex) {
+//             dataMap.put("partners", otherPartners);
+//             ex.printStackTrace();
+//         }
 
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
+//         try {
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
 
-            builder.setUrl(this.url + giteeIndex + "/_search");
-            builder.setBody(contributesQueryStr);
-            //获取执行结果
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("orgs").get("buckets").elements();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                prs += bucket.get("prs").get("value").asLong();
-                issues += bucket.get("issues").get("value").asLong();
-                comments += bucket.get("comments").get("value").asLong();
-                repos += bucket.get("repos").get("value").asLong();
-            }
-            dataMap.put("prs", prs);
-            dataMap.put("issues", issues);
-            dataMap.put("comments", comments);
-            dataMap.put("repos", repos);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//             builder.setUrl(this.url + giteeIndex + "/_search");
+//             builder.setBody(contributesQueryStr);
+//             //获取执行结果
+//             ListenableFuture<Response> f = client.executeRequest(builder.build());
+//             String responseBody = f.get().getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+//             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("orgs").get("buckets").elements();
+//             while (buckets.hasNext()) {
+//                 JsonNode bucket = buckets.next();
+//                 prs += bucket.get("prs").get("value").asLong();
+//                 issues += bucket.get("issues").get("value").asLong();
+//                 comments += bucket.get("comments").get("value").asLong();
+//                 repos += bucket.get("repos").get("value").asLong();
+//             }
+//             dataMap.put("prs", prs);
+//             dataMap.put("issues", issues);
+//             dataMap.put("comments", comments);
+//             dataMap.put("repos", repos);
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//         }
 
-        return dataMap;
-    }
+//         return dataMap;
+//     }
 
-    private List<String> queryClaCompany(String index) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
-        ArrayList<String> companys = new ArrayList<>();
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
+//     private List<String> queryClaCompany(String index) throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+//         ArrayList<String> companys = new ArrayList<>();
+//         AsyncHttpClient client = AsyncHttpUtil.getClient();
+//         RequestBuilder builder = asyncHttpUtil.getBuilder();
 
-        builder.setUrl(this.url + index + "/_search");
-        builder.setBody("{\"size\": 10000}");
+//         builder.setUrl(this.url + index + "/_search");
+//         builder.setBody("{\"size\": 10000}");
 
-        ListenableFuture<Response> f = client.executeRequest(builder.build());
-        String responseBody = f.get().getResponseBody(UTF_8);
-        JsonNode dataNode = objectMapper.readTree(responseBody);
-        Iterator<JsonNode> hits = dataNode.get("hits").get("hits").elements();
-        while (hits.hasNext()) {
-            JsonNode source = hits.next().get("_source");
-            companys.add(source.get("corporation_name").asText());
-        }
+//         ListenableFuture<Response> f = client.executeRequest(builder.build());
+//         String responseBody = f.get().getResponseBody(UTF_8);
+//         JsonNode dataNode = objectMapper.readTree(responseBody);
+//         Iterator<JsonNode> hits = dataNode.get("hits").get("hits").elements();
+//         while (hits.hasNext()) {
+//             JsonNode source = hits.next().get("_source");
+//             companys.add(source.get("corporation_name").asText());
+//         }
 
-        return companys;
-    }
+//         return companys;
+//     }
 
-    private List<Map<String, String>> getCompanyNameCnEn(String yamlFile, String localYamlPath) throws Exception {
-        YamlUtil yamlUtil = new YamlUtil();
-        CompanyYaml companies = yamlUtil.readLocalYaml(yamlFile, CompanyYaml.class);
+//     private List<Map<String, String>> getCompanyNameCnEn(String yamlFile, String localYamlPath) throws Exception {
+//         YamlUtil yamlUtil = new YamlUtil();
+//         CompanyYaml companies = yamlUtil.readLocalYaml(yamlFile, CompanyYaml.class);
 
-        HashMap<String, String> company_enMap = new HashMap<>();
-        HashMap<String, String> company_cnMap = new HashMap<>();
-        ArrayList<Map<String, String>> res = new ArrayList<>();
-        for (CompanyYamlInfo company : companies.getCompanies()) {
-            List<String> aliases = company.getAliases();
-            String company_en = company.getCompany_en().trim();
-            String company_cn = company.getCompany_cn().trim();
-            if (aliases != null) {
-                for (String alias : aliases) {
-                    company_enMap.put(alias, company_en);
-                    company_cnMap.put(alias, company_cn);
-                }
-            }
-            company_enMap.put(company.getCompany_cn().trim(), company_en);
-        }
-        res.add(company_enMap);
-        res.add(company_cnMap);
-        return res;
-    }
+//         HashMap<String, String> company_enMap = new HashMap<>();
+//         HashMap<String, String> company_cnMap = new HashMap<>();
+//         ArrayList<Map<String, String>> res = new ArrayList<>();
+//         for (CompanyYamlInfo company : companies.getCompanies()) {
+//             List<String> aliases = company.getAliases();
+//             String company_en = company.getCompany_en().trim();
+//             String company_cn = company.getCompany_cn().trim();
+//             if (aliases != null) {
+//                 for (String alias : aliases) {
+//                     company_enMap.put(alias, company_en);
+//                     company_cnMap.put(alias, company_cn);
+//                 }
+//             }
+//             company_enMap.put(company.getCompany_cn().trim(), company_en);
+//         }
+//         res.add(company_enMap);
+//         res.add(company_cnMap);
+//         return res;
+//     }
 
-    private Map<String, Integer> getCommunityPartners(String yamlFile) {
-        YamlUtil yamlUtil = new YamlUtil();
-        CommunityPartnersYaml communities = yamlUtil.readLocalYaml(yamlFile, CommunityPartnersYaml.class);
+//     private Map<String, Integer> getCommunityPartners(String yamlFile) {
+//         YamlUtil yamlUtil = new YamlUtil();
+//         CommunityPartnersYaml communities = yamlUtil.readLocalYaml(yamlFile, CommunityPartnersYaml.class);
 
-        HashMap<String, Integer> resMap = new HashMap<>();
-        for (CommunityPartnersYamlInfo community : communities.getCommunity()) {
-            int sum = community.getPartners().stream().mapToInt(Integer::intValue).sum();
-            resMap.put(community.getName(), sum);
-        }
-        return resMap;
-    }
+//         HashMap<String, Integer> resMap = new HashMap<>();
+//         for (CommunityPartnersYamlInfo community : communities.getCommunity()) {
+//             int sum = community.getPartners().stream().mapToInt(Integer::intValue).sum();
+//             resMap.put(community.getName(), sum);
+//         }
+//         return resMap;
+//     }
 
-    public String queryIssueScore(String community, String start_date, String end_date, String item)
-            throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
-        AsyncHttpClient client = AsyncHttpUtil.getClient();
-        RequestBuilder builder = asyncHttpUtil.getBuilder();
+//     public String queryIssueScore(String community, String start_date, String end_date, String item)
+//             throws NoSuchAlgorithmException, KeyManagementException, ExecutionException, InterruptedException, JsonProcessingException {
+//         AsyncHttpClient client = AsyncHttpUtil.getClient();
+//         RequestBuilder builder = asyncHttpUtil.getBuilder();
 
-        String index = "";
-        String queryjson = "";
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getIssueScoreIndex();
-                queryjson = openEuler.getIssueScoreQueryStr();
-                break;
-            case "opengauss":
-            case "openlookeng":
-                index = openLookeng.getIssueScoreIndex();
-                queryjson = openLookeng.getIssueScoreQueryStr();
-                break;
-            case "mindspore":
-                return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
-            default:
-                return "";
-        }
+//         String index = "";
+//         String queryjson = "";
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getIssueScoreIndex();
+//                 queryjson = openEuler.getIssueScoreQueryStr();
+//                 break;
+//             case "opengauss":
+//             case "openlookeng":
+//                 index = openLookeng.getIssueScoreIndex();
+//                 queryjson = openLookeng.getIssueScoreQueryStr();
+//                 break;
+//             case "mindspore":
+//                 return "{\"code\":400,\"data\":{\"" + item + "\":\"query error\"},\"msg\":\"query error\"}";
+//             default:
+//                 return "";
+//         }
 
-        if (StringUtils.isBlank(start_date)) {
-            start_date = "2020-01-01";
-        }
-        if (StringUtils.isBlank(end_date)) {
-            end_date = "now";
-        }
-        queryjson = String.format(queryjson, start_date, end_date);
+//         if (StringUtils.isBlank(start_date)) {
+//             start_date = "2020-01-01";
+//         }
+//         if (StringUtils.isBlank(end_date)) {
+//             end_date = "now";
+//         }
+//         queryjson = String.format(queryjson, start_date, end_date);
 
-        builder.setUrl(this.url + index + "/_search");
-        builder.setBody(queryjson);
-        // 获取执行结果
-        ListenableFuture<Response> futureRes = client.executeRequest(builder.build());
-        return parseIssueScoreFutureRes(futureRes, item);
-    }
+//         builder.setUrl(this.url + index + "/_search");
+//         builder.setBody(queryjson);
+//         // 获取执行结果
+//         ListenableFuture<Response> futureRes = client.executeRequest(builder.build());
+//         return parseIssueScoreFutureRes(futureRes, item);
+//     }
 
-    private String parseIssueScoreFutureRes(ListenableFuture<Response> futureRes, String dataflage) {
-        Response response = null;
-        String statusText = "请求内部错误";
-        int statusCode = 500;
-        String data = null;
-        String result = null;
-        double count = 0d;
-        try {
-            response = futureRes.get();
-            statusCode = response.getStatusCode();
-            statusText = response.getStatusText();
+//     private String parseIssueScoreFutureRes(ListenableFuture<Response> futureRes, String dataflage) {
+//         Response response = null;
+//         String statusText = "请求内部错误";
+//         int statusCode = 500;
+//         String data = null;
+//         String result = null;
+//         double count = 0d;
+//         try {
+//             response = futureRes.get();
+//             statusCode = response.getStatusCode();
+//             statusText = response.getStatusText();
 
-            if (statusCode != 200) {
-                data = "[]";
-                result = "{\"code\":" + statusCode + ",\"data\":" + data + ",\"msg\":\"" + statusText + "\"}";
-                return result;
-            }
-            String responseBody = response.getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            JsonNode records = dataNode.get("aggregations").get("group_by_user_login").get("buckets");
-            int totalCount = records.size();
+//             if (statusCode != 200) {
+//                 data = "[]";
+//                 result = "{\"code\":" + statusCode + ",\"data\":" + data + ",\"msg\":\"" + statusText + "\"}";
+//                 return result;
+//             }
+//             String responseBody = response.getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+//             JsonNode records = dataNode.get("aggregations").get("group_by_user_login").get("buckets");
+//             int totalCount = records.size();
 
-            ArrayList<HashMap<String, Object>> resJsonArray = new ArrayList<>();
-            for (JsonNode record : records) {
-                String issue_author = record.get("key").asText();
-                Double issue_score = record.get("sum_of_score").get("value").asDouble();
+//             ArrayList<HashMap<String, Object>> resJsonArray = new ArrayList<>();
+//             for (JsonNode record : records) {
+//                 String issue_author = record.get("key").asText();
+//                 Double issue_score = record.get("sum_of_score").get("value").asDouble();
 
-                HashMap<String, Object> recordJsonObj = new HashMap<>();
-                recordJsonObj.put("issue_author", issue_author);
-                recordJsonObj.put("issue_score", issue_score);
-                resJsonArray.add(recordJsonObj);
-            }
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", resJsonArray);
-            resMap.put("msg", statusText);
-            result = objectMapper.valueToTree(resMap).toString();
-            return result;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return "{\"code\":" + statusCode + ",\"data\":\"[]\",\"msg\":\"" + statusText + "\"}";
-    }
+//                 HashMap<String, Object> recordJsonObj = new HashMap<>();
+//                 recordJsonObj.put("issue_author", issue_author);
+//                 recordJsonObj.put("issue_score", issue_score);
+//                 resJsonArray.add(recordJsonObj);
+//             }
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("code", 200);
+//             resMap.put("data", resJsonArray);
+//             resMap.put("msg", statusText);
+//             result = objectMapper.valueToTree(resMap).toString();
+//             return result;
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//         }
+//         return "{\"code\":" + statusCode + ",\"data\":\"[]\",\"msg\":\"" + statusText + "\"}";
+//     }
 
     public String queryBuildCheckInfo(BuildCheckInfoQueryVo queryBody, String item, Environment env, String lastCursor,
             String pageSize) {
@@ -2242,942 +2242,942 @@ public class QueryDao {
         return justifiedResult;
     }
 
-    public String putUserActionsinfo(String community, String data, Environment env)
-            throws NoSuchAlgorithmException, KeyManagementException, IOException {
-        String index;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getTracker_index();
-                break;
-            case "opengauss":
-                index = openGauss.getTracker_index();
-                break;
-            case "mindspore":
-                index = mindSpore.getTracker_index();
-                break;
-            case "openlookeng":
-                index = openLookeng.getTracker_index();
-                break;
-            case "test":
-                index = "test_tracker";
-                break;
-            default:
-                return "{\"code\":" + 404 + ",\"data\":\"index: error!\",\"msg\":\"not Found!\"}";
-        }
-        /*String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
-        String host = env.getProperty("es.host");
-        int port = Integer.parseInt(env.getProperty("es.port", "9200"));
-        String scheme = env.getProperty("es.scheme");
-        String esUser = userpass[0];
-        String password = userpass[1];
-        RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
-        BulkRequest request = new BulkRequest();*/
-
-        String sdata = new String(Base64.getDecoder().decode(data));
-        JsonNode userVo = objectMapper.readTree(sdata);
-        Date now = new Date();
-        SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
-        String nowStr = simpleDateFormat.format(now);
-        String id = userVo.get("_track_id").asText();
-
-        HashMap<String, Object> resMap = objectMapper.convertValue(userVo, HashMap.class);
-        resMap.put("created_at", nowStr);
-        resMap.put("community", community);
-
-        kafkaDao.sendMess(topicTracker, id, objectMapper.valueToTree(resMap).toString());
-
-        /*request.add(new IndexRequest(index, "_doc", id).source(resMap));
-        if (request.requests().size() != 0){
-            System.out.println(community);
-            System.out.println(resMap);
-            restHighLevelClient.bulk(request, RequestOptions.DEFAULT);
-        }         
-        restHighLevelClient.close();*/
-
-        String res = "{\"code\":200,\"track_id\":" + id + ",\"msg\":\"collect over\"}";
-        return res;
-    }
-
-    public String querySigName(String community, String lang) {
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            String index = "";
-            String queryjson = "";
-            switch (community.toLowerCase()) {
-                case "openeuler":
-                    index = openEuler.getSigs_index();
-                    queryjson = openEuler.getSigNameQueryStr();
-                    break;
-                case "opengauss":
-                    index = openGauss.getSigs_index();
-                    queryjson = openGauss.getSigNameQueryStr();
-                    break;
-                case "mindspore":
-                    return getMindsporeSigList(lang);
-                default:
-                    return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
-            }
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryjson);
-            // 获取执行结果
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-
-            Response response = f.get();
-            String responseBody = response.getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("sig_names").get("buckets").elements();
-            HashMap<String, Object> dataMap = new HashMap<>();
-            ArrayList<String> sigList = new ArrayList<>();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String sig = bucket.get("key").asText();
-                sigList.add(sig);
-            }
-            dataMap.put(community, sigList);
-
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", dataMap);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
-
-    public String querySigInfo(String community, String sig) {
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            String index = "";
-            String queryjson = "";
-            switch (community.toLowerCase()) {
-                case "openeuler":
-                    index = openEuler.getSigs_index();
-                    queryjson = openEuler.getSigInfoQueryStr();
-                    break;
-                case "opengauss":
-                    index = openGauss.getSigs_index();
-                    queryjson = openGauss.getSigInfoQueryStr();
-                    break;
-                case "mindspore":
-                    sig = getMindsporeSigName(sig);
-                    index = mindSpore.getSigs_index();
-                    queryjson = mindSpore.getSigInfoQueryStr();
-                    break;
-                default:
-                    return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
-            }
-            sig = sig == null ? "*" : sig;
-            String querystr = String.format(queryjson, sig);
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(querystr);
-            // 获取执行结果
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-
-            Response response = f.get();
-            String responseBody = response.getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-
-            Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
-            ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
-
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next().get("_source");
-                HashMap<String, Object> data = objectMapper.convertValue(bucket, HashMap.class);
-                sigList.add(data);
-            }
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", sigList);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
-
-    public String querySigRepo(String community, String sig) {
-        String index;
-        String queryStr;
-        sig = sig == null ? "*" : sig;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getSigs_index();
-                queryStr = openEuler.getAggSigRepoQueryStr(sig);
-                break;
-            case "opengauss":
-                index = openGauss.getSigs_index();
-                queryStr = openGauss.getAggSigRepoQueryStr(sig);
-                break;
-            case "openlookeng":
-                index = openLookeng.getGiteeAllIndex();
-                queryStr = openLookeng.getAggSigRepoQueryStr(sig);
-                break;
-            case "mindspore":
-                index = mindSpore.getSigs_index();
-                queryStr = mindSpore.getAggSigRepoQueryStr(sig);
-                break;
-            default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-            // 获取执行结果
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
-            ArrayList<String> repoList = new ArrayList<>();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String repo = bucket.get("key").asText();
-                repoList.add(repo);
-            }
-
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", repoList);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
-
-    public String queryCompanyName(String community) {
-        String index = "";
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getClaCorporationIndex();
-                break;
-            case "opengauss":
-                index = openGauss.getClaCorporationIndex();
-                break;
-            case "mindspore":
-                index = mindSpore.getClaCorporationIndex();
-                break;
-            case "openlookeng":
-                return "{\"code\":" + 404 + ",\"data\":{\"companys\":" + 0 + "},\"msg\":\"not Found!\"}";
-            default:
-                return "";
-        }
-        try {
-            HashMap<String, Object> dataMap = new HashMap<>();
-            List<String> companyList = new ArrayList<>();
-            companyList = queryClaCompany(index);
-            List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml, companyNameLocalYaml);
-            Map<String, String> companyNameCnEn = companys.get(0);
-            Map<String, String> companyNameAlCn = companys.get(1);
-            List<HashMap<String, Object>> companyNameList = new ArrayList<>();
-            for (String company : companyList) {
-                // if (company.contains("软通动力") || company.contains("中软国际") ||
-                //         company.contains("易宝软件") || company.contains("华为合作方")) {
-                //     continue;
-                // }
-                HashMap<String, Object> nameMap = new HashMap<>();
-                String companyCn = companyNameAlCn.getOrDefault(company.trim(), company.trim());
-                String companyEn = companyNameCnEn.getOrDefault(company.trim(), companyCn);
-                nameMap.put("company_cn", companyCn);
-                nameMap.put("company_en", companyEn);
-                companyNameList.add(nameMap);
-            }
-            dataMap.put(community, companyNameList);
-
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", dataMap);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
-
-    // 获取企业员工的pr、issue、comment、star、fork、watch等指标
-    public String queryCompanyUsercontribute(String community, String company, String timeRange) {
-        String index;
-        String queryStr;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getGiteeAllIndex();
-                queryStr = openEuler.getAggCompanyUserQueryStr(timeRange, company);
-                break;
-            case "opengauss":
-                index = openGauss.getGiteeAllIndex();
-                queryStr = openGauss.getAggCompanyUserQueryStr(timeRange, company);
-                break;
-            case "openlookeng":
-                index = openLookeng.getGiteeAllIndex();
-                queryStr = openLookeng.getAggCompanyUserQueryStr(timeRange, company);
-                break;
-            case "mindspore":
-                index = mindSpore.getGiteeAllIndex();
-                queryStr = mindSpore.getAggCompanyUserQueryStr(timeRange, company);
-                break;
-            default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-            // 获取执行结果
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
-
-            HashMap<String, Object> dataMap = new HashMap<>();
-            List<String> metrics = Arrays.asList(new String[]{"PR", "PR_Review", "Issue", "Issue_Comment", "Fork", "Star", "Watch"});
-            dataMap.put("metrics", metrics);
-
-            while (buckets.hasNext()) {
-                ArrayList<Integer> valueList = new ArrayList<>();
-                JsonNode bucket = buckets.next();
-                String user = bucket.get("key").asText();
-                valueList.add(bucket.get("pr").get("value").asInt());
-                valueList.add(bucket.get("review").get("value").asInt());
-                valueList.add(bucket.get("issue").get("value").asInt());
-                valueList.add(bucket.get("issue_comment").get("value").asInt());
-                valueList.add(bucket.get("fork").get("value").asInt());
-                valueList.add(bucket.get("star").get("value").asInt());
-                valueList.add(bucket.get("watch").get("value").asInt());
-                dataMap.put(user, valueList);
-            }
-
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", dataMap);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
-
-    // 获取企业员工参与的sig的13个sig活跃度指标
-    public String queryCompanySigDetails(String community, String company, String timeRange) {
-        String gitee_index;
-        String[] queryStrs;
-        // String companystr = CompanyCN2Cla(community, company);
-        String companystr = getcompanyNames(company);
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                gitee_index = openEuler.getGiteeAllIndex();
-                String queryjson = openEuler.getCompanySigsQueryStr();
-                queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, companystr);
-                break;
-            default:
-                return "{\"code\":400,\"data\":{\"community error\"},\"msg\":\"community error\"}";
-        }
-        HashMap<String, ArrayList<Integer>> sigMetricsList = commonCompany(gitee_index, queryStrs);
-        if (sigMetricsList == null) {
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-        Iterator<String> sigAll = sigMetricsList.keySet().iterator();
-
-        HashMap<String, Integer> companyContriList = queryCompanyContribute(community, companystr, timeRange);
-        if (companyContriList == null) {
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"queryCompanyContribute error\"}";
-        }
-        Set<String> sigCon = companyContriList.keySet();
-        while (sigAll.hasNext()) {
-            String s = sigAll.next();
-            if (sigCon.contains(s)) {
-                sigMetricsList.get(s).add(companyContriList.get(s));
-            } else {
-                sigMetricsList.get(s).add(0);
-            }
-        }
-
-        HashMap<String, ArrayList<Integer>> companyMeetingList = queryCompanyMeetings(community, companystr, timeRange);
-        if (companyMeetingList == null) {
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"queryCompanyMeetings error\"}";
-        }
-        Set<String> sigMeeting = companyMeetingList.keySet();
-        sigAll = sigMetricsList.keySet().iterator();
-        while (sigAll.hasNext()) {
-            String s = sigAll.next();
-            if (sigMeeting.contains(s)) {
-                ArrayList<Integer> meetingValue = companyMeetingList.get(s);
-                sigMetricsList.get(s).add(meetingValue.get(0));
-                sigMetricsList.get(s).add(meetingValue.get(1));
-            } else {
-                sigMetricsList.get(s).add(0);
-                sigMetricsList.get(s).add(0);
-            }
-        }
-
-        HashMap<String, Integer> maintainersList = queryCompanyMaintainers(community, companystr, timeRange);
-        if (maintainersList == null) {
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"queryCompanyMaintainers error\"}";
-        }
-        Set<String> sigMain = maintainersList.keySet();
-        sigAll = sigMetricsList.keySet().iterator();
-        while (sigAll.hasNext()) {
-            String s = sigAll.next();
-            if (sigMain.contains(s)) {
-                sigMetricsList.get(s).add(maintainersList.get(s));
-            } else {
-                sigMetricsList.get(s).add(0);
-            }
-        }
-
-        HashMap<String, Object> dataMap = new HashMap<>();
-
-        ArrayList<HashMap<String, Object>> itemList = new ArrayList<>();
-        sigAll = sigMetricsList.keySet().iterator();
-        HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
-        while (sigAll.hasNext()) {
-            HashMap<String, Object> item = new HashMap<>();
-            String s = sigAll.next();
-            List<Integer> value = sigMetricsList.get(s);
-            HashMap<String, String> sigInfo = sigfeatures.get(s);
-            String feature = "";
-            String group = "";
-            String en_feature = "";
-            String en_group = "";
-            if (sigInfo != null) {
-                feature = sigInfo.get("feature");
-                group = sigInfo.get("group");
-                en_feature = sigInfo.get("en_feature");
-                en_group = sigInfo.get("en_group");
-            }
-            item.put("sig", s);
-            item.put("value", value);
-            item.put("feature", feature);
-            item.put("group", group);
-            item.put("en_feature", en_feature);
-            item.put("en_group", en_group);
-            itemList.add(item);
-        }
-        List<String> metrics = Arrays.asList(new String[]{"D0", "D1", "D2", "Company", "PR_Merged", "PR_Review", "Issue_update", "Issue_Closed", "Issue_Comment", "Contribute", "Meeting", "Attebdee", "Maintainer"});
-        dataMap.put("metrics", metrics);
-        dataMap.put(company, itemList);
-        HashMap<String, Object> resMap = new HashMap<>();
-        resMap.put("code", 200);
-        resMap.put("data", dataMap);
-        resMap.put("msg", "success");
-        return objectMapper.valueToTree(resMap).toString();
-    }
-
-    public HashMap<String, ArrayList<Integer>> commonCompany(String index, String[] queryStrs) {
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            HashMap<String, ArrayList<Integer>> sigMap = new HashMap<>();
-
-            for (int i = 0; i < queryStrs.length; i++) {
-                // 获取执行结果
-                builder.setUrl(this.url + index + "/_search");
-                builder.setBody(queryStrs[i]);
-
-                ListenableFuture<Response> f = client.executeRequest(builder.build());
-                String responseBody = f.get().getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);
-
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
-
-                ArrayList<String> tmp = new ArrayList<>();
-                while (buckets.hasNext()) {
-                    JsonNode bucket = buckets.next();
-                    String sig = bucket.get("key").asText();
-                    int value = bucket.get("count").get("value").asInt();
-                    ArrayList<Integer> sigMetricsList = new ArrayList<>();
-                    for (int j = 0; j < i; j++) {
-                        sigMetricsList.add(0);
-                    }
-                    if (!sigMap.containsKey(sig)) {
-                        sigMap.put(sig, sigMetricsList);
-                    }
-                    sigMap.get(sig).add(value);
-                    tmp.add(sig);
-                }
-                Iterator<String> sigkeys = sigMap.keySet().iterator();
-                while (sigkeys.hasNext()) {
-                    String key = sigkeys.next();
-                    if (!tmp.contains(key)) {
-                        sigMap.get(key).add(0);
-                    }
-                }
-            }
-            return sigMap;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public HashMap<String, Integer> queryCompanyContribute(String community, String company, String timeRange) {
-        String gitee_index;
-        String[] queryStrs;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                gitee_index = openEuler.getGiteeAllIndex();
-                String queryjson = openEuler.getCompanyContributeQueryStr();
-                queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);
-                break;
-            default:
-                return null;
-        }
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            HashMap<String, Integer> sigMap = new HashMap<>();
-
-            for (int i = 0; i < queryStrs.length; i++) {
-                // 获取执行结果
-                builder.setUrl(this.url + gitee_index + "/_search");
-                builder.setBody(queryStrs[i]);
-
-                ListenableFuture<Response> f = client.executeRequest(builder.build());
-                String responseBody = f.get().getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
-                int count = 0;
-                while (buckets.hasNext()) {
-                    JsonNode bucket = buckets.next();
-                    String sig = bucket.get("key").asText();
-                    count = bucket.get("doc_count").asInt();
-                    sigMap.put(sig, count);
-                }
-            }
-            return sigMap;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public HashMap<String, ArrayList<Integer>> queryCompanyMeetings(String community, String company, String timeRange) {
-        String meeting_index;
-        String[] queryStrs;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                meeting_index = openEuler.getMeetingsIndex();
-                String queryjson = openEuler.getCompanyMeetingsQueryStr();
-                queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);
-                break;
-            default:
-                return null;
-        }
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder().setHeader("Authorization",
-                    "Basic " + Base64.getEncoder().encodeToString((meeting_userpass).getBytes()));
-            HashMap<String, ArrayList<Integer>> sigMap = new HashMap<>();
-
-            for (int i = 0; i < queryStrs.length; i++) {
-                // 获取执行结果
-                builder.setUrl(this.meeting_url + meeting_index + "/_search");
-                builder.setBody(queryStrs[i]);
-
-                ListenableFuture<Response> f = client.executeRequest(builder.build());
-                String responseBody = f.get().getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
-
-                while (buckets.hasNext()) {
-                    JsonNode bucket = buckets.next();
-                    String sig = bucket.get("key").asText();
-                    int count = bucket.get("doc_count").asInt();
-                    int num = bucket.get("count").get("value").asInt();
-                    ArrayList<Integer> meeting = new ArrayList<>();
-                    meeting.add(count);
-                    meeting.add(num);
-                    sigMap.put(sig, meeting);
-                }
-            }
-            return sigMap;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public HashMap<String, Integer> queryCompanyMaintainers(String community, String company, String timeRange) {
-        String sig_index;
-        String[] queryStrs;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                sig_index = openEuler.getSigs_index();
-                String queryjson = openEuler.getCompanyMaintainersQueryStr();
-                queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);
-                break;
-            default:
-                return null;
-        }
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            HashMap<String, Integer> sigMap = new HashMap<>();
-
-            String query = queryStrs[0];
-            // 获取执行结果
-            builder.setUrl(this.url + sig_index + "/_search");
-            builder.setBody(query);
-
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String sig = bucket.get("key").asText();
-                int value = bucket.get("count").get("value").asInt();
-                sigMap.put(sig, value);
-            }
-            return sigMap;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    // 获取每个sig的maintainers、committers
-    public JsonNode querySigOwnerTypeCount(String community, String sig) {
-        String index;
-        String queryStr;
-        String queryJson;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getSigs_index();
-                queryJson = openEuler.getSigOwnerType();
-                break;
-            case "opengauss":
-                index = openGauss.getSigs_index();
-                queryJson = openGauss.getSigOwnerType();
-                break;
-            default:
-                System.out.println("{\"code\":400,\"data\":{\"" + sig + "\":\"query error\"},\"msg\":\"query error\"}");
-                return null;
-        }
-
-        if (queryJson == null) {
-            System.out.println("SigUserTypeQueryStr is null...");
-            return null;
-        }
-        queryStr = String.format(queryJson, sig);
-        JsonNode resNode = commonOwnerType(index, queryStr);
-        return resNode;
-    }
-
-    // 获取所有sig的maintainers、committers
-    public JsonNode queryOwnerTypeCount(String community, String company) {
-        String index;
-        String queryJson;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getSigs_index();
-                queryJson = openEuler.getAllSigsOwnerType();
-                break;
-            case "opengauss":
-                index = openGauss.getSigs_index();
-                queryJson = openGauss.getAllSigsOwnerType();
-                break;
-            default:
-                System.out.println("{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}");
-                return null;
-        }
-        if (queryJson == null) {
-            return null;
-        }
-        String queryStr = String.format(queryJson, company);
-        JsonNode resNode = commonOwnerType(index, queryStr);
-        return resNode;
-    }
-
-    public JsonNode commonOwnerType(String index, String queryStr) {
-        try {
-            List<String> robotUsers = Arrays.asList(robotUser.split(","));
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-            // 获取执行结果
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-
-            HashMap<String, Object> dataMap = new HashMap<>();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String giteeId = bucket.get("key").asText();
-                Iterator<JsonNode> ownerTypebucket = bucket.get("owner_type").get("buckets").elements();
-                String ownerType = "committers";
-                while (ownerTypebucket.hasNext()) {
-                    JsonNode ownertype = ownerTypebucket.next();
-                    ownerType = ownertype.get("key").asText();
-                    if (ownerType.equals("maintainers")) {
-                        break;
-                    }
-                }
-                if (robotUsers.contains(giteeId)) { // openeuler-basic
-                    continue;
-                }
-                if (dataMap.containsKey(giteeId)
-                        && dataMap.get(giteeId).equals("maintainers")) {
-                    continue;
-                }
-                dataMap.put(giteeId, ownerType);
-
-            }
-            JsonNode resNode = objectMapper.valueToTree(dataMap);
-            return resNode;
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.out.println("{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}");
-            return null;
-        }
-    }
-
-    public String getcompanyNames(String name) {
-        ArrayList<String> res = getcompanyNameList(name);
-        String names = "(";
-        for (String r : res) {
-            names = names + "\\\"" + r + "\\\",";
-        }
-        names = names + ")";
-        return names;
-    }
-
-    public ArrayList<String> getcompanyNameList(String name) {
-        ArrayList<String> res = new ArrayList<>();
-        res.add(name);
-        YamlUtil yamlUtil = new YamlUtil();
-        CompanyYaml companies = yamlUtil.readLocalYaml(companyNameYaml, CompanyYaml.class);
-        for (CompanyYamlInfo companyinfo : companies.getCompanies()) {
-            String cnCompany = companyinfo.getCompany_cn().trim();
-            String enCompany = companyinfo.getCompany_en().trim();
-            if (name.equals(cnCompany) || name.equals(enCompany)) {
-                res.add(enCompany);
-                res.add(cnCompany);
-                List<String> aliases = companyinfo.getAliases();
-                if (aliases != null) {
-                    for (String alias : aliases) {
-                        res.add(alias);
-                    }
-                }
-            }
-        }
-        return res;
-    }
-
-    public String CompanyCN2Cla(String community, String company) {
-        String resCompany = "";
-        YamlUtil yamlUtil = new YamlUtil();
-        CompanyYaml companies = yamlUtil.readLocalYaml(companyNameYaml, CompanyYaml.class);
-        for (CompanyYamlInfo companyinfo : companies.getCompanies()) {
-            String cnCompany = companyinfo.getCompany_cn().trim();
-            if (company.equals(cnCompany)) {
-                List<String> aliases = companyinfo.getAliases();
-                if (aliases != null) {
-                    for (String alias : aliases) {
-                        if (community.toLowerCase().equals("openeuler")) {
-                            resCompany = alias;
-                            break;
-                        }
-                        resCompany = alias;
-                    }
-                    return resCompany;
-                }
-                resCompany = cnCompany;
-                return resCompany;
-            }
-        }
-        return company;
-    }
-
-    // 根据sig或者commpany获取贡献者的pr、issue、comment等指标
-    public String queryGroupUserContributors(String community, String group_field, String group, String contributeType, String timeRange) {
-        String index;
-        String queryStr;
-        JsonNode ownerType;
-        JsonNode TC_owners = querySigOwnerTypeCount(community, "TC");
-
-        switch (group_field) {
-            case "sig":
-                ownerType = querySigOwnerTypeCount(community, group);
-                break;
-            case "company":
-                // group = CompanyCN2Cla(community, group);
-                group = getcompanyNames(group);
-                ownerType = queryOwnerTypeCount(community, group);
-                break;
-            default:
-                return "";
-        }
-
-        Iterator<String> users = ownerType.fieldNames();
-        HashMap<String, String> data = new HashMap<>();
-        while (users.hasNext()) {
-            String user = users.next();
-            data.put(user.toLowerCase(), ownerType.get(user).asText());
-        }
-        JsonNode ownerTypeLower = objectMapper.valueToTree(data);
-
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getGiteeAllIndex();
-                queryStr = openEuler.getAggGroupCountQueryStr(group_field, group, contributeType, timeRange, community, null);
-                break;
-            case "opengauss":
-                String label = querySiglabel(community).get(group);
-                index = openGauss.getGiteeAllIndex();
-                queryStr = openGauss.getAggGroupCountQueryStr(group_field, group, contributeType, timeRange, community, label);
-                break;
-            default:
-                return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
-        if (queryStr == null) {
-            return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
-
-        try {
-            List<String> robotUsers = Arrays.asList(robotUser.split(","));
-
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-            // 获取执行结果
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-
-            ArrayList<JsonNode> dataList = new ArrayList<>();
-            ArrayList<String> userList = new ArrayList<>();
-
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String giteeId = bucket.get("key").asText();
-                long contribute = bucket.get("sum_field").get("value").asLong();
-                if (contribute == 0 || robotUsers.contains(giteeId)) {
-                    continue;
-                }
-                String userType = "contributor";
-                if (ownerTypeLower.has(giteeId.toLowerCase())) {
-                    userType = ownerTypeLower.get(giteeId.toLowerCase()).asText();
-                }
-                HashMap<String, Object> dataMap = new HashMap<>();
-                dataMap.put("gitee_id", giteeId);
-                dataMap.put("contribute", contribute);
-                dataMap.put("usertype", userType);
-                if (TC_owners.has(giteeId)) {
-                    dataMap.put("is_TC_owner", 1);
-                }
-                JsonNode resNode = objectMapper.valueToTree(dataMap);
-                dataList.add(resNode);
-                userList.add(giteeId.toLowerCase());
-            }
-
-            Iterator<String> owners = ownerType.fieldNames();
-            while (owners.hasNext()) {
-                String owner = owners.next();
-                if (userList.contains(owner.toLowerCase())) {
-                    continue;
-                }
-                HashMap<String, Object> dataMap = new HashMap<>();
-                dataMap.put("gitee_id", owner);
-                dataMap.put("contribute", 0);
-                dataMap.put("usertype", ownerType.get(owner));
-                if (TC_owners.has(owner)) {
-                    dataMap.put("is_TC_owner", 1);
-                }
-                JsonNode resNode = objectMapper.valueToTree(dataMap);
-                dataList.add(resNode);
-            }
-
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", dataList);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
-
-    }
-
-    public String queryCompanyUsers(String community, String company, String timeRange) {
-        String queryjsons;
-        String index;
-        String[] queryStrs;
-        // company = CompanyCN2Cla(community,company);
-        company = getcompanyNames(company);
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                queryjsons = openEuler.getComapnyUsers();
-                queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjsons, timeRange, company);
-                index = openEuler.getGiteeAllIndex();
-                break;
-            case "opengauss":
-                queryjsons = openGauss.getComapnyUsers();
-                queryStrs = openGauss.getAggCompanyGiteeQueryStr(queryjsons, timeRange, company);
-                index = openGauss.getGiteeAllIndex();
-                break;
-            default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            ArrayList<Integer> companyUsersList = new ArrayList<>();
-
-            for (int i = 0; i < queryStrs.length; i++) {
-                // 获取执行结果
-                builder.setUrl(this.url + index + "/_search");
-                builder.setBody(queryStrs[i]);
-
-                ListenableFuture<Response> f = client.executeRequest(builder.build());
-                String responseBody = f.get().getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);
-                int value = dataNode.get("aggregations").get("group_filed").get("value").asInt();
-                companyUsersList.add(value);
-            }
-            HashMap<String, Object> dataMap = new HashMap<>();
-            dataMap.put("value", companyUsersList);
-            List<String> metrics = Arrays.asList(new String[]{"D0", "D1", "D2"});
-            dataMap.put("metrics", metrics);
-
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", dataMap);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
+//     public String putUserActionsinfo(String community, String data, Environment env)
+//             throws NoSuchAlgorithmException, KeyManagementException, IOException {
+//         String index;
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getTracker_index();
+//                 break;
+//             case "opengauss":
+//                 index = openGauss.getTracker_index();
+//                 break;
+//             case "mindspore":
+//                 index = mindSpore.getTracker_index();
+//                 break;
+//             case "openlookeng":
+//                 index = openLookeng.getTracker_index();
+//                 break;
+//             case "test":
+//                 index = "test_tracker";
+//                 break;
+//             default:
+//                 return "{\"code\":" + 404 + ",\"data\":\"index: error!\",\"msg\":\"not Found!\"}";
+//         }
+//         /*String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
+//         String host = env.getProperty("es.host");
+//         int port = Integer.parseInt(env.getProperty("es.port", "9200"));
+//         String scheme = env.getProperty("es.scheme");
+//         String esUser = userpass[0];
+//         String password = userpass[1];
+//         RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
+//         BulkRequest request = new BulkRequest();*/
+
+//         String sdata = new String(Base64.getDecoder().decode(data));
+//         JsonNode userVo = objectMapper.readTree(sdata);
+//         Date now = new Date();
+//         SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+//         String nowStr = simpleDateFormat.format(now);
+//         String id = userVo.get("_track_id").asText();
+
+//         HashMap<String, Object> resMap = objectMapper.convertValue(userVo, HashMap.class);
+//         resMap.put("created_at", nowStr);
+//         resMap.put("community", community);
+
+//         kafkaDao.sendMess(topicTracker, id, objectMapper.valueToTree(resMap).toString());
+
+//         /*request.add(new IndexRequest(index, "_doc", id).source(resMap));
+//         if (request.requests().size() != 0){
+//             System.out.println(community);
+//             System.out.println(resMap);
+//             restHighLevelClient.bulk(request, RequestOptions.DEFAULT);
+//         }         
+//         restHighLevelClient.close();*/
+
+//         String res = "{\"code\":200,\"track_id\":" + id + ",\"msg\":\"collect over\"}";
+//         return res;
+//     }
+
+//     public String querySigName(String community, String lang) {
+//         try {
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
+//             String index = "";
+//             String queryjson = "";
+//             switch (community.toLowerCase()) {
+//                 case "openeuler":
+//                     index = openEuler.getSigs_index();
+//                     queryjson = openEuler.getSigNameQueryStr();
+//                     break;
+//                 case "opengauss":
+//                     index = openGauss.getSigs_index();
+//                     queryjson = openGauss.getSigNameQueryStr();
+//                     break;
+//                 case "mindspore":
+//                     return getMindsporeSigList(lang);
+//                 default:
+//                     return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
+//             }
+//             builder.setUrl(this.url + index + "/_search");
+//             builder.setBody(queryjson);
+//             // 获取执行结果
+//             ListenableFuture<Response> f = client.executeRequest(builder.build());
+
+//             Response response = f.get();
+//             String responseBody = response.getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+//             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("sig_names").get("buckets").elements();
+//             HashMap<String, Object> dataMap = new HashMap<>();
+//             ArrayList<String> sigList = new ArrayList<>();
+//             while (buckets.hasNext()) {
+//                 JsonNode bucket = buckets.next();
+//                 String sig = bucket.get("key").asText();
+//                 sigList.add(sig);
+//             }
+//             dataMap.put(community, sigList);
+
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("code", 200);
+//             resMap.put("data", dataMap);
+//             resMap.put("msg", "success");
+//             return objectMapper.valueToTree(resMap).toString();
+
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+//     }
+
+//     public String querySigInfo(String community, String sig) {
+//         try {
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
+//             String index = "";
+//             String queryjson = "";
+//             switch (community.toLowerCase()) {
+//                 case "openeuler":
+//                     index = openEuler.getSigs_index();
+//                     queryjson = openEuler.getSigInfoQueryStr();
+//                     break;
+//                 case "opengauss":
+//                     index = openGauss.getSigs_index();
+//                     queryjson = openGauss.getSigInfoQueryStr();
+//                     break;
+//                 case "mindspore":
+//                     sig = getMindsporeSigName(sig);
+//                     index = mindSpore.getSigs_index();
+//                     queryjson = mindSpore.getSigInfoQueryStr();
+//                     break;
+//                 default:
+//                     return "{\"code\":" + 404 + ",\"data\":{\"sigs\":" + 0 + "},\"msg\":\"not Found!\"}";
+//             }
+//             sig = sig == null ? "*" : sig;
+//             String querystr = String.format(queryjson, sig);
+//             builder.setUrl(this.url + index + "/_search");
+//             builder.setBody(querystr);
+//             // 获取执行结果
+//             ListenableFuture<Response> f = client.executeRequest(builder.build());
+
+//             Response response = f.get();
+//             String responseBody = response.getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+
+//             Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
+//             ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
+
+//             while (buckets.hasNext()) {
+//                 JsonNode bucket = buckets.next().get("_source");
+//                 HashMap<String, Object> data = objectMapper.convertValue(bucket, HashMap.class);
+//                 sigList.add(data);
+//             }
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("code", 200);
+//             resMap.put("data", sigList);
+//             resMap.put("msg", "success");
+//             return objectMapper.valueToTree(resMap).toString();
+
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+//     }
+
+//     public String querySigRepo(String community, String sig) {
+//         String index;
+//         String queryStr;
+//         sig = sig == null ? "*" : sig;
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getSigs_index();
+//                 queryStr = openEuler.getAggSigRepoQueryStr(sig);
+//                 break;
+//             case "opengauss":
+//                 index = openGauss.getSigs_index();
+//                 queryStr = openGauss.getAggSigRepoQueryStr(sig);
+//                 break;
+//             case "openlookeng":
+//                 index = openLookeng.getGiteeAllIndex();
+//                 queryStr = openLookeng.getAggSigRepoQueryStr(sig);
+//                 break;
+//             case "mindspore":
+//                 index = mindSpore.getSigs_index();
+//                 queryStr = mindSpore.getAggSigRepoQueryStr(sig);
+//                 break;
+//             default:
+//                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+
+//         try {
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+//             builder.setUrl(this.url + index + "/_search");
+//             builder.setBody(queryStr);
+//             // 获取执行结果
+//             ListenableFuture<Response> f = client.executeRequest(builder.build());
+//             String responseBody = f.get().getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+
+//             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
+//             ArrayList<String> repoList = new ArrayList<>();
+//             while (buckets.hasNext()) {
+//                 JsonNode bucket = buckets.next();
+//                 String repo = bucket.get("key").asText();
+//                 repoList.add(repo);
+//             }
+
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("code", 200);
+//             resMap.put("data", repoList);
+//             resMap.put("msg", "success");
+//             return objectMapper.valueToTree(resMap).toString();
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+//     }
+
+//     public String queryCompanyName(String community) {
+//         String index = "";
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getClaCorporationIndex();
+//                 break;
+//             case "opengauss":
+//                 index = openGauss.getClaCorporationIndex();
+//                 break;
+//             case "mindspore":
+//                 index = mindSpore.getClaCorporationIndex();
+//                 break;
+//             case "openlookeng":
+//                 return "{\"code\":" + 404 + ",\"data\":{\"companys\":" + 0 + "},\"msg\":\"not Found!\"}";
+//             default:
+//                 return "";
+//         }
+//         try {
+//             HashMap<String, Object> dataMap = new HashMap<>();
+//             List<String> companyList = new ArrayList<>();
+//             companyList = queryClaCompany(index);
+//             List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml, companyNameLocalYaml);
+//             Map<String, String> companyNameCnEn = companys.get(0);
+//             Map<String, String> companyNameAlCn = companys.get(1);
+//             List<HashMap<String, Object>> companyNameList = new ArrayList<>();
+//             for (String company : companyList) {
+//                 // if (company.contains("软通动力") || company.contains("中软国际") ||
+//                 //         company.contains("易宝软件") || company.contains("华为合作方")) {
+//                 //     continue;
+//                 // }
+//                 HashMap<String, Object> nameMap = new HashMap<>();
+//                 String companyCn = companyNameAlCn.getOrDefault(company.trim(), company.trim());
+//                 String companyEn = companyNameCnEn.getOrDefault(company.trim(), companyCn);
+//                 nameMap.put("company_cn", companyCn);
+//                 nameMap.put("company_en", companyEn);
+//                 companyNameList.add(nameMap);
+//             }
+//             dataMap.put(community, companyNameList);
+
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("code", 200);
+//             resMap.put("data", dataMap);
+//             resMap.put("msg", "success");
+//             return objectMapper.valueToTree(resMap).toString();
+
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+//     }
+
+//     // 获取企业员工的pr、issue、comment、star、fork、watch等指标
+//     public String queryCompanyUsercontribute(String community, String company, String timeRange) {
+//         String index;
+//         String queryStr;
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getGiteeAllIndex();
+//                 queryStr = openEuler.getAggCompanyUserQueryStr(timeRange, company);
+//                 break;
+//             case "opengauss":
+//                 index = openGauss.getGiteeAllIndex();
+//                 queryStr = openGauss.getAggCompanyUserQueryStr(timeRange, company);
+//                 break;
+//             case "openlookeng":
+//                 index = openLookeng.getGiteeAllIndex();
+//                 queryStr = openLookeng.getAggCompanyUserQueryStr(timeRange, company);
+//                 break;
+//             case "mindspore":
+//                 index = mindSpore.getGiteeAllIndex();
+//                 queryStr = mindSpore.getAggCompanyUserQueryStr(timeRange, company);
+//                 break;
+//             default:
+//                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+
+//         try {
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+//             builder.setUrl(this.url + index + "/_search");
+//             builder.setBody(queryStr);
+//             // 获取执行结果
+//             ListenableFuture<Response> f = client.executeRequest(builder.build());
+//             String responseBody = f.get().getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+
+//             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
+
+//             HashMap<String, Object> dataMap = new HashMap<>();
+//             List<String> metrics = Arrays.asList(new String[]{"PR", "PR_Review", "Issue", "Issue_Comment", "Fork", "Star", "Watch"});
+//             dataMap.put("metrics", metrics);
+
+//             while (buckets.hasNext()) {
+//                 ArrayList<Integer> valueList = new ArrayList<>();
+//                 JsonNode bucket = buckets.next();
+//                 String user = bucket.get("key").asText();
+//                 valueList.add(bucket.get("pr").get("value").asInt());
+//                 valueList.add(bucket.get("review").get("value").asInt());
+//                 valueList.add(bucket.get("issue").get("value").asInt());
+//                 valueList.add(bucket.get("issue_comment").get("value").asInt());
+//                 valueList.add(bucket.get("fork").get("value").asInt());
+//                 valueList.add(bucket.get("star").get("value").asInt());
+//                 valueList.add(bucket.get("watch").get("value").asInt());
+//                 dataMap.put(user, valueList);
+//             }
+
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("code", 200);
+//             resMap.put("data", dataMap);
+//             resMap.put("msg", "success");
+//             return objectMapper.valueToTree(resMap).toString();
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+//     }
+
+//     // 获取企业员工参与的sig的13个sig活跃度指标
+//     public String queryCompanySigDetails(String community, String company, String timeRange) {
+//         String gitee_index;
+//         String[] queryStrs;
+//         // String companystr = CompanyCN2Cla(community, company);
+//         String companystr = getcompanyNames(company);
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 gitee_index = openEuler.getGiteeAllIndex();
+//                 String queryjson = openEuler.getCompanySigsQueryStr();
+//                 queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, companystr);
+//                 break;
+//             default:
+//                 return "{\"code\":400,\"data\":{\"community error\"},\"msg\":\"community error\"}";
+//         }
+//         HashMap<String, ArrayList<Integer>> sigMetricsList = commonCompany(gitee_index, queryStrs);
+//         if (sigMetricsList == null) {
+//             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+//         Iterator<String> sigAll = sigMetricsList.keySet().iterator();
+
+//         HashMap<String, Integer> companyContriList = queryCompanyContribute(community, companystr, timeRange);
+//         if (companyContriList == null) {
+//             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"queryCompanyContribute error\"}";
+//         }
+//         Set<String> sigCon = companyContriList.keySet();
+//         while (sigAll.hasNext()) {
+//             String s = sigAll.next();
+//             if (sigCon.contains(s)) {
+//                 sigMetricsList.get(s).add(companyContriList.get(s));
+//             } else {
+//                 sigMetricsList.get(s).add(0);
+//             }
+//         }
+
+//         HashMap<String, ArrayList<Integer>> companyMeetingList = queryCompanyMeetings(community, companystr, timeRange);
+//         if (companyMeetingList == null) {
+//             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"queryCompanyMeetings error\"}";
+//         }
+//         Set<String> sigMeeting = companyMeetingList.keySet();
+//         sigAll = sigMetricsList.keySet().iterator();
+//         while (sigAll.hasNext()) {
+//             String s = sigAll.next();
+//             if (sigMeeting.contains(s)) {
+//                 ArrayList<Integer> meetingValue = companyMeetingList.get(s);
+//                 sigMetricsList.get(s).add(meetingValue.get(0));
+//                 sigMetricsList.get(s).add(meetingValue.get(1));
+//             } else {
+//                 sigMetricsList.get(s).add(0);
+//                 sigMetricsList.get(s).add(0);
+//             }
+//         }
+
+//         HashMap<String, Integer> maintainersList = queryCompanyMaintainers(community, companystr, timeRange);
+//         if (maintainersList == null) {
+//             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"queryCompanyMaintainers error\"}";
+//         }
+//         Set<String> sigMain = maintainersList.keySet();
+//         sigAll = sigMetricsList.keySet().iterator();
+//         while (sigAll.hasNext()) {
+//             String s = sigAll.next();
+//             if (sigMain.contains(s)) {
+//                 sigMetricsList.get(s).add(maintainersList.get(s));
+//             } else {
+//                 sigMetricsList.get(s).add(0);
+//             }
+//         }
+
+//         HashMap<String, Object> dataMap = new HashMap<>();
+
+//         ArrayList<HashMap<String, Object>> itemList = new ArrayList<>();
+//         sigAll = sigMetricsList.keySet().iterator();
+//         HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
+//         while (sigAll.hasNext()) {
+//             HashMap<String, Object> item = new HashMap<>();
+//             String s = sigAll.next();
+//             List<Integer> value = sigMetricsList.get(s);
+//             HashMap<String, String> sigInfo = sigfeatures.get(s);
+//             String feature = "";
+//             String group = "";
+//             String en_feature = "";
+//             String en_group = "";
+//             if (sigInfo != null) {
+//                 feature = sigInfo.get("feature");
+//                 group = sigInfo.get("group");
+//                 en_feature = sigInfo.get("en_feature");
+//                 en_group = sigInfo.get("en_group");
+//             }
+//             item.put("sig", s);
+//             item.put("value", value);
+//             item.put("feature", feature);
+//             item.put("group", group);
+//             item.put("en_feature", en_feature);
+//             item.put("en_group", en_group);
+//             itemList.add(item);
+//         }
+//         List<String> metrics = Arrays.asList(new String[]{"D0", "D1", "D2", "Company", "PR_Merged", "PR_Review", "Issue_update", "Issue_Closed", "Issue_Comment", "Contribute", "Meeting", "Attebdee", "Maintainer"});
+//         dataMap.put("metrics", metrics);
+//         dataMap.put(company, itemList);
+//         HashMap<String, Object> resMap = new HashMap<>();
+//         resMap.put("code", 200);
+//         resMap.put("data", dataMap);
+//         resMap.put("msg", "success");
+//         return objectMapper.valueToTree(resMap).toString();
+//     }
+
+//     public HashMap<String, ArrayList<Integer>> commonCompany(String index, String[] queryStrs) {
+//         try {
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
+//             HashMap<String, ArrayList<Integer>> sigMap = new HashMap<>();
+
+//             for (int i = 0; i < queryStrs.length; i++) {
+//                 // 获取执行结果
+//                 builder.setUrl(this.url + index + "/_search");
+//                 builder.setBody(queryStrs[i]);
+
+//                 ListenableFuture<Response> f = client.executeRequest(builder.build());
+//                 String responseBody = f.get().getResponseBody(UTF_8);
+//                 JsonNode dataNode = objectMapper.readTree(responseBody);
+
+//                 Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
+
+//                 ArrayList<String> tmp = new ArrayList<>();
+//                 while (buckets.hasNext()) {
+//                     JsonNode bucket = buckets.next();
+//                     String sig = bucket.get("key").asText();
+//                     int value = bucket.get("count").get("value").asInt();
+//                     ArrayList<Integer> sigMetricsList = new ArrayList<>();
+//                     for (int j = 0; j < i; j++) {
+//                         sigMetricsList.add(0);
+//                     }
+//                     if (!sigMap.containsKey(sig)) {
+//                         sigMap.put(sig, sigMetricsList);
+//                     }
+//                     sigMap.get(sig).add(value);
+//                     tmp.add(sig);
+//                 }
+//                 Iterator<String> sigkeys = sigMap.keySet().iterator();
+//                 while (sigkeys.hasNext()) {
+//                     String key = sigkeys.next();
+//                     if (!tmp.contains(key)) {
+//                         sigMap.get(key).add(0);
+//                     }
+//                 }
+//             }
+//             return sigMap;
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return null;
+//         }
+//     }
+
+//     public HashMap<String, Integer> queryCompanyContribute(String community, String company, String timeRange) {
+//         String gitee_index;
+//         String[] queryStrs;
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 gitee_index = openEuler.getGiteeAllIndex();
+//                 String queryjson = openEuler.getCompanyContributeQueryStr();
+//                 queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);
+//                 break;
+//             default:
+//                 return null;
+//         }
+//         try {
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
+//             HashMap<String, Integer> sigMap = new HashMap<>();
+
+//             for (int i = 0; i < queryStrs.length; i++) {
+//                 // 获取执行结果
+//                 builder.setUrl(this.url + gitee_index + "/_search");
+//                 builder.setBody(queryStrs[i]);
+
+//                 ListenableFuture<Response> f = client.executeRequest(builder.build());
+//                 String responseBody = f.get().getResponseBody(UTF_8);
+//                 JsonNode dataNode = objectMapper.readTree(responseBody);
+//                 Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
+//                 int count = 0;
+//                 while (buckets.hasNext()) {
+//                     JsonNode bucket = buckets.next();
+//                     String sig = bucket.get("key").asText();
+//                     count = bucket.get("doc_count").asInt();
+//                     sigMap.put(sig, count);
+//                 }
+//             }
+//             return sigMap;
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return null;
+//         }
+//     }
+
+//     public HashMap<String, ArrayList<Integer>> queryCompanyMeetings(String community, String company, String timeRange) {
+//         String meeting_index;
+//         String[] queryStrs;
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 meeting_index = openEuler.getMeetingsIndex();
+//                 String queryjson = openEuler.getCompanyMeetingsQueryStr();
+//                 queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);
+//                 break;
+//             default:
+//                 return null;
+//         }
+//         try {
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder().setHeader("Authorization",
+//                     "Basic " + Base64.getEncoder().encodeToString((meeting_userpass).getBytes()));
+//             HashMap<String, ArrayList<Integer>> sigMap = new HashMap<>();
+
+//             for (int i = 0; i < queryStrs.length; i++) {
+//                 // 获取执行结果
+//                 builder.setUrl(this.meeting_url + meeting_index + "/_search");
+//                 builder.setBody(queryStrs[i]);
+
+//                 ListenableFuture<Response> f = client.executeRequest(builder.build());
+//                 String responseBody = f.get().getResponseBody(UTF_8);
+//                 JsonNode dataNode = objectMapper.readTree(responseBody);
+//                 Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
+
+//                 while (buckets.hasNext()) {
+//                     JsonNode bucket = buckets.next();
+//                     String sig = bucket.get("key").asText();
+//                     int count = bucket.get("doc_count").asInt();
+//                     int num = bucket.get("count").get("value").asInt();
+//                     ArrayList<Integer> meeting = new ArrayList<>();
+//                     meeting.add(count);
+//                     meeting.add(num);
+//                     sigMap.put(sig, meeting);
+//                 }
+//             }
+//             return sigMap;
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return null;
+//         }
+//     }
+
+//     public HashMap<String, Integer> queryCompanyMaintainers(String community, String company, String timeRange) {
+//         String sig_index;
+//         String[] queryStrs;
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 sig_index = openEuler.getSigs_index();
+//                 String queryjson = openEuler.getCompanyMaintainersQueryStr();
+//                 queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjson, timeRange, company);
+//                 break;
+//             default:
+//                 return null;
+//         }
+//         try {
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
+//             HashMap<String, Integer> sigMap = new HashMap<>();
+
+//             String query = queryStrs[0];
+//             // 获取执行结果
+//             builder.setUrl(this.url + sig_index + "/_search");
+//             builder.setBody(query);
+
+//             ListenableFuture<Response> f = client.executeRequest(builder.build());
+//             String responseBody = f.get().getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+
+//             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
+//             while (buckets.hasNext()) {
+//                 JsonNode bucket = buckets.next();
+//                 String sig = bucket.get("key").asText();
+//                 int value = bucket.get("count").get("value").asInt();
+//                 sigMap.put(sig, value);
+//             }
+//             return sigMap;
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return null;
+//         }
+//     }
+
+//     // 获取每个sig的maintainers、committers
+//     public JsonNode querySigOwnerTypeCount(String community, String sig) {
+//         String index;
+//         String queryStr;
+//         String queryJson;
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getSigs_index();
+//                 queryJson = openEuler.getSigOwnerType();
+//                 break;
+//             case "opengauss":
+//                 index = openGauss.getSigs_index();
+//                 queryJson = openGauss.getSigOwnerType();
+//                 break;
+//             default:
+//                 System.out.println("{\"code\":400,\"data\":{\"" + sig + "\":\"query error\"},\"msg\":\"query error\"}");
+//                 return null;
+//         }
+
+//         if (queryJson == null) {
+//             System.out.println("SigUserTypeQueryStr is null...");
+//             return null;
+//         }
+//         queryStr = String.format(queryJson, sig);
+//         JsonNode resNode = commonOwnerType(index, queryStr);
+//         return resNode;
+//     }
+
+//     // 获取所有sig的maintainers、committers
+//     public JsonNode queryOwnerTypeCount(String community, String company) {
+//         String index;
+//         String queryJson;
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getSigs_index();
+//                 queryJson = openEuler.getAllSigsOwnerType();
+//                 break;
+//             case "opengauss":
+//                 index = openGauss.getSigs_index();
+//                 queryJson = openGauss.getAllSigsOwnerType();
+//                 break;
+//             default:
+//                 System.out.println("{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}");
+//                 return null;
+//         }
+//         if (queryJson == null) {
+//             return null;
+//         }
+//         String queryStr = String.format(queryJson, company);
+//         JsonNode resNode = commonOwnerType(index, queryStr);
+//         return resNode;
+//     }
+
+//     public JsonNode commonOwnerType(String index, String queryStr) {
+//         try {
+//             List<String> robotUsers = Arrays.asList(robotUser.split(","));
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+//             builder.setUrl(this.url + index + "/_search");
+//             builder.setBody(queryStr);
+//             // 获取执行结果
+//             ListenableFuture<Response> f = client.executeRequest(builder.build());
+//             String responseBody = f.get().getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+//             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+
+//             HashMap<String, Object> dataMap = new HashMap<>();
+//             while (buckets.hasNext()) {
+//                 JsonNode bucket = buckets.next();
+//                 String giteeId = bucket.get("key").asText();
+//                 Iterator<JsonNode> ownerTypebucket = bucket.get("owner_type").get("buckets").elements();
+//                 String ownerType = "committers";
+//                 while (ownerTypebucket.hasNext()) {
+//                     JsonNode ownertype = ownerTypebucket.next();
+//                     ownerType = ownertype.get("key").asText();
+//                     if (ownerType.equals("maintainers")) {
+//                         break;
+//                     }
+//                 }
+//                 if (robotUsers.contains(giteeId)) { // openeuler-basic
+//                     continue;
+//                 }
+//                 if (dataMap.containsKey(giteeId)
+//                         && dataMap.get(giteeId).equals("maintainers")) {
+//                     continue;
+//                 }
+//                 dataMap.put(giteeId, ownerType);
+
+//             }
+//             JsonNode resNode = objectMapper.valueToTree(dataMap);
+//             return resNode;
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             System.out.println("{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}");
+//             return null;
+//         }
+//     }
+
+//     public String getcompanyNames(String name) {
+//         ArrayList<String> res = getcompanyNameList(name);
+//         String names = "(";
+//         for (String r : res) {
+//             names = names + "\\\"" + r + "\\\",";
+//         }
+//         names = names + ")";
+//         return names;
+//     }
+
+//     public ArrayList<String> getcompanyNameList(String name) {
+//         ArrayList<String> res = new ArrayList<>();
+//         res.add(name);
+//         YamlUtil yamlUtil = new YamlUtil();
+//         CompanyYaml companies = yamlUtil.readLocalYaml(companyNameYaml, CompanyYaml.class);
+//         for (CompanyYamlInfo companyinfo : companies.getCompanies()) {
+//             String cnCompany = companyinfo.getCompany_cn().trim();
+//             String enCompany = companyinfo.getCompany_en().trim();
+//             if (name.equals(cnCompany) || name.equals(enCompany)) {
+//                 res.add(enCompany);
+//                 res.add(cnCompany);
+//                 List<String> aliases = companyinfo.getAliases();
+//                 if (aliases != null) {
+//                     for (String alias : aliases) {
+//                         res.add(alias);
+//                     }
+//                 }
+//             }
+//         }
+//         return res;
+//     }
+
+//     public String CompanyCN2Cla(String community, String company) {
+//         String resCompany = "";
+//         YamlUtil yamlUtil = new YamlUtil();
+//         CompanyYaml companies = yamlUtil.readLocalYaml(companyNameYaml, CompanyYaml.class);
+//         for (CompanyYamlInfo companyinfo : companies.getCompanies()) {
+//             String cnCompany = companyinfo.getCompany_cn().trim();
+//             if (company.equals(cnCompany)) {
+//                 List<String> aliases = companyinfo.getAliases();
+//                 if (aliases != null) {
+//                     for (String alias : aliases) {
+//                         if (community.toLowerCase().equals("openeuler")) {
+//                             resCompany = alias;
+//                             break;
+//                         }
+//                         resCompany = alias;
+//                     }
+//                     return resCompany;
+//                 }
+//                 resCompany = cnCompany;
+//                 return resCompany;
+//             }
+//         }
+//         return company;
+//     }
+
+//     // 根据sig或者commpany获取贡献者的pr、issue、comment等指标
+//     public String queryGroupUserContributors(String community, String group_field, String group, String contributeType, String timeRange) {
+//         String index;
+//         String queryStr;
+//         JsonNode ownerType;
+//         JsonNode TC_owners = querySigOwnerTypeCount(community, "TC");
+
+//         switch (group_field) {
+//             case "sig":
+//                 ownerType = querySigOwnerTypeCount(community, group);
+//                 break;
+//             case "company":
+//                 // group = CompanyCN2Cla(community, group);
+//                 group = getcompanyNames(group);
+//                 ownerType = queryOwnerTypeCount(community, group);
+//                 break;
+//             default:
+//                 return "";
+//         }
+
+//         Iterator<String> users = ownerType.fieldNames();
+//         HashMap<String, String> data = new HashMap<>();
+//         while (users.hasNext()) {
+//             String user = users.next();
+//             data.put(user.toLowerCase(), ownerType.get(user).asText());
+//         }
+//         JsonNode ownerTypeLower = objectMapper.valueToTree(data);
+
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getGiteeAllIndex();
+//                 queryStr = openEuler.getAggGroupCountQueryStr(group_field, group, contributeType, timeRange, community, null);
+//                 break;
+//             case "opengauss":
+//                 String label = querySiglabel(community).get(group);
+//                 index = openGauss.getGiteeAllIndex();
+//                 queryStr = openGauss.getAggGroupCountQueryStr(group_field, group, contributeType, timeRange, community, label);
+//                 break;
+//             default:
+//                 return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
+//         }
+//         if (queryStr == null) {
+//             return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
+//         }
+
+//         try {
+//             List<String> robotUsers = Arrays.asList(robotUser.split(","));
+
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
+
+//             builder.setUrl(this.url + index + "/_search");
+//             builder.setBody(queryStr);
+//             // 获取执行结果
+//             ListenableFuture<Response> f = client.executeRequest(builder.build());
+//             String responseBody = f.get().getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+
+//             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+
+//             ArrayList<JsonNode> dataList = new ArrayList<>();
+//             ArrayList<String> userList = new ArrayList<>();
+
+//             while (buckets.hasNext()) {
+//                 JsonNode bucket = buckets.next();
+//                 String giteeId = bucket.get("key").asText();
+//                 long contribute = bucket.get("sum_field").get("value").asLong();
+//                 if (contribute == 0 || robotUsers.contains(giteeId)) {
+//                     continue;
+//                 }
+//                 String userType = "contributor";
+//                 if (ownerTypeLower.has(giteeId.toLowerCase())) {
+//                     userType = ownerTypeLower.get(giteeId.toLowerCase()).asText();
+//                 }
+//                 HashMap<String, Object> dataMap = new HashMap<>();
+//                 dataMap.put("gitee_id", giteeId);
+//                 dataMap.put("contribute", contribute);
+//                 dataMap.put("usertype", userType);
+//                 if (TC_owners.has(giteeId)) {
+//                     dataMap.put("is_TC_owner", 1);
+//                 }
+//                 JsonNode resNode = objectMapper.valueToTree(dataMap);
+//                 dataList.add(resNode);
+//                 userList.add(giteeId.toLowerCase());
+//             }
+
+//             Iterator<String> owners = ownerType.fieldNames();
+//             while (owners.hasNext()) {
+//                 String owner = owners.next();
+//                 if (userList.contains(owner.toLowerCase())) {
+//                     continue;
+//                 }
+//                 HashMap<String, Object> dataMap = new HashMap<>();
+//                 dataMap.put("gitee_id", owner);
+//                 dataMap.put("contribute", 0);
+//                 dataMap.put("usertype", ownerType.get(owner));
+//                 if (TC_owners.has(owner)) {
+//                     dataMap.put("is_TC_owner", 1);
+//                 }
+//                 JsonNode resNode = objectMapper.valueToTree(dataMap);
+//                 dataList.add(resNode);
+//             }
+
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("code", 200);
+//             resMap.put("data", dataList);
+//             resMap.put("msg", "success");
+//             return objectMapper.valueToTree(resMap).toString();
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
+//         }
+
+//     }
+
+//     public String queryCompanyUsers(String community, String company, String timeRange) {
+//         String queryjsons;
+//         String index;
+//         String[] queryStrs;
+//         // company = CompanyCN2Cla(community,company);
+//         company = getcompanyNames(company);
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 queryjsons = openEuler.getComapnyUsers();
+//                 queryStrs = openEuler.getAggCompanyGiteeQueryStr(queryjsons, timeRange, company);
+//                 index = openEuler.getGiteeAllIndex();
+//                 break;
+//             case "opengauss":
+//                 queryjsons = openGauss.getComapnyUsers();
+//                 queryStrs = openGauss.getAggCompanyGiteeQueryStr(queryjsons, timeRange, company);
+//                 index = openGauss.getGiteeAllIndex();
+//                 break;
+//             default:
+//                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+
+//         try {
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
+//             ArrayList<Integer> companyUsersList = new ArrayList<>();
+
+//             for (int i = 0; i < queryStrs.length; i++) {
+//                 // 获取执行结果
+//                 builder.setUrl(this.url + index + "/_search");
+//                 builder.setBody(queryStrs[i]);
+
+//                 ListenableFuture<Response> f = client.executeRequest(builder.build());
+//                 String responseBody = f.get().getResponseBody(UTF_8);
+//                 JsonNode dataNode = objectMapper.readTree(responseBody);
+//                 int value = dataNode.get("aggregations").get("group_filed").get("value").asInt();
+//                 companyUsersList.add(value);
+//             }
+//             HashMap<String, Object> dataMap = new HashMap<>();
+//             dataMap.put("value", companyUsersList);
+//             List<String> metrics = Arrays.asList(new String[]{"D0", "D1", "D2"});
+//             dataMap.put("metrics", metrics);
+
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("code", 200);
+//             resMap.put("data", dataMap);
+//             resMap.put("msg", "success");
+//             return objectMapper.valueToTree(resMap).toString();
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+//     }
 
     public String queryCommunityRepos(String community) {
         String index;
@@ -3233,496 +3233,496 @@ public class QueryDao {
         }
     }
 
-    public String querySigScore(String community, String sig, String timeRange, String type) {
-        String queryjson;
-        String index;
-        String queryStr;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                queryjson = openEuler.getsig_score_queryStr();
-                queryStr = openEuler.getSigScoreQuery(queryjson, timeRange, sig);
-                if (type.equals("radar")) {
-                    index = openEuler.getsig_radar_score_index();
-                } else {
-                    index = openEuler.getsig_score_index();
-                }
-                break;
-            case "opengauss":
-                queryjson = openGauss.getsig_score_queryStr();
-                queryStr = openGauss.getSigScoreQuery(queryjson, timeRange, sig);
-                if (type.equals("radar")) {
-                    index = openEuler.getsig_radar_score_index();
-                } else {
-                    index = openEuler.getsig_score_index();
-                }
-                break;
-            default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
+//     public String querySigScore(String community, String sig, String timeRange, String type) {
+//         String queryjson;
+//         String index;
+//         String queryStr;
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 queryjson = openEuler.getsig_score_queryStr();
+//                 queryStr = openEuler.getSigScoreQuery(queryjson, timeRange, sig);
+//                 if (type.equals("radar")) {
+//                     index = openEuler.getsig_radar_score_index();
+//                 } else {
+//                     index = openEuler.getsig_score_index();
+//                 }
+//                 break;
+//             case "opengauss":
+//                 queryjson = openGauss.getsig_score_queryStr();
+//                 queryStr = openGauss.getSigScoreQuery(queryjson, timeRange, sig);
+//                 if (type.equals("radar")) {
+//                     index = openEuler.getsig_radar_score_index();
+//                 } else {
+//                     index = openEuler.getsig_score_index();
+//                 }
+//                 break;
+//             default:
+//                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
 
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
+//         try {
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
+//             builder.setUrl(this.url + index + "/_search");
+//             builder.setBody(queryStr);
 
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
-            ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
-            HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next().get("_source");
-                HashMap<String, Object> data = objectMapper.convertValue(bucket, HashMap.class);
-                HashMap<String, String> sigInfo = sigfeatures.get(sig);
-                String feature = "";
-                String group = "";
-                String en_feature = "";
-                String en_group = "";
-                if (sigInfo != null) {
-                    feature = sigInfo.get("feature");
-                    group = sigInfo.get("group");
-                    en_feature = sigInfo.get("en_feature");
-                    en_group = sigInfo.get("en_group");
-                }
-                data.put("feature", feature);
-                data.put("group", group);
-                data.put("en_feature", en_feature);
-                data.put("en_group", en_group);
-                sigList.add(data);
-            }
+//             ListenableFuture<Response> f = client.executeRequest(builder.build());
+//             String responseBody = f.get().getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+//             Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
+//             ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
+//             HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
+//             while (buckets.hasNext()) {
+//                 JsonNode bucket = buckets.next().get("_source");
+//                 HashMap<String, Object> data = objectMapper.convertValue(bucket, HashMap.class);
+//                 HashMap<String, String> sigInfo = sigfeatures.get(sig);
+//                 String feature = "";
+//                 String group = "";
+//                 String en_feature = "";
+//                 String en_group = "";
+//                 if (sigInfo != null) {
+//                     feature = sigInfo.get("feature");
+//                     group = sigInfo.get("group");
+//                     en_feature = sigInfo.get("en_feature");
+//                     en_group = sigInfo.get("en_group");
+//                 }
+//                 data.put("feature", feature);
+//                 data.put("group", group);
+//                 data.put("en_feature", en_feature);
+//                 data.put("en_group", en_group);
+//                 sigList.add(data);
+//             }
 
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", sigList);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("code", 200);
+//             resMap.put("data", sigList);
+//             resMap.put("msg", "success");
+//             return objectMapper.valueToTree(resMap).toString();
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+//     }
 
-    public String querySigScoreAll(String community) {
-        String queryjson;
-        String index;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                queryjson = openEuler.getall_sig_score_queryStr();
-                index = openEuler.getsig_score_index();
-                break;
-            case "opengauss":
-                // queryjson = openGauss.getall_sig_score_queryStr();
-                // index = openEuler.getsig_score_index();
-                return getSigGroups(community);
-            default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
+//     public String querySigScoreAll(String community) {
+//         String queryjson;
+//         String index;
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 queryjson = openEuler.getall_sig_score_queryStr();
+//                 index = openEuler.getsig_score_index();
+//                 break;
+//             case "opengauss":
+//                 // queryjson = openGauss.getall_sig_score_queryStr();
+//                 // index = openEuler.getsig_score_index();
+//                 return getSigGroups(community);
+//             default:
+//                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
 
-        try {
-            Calendar c = Calendar.getInstance();
-            c.setTime(new Date());
-            c.add(Calendar.DATE, -1);
-            String queryStr = String.format(queryjson, c.getTimeInMillis());
-            String responseBody = query(index, queryStr);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
-            if (!buckets.hasNext()) {
-                c.add(Calendar.DATE, -1);
-                queryStr = String.format(queryjson, c.getTimeInMillis());
-                responseBody = query(index, queryStr);
-                dataNode = objectMapper.readTree(responseBody);
-                buckets = dataNode.get("hits").get("hits").elements();
-            }
-            ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
-            HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next().get("_source");
-                HashMap<String, Object> data = objectMapper.convertValue(bucket, HashMap.class);
-                String sig = bucket.get("sig_names").asText();
-                HashMap<String, String> sigInfo = sigfeatures.get(sig);
-                String feature = "";
-                String group = "";
-                String en_feature = "";
-                String en_group = "";
-                if (sigInfo != null) {
-                    feature = sigInfo.get("feature");
-                    group = sigInfo.get("group");
-                    en_feature = sigInfo.get("en_feature");
-                    en_group = sigInfo.get("en_group");
-                }
-                data.put("feature", feature);
-                data.put("group", group);
-                data.put("en_feature", en_feature);
-                data.put("en_group", en_group);
-                data.remove("value");
-                sigList.add(data);
-            }
+//         try {
+//             Calendar c = Calendar.getInstance();
+//             c.setTime(new Date());
+//             c.add(Calendar.DATE, -1);
+//             String queryStr = String.format(queryjson, c.getTimeInMillis());
+//             String responseBody = query(index, queryStr);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+//             Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
+//             if (!buckets.hasNext()) {
+//                 c.add(Calendar.DATE, -1);
+//                 queryStr = String.format(queryjson, c.getTimeInMillis());
+//                 responseBody = query(index, queryStr);
+//                 dataNode = objectMapper.readTree(responseBody);
+//                 buckets = dataNode.get("hits").get("hits").elements();
+//             }
+//             ArrayList<HashMap<String, Object>> sigList = new ArrayList<>();
+//             HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
+//             while (buckets.hasNext()) {
+//                 JsonNode bucket = buckets.next().get("_source");
+//                 HashMap<String, Object> data = objectMapper.convertValue(bucket, HashMap.class);
+//                 String sig = bucket.get("sig_names").asText();
+//                 HashMap<String, String> sigInfo = sigfeatures.get(sig);
+//                 String feature = "";
+//                 String group = "";
+//                 String en_feature = "";
+//                 String en_group = "";
+//                 if (sigInfo != null) {
+//                     feature = sigInfo.get("feature");
+//                     group = sigInfo.get("group");
+//                     en_feature = sigInfo.get("en_feature");
+//                     en_group = sigInfo.get("en_group");
+//                 }
+//                 data.put("feature", feature);
+//                 data.put("group", group);
+//                 data.put("en_feature", en_feature);
+//                 data.put("en_group", en_group);
+//                 data.remove("value");
+//                 sigList.add(data);
+//             }
 
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", sigList);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("code", 200);
+//             resMap.put("data", sigList);
+//             resMap.put("msg", "success");
+//             return objectMapper.valueToTree(resMap).toString();
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+//     }
 
-    public String getSigGroups(String community) {
-        HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
-        ArrayList<HashMap<String, String>> sigList = new ArrayList<>();
-        Set<String> keys = sigfeatures.keySet();
-        for (String key : keys) {
-            HashMap<String, String> data = sigfeatures.get(key);
-            data.put("sig_names", key);
-            sigList.add(data);
-        }
-        HashMap<String, Object> resMap = new HashMap<>();
-        resMap.put("code", 200);
-        resMap.put("data", sigList);
-        resMap.put("msg", "success");
-        return objectMapper.valueToTree(resMap).toString();
-    }
+//     public String getSigGroups(String community) {
+//         HashMap<String, HashMap<String, String>> sigfeatures = getcommunityFeature(community);
+//         ArrayList<HashMap<String, String>> sigList = new ArrayList<>();
+//         Set<String> keys = sigfeatures.keySet();
+//         for (String key : keys) {
+//             HashMap<String, String> data = sigfeatures.get(key);
+//             data.put("sig_names", key);
+//             sigList.add(data);
+//         }
+//         HashMap<String, Object> resMap = new HashMap<>();
+//         resMap.put("code", 200);
+//         resMap.put("data", sigList);
+//         resMap.put("msg", "success");
+//         return objectMapper.valueToTree(resMap).toString();
+//     }
 
-    public String queryCompanySigs(String community, String timeRange) {
-        String queryjson;
-        String index;
-        String queryStr;
-        String claIndex;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                queryjson = openEuler.getAllCompanySigsQueryStr();
-                queryStr = openEuler.getcommonQuery(queryjson, timeRange);
-                claIndex = openEuler.getClaCorporationIndex();
-                index = openEuler.getGiteeAllIndex();
-                break;
-            case "opengauss":
-                queryjson = openGauss.getAllCompanySigsQueryStr();
-                queryStr = openGauss.getcommonQuery(queryjson, timeRange);
-                claIndex = openGauss.getClaCorporationIndex();
-                index = openGauss.getGiteeAllIndex();
-                break;
-            default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
+//     public String queryCompanySigs(String community, String timeRange) {
+//         String queryjson;
+//         String index;
+//         String queryStr;
+//         String claIndex;
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 queryjson = openEuler.getAllCompanySigsQueryStr();
+//                 queryStr = openEuler.getcommonQuery(queryjson, timeRange);
+//                 claIndex = openEuler.getClaCorporationIndex();
+//                 index = openEuler.getGiteeAllIndex();
+//                 break;
+//             case "opengauss":
+//                 queryjson = openGauss.getAllCompanySigsQueryStr();
+//                 queryStr = openGauss.getcommonQuery(queryjson, timeRange);
+//                 claIndex = openGauss.getClaCorporationIndex();
+//                 index = openGauss.getGiteeAllIndex();
+//                 break;
+//             default:
+//                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
 
-        try {
-            List<String> claCompanys = queryClaCompany(claIndex);
-            List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml, companyNameLocalYaml);
-            Map<String, String> companyNameCnEn = companys.get(0);
-            Map<String, String> companyNameAlCn = companys.get(1);
+//         try {
+//             List<String> claCompanys = queryClaCompany(claIndex);
+//             List<Map<String, String>> companys = getCompanyNameCnEn(companyNameYaml, companyNameLocalYaml);
+//             Map<String, String> companyNameCnEn = companys.get(0);
+//             Map<String, String> companyNameAlCn = companys.get(1);
 
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
+//             builder.setUrl(this.url + index + "/_search");
+//             builder.setBody(queryStr);
 
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
-            ArrayList<JsonNode> dataList = new ArrayList<>();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String company = bucket.get("key").asText();
-                if (!claCompanys.contains(company) ||
-//                        company.contains("软通动力") ||
-                        company.contains("中软国际") ||
-                        company.contains("易宝软件") ||
-                        company.contains("华为合作方") ||
-                        company.toLowerCase().equals("openeuler")) {
-                    continue;
-                }
-                if (company.contains("华为技术有限公司")) {
-                    continue;
-                }
-                Iterator<JsonNode> its = bucket.get("sigs").get("buckets").elements();
-                ArrayList<String> sigList = new ArrayList<>();
-                while (its.hasNext()) {
-                    JsonNode it = its.next();
-                    sigList.add(it.get("key").asText());
-                }
-                String companyCn = companyNameAlCn.getOrDefault(company.trim(), company.trim());
-                String companyEn = companyNameCnEn.getOrDefault(company.trim(), companyCn);
-                HashMap<String, Object> dataMap = new HashMap<>();
-                dataMap.put("company_cn", companyCn);
-                dataMap.put("company_en", companyEn);
-                dataMap.put("sigList", sigList);
-                JsonNode resNode = objectMapper.valueToTree(dataMap);
-                dataList.add(resNode);
-            }
+//             ListenableFuture<Response> f = client.executeRequest(builder.build());
+//             String responseBody = f.get().getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+//             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_filed").get("buckets").elements();
+//             ArrayList<JsonNode> dataList = new ArrayList<>();
+//             while (buckets.hasNext()) {
+//                 JsonNode bucket = buckets.next();
+//                 String company = bucket.get("key").asText();
+//                 if (!claCompanys.contains(company) ||
+// //                        company.contains("软通动力") ||
+//                         company.contains("中软国际") ||
+//                         company.contains("易宝软件") ||
+//                         company.contains("华为合作方") ||
+//                         company.toLowerCase().equals("openeuler")) {
+//                     continue;
+//                 }
+//                 if (company.contains("华为技术有限公司")) {
+//                     continue;
+//                 }
+//                 Iterator<JsonNode> its = bucket.get("sigs").get("buckets").elements();
+//                 ArrayList<String> sigList = new ArrayList<>();
+//                 while (its.hasNext()) {
+//                     JsonNode it = its.next();
+//                     sigList.add(it.get("key").asText());
+//                 }
+//                 String companyCn = companyNameAlCn.getOrDefault(company.trim(), company.trim());
+//                 String companyEn = companyNameCnEn.getOrDefault(company.trim(), companyCn);
+//                 HashMap<String, Object> dataMap = new HashMap<>();
+//                 dataMap.put("company_cn", companyCn);
+//                 dataMap.put("company_en", companyEn);
+//                 dataMap.put("sigList", sigList);
+//                 JsonNode resNode = objectMapper.valueToTree(dataMap);
+//                 dataList.add(resNode);
+//             }
 
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("msg", "success");
-            resMap.put("code", 200);
-            resMap.put("data", dataList);
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("msg", "success");
+//             resMap.put("code", 200);
+//             resMap.put("data", dataList);
+//             return objectMapper.valueToTree(resMap).toString();
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+//     }
 
-    public String querySigsOfTCOwners(String community) {
-        String index;
-        String queryJson;
-        String yamlFile;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getSigs_index();
-                queryJson = openEuler.getuser_owns_sigs_Str();
-                yamlFile = openEuler.gettc_owner_url();
-                break;
-            case "opengauss":
-                index = openGauss.getSigs_index();
-                queryJson = openGauss.getuser_owns_sigs_Str();
-                yamlFile = openGauss.gettc_owner_url();
-                break;
-            default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-        JsonNode TC_owners = querySigOwnerTypeCount(community, "TC");
-        Map<String, String> userName = getUserNameCnEn(yamlFile);
+//     public String querySigsOfTCOwners(String community) {
+//         String index;
+//         String queryJson;
+//         String yamlFile;
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getSigs_index();
+//                 queryJson = openEuler.getuser_owns_sigs_Str();
+//                 yamlFile = openEuler.gettc_owner_url();
+//                 break;
+//             case "opengauss":
+//                 index = openGauss.getSigs_index();
+//                 queryJson = openGauss.getuser_owns_sigs_Str();
+//                 yamlFile = openGauss.gettc_owner_url();
+//                 break;
+//             default:
+//                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+//         JsonNode TC_owners = querySigOwnerTypeCount(community, "TC");
+//         Map<String, String> userName = getUserNameCnEn(yamlFile);
 
-        Iterator<String> users = TC_owners.fieldNames();
-        ArrayList<HashMap<String, Object>> res = new ArrayList<>();
-        while (users.hasNext()) {
-            String user = users.next();
-            String queryStr = String.format(queryJson, user);
-            try {
-                AsyncHttpClient client = AsyncHttpUtil.getClient();
-                RequestBuilder builder = asyncHttpUtil.getBuilder();
-                builder.setUrl(this.url + index + "/_search");
-                builder.setBody(queryStr);
+//         Iterator<String> users = TC_owners.fieldNames();
+//         ArrayList<HashMap<String, Object>> res = new ArrayList<>();
+//         while (users.hasNext()) {
+//             String user = users.next();
+//             String queryStr = String.format(queryJson, user);
+//             try {
+//                 AsyncHttpClient client = AsyncHttpUtil.getClient();
+//                 RequestBuilder builder = asyncHttpUtil.getBuilder();
+//                 builder.setUrl(this.url + index + "/_search");
+//                 builder.setBody(queryStr);
 
-                ListenableFuture<Response> f = client.executeRequest(builder.build());
-                String responseBody = f.get().getResponseBody(UTF_8);
-                JsonNode dataNode = objectMapper.readTree(responseBody);
-                Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
-                ArrayList<String> sigList = new ArrayList<>();
-                while (buckets.hasNext()) {
-                    JsonNode bucket = buckets.next();
-                    sigList.add(bucket.get("key").asText());
-                }
-                HashMap<String, Object> resData = new HashMap<>();
-                String user_cn = userName.get(user);
-                resData.put("user", user);
-                resData.put("name", user_cn);
-                resData.put("sigs", sigList);
-                res.add(resData);
+//                 ListenableFuture<Response> f = client.executeRequest(builder.build());
+//                 String responseBody = f.get().getResponseBody(UTF_8);
+//                 JsonNode dataNode = objectMapper.readTree(responseBody);
+//                 Iterator<JsonNode> buckets = dataNode.get("aggregations").get("2").get("buckets").elements();
+//                 ArrayList<String> sigList = new ArrayList<>();
+//                 while (buckets.hasNext()) {
+//                     JsonNode bucket = buckets.next();
+//                     sigList.add(bucket.get("key").asText());
+//                 }
+//                 HashMap<String, Object> resData = new HashMap<>();
+//                 String user_cn = userName.get(user);
+//                 resData.put("user", user);
+//                 resData.put("name", user_cn);
+//                 resData.put("sigs", sigList);
+//                 res.add(resData);
 
-            } catch (Exception e) {
-                e.printStackTrace();
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-            }
-        }
-        HashMap<String, Object> resMap = new HashMap<>();
-        resMap.put("code", 200);
-        resMap.put("data", res);
-        resMap.put("msg", "success");
-        return objectMapper.valueToTree(resMap).toString();
-    }
+//             } catch (Exception e) {
+//                 e.printStackTrace();
+//                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//             }
+//         }
+//         HashMap<String, Object> resMap = new HashMap<>();
+//         resMap.put("code", 200);
+//         resMap.put("data", res);
+//         resMap.put("msg", "success");
+//         return objectMapper.valueToTree(resMap).toString();
+//     }
 
-    public Map<String, String> getUserNameCnEn(String yamlFile) {
-        YamlUtil yamlUtil = new YamlUtil();
-        UserNameYaml users = yamlUtil.readLocalYaml(yamlFile, UserNameYaml.class);
+//     public Map<String, String> getUserNameCnEn(String yamlFile) {
+//         YamlUtil yamlUtil = new YamlUtil();
+//         UserNameYaml users = yamlUtil.readLocalYaml(yamlFile, UserNameYaml.class);
 
-        HashMap<String, String> userMap = new HashMap<>();
-        for (UserInfoYaml user : users.getUsers()) {
-            String user_en = user.getEn().trim();
-            String user_cn = user.getCn().trim();
-            userMap.put(user_en, user_cn);
-        }
-        return userMap;
-    }
+//         HashMap<String, String> userMap = new HashMap<>();
+//         for (UserInfoYaml user : users.getUsers()) {
+//             String user_en = user.getEn().trim();
+//             String user_cn = user.getCn().trim();
+//             userMap.put(user_en, user_cn);
+//         }
+//         return userMap;
+//     }
 
-    public String queryGroupSigcontribute(String community, String group, String group_field, String contributeType, String timeRange) {
-        String index;
-        String queryjson;
-        String queryStr;
-        String field;
-        switch (group_field) {
-            case "user":
-                field = "user_login.keyword";
-                break;
-            case "company":
-                // group = CompanyCN2Cla(community, group);
-                group = getcompanyNames(group);
-                field = "tag_user_company.keyword";
-                break;
-            default:
-                return "";
-        }
-        ArrayList<HashMap<String, Object>> tempList = new ArrayList<>();
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getGiteeAllIndex();
-                queryjson = openEuler.getgroup_agg_sig_queryStr();
-                queryStr = openEuler.getAggGroupSigCountQueryStr(queryjson, contributeType, timeRange, group, field);
-                tempList = getdata(community, index, queryStr);
-                break;
-            case "opengauss":
-                index = openGauss.getGiteeAllIndex();
-                queryjson = openGauss.getgroup_agg_sig_queryStr();
-                String[] queryjsons = queryjson.split(";");
-                for (String query : queryjsons) {
-                    queryStr = openGauss.getAggGroupSigCountQueryStr(query, contributeType, timeRange, group, field);
-                    ArrayList<HashMap<String, Object>> datalist = getdata(community, index, queryStr);
-                    tempList.addAll(datalist);
-                }
-                break;
-            default:
-                return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
-        try {
-            HashMap<String, Long> datamap = MapCombine(tempList);
-            double sum = datamap.get("sum");
-            ArrayList<HashMap<String, Object>> resList = new ArrayList<>();
-            for (String key : datamap.keySet()) {
-                if (key.equals("sum"))
-                    continue;
-                HashMap<String, Object> map = new HashMap<>();
-                double percent = datamap.get(key) / sum;
-                map.put("contribute", datamap.get(key));
-                if (key.equals("No-SIG")) key = "Others";
-                map.put("sig_name", key);
-                map.put("percent", percent);
-                resList.add(map);
-            }
-            Collections.sort(resList, new Comparator<HashMap<String, Object>>() {
-                @Override
-                public int compare(HashMap<String, Object> t1, HashMap<String, Object> t2) {
-                    return (int) (Long.parseLong(t2.get("contribute").toString())
-                            - Long.parseLong(t1.get("contribute").toString()));
-                }
-            });
+//     public String queryGroupSigcontribute(String community, String group, String group_field, String contributeType, String timeRange) {
+//         String index;
+//         String queryjson;
+//         String queryStr;
+//         String field;
+//         switch (group_field) {
+//             case "user":
+//                 field = "user_login.keyword";
+//                 break;
+//             case "company":
+//                 // group = CompanyCN2Cla(community, group);
+//                 group = getcompanyNames(group);
+//                 field = "tag_user_company.keyword";
+//                 break;
+//             default:
+//                 return "";
+//         }
+//         ArrayList<HashMap<String, Object>> tempList = new ArrayList<>();
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 index = openEuler.getGiteeAllIndex();
+//                 queryjson = openEuler.getgroup_agg_sig_queryStr();
+//                 queryStr = openEuler.getAggGroupSigCountQueryStr(queryjson, contributeType, timeRange, group, field);
+//                 tempList = getdata(community, index, queryStr);
+//                 break;
+//             case "opengauss":
+//                 index = openGauss.getGiteeAllIndex();
+//                 queryjson = openGauss.getgroup_agg_sig_queryStr();
+//                 String[] queryjsons = queryjson.split(";");
+//                 for (String query : queryjsons) {
+//                     queryStr = openGauss.getAggGroupSigCountQueryStr(query, contributeType, timeRange, group, field);
+//                     ArrayList<HashMap<String, Object>> datalist = getdata(community, index, queryStr);
+//                     tempList.addAll(datalist);
+//                 }
+//                 break;
+//             default:
+//                 return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
+//         }
+//         try {
+//             HashMap<String, Long> datamap = MapCombine(tempList);
+//             double sum = datamap.get("sum");
+//             ArrayList<HashMap<String, Object>> resList = new ArrayList<>();
+//             for (String key : datamap.keySet()) {
+//                 if (key.equals("sum"))
+//                     continue;
+//                 HashMap<String, Object> map = new HashMap<>();
+//                 double percent = datamap.get(key) / sum;
+//                 map.put("contribute", datamap.get(key));
+//                 if (key.equals("No-SIG")) key = "Others";
+//                 map.put("sig_name", key);
+//                 map.put("percent", percent);
+//                 resList.add(map);
+//             }
+//             Collections.sort(resList, new Comparator<HashMap<String, Object>>() {
+//                 @Override
+//                 public int compare(HashMap<String, Object> t1, HashMap<String, Object> t2) {
+//                     return (int) (Long.parseLong(t2.get("contribute").toString())
+//                             - Long.parseLong(t1.get("contribute").toString()));
+//                 }
+//             });
 
-            ArrayList<JsonNode> dataList = new ArrayList<>();
-            int rank = 1;
-            for (HashMap<String, Object> item : resList) {
-                item.put("rank", rank);
-                JsonNode resNode = objectMapper.valueToTree(item);
-                dataList.add(resNode);
-                rank += 1;
-            }
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", dataList);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
-    }
+//             ArrayList<JsonNode> dataList = new ArrayList<>();
+//             int rank = 1;
+//             for (HashMap<String, Object> item : resList) {
+//                 item.put("rank", rank);
+//                 JsonNode resNode = objectMapper.valueToTree(item);
+//                 dataList.add(resNode);
+//                 rank += 1;
+//             }
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("code", 200);
+//             resMap.put("data", dataList);
+//             resMap.put("msg", "success");
+//             return objectMapper.valueToTree(resMap).toString();
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
+//         }
+//     }
 
-    public ArrayList<HashMap<String, Object>> getdata(String community, String index, String queryStr) {
-        ArrayList<HashMap<String, Object>> dataList = new ArrayList<>();
-        HashMap<String, String> siglabels = querySiglabel(community);
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
+//     public ArrayList<HashMap<String, Object>> getdata(String community, String index, String queryStr) {
+//         ArrayList<HashMap<String, Object>> dataList = new ArrayList<>();
+//         HashMap<String, String> siglabels = querySiglabel(community);
+//         try {
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
 
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-            // 获取执行结果
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
+//             builder.setUrl(this.url + index + "/_search");
+//             builder.setBody(queryStr);
+//             // 获取执行结果
+//             ListenableFuture<Response> f = client.executeRequest(builder.build());
+//             String responseBody = f.get().getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
 
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                long contribute = bucket.get("sum_field").get("value").asLong();
-                HashMap<String, Object> dataMap = new HashMap<>();
-                String sig_name = bucket.get("key").asText();
-                sig_name = label2sig(sig_name, siglabels);
-                dataMap.put("sig_name", sig_name);
-                dataMap.put("contribute", contribute);
-                dataList.add(dataMap);
-            }
-            return dataList;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
+//             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+//             while (buckets.hasNext()) {
+//                 JsonNode bucket = buckets.next();
+//                 long contribute = bucket.get("sum_field").get("value").asLong();
+//                 HashMap<String, Object> dataMap = new HashMap<>();
+//                 String sig_name = bucket.get("key").asText();
+//                 sig_name = label2sig(sig_name, siglabels);
+//                 dataMap.put("sig_name", sig_name);
+//                 dataMap.put("contribute", contribute);
+//                 dataList.add(dataMap);
+//             }
+//             return dataList;
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return null;
+//         }
+//     }
 
-    public HashMap<String, Long> MapCombine(ArrayList<HashMap<String, Object>> list) {
-        HashMap<String, Long> res = new HashMap<>();
-        Long sum = 0l;
-        for (HashMap<String, Object> map : list) {
-            String keyName = map.get("sig_name").toString();
-            Long keyValue = Long.parseLong(map.get("contribute").toString());
-            sum += keyValue;
-            if (!res.containsKey(keyName)) {
-                res.put(keyName, keyValue);
-            } else {
-                Long value = res.get(keyName) + keyValue;
-                res.put(keyName, value);
-            }
-        }
-        res.put("sum", sum);
-        return res;
-    }
+//     public HashMap<String, Long> MapCombine(ArrayList<HashMap<String, Object>> list) {
+//         HashMap<String, Long> res = new HashMap<>();
+//         Long sum = 0l;
+//         for (HashMap<String, Object> map : list) {
+//             String keyName = map.get("sig_name").toString();
+//             Long keyValue = Long.parseLong(map.get("contribute").toString());
+//             sum += keyValue;
+//             if (!res.containsKey(keyName)) {
+//                 res.put(keyName, keyValue);
+//             } else {
+//                 Long value = res.get(keyName) + keyValue;
+//                 res.put(keyName, value);
+//             }
+//         }
+//         res.put("sum", sum);
+//         return res;
+//     }
 
-    public String queryUserOwnertype(String community, String user) {
-        String queryjson;
-        String queryStr;
-        String index;
+//     public String queryUserOwnertype(String community, String user) {
+//         String queryjson;
+//         String queryStr;
+//         String index;
 
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                queryjson = openEuler.getuser_owner_type_queryStr();
-                index = openEuler.getSigs_index();
-                break;
-            case "opengauss":
-                queryjson = openGauss.getuser_owner_type_queryStr();
-                index = openGauss.getSigs_index();
-                break;
-            default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-        queryStr = String.format(queryjson, user);
+//         switch (community.toLowerCase()) {
+//             case "openeuler":
+//                 queryjson = openEuler.getuser_owner_type_queryStr();
+//                 index = openEuler.getSigs_index();
+//                 break;
+//             case "opengauss":
+//                 queryjson = openGauss.getuser_owner_type_queryStr();
+//                 index = openGauss.getSigs_index();
+//                 break;
+//             default:
+//                 return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+//         queryStr = String.format(queryjson, user);
 
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+//         try {
+//             AsyncHttpClient client = AsyncHttpUtil.getClient();
+//             RequestBuilder builder = asyncHttpUtil.getBuilder();
+//             builder.setUrl(this.url + index + "/_search");
+//             builder.setBody(queryStr);
+//             ListenableFuture<Response> f = client.executeRequest(builder.build());
+//             String responseBody = f.get().getResponseBody(UTF_8);
+//             JsonNode dataNode = objectMapper.readTree(responseBody);
+//             Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
 
-            ArrayList<HashMap<String, Object>> dataMap = new ArrayList<>();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String sig = bucket.get("key").asText();
-                Iterator<JsonNode> types = bucket.get("owner_type").get("buckets").elements();
-                ArrayList<String> typeList = new ArrayList<>();
-                while (types.hasNext()) {
-                    JsonNode type = types.next();
-                    typeList.add(type.get("key").asText());
-                }
-                HashMap<String, Object> user_type = new HashMap<>();
-                user_type.put("sig", sig);
-                user_type.put("type", typeList);
-                dataMap.add(user_type);
-            }
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", dataMap);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
+//             ArrayList<HashMap<String, Object>> dataMap = new ArrayList<>();
+//             while (buckets.hasNext()) {
+//                 JsonNode bucket = buckets.next();
+//                 String sig = bucket.get("key").asText();
+//                 Iterator<JsonNode> types = bucket.get("owner_type").get("buckets").elements();
+//                 ArrayList<String> typeList = new ArrayList<>();
+//                 while (types.hasNext()) {
+//                     JsonNode type = types.next();
+//                     typeList.add(type.get("key").asText());
+//                 }
+//                 HashMap<String, Object> user_type = new HashMap<>();
+//                 user_type.put("sig", sig);
+//                 user_type.put("type", typeList);
+//                 dataMap.add(user_type);
+//             }
+//             HashMap<String, Object> resMap = new HashMap<>();
+//             resMap.put("code", 200);
+//             resMap.put("data", dataMap);
+//             resMap.put("msg", "success");
+//             return objectMapper.valueToTree(resMap).toString();
+//         } catch (Exception e) {
+//             e.printStackTrace();
+//             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+//         }
+//     }
 
     public String queryAllUserOwnertype(String community) {
         String queryStr;
@@ -3789,368 +3789,368 @@ public class QueryDao {
         }
     }
 
-    public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
-                                             String timeRange, Environment env, String comment_type, String filter) {
-        String index;
-        ArrayList<Object> params;
-        String query = null;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getGiteeAllIndex();
-                params = openEuler.getAggUserCountQueryParams(contributeType, timeRange);
-                break;
-            case "opengauss":
-                index = openGauss.getGiteeAllIndex();
-                params = openGauss.getAggUserCountQueryParams(contributeType, timeRange);
-                String label = null;
-                if (null != sig && sig.equals("Others")) sig = "No-SIG";
-                if (null != sig)
-                    label = querySiglabel(community).get(sig);
-                sig = sig == null ? "*" : sig;
-                label = label == null ? "*" : label;
-                query = openGauss.getSigCountQuery();
-                query = String.format(query, sig, label);
-                break;
-            default:
-                return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
-        }
-        index = index.substring(1);
-        if (params == null) {
-            return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"params error\"}";
-        }
+    // public String queryUserContributeDetails(String community, String user, String sig, String contributeType,
+    //                                          String timeRange, Environment env, String comment_type, String filter) {
+    //     String index;
+    //     ArrayList<Object> params;
+    //     String query = null;
+    //     switch (community.toLowerCase()) {
+    //         case "openeuler":
+    //             index = openEuler.getGiteeAllIndex();
+    //             params = openEuler.getAggUserCountQueryParams(contributeType, timeRange);
+    //             break;
+    //         case "opengauss":
+    //             index = openGauss.getGiteeAllIndex();
+    //             params = openGauss.getAggUserCountQueryParams(contributeType, timeRange);
+    //             String label = null;
+    //             if (null != sig && sig.equals("Others")) sig = "No-SIG";
+    //             if (null != sig)
+    //                 label = querySiglabel(community).get(sig);
+    //             sig = sig == null ? "*" : sig;
+    //             label = label == null ? "*" : label;
+    //             query = openGauss.getSigCountQuery();
+    //             query = String.format(query, sig, label);
+    //             break;
+    //         default:
+    //             return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"query error\"}";
+    //     }
+    //     index = index.substring(1);
+    //     if (params == null) {
+    //         return "{\"code\":400,\"data\":{\"" + contributeType + "\":\"query error\"},\"msg\":\"params error\"}";
+    //     }
 
-        String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
-        String host = env.getProperty("es.host");
-        int port = Integer.parseInt(env.getProperty("es.port", "9200"));
-        String scheme = env.getProperty("es.scheme");
-        String esUser = userpass[0];
-        String password = userpass[1];
-        RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
-        EsQueryUtils esQueryUtils = new EsQueryUtils();
+    //     String[] userpass = Objects.requireNonNull(env.getProperty("userpass")).split(":");
+    //     String host = env.getProperty("es.host");
+    //     int port = Integer.parseInt(env.getProperty("es.port", "9200"));
+    //     String scheme = env.getProperty("es.scheme");
+    //     String esUser = userpass[0];
+    //     String password = userpass[1];
+    //     RestHighLevelClient restHighLevelClient = HttpClientUtils.restClient(host, port, scheme, esUser, password);
+    //     EsQueryUtils esQueryUtils = new EsQueryUtils();
 
-        return esQueryUtils.esUserCount(community, restHighLevelClient, index, user, sig, params, comment_type, filter, query);
-    }
+    //     return esQueryUtils.esUserCount(community, restHighLevelClient, index, user, sig, params, comment_type, filter, query);
+    // }
 
-    public String queryUserLists(String community, String group, String name) {
-        String queryjson;
-        String queryStr;
-        String index;
-        if (group != null && group.equals("company")) {
-            name = getcompanyNames(name);
-        }
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                queryjson = openEuler.getUserListQueryStr();
-                queryStr = openEuler.getAggUserListQueryStr(queryjson, group, name);
-                index = openEuler.getGiteeAllIndex();
-                break;
-            case "opengauss":
-                queryjson = openGauss.getUserListQueryStr();
-                queryStr = openGauss.getAggUserListQueryStr(queryjson, group, name);
-                index = openGauss.getGiteeAllIndex();
-                break;
-            default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+    // public String queryUserLists(String community, String group, String name) {
+    //     String queryjson;
+    //     String queryStr;
+    //     String index;
+    //     if (group != null && group.equals("company")) {
+    //         name = getcompanyNames(name);
+    //     }
+    //     switch (community.toLowerCase()) {
+    //         case "openeuler":
+    //             queryjson = openEuler.getUserListQueryStr();
+    //             queryStr = openEuler.getAggUserListQueryStr(queryjson, group, name);
+    //             index = openEuler.getGiteeAllIndex();
+    //             break;
+    //         case "opengauss":
+    //             queryjson = openGauss.getUserListQueryStr();
+    //             queryStr = openGauss.getAggUserListQueryStr(queryjson, group, name);
+    //             index = openGauss.getGiteeAllIndex();
+    //             break;
+    //         default:
+    //             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+    //     }
+    //     try {
+    //         AsyncHttpClient client = AsyncHttpUtil.getClient();
+    //         RequestBuilder builder = asyncHttpUtil.getBuilder();
+    //         builder.setUrl(this.url + index + "/_search");
+    //         builder.setBody(queryStr);
+    //         ListenableFuture<Response> f = client.executeRequest(builder.build());
+    //         String responseBody = f.get().getResponseBody(UTF_8);
+    //         JsonNode dataNode = objectMapper.readTree(responseBody);
+    //         Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
 
-            ArrayList<String> dataMap = new ArrayList<>();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String user = bucket.get("key").asText();
-                dataMap.add(user);
-            }
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", dataMap);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
+    //         ArrayList<String> dataMap = new ArrayList<>();
+    //         while (buckets.hasNext()) {
+    //             JsonNode bucket = buckets.next();
+    //             String user = bucket.get("key").asText();
+    //             dataMap.add(user);
+    //         }
+    //         HashMap<String, Object> resMap = new HashMap<>();
+    //         resMap.put("code", 200);
+    //         resMap.put("data", dataMap);
+    //         resMap.put("msg", "success");
+    //         return objectMapper.valueToTree(resMap).toString();
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //         return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+    //     }
+    // }
 
-    public String querySigRepoCommitters(String community, String sig) {
-        String queryjson;
-        String queryStr;
-        String index;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                queryjson = openEuler.getSigRepoCommittersQueryStr();
-                index = openEuler.getSigs_index();
-                break;
-            case "opengauss":
-                queryjson = openGauss.getSigRepoCommittersQueryStr();
-                index = openGauss.getSigs_index();
-                break;
-            default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-        try {
-            queryStr = String.format(queryjson, sig);
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+    // public String querySigRepoCommitters(String community, String sig) {
+    //     String queryjson;
+    //     String queryStr;
+    //     String index;
+    //     switch (community.toLowerCase()) {
+    //         case "openeuler":
+    //             queryjson = openEuler.getSigRepoCommittersQueryStr();
+    //             index = openEuler.getSigs_index();
+    //             break;
+    //         case "opengauss":
+    //             queryjson = openGauss.getSigRepoCommittersQueryStr();
+    //             index = openGauss.getSigs_index();
+    //             break;
+    //         default:
+    //             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+    //     }
+    //     try {
+    //         queryStr = String.format(queryjson, sig);
+    //         AsyncHttpClient client = AsyncHttpUtil.getClient();
+    //         RequestBuilder builder = asyncHttpUtil.getBuilder();
+    //         builder.setUrl(this.url + index + "/_search");
+    //         builder.setBody(queryStr);
+    //         ListenableFuture<Response> f = client.executeRequest(builder.build());
+    //         String responseBody = f.get().getResponseBody(UTF_8);
+    //         JsonNode dataNode = objectMapper.readTree(responseBody);
+    //         Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
 
-            ArrayList<Object> dataList = new ArrayList<>();
-            ArrayList<String> committerList = new ArrayList<>();
-            ArrayList<String> committerRepoList = new ArrayList<>();
+    //         ArrayList<Object> dataList = new ArrayList<>();
+    //         ArrayList<String> committerList = new ArrayList<>();
+    //         ArrayList<String> committerRepoList = new ArrayList<>();
 
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String repo = bucket.get("key").asText();
-                Iterator<JsonNode> user_buckets = bucket.get("user").get("buckets").elements();
-                ArrayList<String> userlist = new ArrayList<>();
-                while (user_buckets.hasNext()) {
-                    JsonNode userBucket = user_buckets.next();
-                    String user = userBucket.get("key").asText();
-                    userlist.add(user);
-                    committerList.add(user);
-                }
-                HashMap<String, Object> dataMap = new HashMap<>();
-                dataMap.put("repo", repo);
-                dataMap.put("gitee_id", userlist);
-                dataList.add(dataMap);
-                committerRepoList.add(repo);
-            }
-            Set<String> set = new HashSet<>();
-            set.addAll(committerList);
-            ArrayList<String> committers = new ArrayList<>();
-            committers.addAll(set);
+    //         while (buckets.hasNext()) {
+    //             JsonNode bucket = buckets.next();
+    //             String repo = bucket.get("key").asText();
+    //             Iterator<JsonNode> user_buckets = bucket.get("user").get("buckets").elements();
+    //             ArrayList<String> userlist = new ArrayList<>();
+    //             while (user_buckets.hasNext()) {
+    //                 JsonNode userBucket = user_buckets.next();
+    //                 String user = userBucket.get("key").asText();
+    //                 userlist.add(user);
+    //                 committerList.add(user);
+    //             }
+    //             HashMap<String, Object> dataMap = new HashMap<>();
+    //             dataMap.put("repo", repo);
+    //             dataMap.put("gitee_id", userlist);
+    //             dataList.add(dataMap);
+    //             committerRepoList.add(repo);
+    //         }
+    //         Set<String> set = new HashSet<>();
+    //         set.addAll(committerList);
+    //         ArrayList<String> committers = new ArrayList<>();
+    //         committers.addAll(set);
 
-            String res = querySigRepo(community, sig);
-            JsonNode resNode = objectMapper.readTree(res);
-            if (resNode.get("code").asInt() == 200 && resNode.get("data").size() != 0) {
-                Iterator<JsonNode> repos = resNode.get("data").elements();
-                while (repos.hasNext()) {
-                    String repo = repos.next().asText();
-                    if (committerRepoList.contains(repo)) {
-                        continue;
-                    }
-                    HashMap<String, Object> dataMap = new HashMap<>();
-                    ArrayList<String> nulllist = new ArrayList<>();
-                    dataMap.put("repo", repo);
-                    dataMap.put("gitee_id", nulllist);
-                    dataList.add(dataMap);
-                }
-            }
+    //         String res = querySigRepo(community, sig);
+    //         JsonNode resNode = objectMapper.readTree(res);
+    //         if (resNode.get("code").asInt() == 200 && resNode.get("data").size() != 0) {
+    //             Iterator<JsonNode> repos = resNode.get("data").elements();
+    //             while (repos.hasNext()) {
+    //                 String repo = repos.next().asText();
+    //                 if (committerRepoList.contains(repo)) {
+    //                     continue;
+    //                 }
+    //                 HashMap<String, Object> dataMap = new HashMap<>();
+    //                 ArrayList<String> nulllist = new ArrayList<>();
+    //                 dataMap.put("repo", repo);
+    //                 dataMap.put("gitee_id", nulllist);
+    //                 dataList.add(dataMap);
+    //             }
+    //         }
 
-            HashMap<String, Object> resData = new HashMap<>();
-            String siginfo = querySigInfo(community, sig);
-            JsonNode sigMaintainers = objectMapper.readTree(siginfo).get("data");
-            if (sigMaintainers.size() != 0) {
-                JsonNode maintainers = sigMaintainers.get(0).get("maintainers");
-                resData.put("maintainers", maintainers);
-            }
-            resData.put("committers", committers);
-            resData.put("committerDetails", dataList);
+    //         HashMap<String, Object> resData = new HashMap<>();
+    //         String siginfo = querySigInfo(community, sig);
+    //         JsonNode sigMaintainers = objectMapper.readTree(siginfo).get("data");
+    //         if (sigMaintainers.size() != 0) {
+    //             JsonNode maintainers = sigMaintainers.get(0).get("maintainers");
+    //             resData.put("maintainers", maintainers);
+    //         }
+    //         resData.put("committers", committers);
+    //         resData.put("committerDetails", dataList);
 
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", resData);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
+    //         HashMap<String, Object> resMap = new HashMap<>();
+    //         resMap.put("code", 200);
+    //         resMap.put("data", resData);
+    //         resMap.put("msg", "success");
+    //         return objectMapper.valueToTree(resMap).toString();
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //         return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+    //     }
+    // }
 
-    public Boolean matchList(ArrayList<String> arrayList, String str) {
-        if (str == null) {
-            return true;
-        }
-        if (arrayList == null) {
-            return false;
-        }
-        for (String list : arrayList) {
-            if (list.toLowerCase().contains(str.toLowerCase())) {
-                return true;
-            }
-        }
-        return false;
-    }
+    // public Boolean matchList(ArrayList<String> arrayList, String str) {
+    //     if (str == null) {
+    //         return true;
+    //     }
+    //     if (arrayList == null) {
+    //         return false;
+    //     }
+    //     for (String list : arrayList) {
+    //         if (list.toLowerCase().contains(str.toLowerCase())) {
+    //             return true;
+    //         }
+    //     }
+    //     return false;
+    // }
 
-    public String getIPLocation(String ip) {
-        InputStream database = obsDao.getData();
-        try {
-            DatabaseReader reader = new DatabaseReader.Builder(database).build();
-            InetAddress ipAddress = InetAddress.getByName(ip);
-            CityResponse response = reader.city(ipAddress);
+    // public String getIPLocation(String ip) {
+    //     InputStream database = obsDao.getData();
+    //     try {
+    //         DatabaseReader reader = new DatabaseReader.Builder(database).build();
+    //         InetAddress ipAddress = InetAddress.getByName(ip);
+    //         CityResponse response = reader.city(ipAddress);
 
-            String continent_name = response.getContinent().getName();
-            String region_iso_code = response.getMostSpecificSubdivision().getName();
-            String city_name = response.getCity().getName();
-            String country_iso_code = response.getCountry().getIsoCode();
-            Double lon = response.getLocation().getLatitude();
-            Double lat = response.getLocation().getLongitude();
+    //         String continent_name = response.getContinent().getName();
+    //         String region_iso_code = response.getMostSpecificSubdivision().getName();
+    //         String city_name = response.getCity().getName();
+    //         String country_iso_code = response.getCountry().getIsoCode();
+    //         Double lon = response.getLocation().getLatitude();
+    //         Double lat = response.getLocation().getLongitude();
 
-            HashMap<String, Object> location = new HashMap<>();
-            location.put("lon", lon);
-            location.put("lat", lat);
+    //         HashMap<String, Object> location = new HashMap<>();
+    //         location.put("lon", lon);
+    //         location.put("lat", lat);
 
-            HashMap<String, Object> loc = new HashMap<>();
-            loc.put("continent_name", continent_name);
-            loc.put("region_iso_code", region_iso_code);
-            loc.put("city_name", city_name);
-            loc.put("country_iso_code", country_iso_code);
-            loc.put("location", location);
+    //         HashMap<String, Object> loc = new HashMap<>();
+    //         loc.put("continent_name", continent_name);
+    //         loc.put("region_iso_code", region_iso_code);
+    //         loc.put("city_name", city_name);
+    //         loc.put("country_iso_code", country_iso_code);
+    //         loc.put("location", location);
 
-            HashMap<String, Object> res = new HashMap<>();
-            res.put("ip", ip);
-            res.put("geoip", loc);
+    //         HashMap<String, Object> res = new HashMap<>();
+    //         res.put("ip", ip);
+    //         res.put("geoip", loc);
 
-            String result = objectMapper.valueToTree(res).toString();
-            return result;
-        } catch (FileNotFoundException e1) {
-            e1.printStackTrace();
-        } catch (GeoIp2Exception | IOException e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
+    //         String result = objectMapper.valueToTree(res).toString();
+    //         return result;
+    //     } catch (FileNotFoundException e1) {
+    //         e1.printStackTrace();
+    //     } catch (GeoIp2Exception | IOException e) {
+    //         e.printStackTrace();
+    //     }
+    //     return null;
+    // }
 
-    public String getEcosystemRepoInfo(String community, String ecosystem_type, String lang, String sort_order) {
-        String queryjson;
-        String queryStr;
-        String index;
-        switch (community.toLowerCase()) {
-            case "mindspore":
-                index = mindSpore.getrepo_info_index();
-                queryjson = mindSpore.getrepo_info_QuerStr();
-                break;
-            default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-        sort_order = sort_order == null ? "desc" : sort_order;
-        try {
-            queryStr = String.format(queryjson, ecosystem_type, lang, sort_order);
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
+    // public String getEcosystemRepoInfo(String community, String ecosystem_type, String lang, String sort_order) {
+    //     String queryjson;
+    //     String queryStr;
+    //     String index;
+    //     switch (community.toLowerCase()) {
+    //         case "mindspore":
+    //             index = mindSpore.getrepo_info_index();
+    //             queryjson = mindSpore.getrepo_info_QuerStr();
+    //             break;
+    //         default:
+    //             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+    //     }
+    //     sort_order = sort_order == null ? "desc" : sort_order;
+    //     try {
+    //         queryStr = String.format(queryjson, ecosystem_type, lang, sort_order);
+    //         AsyncHttpClient client = AsyncHttpUtil.getClient();
+    //         RequestBuilder builder = asyncHttpUtil.getBuilder();
+    //         builder.setUrl(this.url + index + "/_search");
+    //         builder.setBody(queryStr);
+    //         ListenableFuture<Response> f = client.executeRequest(builder.build());
+    //         String responseBody = f.get().getResponseBody(UTF_8);
+    //         JsonNode dataNode = objectMapper.readTree(responseBody);
+    //         Iterator<JsonNode> buckets = dataNode.get("hits").get("hits").elements();
 
-            ArrayList<JsonNode> resList = new ArrayList<>();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                JsonNode res = bucket.get("_source");
-                resList.add(res);
-            }
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", resList);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
+    //         ArrayList<JsonNode> resList = new ArrayList<>();
+    //         while (buckets.hasNext()) {
+    //             JsonNode bucket = buckets.next();
+    //             JsonNode res = bucket.get("_source");
+    //             resList.add(res);
+    //         }
+    //         HashMap<String, Object> resMap = new HashMap<>();
+    //         resMap.put("code", 200);
+    //         resMap.put("data", resList);
+    //         resMap.put("msg", "success");
+    //         return objectMapper.valueToTree(resMap).toString();
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //         return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+    //     }
+    // }
 
-    public String label2sig(String label, HashMap<String, String> siglabels) {
-        String sig = label;
-        if (null != siglabels) {
-            for (String key : siglabels.keySet()) {
-                if (label.equals(siglabels.get(key))) {
-                    sig = key;
-                }
-            }
-        }
-        return sig;
-    }
+    // public String label2sig(String label, HashMap<String, String> siglabels) {
+    //     String sig = label;
+    //     if (null != siglabels) {
+    //         for (String key : siglabels.keySet()) {
+    //             if (label.equals(siglabels.get(key))) {
+    //                 sig = key;
+    //             }
+    //         }
+    //     }
+    //     return sig;
+    // }
 
-    public HashMap<String, String> querySiglabel(String community) {
-        String queryjson;
-        String index;
-        HashMap<String, String> siglabels = new HashMap<>();
-        switch (community.toLowerCase()) {
-            case "opengauss":
-                index = openGauss.getSigs_index();
-                queryjson = openGauss.getsig_label_queryStr();
-                siglabels.put("No-SIG", "No-Sig");
-                break;
-            default:
-                return null;
-        }
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryjson);
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String sig = bucket.get("key").asText();
-                Iterator<JsonNode> sigbucket = bucket.get("2").get("buckets").elements();
-                if (sigbucket.hasNext()) {
-                    String label = sigbucket.next().get("key").asText().split("/")[1];
-                    siglabels.put(sig, label);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return siglabels;
-    }
+    // public HashMap<String, String> querySiglabel(String community) {
+    //     String queryjson;
+    //     String index;
+    //     HashMap<String, String> siglabels = new HashMap<>();
+    //     switch (community.toLowerCase()) {
+    //         case "opengauss":
+    //             index = openGauss.getSigs_index();
+    //             queryjson = openGauss.getsig_label_queryStr();
+    //             siglabels.put("No-SIG", "No-Sig");
+    //             break;
+    //         default:
+    //             return null;
+    //     }
+    //     try {
+    //         AsyncHttpClient client = AsyncHttpUtil.getClient();
+    //         RequestBuilder builder = asyncHttpUtil.getBuilder();
+    //         builder.setUrl(this.url + index + "/_search");
+    //         builder.setBody(queryjson);
+    //         ListenableFuture<Response> f = client.executeRequest(builder.build());
+    //         String responseBody = f.get().getResponseBody(UTF_8);
+    //         JsonNode dataNode = objectMapper.readTree(responseBody);
+    //         Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+    //         while (buckets.hasNext()) {
+    //             JsonNode bucket = buckets.next();
+    //             String sig = bucket.get("key").asText();
+    //             Iterator<JsonNode> sigbucket = bucket.get("2").get("buckets").elements();
+    //             if (sigbucket.hasNext()) {
+    //                 String label = sigbucket.next().get("key").asText().split("/")[1];
+    //                 siglabels.put(sig, label);
+    //             }
+    //         }
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
+    //     return siglabels;
+    // }
 
-    public String queryUserCompany(String community, String user) {
-        String queryjson;
-        String queryStr;
-        String index;
-        String company = "independent";
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = openEuler.getaccount_org_index();
-                queryjson = openEuler.getaccount_org_query();
-                break;
-            default:
-                return company;
-        }
-        try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            queryStr = String.format(queryjson, user);
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
+    // public String queryUserCompany(String community, String user) {
+    //     String queryjson;
+    //     String queryStr;
+    //     String index;
+    //     String company = "independent";
+    //     switch (community.toLowerCase()) {
+    //         case "openeuler":
+    //             index = openEuler.getaccount_org_index();
+    //             queryjson = openEuler.getaccount_org_query();
+    //             break;
+    //         default:
+    //             return company;
+    //     }
+    //     try {
+    //         AsyncHttpClient client = AsyncHttpUtil.getClient();
+    //         RequestBuilder builder = asyncHttpUtil.getBuilder();
+    //         queryStr = String.format(queryjson, user);
+    //         builder.setUrl(this.url + index + "/_search");
+    //         builder.setBody(queryStr);
+    //         ListenableFuture<Response> f = client.executeRequest(builder.build());
+    //         String responseBody = f.get().getResponseBody(UTF_8);
+    //         JsonNode dataNode = objectMapper.readTree(responseBody);
+    //         Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
 
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                Iterator<JsonNode> orgBuckets = bucket.get("2").get("buckets").elements();
-                if (orgBuckets.hasNext()) {
-                    JsonNode orgBucket = orgBuckets.next();
-                    company = orgBucket.get("key").asText();
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return company;
-    }
+    //         while (buckets.hasNext()) {
+    //             JsonNode bucket = buckets.next();
+    //             Iterator<JsonNode> orgBuckets = bucket.get("2").get("buckets").elements();
+    //             if (orgBuckets.hasNext()) {
+    //                 JsonNode orgBucket = orgBuckets.next();
+    //                 company = orgBucket.get("key").asText();
+    //             }
+    //         }
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
+    //     return company;
+    // }
 
     public ResponseEntity queryReviewerRecommend(PrReviewerVo input, Environment env) {
         String giteeAllIndex;
@@ -4226,94 +4226,94 @@ public class QueryDao {
 
     }
 
-    public HashMap<String, Object> getMindsporeSigFromYaml(String lang) {
-        HashMap<String, Object> res = new HashMap<>();
-        String MindsporeSigYaml;
-        switch (lang){
-            case "zh":
-                MindsporeSigYaml = MindsporeSigYamlZh;
-                break;
-            case "en":
-                MindsporeSigYaml = MindsporeSigYamlEn;
-                break;
-            default :
-                return res;
-        }
+    // public HashMap<String, Object> getMindsporeSigFromYaml(String lang) {
+    //     HashMap<String, Object> res = new HashMap<>();
+    //     String MindsporeSigYaml;
+    //     switch (lang){
+    //         case "zh":
+    //             MindsporeSigYaml = MindsporeSigYamlZh;
+    //             break;
+    //         case "en":
+    //             MindsporeSigYaml = MindsporeSigYamlEn;
+    //             break;
+    //         default :
+    //             return res;
+    //     }
         
-        String localYamlPath = companyNameLocalYaml;
-        YamlUtil yamlUtil = new YamlUtil();
-        String localFile = yamlUtil.wget(MindsporeSigYaml, localYamlPath);
-        res = yamlUtil.readYaml(localFile);
-        return res;
-    }
+    //     String localYamlPath = companyNameLocalYaml;
+    //     YamlUtil yamlUtil = new YamlUtil();
+    //     String localFile = yamlUtil.wget(MindsporeSigYaml, localYamlPath);
+    //     res = yamlUtil.readYaml(localFile);
+    //     return res;
+    // }
 
-    public String getMindsporeSigList(String lang) {
-        lang = lang == null ? "zh" : lang;
-        HashMap<String, Object> res = getMindsporeSigFromYaml(lang);
-        HashMap<String, Object> resData = new HashMap<>();
-        resData.put("name", res.get("name"));
-        resData.put("description", res.get("description"));
-        resData.put("SIG_list", res.get("SIG list"));
-        HashMap<String, Object> resMap = new HashMap<>();
-        resMap.put("code", 200);
-        resMap.put("data", resData);
-        resMap.put("msg", "success");
-        return objectMapper.valueToTree(resMap).toString();
-    }
+    // public String getMindsporeSigList(String lang) {
+    //     lang = lang == null ? "zh" : lang;
+    //     HashMap<String, Object> res = getMindsporeSigFromYaml(lang);
+    //     HashMap<String, Object> resData = new HashMap<>();
+    //     resData.put("name", res.get("name"));
+    //     resData.put("description", res.get("description"));
+    //     resData.put("SIG_list", res.get("SIG list"));
+    //     HashMap<String, Object> resMap = new HashMap<>();
+    //     resMap.put("code", 200);
+    //     resMap.put("data", resData);
+    //     resMap.put("msg", "success");
+    //     return objectMapper.valueToTree(resMap).toString();
+    // }
 
-    public String getMindsporeSigName(String sig) {
-        try {
-            HashMap<String, Object> sigInfo = getMindsporeSigFromYaml("en");
-            ArrayList<HashMap<String, String>> SigList = (ArrayList<HashMap<String, String>>) sigInfo.get("SIG list");
-            for (HashMap<String, String> siginfo : SigList) {
-                if (sig.toLowerCase().equals(siginfo.get("name").toLowerCase())) {
-                    sig = siginfo.get("links").split("/")[8];
-                    return sig;
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return sig;
-    }
+    // public String getMindsporeSigName(String sig) {
+    //     try {
+    //         HashMap<String, Object> sigInfo = getMindsporeSigFromYaml("en");
+    //         ArrayList<HashMap<String, String>> SigList = (ArrayList<HashMap<String, String>>) sigInfo.get("SIG list");
+    //         for (HashMap<String, String> siginfo : SigList) {
+    //             if (sig.toLowerCase().equals(siginfo.get("name").toLowerCase())) {
+    //                 sig = siginfo.get("links").split("/")[8];
+    //                 return sig;
+    //             }
+    //         }
+    //     } catch (Exception e) {
+    //         e.printStackTrace();
+    //     }
+    //     return sig;
+    // }
 
-    public String getMindsporeSigReadme(String community, String sig, String lang) {
-        if (!community.toLowerCase().equals("mindspore")) {
-            return "{\"code\":400,\"data\":\"community error\",\"msg\":\"community error\"}";
-        }
-        lang = lang == null ? "zh" : lang;
-        try {
-            String urlStr = "";
-            HashMap<String, Object> sigInfo = getMindsporeSigFromYaml(lang);
-            ArrayList<HashMap<String, String>> SigList = (ArrayList<HashMap<String, String>>) sigInfo.get("SIG list");
-            for (HashMap<String, String> siginfo : SigList) {
-                if (sig.toLowerCase().equals(siginfo.get("name").toLowerCase())) {
-                    urlStr = siginfo.get("links").replace("/blob/", "/raw/").replace("/tree/", "/raw/");
-                }
-            }
-            URL url = new URL(urlStr);
-            URLConnection urlConnection = url.openConnection();
-            HttpURLConnection connection = null;
-            if (urlConnection instanceof HttpURLConnection) {
-                connection = (HttpURLConnection) urlConnection;
-                connection.setConnectTimeout(0);
-            }
-            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"));
-            String res = "";
-            String current;
-            while ((current = in.readLine()) != null) {
-                res += current + '\n';
-            }
+    // public String getMindsporeSigReadme(String community, String sig, String lang) {
+    //     if (!community.toLowerCase().equals("mindspore")) {
+    //         return "{\"code\":400,\"data\":\"community error\",\"msg\":\"community error\"}";
+    //     }
+    //     lang = lang == null ? "zh" : lang;
+    //     try {
+    //         String urlStr = "";
+    //         HashMap<String, Object> sigInfo = getMindsporeSigFromYaml(lang);
+    //         ArrayList<HashMap<String, String>> SigList = (ArrayList<HashMap<String, String>>) sigInfo.get("SIG list");
+    //         for (HashMap<String, String> siginfo : SigList) {
+    //             if (sig.toLowerCase().equals(siginfo.get("name").toLowerCase())) {
+    //                 urlStr = siginfo.get("links").replace("/blob/", "/raw/").replace("/tree/", "/raw/");
+    //             }
+    //         }
+    //         URL url = new URL(urlStr);
+    //         URLConnection urlConnection = url.openConnection();
+    //         HttpURLConnection connection = null;
+    //         if (urlConnection instanceof HttpURLConnection) {
+    //             connection = (HttpURLConnection) urlConnection;
+    //             connection.setConnectTimeout(0);
+    //         }
+    //         BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "UTF-8"));
+    //         String res = "";
+    //         String current;
+    //         while ((current = in.readLine()) != null) {
+    //             res += current + '\n';
+    //         }
 
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", res);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-    }
+    //         HashMap<String, Object> resMap = new HashMap<>();
+    //         resMap.put("code", 200);
+    //         resMap.put("data", res);
+    //         resMap.put("msg", "success");
+    //         return objectMapper.valueToTree(resMap).toString();
+    //     } catch (IOException e) {
+    //         e.printStackTrace();
+    //         return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+    //     }
+    // }
 
 }
