@@ -20,6 +20,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.Map;
 
 @Primary
 @Repository
@@ -27,6 +29,7 @@ public class OidcProvider {
     @Autowired
     protected Environment env;
 
+    protected static Map<String, String> appId2Secret;
     protected Result result;
     protected String name;
     protected String clientId;
@@ -40,6 +43,7 @@ public class OidcProvider {
 
     @PostConstruct
     public void init() {
+        appId2Secret = getApps();
         // TODO 从数据库获取并初始化OidcProvider
         result = new Result();
         name = this.getClass().getAnnotation(Repository.class).value();
@@ -104,10 +108,10 @@ public class OidcProvider {
                 return result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00051);
             }
 
-            // TODO 校验app
+            // app校验
             String appId = request.getParameter("client_id");
-            if (StringUtils.isBlank(appId)) {
-                return result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00047);
+            if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null) {
+                return result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042);
             }
 
             String redirectUriEncode = redirectUriEncode(request, oidcProvider);
@@ -199,5 +203,17 @@ public class OidcProvider {
 
     protected Object getJsonValue(JSONObject jsonObject, String key) {
         return jsonObject.isNull(key) ? null : jsonObject.get(key);
+    }
+
+
+    private Map<String, String> getApps() {
+        HashMap<String, String> res = new HashMap<>();
+        String property = env.getProperty("opengauss.apps");
+        String[] split = property.split(";");
+        for (String s : split) {
+            String[] app = s.split(":");
+            res.put(app[0], app[1]);
+        }
+        return res;
     }
 }
