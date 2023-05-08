@@ -541,19 +541,19 @@ public class AuthingService implements UserCenterServiceInter {
             String photo;
             String username;
             String email;
-            try {
+            /*try { TODO
                 MySqlUser s = userMapper.selectById(userId);
                 photo = s.getPhoto();
                 username = s.getUsername();
                 email = s.getEmail();
             } catch (Exception e) {
-                System.out.println("get data from mysql failed.");
+                System.out.println("get data from mysql failed.");*/
                 // 获取用户
                 User user = authingUserDao.getUser(userId);
                 photo = user.getPhoto();
                 username = user.getUsername();
                 email = user.getEmail();
-            }
+//            }
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
@@ -659,16 +659,16 @@ public class AuthingService implements UserCenterServiceInter {
             // 获取用户
             String photo;
             String username;
-            try {
+            /*try { TODO
                 MySqlUser s = userMapper.selectById(userId);
                 photo = s.getPhoto();
                 username = s.getUsername();
             } catch (Exception e) {
-                System.out.println("get data from mysql failed.");
+                System.out.println("get data from mysql failed.");*/
                 User user = authingUserDao.getUser(userId);
                 photo = user.getPhoto();
                 username = user.getUsername();
-            }
+//            }
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
