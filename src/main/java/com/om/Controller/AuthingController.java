@@ -20,8 +20,6 @@ import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.authing.AuthingUserToken;
-import com.om.log.userLog.LogAnnotation;
-import com.om.log.userLog.MethodType;
 import com.om.token.ManageToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
