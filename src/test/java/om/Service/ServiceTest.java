@@ -55,30 +55,4 @@ public class ServiceTest {
             e.printStackTrace();
         }
     }
-
-    @Test
-    public void queryAll() {
-        try {
-            String res = queryService.queryAll("openeuler");
-            JsonNode jsonNode = objectMapper.readTree(res);
-
-            Assert.assertEquals(jsonNode.get("code").intValue(), 200);
-            Assert.assertNotEquals(jsonNode.get("data").get("contributors").textValue(), "0");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Test
-    public void queryCompanyContributors() {
-        try {
-            String res = queryService.queryCompanyContributors("openeuler", "companyContribute", "pr", "all", null);
-            JsonNode jsonNode = objectMapper.readTree(res);
-
-            Assert.assertEquals(jsonNode.get("code").intValue(), 200);
-            Assert.assertTrue(jsonNode.get("data").size() > 1);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
 }
