@@ -329,7 +329,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             setCookieAfterLogin(servletRequest, servletResponse, appId, user);
 
             // 更新三方用户信息
-            oneidDao.updateUserIdentity(poolId, poolSecret, user.getString("id"), identityJsonStr);
+            user = oneidDao.updateUserIdentity(poolId, poolSecret, user.getString("id"), identityJsonStr);
 
             // 返回结果
             HashMap<String, Object> userData = userSimple(user);
@@ -389,8 +389,8 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
             }
 
-            JSONObject jsonObject = oneidDao.bindIdentityToUser(poolId, poolSecret, user.getString("id"), identityJsonStr);
-            if (jsonObject == null) {
+            user = oneidDao.bindIdentityToUser(poolId, poolSecret, user.getString("id"), identityJsonStr);
+            if (user == null) {
                 return result(HttpStatus.INTERNAL_SERVER_ERROR, null, "Internal Server Error", null);
             }
 
@@ -506,7 +506,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                                      String appId, JSONObject user) {
         // 生成token
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"),
-                user.getString("username"), "", "", "idToken");
+                user.getString("username"), "", "", user.getString("id_token"));
         String token = tokens[0];
         String verifyToken = tokens[1];
 
@@ -562,11 +562,9 @@ public class OpenGaussService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, accountType, null);
         }
 
-        String idToken;
         JSONObject user;
         if (msg instanceof JSONObject) {
             user = (JSONObject) msg;
-            idToken = user.getString("id_token");
         } else {
             long codeExpire = Long.parseLong(env.getProperty("login.error.limit.seconds", "60"));
             loginErrorCount += 1;
@@ -577,19 +575,8 @@ public class OpenGaussService implements UserCenterServiceInter {
         //登录成功解除登录失败次数限制
         redisDao.remove(loginErrorCountKey);
 
-        // 生成token
-        String[] tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"),
-                user.getString("username"), "", "", idToken);
-        String token = tokens[0];
-        String verifyToken = tokens[1];
-
-        // 写cookie
-        String cookieTokenName = env.getProperty("cookie.token.name");
-        String maxAgeTemp = env.getProperty("authing.cookie.max.age");
-        int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
-        HttpClientUtils.setCookie(servletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
-
-        // 登录成功，验证码失效
+        // 登录成功。生成token,写入cookie，验证码失效
+        setCookieAfterLogin(servletRequest, servletResponse, appId, user);
         redisDao.updateValue(redisKey, codeTemp + "_used", 0);
 
         // 返回结果
