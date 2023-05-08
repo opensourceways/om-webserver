@@ -16,7 +16,6 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.Claim;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
-import com.om.Modules.*;
 import com.om.Utils.RSAUtil;
 import com.om.Vo.TokenUser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,17 +37,11 @@ import java.util.Map;
 @Service
 public class JwtTokenCreateService {
     @Autowired
-    private openEuler openeuler;
-    @Autowired
-    private openGauss opengauss;
-    @Autowired
-    private openLookeng openlookeng;
-    @Autowired
-    private mindSpore mindspore;
-    @Autowired
     RedisDao redisDao;
+
     @Autowired
     AuthingUserDao authingUserDao;
+
     @Autowired
     private Environment env;
 
@@ -64,33 +57,28 @@ public class JwtTokenCreateService {
     @Value("${rsa.authing.publicKey}")
     private String rsaAuthingPublicKey;
 
+    @Value("${token.base.password}")
+    private String tokenBasePassword;
+
+    @Value("${token.expire.seconds}")
+    private String tokenExpireSeconds;
+
     public String getToken(TokenUser user) {
-        openComObject communityObj;
-        switch (user.getCommunity().toLowerCase()) {
-            case "openeuler":
-                communityObj = openeuler;
-                break;
-            case "opengauss":
-                communityObj = opengauss;
-                break;
-            case "openlookeng":
-                communityObj = openlookeng;
-                break;
-            case "mindspore":
-                communityObj = mindspore;
-                break;
-            default:
-                return null;
+        if (!user.getCommunity().equalsIgnoreCase("openeuler")
+                && !user.getCommunity().equalsIgnoreCase("opengauss")
+                && !user.getCommunity().equalsIgnoreCase("mindspore")
+                && !user.getCommunity().equalsIgnoreCase("openlookeng")) {
+            return null;
         }
 
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
-        int expireSeconds = Integer.parseInt(communityObj.getTokenExpireSeconds());
+        int expireSeconds = Integer.parseInt(tokenExpireSeconds);
         LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
 
-        String basePassword = communityObj.getTokenBasePassword();
+        String basePassword = tokenBasePassword;
 
         return JWT.create()
                 .withAudience(user.getUsername()) //谁接受签名
