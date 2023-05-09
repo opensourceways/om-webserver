@@ -15,6 +15,7 @@ import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.om.Result.Constant;
 import com.om.Service.AuthingService;
 import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
@@ -341,8 +342,10 @@ public class AuthingController {
         }
 
         String serviceType =
-                (community == null || community.toLowerCase().equals("openeuler"))
-                        ? "authing" : community.toLowerCase();
+                (community == null
+                        || community.toLowerCase().equals(Constant.ONEID_VERSION_V1)
+                        || community.toLowerCase().equals(Constant.ONEID_VERSION_V2))
+                        ? Constant.AUTHING : community.toLowerCase();
         return userCenterServiceContext.getUserCenterService(serviceType);
     }
 
