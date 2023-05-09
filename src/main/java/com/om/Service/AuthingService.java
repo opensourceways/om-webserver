@@ -146,7 +146,7 @@ public class AuthingService implements UserCenterServiceInter {
         String loginErrorCountKey = account + "loginCount";
         Object v = redisDao.get(loginErrorCountKey);
         int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
-        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.count", "6")))
+        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6")))
             return result(HttpStatus.BAD_REQUEST, null, "失败次数过多，请稍后重试", null);
 
         if (!channel.equalsIgnoreCase("channel_login") && !channel.equalsIgnoreCase("channel_register")) {
@@ -235,7 +235,7 @@ public class AuthingService implements UserCenterServiceInter {
         String loginErrorCountKey = account + "loginCount";
         Object v = redisDao.get(loginErrorCountKey);
         int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
-        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.count", "6")))
+        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6")))
             return result(HttpStatus.BAD_REQUEST, null, "失败次数过多，请稍后重试", null);
 
         // 校验appId
@@ -265,7 +265,8 @@ public class AuthingService implements UserCenterServiceInter {
             JSONObject user = (JSONObject) msg;
             idToken = user.getString("id_token");
         } else {
-            long codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
+            long codeExpire =
+                    Long.parseLong(env.getProperty("login.error.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
             loginErrorCount += 1;
             redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
             return result(HttpStatus.BAD_REQUEST, null, (String) msg, null);
@@ -278,7 +279,8 @@ public class AuthingService implements UserCenterServiceInter {
             userId = decode.getSubject();
             user = authingUserDao.getUser(userId);
         } catch (Exception e) {
-            long codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
+            long codeExpire =
+                    Long.parseLong(env.getProperty("login.error.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
             loginErrorCount += 1;
             redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
             return result(HttpStatus.BAD_REQUEST, null, "登录失败", null);
@@ -288,7 +290,7 @@ public class AuthingService implements UserCenterServiceInter {
         redisDao.remove(loginErrorCountKey);
 
         // 资源权限
-        String permissionInfo = env.getProperty(community + "." + permission);
+        String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
         // 生成token
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
@@ -349,6 +351,11 @@ public class AuthingService implements UserCenterServiceInter {
             String userId = decode.getAudience().get(0);
             String headToken = decode.getClaim("verifyToken").asString();
             String idToken = (String) redisDao.get("idToken_" + headToken);
+
+            List<String> accessibleApps = authingUserDao.userAccessibleApps(userId);
+            if (!accessibleApps.contains(appId)) {
+                return resultOidc(HttpStatus.BAD_REQUEST, "No permission to login the application", null);
+            }
 
             // 生成code和state
             String code = codeUtil.randomStrBuilder(32);
@@ -534,19 +541,19 @@ public class AuthingService implements UserCenterServiceInter {
             String photo;
             String username;
             String email;
-            try {
+            /*try { TODO
                 MySqlUser s = userMapper.selectById(userId);
                 photo = s.getPhoto();
                 username = s.getUsername();
                 email = s.getEmail();
             } catch (Exception e) {
-                System.out.println("get data from mysql failed.");
+                System.out.println("get data from mysql failed.");*/
                 // 获取用户
                 User user = authingUserDao.getUser(userId);
                 photo = user.getPhoto();
                 username = user.getUsername();
                 email = user.getEmail();
-            }
+//            }
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
@@ -652,16 +659,16 @@ public class AuthingService implements UserCenterServiceInter {
             // 获取用户
             String photo;
             String username;
-            try {
+            /*try { TODO
                 MySqlUser s = userMapper.selectById(userId);
                 photo = s.getPhoto();
                 username = s.getUsername();
             } catch (Exception e) {
-                System.out.println("get data from mysql failed.");
+                System.out.println("get data from mysql failed.");*/
                 User user = authingUserDao.getUser(userId);
                 photo = user.getPhoto();
                 username = user.getUsername();
-            }
+//            }
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
@@ -707,7 +714,7 @@ public class AuthingService implements UserCenterServiceInter {
             String email = (String) user.get("email");
 
             // 资源权限
-            String permissionInfo = env.getProperty(community + "." + permission);
+            String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
             // 生成token
             String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
@@ -774,16 +781,10 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-    public ResponseEntity sendCode(String token, String account, String type, String field, boolean isSuccess) {
+    public ResponseEntity sendCode(String token, String account, String channel, boolean isSuccess) {
         // 图片验证码二次校验
         if (!isSuccess)
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
-
-        // 邮箱或者手机号格式校验
-        String accountType = getAccountType(account);
-        if (!accountType.equals("email") && !accountType.equals("phone")) {
-            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
-        }
 
         // 限制1分钟只能发送一次
         String redisKey = account.toLowerCase() + "_sendcode";
@@ -792,13 +793,29 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
         }
 
-        boolean res = authingUserDao.sendCode(token, account, type, field);
-        if (!res) {
+        String msg;
+        String accountType = getAccountType(account);
+        try {
+            token = rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(token);
+            String appId = decode.getClaim("client_id").asString();
+            if (accountType.equals("email")) {
+                msg = authingUserDao.sendEmailCodeV3(appId, account, channel);
+            } else if (accountType.equals("phone")) {
+                msg = authingUserDao.sendPhoneCodeV3(appId, account, channel);
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            }
+        } catch (Exception e) {
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
         }
 
-        redisDao.set(redisKey, "code", 60L);
-        return result(HttpStatus.OK, "success", null);
+        if (!msg.equals("success")) {
+            redisDao.set(redisKey, "code", 60L);
+            return result(HttpStatus.BAD_REQUEST, null, msg, null);
+        } else {
+            return result(HttpStatus.OK, "success", null);
+        }
     }
 
     @Override
@@ -811,17 +828,23 @@ public class AuthingService implements UserCenterServiceInter {
         if (!isSuccess)
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
 
-        // 邮箱或者手机号格式校验
-        String accountTypeCheck = getAccountType(account);
-        if (!accountTypeCheck.equals("email") && !accountTypeCheck.equals("phone")) {
-            return result(HttpStatus.BAD_REQUEST, null, accountTypeCheck, null);
-        }
-
         String redisKey = account.toLowerCase() + "_CodeUnbind";
         try {
-            // 限制1分钟只能发送一次
-            String codeOld = (String) redisDao.get(redisKey);
-            if (codeOld != null) {
+            // 邮箱or手机号格式校验，并获取验证码过期时间
+            long codeExpire;
+            String accountTypeCheck = getAccountType(account);
+            if (accountTypeCheck.equals("email")) {
+                codeExpire = Long.parseLong(env.getProperty("mail.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
+            } else if (accountTypeCheck.equals("phone")) {
+                codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, accountTypeCheck, null);
+            }
+
+            // 限制1分钟只能发送一次 （剩余的过期时间 + 60s > 验证码过期时间，表示一分钟之内发送过验证码）
+            long limit = Long.parseLong(env.getProperty("send.code.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
+            long remainingExpirationSecond = redisDao.expire(redisKey);
+            if (remainingExpirationSecond + limit > codeExpire) {
                 return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
             }
 

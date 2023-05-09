@@ -110,7 +110,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             String registerErrorCountKey = account + "registerCount";
             Object v = redisDao.get(registerErrorCountKey);
             int registerErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
-            if (registerErrorCount >= Integer.parseInt(env.getProperty("login.error.count", "6")))
+            if (registerErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6")))
                 return result(HttpStatus.BAD_REQUEST, null, "请求过于频繁", null);
 
             HashMap<String, Object> userInfo = new HashMap<>();
@@ -147,7 +147,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             String codeTemp = (String) redisDao.get(redisKey);
             String codeCheck = checkCode(code, codeTemp);
             if (!codeCheck.equals("success")) {
-                long codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
+                long codeExpire = Long.parseLong(env.getProperty("login.error.limit.seconds", "60"));
                 registerErrorCount += 1;
                 redisDao.set(registerErrorCountKey, String.valueOf(registerErrorCount), codeExpire);
                 return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
@@ -186,16 +186,28 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, "channel error", null);
             }
 
-            // 限制1分钟只能发送一次
-            String redisKeyTemp = account + "_sendCode_" + community;
+            // 邮箱or手机号格式校验，并获取验证码过期时间
+            long codeExpire;
+            String accountType = getAccountType(account);
+            if (accountType.equals("email")) {
+                codeExpire = Long.parseLong(env.getProperty("mail.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
+            } else if (accountType.equals("phone")) {
+                codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            }
+
+            // 限制1分钟只能发送一次 （剩余的过期时间 + 60s > 验证码过期时间，表示一分钟之内发送过验证码）
+            long limit = Long.parseLong(env.getProperty("send.code.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
+            String redisKeyTemp = account.toLowerCase() + "_sendCode_" + community;
             String redisKey = channel.toLowerCase().equals("channel_register") ? redisKeyTemp + "_register" : redisKeyTemp;
-            String codeOld = (String) redisDao.get(redisKey);
-            if (codeOld != null) {
-                return result(HttpStatus.BAD_REQUEST, null, "一分钟之内已发送过验证码", null);
+
+            long remainingExpirationSecond = redisDao.expire(redisKey);
+            if (remainingExpirationSecond + limit > codeExpire) {
+                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
             }
 
             // 发送验证码
-            String accountType = getAccountType(account);
             String[] strings = codeUtil.sendCode(accountType, account, mailSender, env, community.toLowerCase());
             if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success"))
                 return result(HttpStatus.BAD_REQUEST, null, "验证码发送失败", null);
@@ -244,7 +256,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         String loginErrorCountKey = account + "loginCount";
         Object v = redisDao.get(loginErrorCountKey);
         int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
-        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.count", "6")))
+        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6")))
             return result(HttpStatus.BAD_REQUEST, null, "失败次数过多，请稍后重试", null);
 
         // 验证码校验
@@ -252,7 +264,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         String codeTemp = (String) redisDao.get(redisKey);
         String codeCheck = checkCode(code, codeTemp);
         if (!codeCheck.equals("success")) {
-            long codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
+            long codeExpire = Long.parseLong(env.getProperty("login.error.limit.seconds", "60"));
             loginErrorCount += 1;
             redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
             return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
@@ -274,7 +286,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             user = (JSONObject) msg;
             idToken = user.getString("id_token");
         } else {
-            long codeExpire = Long.parseLong(env.getProperty("mail.code.expire", "60"));
+            long codeExpire = Long.parseLong(env.getProperty("login.error.limit.seconds", "60"));
             loginErrorCount += 1;
             redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
             return result(HttpStatus.BAD_REQUEST, null, (String) msg, null);
@@ -510,6 +522,10 @@ public class OpenGaussService implements UserCenterServiceInter {
         String account = servletRequest.getParameter("account");
         String accountType = servletRequest.getParameter("account_type");
 
+        // 验证码二次校验
+        if (!isSuccess)
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, null);
+
         // app校验
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
             return result(HttpStatus.NOT_FOUND, null, MessageCodeConfig.E00042.getMsgZh(), null);
@@ -517,15 +533,22 @@ public class OpenGaussService implements UserCenterServiceInter {
         try {
             String redisKey = account.toLowerCase() + "_sendCode_" + community;
 
-            // 限制1分钟只能发送一次
-            String codeOld = (String) redisDao.get(redisKey);
-            if (codeOld != null) {
-                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
+            // 邮箱or手机号格式校验，并获取验证码过期时间
+            long codeExpire;
+            String accountTypeCheck = getAccountType(account);
+            if (accountTypeCheck.equals("email")) {
+                codeExpire = Long.parseLong(env.getProperty("mail.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
+            } else if (accountTypeCheck.equals("phone")) {
+                codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, accountTypeCheck, null);
             }
 
-            String accountTypeCheck = getAccountType(account);
-            if (!accountTypeCheck.equals("email") && !accountTypeCheck.equals("phone")) {
-                return result(HttpStatus.BAD_REQUEST, null, accountTypeCheck, null);
+            // 限制1分钟只能发送一次 （剩余的过期时间 + 60s > 验证码过期时间，表示一分钟之内发送过验证码）
+            long limit = Long.parseLong(env.getProperty("send.code.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
+            long remainingExpirationSecond = redisDao.expire(redisKey);
+            if (remainingExpirationSecond + limit > codeExpire) {
+                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
             }
 
             // 发送验证码
