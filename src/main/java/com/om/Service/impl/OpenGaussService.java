@@ -1136,7 +1136,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         Cookie cookie = HttpClientUtils.getCookie(request, env.getProperty("identity.cookie.name"));
         try {
             String value = cookie.getValue();
-            RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
+            RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.oneid.privateKey"));
             String identityJsonStr = RSAUtil.privateDecrypt(value, privateKey);
             return objectMapper.readValue(identityJsonStr, UserIdentity.class);
         } catch (Exception e) {
