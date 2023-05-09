@@ -52,7 +52,7 @@ public interface UserCenterServiceInter {
 
     ResponseEntity providerLogin(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
-    ResponseEntity userRegisterByProvider(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+    ResponseEntity getUserIdentity(HttpServletRequest servletRequest);
 
     ResponseEntity linkToExistUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
