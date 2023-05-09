@@ -37,4 +37,7 @@ public class Constant {
     public static final String EMAIL_REPLACE_REG = "(^\\w)[^@]*(@.*$)";
 
     public static final String DEFAULT_EXPIRE_SECOND = "60";
+    public static final String AUTHING = "authing";
+    public static final String OPENEULER="openeuler";
+    public static final String MINDSPORE="mindspore";
 }
