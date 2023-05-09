@@ -237,6 +237,11 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     @Override
+    public ResponseEntity newUserRegisterByProvider(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        return null;
+    }
+
+    @Override
     public ResponseEntity linkToExistUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         return null;
     }

@@ -341,6 +341,29 @@ public class OpenGaussService implements UserCenterServiceInter {
     }
 
     @Override
+    public ResponseEntity newUserRegisterByProvider(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        Cookie cookie = HttpClientUtils.getCookie(servletRequest, env.getProperty("identity.cookie.name"));
+        // 三方用户信息
+        if (cookie == null) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null, null);
+        }
+
+        try {
+            String value = cookie.getValue();
+            RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
+            String identityJsonStr = RSAUtil.privateDecrypt(value, privateKey);
+            UserIdentity userIdentity = objectMapper.readValue(identityJsonStr, UserIdentity.class);
+
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("username", userIdentity.getUsername());
+            userData.put("email", userIdentity.getEmail());
+            return result(HttpStatus.OK, null, "login_success", userData);
+        } catch (Exception e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
+        }
+    }
+
+    @Override
     public ResponseEntity linkToExistUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
         String appId = (String) getBodyPara(body, "client_id");
@@ -374,7 +397,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             String value = cookie.getValue();
             RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
             String identityJsonStr = RSAUtil.privateDecrypt(value, privateKey);
-            UserIdentity userIdentity = objectMapper.readValue(value, UserIdentity.class);
+            UserIdentity userIdentity = objectMapper.readValue(identityJsonStr, UserIdentity.class);
 
             // 用户已绑定有相同身份源账户
             if (getUserProviders(user).contains(userIdentity.getProvider().toString())) {
