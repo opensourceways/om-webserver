@@ -164,15 +164,11 @@ public class OpenGaussService implements UserCenterServiceInter {
 
             // 通过三方用户注册
             if (registerType.equalsIgnoreCase("provider")) {
-                Cookie cookie = HttpClientUtils.getCookie(servletRequest, env.getProperty("identity.cookie.name"));
                 // 三方用户信息
-                if (cookie == null) {
+                UserIdentity userIdentity = getUserIdentityFromCookie(servletRequest);
+                if (userIdentity == null) {
                     return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null, null);
                 }
-                String value = cookie.getValue();
-                RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
-                value = RSAUtil.privateDecrypt(value, privateKey);
-                UserIdentity userIdentity = objectMapper.readValue(value, UserIdentity.class);
                 userInfo.put("identities", userIdentity);
             }
 
@@ -341,13 +337,30 @@ public class OpenGaussService implements UserCenterServiceInter {
     }
 
     @Override
+    public ResponseEntity getUserIdentity(HttpServletRequest servletRequest) {
+        try {
+            // 三方用户信息
+            UserIdentity userIdentity = getUserIdentityFromCookie(servletRequest);
+            if (userIdentity == null) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null, null);
+            }
+
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("username", userIdentity.getUsername());
+            userData.put("email", userIdentity.getEmail());
+            return result(HttpStatus.OK, null, "login_success", userData);
+        } catch (Exception e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
+        }
+    }
+
+    @Override
     public ResponseEntity linkToExistUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
         String appId = (String) getBodyPara(body, "client_id");
         String community = (String) getBodyPara(body, "community");
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
-        Cookie cookie = HttpClientUtils.getCookie(servletRequest, env.getProperty("identity.cookie.name"));
 
         // 账号格式校验
         String accountType = getAccountType(account);
@@ -365,16 +378,13 @@ public class OpenGaussService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00034, null, null);
         }
 
-        // 三方用户信息
-        if (cookie == null) {
-            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null, null);
-        }
-
         try {
-            String value = cookie.getValue();
-            RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
-            String identityJsonStr = RSAUtil.privateDecrypt(value, privateKey);
-            UserIdentity userIdentity = objectMapper.readValue(value, UserIdentity.class);
+            // 三方用户信息
+            UserIdentity userIdentity = getUserIdentityFromCookie(servletRequest);
+            if (userIdentity == null) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null, null);
+            }
+            String identityJsonStr = objectMapper.writeValueAsString(userIdentity);
 
             // 用户已绑定有相同身份源账户
             if (getUserProviders(user).contains(userIdentity.getProvider().toString())) {
@@ -1123,5 +1133,18 @@ public class OpenGaussService implements UserCenterServiceInter {
         } catch (Exception ignored) {
         }
         return res;
+    }
+
+    private UserIdentity getUserIdentityFromCookie(HttpServletRequest request) {
+        // 三方用户信息
+        Cookie cookie = HttpClientUtils.getCookie(request, env.getProperty("identity.cookie.name"));
+        try {
+            String value = cookie.getValue();
+            RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.oneid.privateKey"));
+            String identityJsonStr = RSAUtil.privateDecrypt(value, privateKey);
+            return objectMapper.readValue(identityJsonStr, UserIdentity.class);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
