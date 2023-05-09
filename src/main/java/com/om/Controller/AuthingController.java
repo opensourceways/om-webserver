@@ -21,8 +21,6 @@ import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
 import com.om.authing.AuthingUserToken;
-import com.om.log.userLog.LogAnnotation;
-import com.om.log.userLog.MethodType;
 import com.om.provider.context.ProviderContext;
 import com.om.provider.oauth2.OidcProvider;
 import com.om.token.ManageToken;
@@ -114,6 +112,12 @@ public class AuthingController {
     public ResponseEntity providerLogin(HttpServletRequest request, HttpServletResponse response) {
         UserCenterServiceInter service = getServiceImpl(request);
         return service.providerLogin(request, response);
+    }
+
+    @RequestMapping(value = "/provider/register")
+    public ResponseEntity providerRegister(HttpServletRequest request, HttpServletResponse response) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        return service.newUserRegisterByProvider(request, response);
     }
 
     @RequestMapping(value = "/provider/link", method = RequestMethod.POST)
