@@ -237,7 +237,7 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     @Override
-    public ResponseEntity userRegisterByProvider(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+    public ResponseEntity getUserIdentity(HttpServletRequest servletRequest) {
         return null;
     }
 

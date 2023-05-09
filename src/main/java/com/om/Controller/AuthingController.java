@@ -115,9 +115,9 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "/provider/register")
-    public ResponseEntity providerRegister(HttpServletRequest request, HttpServletResponse response) {
+    public ResponseEntity providerRegister(HttpServletRequest request) {
         UserCenterServiceInter service = getServiceImpl(request);
-        return service.userRegisterByProvider(request, response);
+        return service.getUserIdentity(request);
     }
 
     @RequestMapping(value = "/provider/link", method = RequestMethod.POST)
