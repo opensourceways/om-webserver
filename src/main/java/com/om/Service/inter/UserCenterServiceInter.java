@@ -52,6 +52,8 @@ public interface UserCenterServiceInter {
 
     ResponseEntity providerLogin(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
+    ResponseEntity getUserIdentity(HttpServletRequest servletRequest);
+
     ResponseEntity linkToExistUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
     ResponseEntity userLink(HttpServletRequest request, HttpServletResponse response);
