@@ -15,10 +15,12 @@ import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.om.Result.Constant;
 import com.om.Service.AuthingService;
 import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
+import com.om.Utils.HttpClientUtils;
 import com.om.authing.AuthingUserToken;
 import com.om.log.userLog.LogAnnotation;
 import com.om.log.userLog.MethodType;
@@ -280,7 +282,16 @@ public class AuthingController {
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
         String community = servletRequest.getParameter("community");
-        String serviceType = community == null || community.toLowerCase().equals("openeuler") ? "authing" : community.toLowerCase();
+        if (community == null) {
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+            community = (String) body.getOrDefault("community", null);
+        }
+
+        String serviceType =
+                (community == null
+                        || community.toLowerCase().equals(Constant.OPENEULER)
+                        || community.toLowerCase().equals(Constant.MINDSPORE))
+                        ? Constant.AUTHING : community.toLowerCase();
         return userCenterServiceContext.getUserCenterService(serviceType);
     }
 
