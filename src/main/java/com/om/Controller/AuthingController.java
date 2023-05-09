@@ -22,6 +22,8 @@ import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
 import com.om.authing.AuthingUserToken;
+import com.om.provider.context.ProviderContext;
+import com.om.provider.oauth2.OidcProvider;
 import com.om.token.ManageToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +45,9 @@ public class AuthingController {
 
     @Autowired
     QueryService queryService;
+
+    @Autowired
+    ProviderContext providerContext;
 
     @Autowired
     UserCenterServiceContext userCenterServiceContext;
@@ -75,19 +80,65 @@ public class AuthingController {
         return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
-    @RequestMapping(value = "/register")
+    @RequestMapping(value = "/register", method = RequestMethod.POST)
 //    @LogAnnotation(methodType = MethodType.REGISTER)
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.register(servletRequest, servletResponse);
     }
 
-    @RequestMapping(value = "/login")
+    @RequestMapping(value = "/login", method = RequestMethod.POST)
 //    @LogAnnotation(methodType = MethodType.LOGIN)
     public ResponseEntity login(HttpServletRequest servletRequest,
                                 HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.login(servletRequest, servletResponse);
+    }
+
+    @RequestMapping(value = "/provider/authorize")
+    public ResponseEntity providerAuthorize(HttpServletRequest request, HttpServletResponse response) {
+        OidcProvider oidcProvider = getOidcProvider(request);
+        return oidcProvider.oidcAuthorize(request, response, oidcProvider);
+    }
+
+    @RequestMapping(value = "/{provider}/callback")
+    public ResponseEntity providerCallback(HttpServletRequest request, HttpServletResponse response,
+                                           @PathVariable String provider) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        OidcProvider oidcProvider = providerContext.getOidcProvider(provider);
+        return service.providerCallback(request, response, oidcProvider);
+    }
+
+    @RequestMapping(value = "/provider/login", method = RequestMethod.POST)
+    public ResponseEntity providerLogin(HttpServletRequest request, HttpServletResponse response) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        return service.providerLogin(request, response);
+    }
+
+    @RequestMapping(value = "/provider/register")
+    public ResponseEntity providerRegister(HttpServletRequest request) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        return service.getUserIdentity(request);
+    }
+
+    @RequestMapping(value = "/provider/link", method = RequestMethod.POST)
+    public ResponseEntity linkToExistUser(HttpServletRequest request, HttpServletResponse response) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        return service.linkToExistUser(request, response);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/user/link", method = RequestMethod.POST)
+    public ResponseEntity userLink(HttpServletRequest request, HttpServletResponse response) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        return service.userLink(request, response);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/user/unlink", method = RequestMethod.POST)
+    public ResponseEntity userUnLink(HttpServletRequest request, HttpServletResponse response) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        return service.userUnlink(request, response);
     }
 
     @RequestMapping(value = "/app/verify")
@@ -276,6 +327,11 @@ public class AuthingController {
             throws JsonProcessingException {
         String res = queryService.queryUserOwnertype(community, user, username);
         return res;
+    }
+
+    private OidcProvider getOidcProvider(HttpServletRequest servletRequest) {
+        String provider = servletRequest.getParameter("provider");
+        return providerContext.getOidcProvider(provider);
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
