@@ -287,8 +287,8 @@ public class AuthingController {
 
         String serviceType =
                 (community == null
-                        || community.toLowerCase().equals(Constant.V1)
-                        || community.toLowerCase().equals(Constant.V2))
+                        || community.toLowerCase().equals(Constant.ONEID_VERSION_V1)
+                        || community.toLowerCase().equals(Constant.ONEID_VERSION_V2))
                         ? Constant.AUTHING : community.toLowerCase();
         return userCenterServiceContext.getUserCenterService(serviceType);
     }
