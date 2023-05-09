@@ -18,7 +18,6 @@ import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.om.Modules.*;
 import com.om.Service.TokenUserService;
 import com.om.Vo.TokenUser;
 import java.lang.reflect.Method;
@@ -28,6 +27,7 @@ import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -38,14 +38,9 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
 
     @Autowired
     TokenUserService userService;
-    @Autowired
-    private openEuler openeuler;
-    @Autowired
-    private openGauss opengauss;
-    @Autowired
-    private openLookeng openlookeng;
-    @Autowired
-    private mindSpore mindspore;
+    
+    @Value("${token.user.password}")
+    private String tokenUserPassword;
 
     @Override
     public boolean preHandle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object object) throws Exception {
@@ -55,20 +50,13 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         if (community == null){
             return true;
         }
-        openComObject communityObj = null;
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                communityObj = openeuler;
-                break;
-            case "opengauss":
-                communityObj = opengauss;
-                break;
-            case "openlookeng":
-                communityObj = openlookeng;
-                break;
-            case "mindspore":
-                communityObj = mindspore;
-                break;
+
+        if (!community.equalsIgnoreCase("openeuler")
+                && !community.equalsIgnoreCase("opengauss")
+                && !community.equalsIgnoreCase("mindspore")
+                && !community.equalsIgnoreCase("openlookeng")) {
+            sos.write(errorToken(401, "token error"));
+            return false;
         }
 
         //从http请求头中取出 token
@@ -115,11 +103,7 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
                     sos.write(errorToken(401, "token error")); // token 签名接受者有误
                     return false;
                 }
-                if (communityObj == null){
-                    sos.write(errorToken(401, "token error"));
-                    return false;
-                }
-                String password = user.getPassword() + communityObj.getTokenBasePassword();
+                String password = user.getPassword() + tokenUserPassword;
                 //验证token
                 JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(password)).build();
                 try {

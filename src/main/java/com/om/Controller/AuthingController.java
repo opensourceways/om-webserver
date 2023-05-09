@@ -15,10 +15,12 @@ import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.om.Result.Constant;
 import com.om.Service.AuthingService;
 import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
+import com.om.Utils.HttpClientUtils;
 import com.om.authing.AuthingUserToken;
 import com.om.token.ManageToken;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,12 +76,14 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "/register")
+//    @LogAnnotation(methodType = MethodType.REGISTER)
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.register(servletRequest, servletResponse);
     }
 
     @RequestMapping(value = "/login")
+//    @LogAnnotation(methodType = MethodType.LOGIN)
     public ResponseEntity login(HttpServletRequest servletRequest,
                                 HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
@@ -149,6 +153,7 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "/token/apply")
+//    @LogAnnotation(methodType = MethodType.LOGIN)
     public ResponseEntity tokenApply(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
                                      @RequestParam(value = "community") String community,
@@ -179,11 +184,10 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/sendcode")
     public ResponseEntity sendCode(@RequestParam(value = "account") String account,
-                                   @RequestParam(value = "field") String field,
-                                   @RequestParam(value = "account_type") String account_type,
+                                   @RequestParam(value = "channel") String channel,
                                    @CookieValue(value = "_Y_G_", required = false) String token,
                                    @RequestParam("captchaVerification") String captchaVerification) {
-        return authingService.sendCode(token, account, account_type, field, verifyCaptcha(captchaVerification));
+        return authingService.sendCode(token, account, channel, verifyCaptcha(captchaVerification));
     }
 
     @AuthingUserToken
@@ -245,6 +249,7 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/update/baseInfo", method = RequestMethod.POST)
+//    @LogAnnotation(methodType = MethodType.UPDATE)
     public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest,
                                              HttpServletResponse servletResponse,
                                              @CookieValue(value = "_Y_G_", required = false) String token,
@@ -275,7 +280,16 @@ public class AuthingController {
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
         String community = servletRequest.getParameter("community");
-        String serviceType = community == null || community.toLowerCase().equals("openeuler") ? "authing" : community.toLowerCase();
+        if (community == null) {
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+            community = (String) body.getOrDefault("community", null);
+        }
+
+        String serviceType =
+                (community == null
+                        || community.toLowerCase().equals(Constant.ONEID_VERSION_V1)
+                        || community.toLowerCase().equals(Constant.ONEID_VERSION_V2))
+                        ? Constant.AUTHING : community.toLowerCase();
         return userCenterServiceContext.getUserCenterService(serviceType);
     }
 

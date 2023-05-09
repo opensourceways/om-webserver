@@ -13,9 +13,6 @@ package com.om.Modules;
 
 public enum MessageCodeConfig {
     // success code message
-    C0001("C0001", "code invalid or expired", "验证码无效或已过期"),
-    C0002("C0002", "send code success", "验证码发送成功"),
-    C0003("C0002", "unlink account success", ""),
 
     // fail code message
     E0001("E0001", "Code invalid or expired", "验证码无效或已过期"),
