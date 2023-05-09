@@ -324,7 +324,7 @@ public class AuthingService implements UserCenterServiceInter {
         redisDao.remove(loginErrorCountKey);
 
         // 资源权限
-        String permissionInfo = env.getProperty(community + "." + permission);
+        String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
         // 生成token
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
@@ -575,19 +575,19 @@ public class AuthingService implements UserCenterServiceInter {
             String photo;
             String username;
             String email;
-            try {
+            /*try { TODO
                 MySqlUser s = userMapper.selectById(userId);
                 photo = s.getPhoto();
                 username = s.getUsername();
                 email = s.getEmail();
             } catch (Exception e) {
-                System.out.println("get data from mysql failed.");
+                System.out.println("get data from mysql failed.");*/
                 // 获取用户
                 User user = authingUserDao.getUser(userId);
                 photo = user.getPhoto();
                 username = user.getUsername();
                 email = user.getEmail();
-            }
+//            }
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
@@ -693,16 +693,16 @@ public class AuthingService implements UserCenterServiceInter {
             // 获取用户
             String photo;
             String username;
-            try {
+            /*try { TODO
                 MySqlUser s = userMapper.selectById(userId);
                 photo = s.getPhoto();
                 username = s.getUsername();
             } catch (Exception e) {
-                System.out.println("get data from mysql failed.");
+                System.out.println("get data from mysql failed.");*/
                 User user = authingUserDao.getUser(userId);
                 photo = user.getPhoto();
                 username = user.getUsername();
-            }
+//            }
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
@@ -748,7 +748,7 @@ public class AuthingService implements UserCenterServiceInter {
             String email = (String) user.get("email");
 
             // 资源权限
-            String permissionInfo = env.getProperty(community + "." + permission);
+            String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
             // 生成token
             String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
