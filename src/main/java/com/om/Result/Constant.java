@@ -38,7 +38,7 @@ public class Constant {
 
     public static final String DEFAULT_EXPIRE_SECOND = "60";
     public static final String AUTHING = "authing";
-    public static final String V1 = "openeuler";
-    public static final String V2 = "mindspore";
+    public static final String ONEID_VERSION_V1 = "openeuler";
+    public static final String ONEID_VERSION_V2 = "mindspore";
 }
 
