@@ -290,7 +290,7 @@ public class AuthingService implements UserCenterServiceInter {
         redisDao.remove(loginErrorCountKey);
 
         // 资源权限
-        String permissionInfo = env.getProperty(community + "." + permission);
+        String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
         // 生成token
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
@@ -714,7 +714,7 @@ public class AuthingService implements UserCenterServiceInter {
             String email = (String) user.get("email");
 
             // 资源权限
-            String permissionInfo = env.getProperty(community + "." + permission);
+            String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
             // 生成token
             String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
