@@ -22,8 +22,6 @@ import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
 import com.om.authing.AuthingUserToken;
-import com.om.log.userLog.LogAnnotation;
-import com.om.log.userLog.MethodType;
 import com.om.token.ManageToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -289,8 +287,8 @@ public class AuthingController {
 
         String serviceType =
                 (community == null
-                        || community.toLowerCase().equals(Constant.OPENEULER)
-                        || community.toLowerCase().equals(Constant.MINDSPORE))
+                        || community.toLowerCase().equals(Constant.V1)
+                        || community.toLowerCase().equals(Constant.V2))
                         ? Constant.AUTHING : community.toLowerCase();
         return userCenterServiceContext.getUserCenterService(serviceType);
     }
