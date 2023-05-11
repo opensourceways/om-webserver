@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
-import com.om.Modules.MySqlUser;
 import com.om.Modules.ServerErrorException;
 import com.om.Result.Constant;
 import com.om.Result.Result;
@@ -28,7 +27,6 @@ import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
-import com.om.mapper.UserMapper;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -70,9 +68,6 @@ public class AuthingService implements UserCenterServiceInter {
 
     @Autowired
     JavaMailSender mailSender;
-
-    @Autowired
-    UserMapper userMapper;
 
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
@@ -290,7 +285,7 @@ public class AuthingService implements UserCenterServiceInter {
         redisDao.remove(loginErrorCountKey);
 
         // 资源权限
-        String permissionInfo = env.getProperty(community + "." + permission);
+        String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
         // 生成token
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
@@ -538,22 +533,11 @@ public class AuthingService implements UserCenterServiceInter {
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
 
-            String photo;
-            String username;
-            String email;
-            /*try { TODO
-                MySqlUser s = userMapper.selectById(userId);
-                photo = s.getPhoto();
-                username = s.getUsername();
-                email = s.getEmail();
-            } catch (Exception e) {
-                System.out.println("get data from mysql failed.");*/
-                // 获取用户
-                User user = authingUserDao.getUser(userId);
-                photo = user.getPhoto();
-                username = user.getUsername();
-                email = user.getEmail();
-//            }
+            // 获取用户
+            User user = authingUserDao.getUser(userId);
+            String photo = user.getPhoto();
+            String username = user.getUsername();
+            String email = user.getEmail();
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
@@ -657,18 +641,9 @@ public class AuthingService implements UserCenterServiceInter {
             String userId = decode.getAudience().get(0);
 
             // 获取用户
-            String photo;
-            String username;
-            /*try { TODO
-                MySqlUser s = userMapper.selectById(userId);
-                photo = s.getPhoto();
-                username = s.getUsername();
-            } catch (Exception e) {
-                System.out.println("get data from mysql failed.");*/
-                User user = authingUserDao.getUser(userId);
-                photo = user.getPhoto();
-                username = user.getUsername();
-//            }
+            User user = authingUserDao.getUser(userId);
+            String photo = user.getPhoto();
+            String username = user.getUsername();
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
@@ -714,7 +689,7 @@ public class AuthingService implements UserCenterServiceInter {
             String email = (String) user.get("email");
 
             // 资源权限
-            String permissionInfo = env.getProperty(community + "." + permission);
+            String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
             // 生成token
             String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
