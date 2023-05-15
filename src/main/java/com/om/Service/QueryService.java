@@ -61,7 +61,7 @@ public class QueryService {
                 e.printStackTrace();
             }
             boolean set = redisDao.set(key, result,
-                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.keyexpire"))));
+                    Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
             if (set) {
                 System.out.println("update " + key + " success!");
             }
