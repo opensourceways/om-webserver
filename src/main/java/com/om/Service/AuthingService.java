@@ -266,8 +266,10 @@ public class AuthingService implements UserCenterServiceInter {
         //登录成功解除登录失败次数限制
         redisDao.remove(loginErrorCountKey);
 
+        // 资源权限
+        String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
+
         // 生成token
-        String permissionInfo = env.getProperty(community + "." + permission);
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
                 user.getUsername(), permissionInfo, permission, idToken);
 

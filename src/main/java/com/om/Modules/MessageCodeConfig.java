@@ -46,7 +46,7 @@ public enum MessageCodeConfig {
     E00026("E00026", "Verification code invalid or expired.Please get it again", "验证码已失效，请重新获取验证码"),
     E00027("E00027", "Failed to login", "登录失败"),
     E00028("E00028", "The number of verifications sent by the mobile phone number per day exceeds the upper limit", "手机号每天发送的验证次数超过上限"),
-    E00029("E00029", "For login、registration adn reset password use only", "仅登录、注册和重置密码使用"),
+    E00029("E00029", "For login,registration adn reset password use only", "仅登录、注册和重置密码使用"),
     E00030("E00030", "Too many failures,Please try again later", "失败次数过多，请稍后重试"),
     E00031("E00031", "The new email is the same as the old", "新邮箱与已绑定邮箱相同"),
     E00032("E00032", "The new phone number is the same as the old", "新手机号与已绑定手机号相同"),
