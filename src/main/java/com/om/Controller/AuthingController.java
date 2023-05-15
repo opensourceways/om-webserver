@@ -62,13 +62,13 @@ public class AuthingController {
         return captchaService.check(data);
     }
 
-    @RequestMapping(value = {"/account/exists", "/v3/exists"})
+    @RequestMapping(value = "/account/exists")
     public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.accountExists(servletRequest, servletResponse);
     }
 
-    @RequestMapping(value = "/captcha/sendCode")
+    @RequestMapping(value = {"/captcha/sendCode", "/v3/exists"})
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
