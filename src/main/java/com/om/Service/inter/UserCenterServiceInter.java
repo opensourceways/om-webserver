@@ -46,4 +46,12 @@ public interface UserCenterServiceInter {
     ResponseEntity unbindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 
     ResponseEntity bindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
+
+    ResponseEntity getPublicKey();
+
+    ResponseEntity updatePassword(HttpServletRequest servletRequest);
+
+    ResponseEntity resetPwdVerify(HttpServletRequest servletRequest);
+
+    ResponseEntity resetPwd(HttpServletRequest servletRequest);
 }

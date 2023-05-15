@@ -40,5 +40,11 @@ public class Constant {
     public static final String AUTHING = "authing";
     public static final String ONEID_VERSION_V1 = "openeuler";
     public static final String ONEID_VERSION_V2 = "mindspore";
+
+    public static final String SUCCESS = "success";
+    public static final String EMAIL_TYPE = "email";
+    public static final String PHONE_TYPE = "phone";
+    public static final String DEFAULT_EXPIRE_MINUTE = "1";
+    public static final String DEFAULT_CODE_LENGTH = "6";
 }
 
