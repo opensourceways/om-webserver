@@ -50,7 +50,7 @@ public class CodeUtil {
         String code = null;
         try {
             // 生成验证码
-            code = randomNumBuilder(Integer.parseInt(env.getProperty("code.length", "6")));
+            code = randomNumBuilder(Integer.parseInt(env.getProperty("code.length", Constant.DEFAULT_CODE_LENGTH)));
 
             switch (accountType.toLowerCase()) {
                 case "email":
@@ -59,7 +59,7 @@ public class CodeUtil {
                     String from = env.getProperty("spring.mail.username");
                     // 邮件信息
                     String[] info = buildEmailCodeInfo(account, code,
-                            env.getProperty("mail.template.expire.minutes", "1"));
+                            env.getProperty("mail.template.expire.minutes", Constant.DEFAULT_EXPIRE_MINUTE));
                     // 发送验证码
                     resMsg = sendHtmlMail(mailSender, from, account, info[0], info[1]);
                     break;

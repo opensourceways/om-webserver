@@ -86,7 +86,7 @@ public class OpenGaussService implements UserCenterServiceInter {
     @PostConstruct
     public void init() {
         codeUtil = new CodeUtil();
-        error2code = authingUserDao.getErrorCode();
+        error2code = MessageCodeConfig.getErrorCode();
         appId2Secret = getApps();
         result = new Result();
         channels = getSendCodeChannel();
@@ -99,12 +99,13 @@ public class OpenGaussService implements UserCenterServiceInter {
     @Override
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         try {
-            String community = servletRequest.getParameter("community");
-            String appId = servletRequest.getParameter("client_id");
-            String userName = servletRequest.getParameter("username");
-            String account = servletRequest.getParameter("account");
-            String code = servletRequest.getParameter("code");
-            String company = servletRequest.getParameter("company");
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+            String community = (String) getBodyPara(body, "community");
+            String appId = (String) getBodyPara(body, "client_id");
+            String userName = (String) getBodyPara(body, "username");
+            String account = (String) getBodyPara(body, "account");
+            String code = (String) getBodyPara(body, "code");
+            String company = (String) getBodyPara(body, "company");
 
             // 限制一分钟内失败次数
             String registerErrorCountKey = account + "registerCount";
@@ -243,10 +244,11 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        String community = servletRequest.getParameter("community");
-        String appId = servletRequest.getParameter("client_id");
-        String account = servletRequest.getParameter("account");
-        String code = servletRequest.getParameter("code");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String community = (String) getBodyPara(body, "community");
+        String appId = (String) getBodyPara(body, "client_id");
+        String account = (String) getBodyPara(body, "account");
+        String code = (String) getBodyPara(body, "code");
 
         // app校验
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
@@ -303,9 +305,14 @@ public class OpenGaussService implements UserCenterServiceInter {
 
         // 写cookie
         String cookieTokenName = env.getProperty("cookie.token.name");
+        String verifyTokenName = env.getProperty("cookie.verify.token.name");
         String maxAgeTemp = env.getProperty("authing.cookie.max.age");
-        int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
-        HttpClientUtils.setCookie(servletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
+        int expire = Integer.parseInt(env.getProperty("authing.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
+        int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : expire;
+        HttpClientUtils.setCookie(servletRequest, servletResponse, cookieTokenName,
+                token, true, maxAge, "/", domain2secure);
+        HttpClientUtils.setCookie(servletRequest, servletResponse, verifyTokenName,
+                verifyToken, false, expire, "/", domain2secure);
 
         // 返回结果
         HashMap<String, Object> userData = new HashMap<>();
@@ -707,6 +714,26 @@ public class OpenGaussService implements UserCenterServiceInter {
         return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
     }
 
+    @Override
+    public ResponseEntity getPublicKey() {
+        return null;
+    }
+
+    @Override
+    public ResponseEntity updatePassword(HttpServletRequest servletRequest) {
+        return null;
+    }
+
+    @Override
+    public ResponseEntity resetPwdVerify(HttpServletRequest servletRequest) {
+        return null;
+    }
+
+    @Override
+    public ResponseEntity resetPwd(HttpServletRequest servletRequest) {
+        return null;
+    }
+
     private String getAccountType(String account) {
         String accountTypeError = "请输入正确的手机号或者邮箱";
         if (StringUtils.isBlank(account)) {
@@ -805,5 +832,9 @@ public class OpenGaussService implements UserCenterServiceInter {
             return "验证码不正确";
         }
         return "success";
+    }
+
+    private Object getBodyPara(Map<String, Object> body, String paraName) {
+        return body.getOrDefault(paraName, null);
     }
 }
