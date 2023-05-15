@@ -11,7 +11,9 @@
 
 package com.om.Service;
 
+import cn.authing.core.auth.AuthenticationClient;
 import cn.authing.core.types.Application;
+import cn.authing.core.types.User;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -20,6 +22,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
+import com.om.Modules.MessageCodeConfig;
+import com.om.Result.Constant;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -35,6 +39,9 @@ import java.util.Map;
 public class OneIdManageService {
     @Autowired
     Environment env;
+
+    @Autowired
+    AuthingService authingService;
 
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
@@ -83,6 +90,70 @@ public class OneIdManageService {
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
 
+    }
+
+    public ResponseEntity sendCode(Map<String, String> body, String token, boolean isSuccess) {
+        String account = body.get("account");
+        String channel = body.get("channel");
+
+        // 图片验证码二次校验
+        if (!isSuccess) {
+            return authingService.result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
+        }
+
+        // 限制1分钟只能发送一次
+        String redisKey = account.toLowerCase() + "_sendcode";
+        String codeOld = (String) redisDao.get(redisKey);
+        if (codeOld != null) {
+            return authingService.result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
+        }
+
+        String msg;
+        String accountType = authingService.getAccountType(account);
+        try {
+            JsonNode jsonNode = getTokenInfo(token);
+            String appId = jsonNode.get("app_id").asText();
+
+            if (accountType.equals("email")) {
+                msg = authingUserDao.sendEmailCodeV3(appId, account, channel);
+            } else if (accountType.equals("phone")) {
+                msg = authingUserDao.sendPhoneCodeV3(appId, account, channel);
+            } else {
+                return authingService.result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            }
+        } catch (Exception e) {
+            return authingService.result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
+        }
+
+        if (!msg.equals("success")) {
+            redisDao.set(redisKey, "code", Long.parseLong(Constant.DEFAULT_EXPIRE_SECOND));
+            return authingService.result(HttpStatus.BAD_REQUEST, null, msg, null);
+        } else {
+            return result(HttpStatus.OK, "success", null);
+        }
+    }
+
+    public ResponseEntity bindAccount(Map<String, String> body, String token) {
+        String account = body.get("account");
+        String code = body.get("code");
+        String userId = body.get("user_id");
+        String accountType = body.get("account_type");
+
+        if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+
+        try {
+            JsonNode jsonNode = getTokenInfo(token);
+            User user = authingUserDao.getUser(userId);
+            AuthenticationClient authentication =
+                    authingUserDao.initUserAuthentication(jsonNode.get("app_id").asText(), user);
+            String res = authingUserDao.bindAccount(authentication, account, code, accountType);
+
+            return authingService.message(res);
+        } catch (Exception e) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
     }
 
     /**
@@ -137,6 +208,12 @@ public class OneIdManageService {
         tokenMap.put("token", token);
         tokenMap.put("refresh_token", refreshToken);
         return tokenMap;
+    }
+
+    private JsonNode getTokenInfo(String token) throws JsonProcessingException {
+        String tokenStr = (String) redisDao.get(token);
+        String tokenInfo = tokenStr.replace("token_info:", "");
+        return objectMapper.readTree(tokenInfo);
     }
 
     /**
