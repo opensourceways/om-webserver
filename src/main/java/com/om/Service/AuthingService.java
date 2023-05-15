@@ -1062,11 +1062,11 @@ public class AuthingService implements UserCenterServiceInter {
         return new ResponseEntity<>(res, status);
     }
 
-    private ResponseEntity result(HttpStatus status, MessageCodeConfig msgCode, String msg, Object data) {
+    public ResponseEntity result(HttpStatus status, MessageCodeConfig msgCode, String msg, Object data) {
         return result.setResult(status, msgCode, msg, data, error2code);
     }
 
-    private ResponseEntity message(String res) {
+    public ResponseEntity message(String res) {
         switch (res) {
             case "true":
                 return result(HttpStatus.OK, "success", null);
@@ -1089,7 +1089,7 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-    private String getAccountType(String account) {
+    public String getAccountType(String account) {
         String accountType;
         if (account.matches(Constant.EMAILREGEX))
             accountType = "email";
