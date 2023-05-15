@@ -62,7 +62,7 @@ public class AuthingController {
         return captchaService.check(data);
     }
 
-    @RequestMapping(value = "/account/exists")
+    @RequestMapping(value = {"/account/exists", "/v3/exists"})
     public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.accountExists(servletRequest, servletResponse);
