@@ -574,6 +574,31 @@ public class AuthingUserDao {
         return "true";
     }
 
+    public AuthenticationClient initUserAuthentication(String appId, User user) {
+        initAppClient(appId);
+        AuthenticationClient authentication = appClientMap.get(appId);
+        authentication.setCurrentUser(user);
+        return authentication;
+    }
+
+    public String bindAccount(AuthenticationClient authentication, String account, String code, String type) {
+        try {
+            switch (type.toLowerCase()) {
+                case "email":
+                    authentication.bindEmail(account, code).execute();
+                    break;
+                case "phone":
+                    authentication.bindPhone(account, code).execute();
+                    break;
+                default:
+                    return "false";
+            }
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+        return "true";
+    }
+
     public List<Map<String, String>> linkConnList(String token) {
         try {
             Object[] appUserInfo = getAppUserInfo(token);
@@ -857,6 +882,7 @@ public class AuthingUserDao {
         map.put("新手机号和旧手机号一样", MessageCodeConfig.E00014);
         map.put("已经绑定了手机号", MessageCodeConfig.E00015);
         map.put("已经绑定了邮箱", MessageCodeConfig.E00016);
+        map.put("已绑定邮箱", MessageCodeConfig.E00016);
         map.put("退出登录失败", MessageCodeConfig.E00017);
         map.put("用户名不能为空", MessageCodeConfig.E00018);
         map.put("用户名已存在", MessageCodeConfig.E00019);
