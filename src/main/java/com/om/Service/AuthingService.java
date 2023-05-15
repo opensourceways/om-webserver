@@ -934,8 +934,7 @@ public class AuthingService implements UserCenterServiceInter {
             if (msg.equals("success")) {
                 return result(HttpStatus.OK, "success", null);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
         }
         return result(HttpStatus.BAD_REQUEST, null, msg, null);
     }
@@ -969,8 +968,7 @@ public class AuthingService implements UserCenterServiceInter {
                 JSONObject resetToken = (JSONObject) msg;
                 return result(HttpStatus.OK, Constant.SUCCESS, resetToken.getString("passwordResetToken"));
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
         }
 
         return result(HttpStatus.BAD_REQUEST, null, msg.toString(), null);
@@ -988,8 +986,7 @@ public class AuthingService implements UserCenterServiceInter {
             } else {
                 return result(HttpStatus.BAD_REQUEST, null, resetMsg, null);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Exception ignored) {
         }
         return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
     }
