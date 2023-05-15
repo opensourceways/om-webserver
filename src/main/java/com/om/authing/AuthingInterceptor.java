@@ -88,18 +88,11 @@ public class AuthingInterceptor implements HandlerInterceptor {
         // 检查有没有需要用户权限的注解，仅拦截AuthingToken和AuthingUserToken
         HandlerMethod handlerMethod = (HandlerMethod) object;
         Method method = handlerMethod.getMethod();
-        if (!method.isAnnotationPresent(AuthingToken.class) && !method.isAnnotationPresent(AuthingUserToken.class)
-                && !method.isAnnotationPresent(CompanyToken.class)) {
+        if (!method.isAnnotationPresent(AuthingUserToken.class)) {
             return true;
         }
-        AuthingToken userLoginToken = method.getAnnotation(AuthingToken.class);
         AuthingUserToken authingUserToken = method.getAnnotation(AuthingUserToken.class);
-        SigToken sigToken = method.getAnnotation(SigToken.class);
-        CompanyToken companyToken = method.getAnnotation(CompanyToken.class);
-        if ((userLoginToken == null || !userLoginToken.required())
-                && (authingUserToken == null || !authingUserToken.required())
-                && (sigToken == null || !sigToken.required())
-                && (companyToken == null || !companyToken.required())) {
+        if (authingUserToken == null || !authingUserToken.required()) {
             return true;
         }
 
@@ -183,23 +176,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
         HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, verifyTokenName,
                 newHeaderJwtToken, false, tokenExpire, "/", domain2secure);
 
-        // 校验sig权限
-        if (sigToken != null && sigToken.required()) {
-            String verifyUserMsg = verifyUser(sigToken, userId, permission);
-            if (!verifyUserMsg.equals("success")) {
-                tokenError(httpServletRequest, httpServletResponse, verifyUserMsg);
-                return false;
-            }
-        }
-        // 校验company权限
-        if (companyToken != null && companyToken.required()) {
-            String verifyCompanyPerMsg = verifyCompanyPer(companyToken, userId);
-            if (!verifyCompanyPerMsg.equals("success")) {
-                tokenError(httpServletRequest, httpServletResponse, verifyCompanyPerMsg);
-                return false;
-            }
-        }
-
         return true;
     }
 
@@ -243,49 +219,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
             e.printStackTrace();
             return "unauthorized";
         }
-    }
-
-    /**
-     * 校验用户（登录状态，操作权限）
-     *
-     * @param sigToken   SigToken（仅带有该注解的接口需要校验操作权限）
-     * @param userId     用户id
-     * @param permission 需要的操作权限
-     * @return 校验结果
-     */
-    private String verifyUser(SigToken sigToken, String userId, String permission) {
-        try {
-            // token 页面请求权限验证
-            if (sigToken != null && sigToken.required()) {
-                String[] split = permission.split("->");
-                boolean hasActionPer = authingUserDao.checkUserPermission(userId, split[0], split[1], split[2]);
-                if (!hasActionPer) {
-                    return "has no permission";
-                }
-            }
-        } catch (Exception e) {
-            return "has no permission";
-        }
-        return "success";
-    }
-
-    private String verifyCompanyPer(CompanyToken companyToken, String userId) {
-        try {
-            if (companyToken != null && companyToken.required()) {
-                ArrayList<String> pers =
-                        authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
-                for (String per : pers) {
-                    String[] perList = per.split(":");
-                    if (perList.length > 1
-                            && perList[1].equalsIgnoreCase(env.getProperty("openeuler.companyAction"))) {
-                        return "success";
-                    }
-                }
-            }
-        } catch (Exception e) {
-            return "has no permission";
-        }
-        return "has no permission";
     }
 
     /**
