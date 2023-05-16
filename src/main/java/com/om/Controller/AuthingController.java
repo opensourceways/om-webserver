@@ -68,7 +68,7 @@ public class AuthingController {
         return service.accountExists(servletRequest, servletResponse);
     }
 
-    @RequestMapping(value = {"/captcha/sendCode", "/v3/exists"})
+    @RequestMapping(value = {"/captcha/sendCode", "/v3/sendCode"})
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
