@@ -46,5 +46,10 @@ public class Constant {
     public static final String PHONE_TYPE = "phone";
     public static final String DEFAULT_EXPIRE_MINUTE = "1";
     public static final String DEFAULT_CODE_LENGTH = "6";
+
+    public static final String CHANNEL_REGISTER = "channel_register";
+    public static final String CHANNEL_REGISTER_BY_PASSWORD = "channel_register_by_password";
+    public static final String CHANNEL_LOGIN = "channel_login";
+    public static final String CHANNEL_RESET_PASSWORD = "channel_reset_password";
 }
 

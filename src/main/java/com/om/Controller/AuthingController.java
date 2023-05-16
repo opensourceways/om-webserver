@@ -75,12 +75,6 @@ public class AuthingController {
         return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
-    @RequestMapping(value = "/sendcode/register")
-    public ResponseEntity sendCodeRegister(HttpServletRequest servletRequest,
-                                     @RequestParam("captchaVerification") String captchaVerification) {
-        return authingService.sendCodeRegister(servletRequest, verifyCaptcha(captchaVerification));
-    }
-
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
