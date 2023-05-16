@@ -76,6 +76,7 @@ public enum MessageCodeConfig {
     E00056("E00056", "Token invalid or expired", "Token 校验失败"),
     E00057("E00057", "User already exists, log in directly", "用户已存在，请直接登录"),
     E00058("E00058", "Must be 6 to 20 characters long. Must contain at least 3 of the following character types: letters, digits, and special characters", "请使用至少 6 位字符作为密码，须包含英文、数字与符号中的两种"),
+    E00059("E00059", "Password needs to be different from previous one", "新密码不能与原密码相同"),
     ;
 
     private String code;
@@ -180,6 +181,9 @@ public enum MessageCodeConfig {
         map.put("Token 校验失败", E00056);
         map.put("用户已存在", E00057);
         map.put("请使用至少 6 位字符作为密码，须包含英文、数字与符号中的两种", E00058);
+        map.put("Password is not correct", E00052);
+        map.put("Password needs to be different from previous", E00059);
+        map.put("invalid password", E00058);
 
         return map;
     }
