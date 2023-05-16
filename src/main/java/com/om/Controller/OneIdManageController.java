@@ -40,7 +40,7 @@ public class OneIdManageController {
     @RequestMapping(value = "/sendcode", method = RequestMethod.POST)
     public ResponseEntity sendCode(@RequestBody Map<String, String> body,
                                    @RequestHeader(value = "token") String token) {
-        return oneIdManageService.sendCode(body, token, true/*verifyCaptcha(body.get(captchaVerification))*/);
+        return oneIdManageService.sendCode(body, token, verifyCaptcha(body.get("captchaVerification")));
     }
 
     @ManageToken
