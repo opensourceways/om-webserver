@@ -136,15 +136,16 @@ public class AuthingService implements UserCenterServiceInter {
         String appId = servletRequest.getParameter("client_id");
 
         // 验证码二次校验
-        if (!isSuccess)
-            return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
+        if (!isSuccess) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, null);
+        }
 
         // 限制一分钟登录失败次数
         String loginErrorCountKey = account + "loginCount";
         Object v = redisDao.get(loginErrorCountKey);
         int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
         if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6")))
-            return result(HttpStatus.BAD_REQUEST, null, "失败次数过多，请稍后重试", null);
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E00030.getMsgZh(), null);
 
         if (!channel.equalsIgnoreCase(Constant.CHANNEL_LOGIN)
                 && !channel.equalsIgnoreCase(Constant.CHANNEL_REGISTER)
@@ -155,7 +156,7 @@ public class AuthingService implements UserCenterServiceInter {
 
         // 校验appId
         if (authingUserDao.initAppClient(appId) == null) {
-            return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00047, null, null);
         }
 
         String accountType = getAccountType(account);
