@@ -68,11 +68,17 @@ public class AuthingController {
         return service.accountExists(servletRequest, servletResponse);
     }
 
-    @RequestMapping(value = {"/captcha/sendCode", "/v3/exists"})
+    @RequestMapping(value = {"/captcha/sendCode", "/v3/sendCode"})
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
+    }
+
+    @RequestMapping(value = "/sendcode/register")
+    public ResponseEntity sendCodeRegister(HttpServletRequest servletRequest,
+                                     @RequestParam("captchaVerification") String captchaVerification) {
+        return authingService.sendCodeRegister(servletRequest, verifyCaptcha(captchaVerification));
     }
 
     @RequestMapping(value = "/register", method = RequestMethod.POST)
