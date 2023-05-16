@@ -130,6 +130,7 @@ public class AuthingService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse, boolean isSuccess) {
+        String community = servletRequest.getParameter("community");
         String account = servletRequest.getParameter("account");
         String channel = servletRequest.getParameter("channel");
         String appId = servletRequest.getParameter("client_id");
@@ -145,9 +146,10 @@ public class AuthingService implements UserCenterServiceInter {
         if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6")))
             return result(HttpStatus.BAD_REQUEST, null, "失败次数过多，请稍后重试", null);
 
-        if (!channel.equalsIgnoreCase("channel_login")
-                && !channel.equalsIgnoreCase("channel_register")
-                && !channel.equalsIgnoreCase("channel_reset_password")) {
+        if (!channel.equalsIgnoreCase(Constant.CHANNEL_LOGIN)
+                && !channel.equalsIgnoreCase(Constant.CHANNEL_REGISTER)
+                && !channel.equalsIgnoreCase(Constant.CHANNEL_REGISTER_BY_PASSWORD)
+                && !channel.equalsIgnoreCase(Constant.CHANNEL_RESET_PASSWORD)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00029, null, null);
         }
 
@@ -158,64 +160,21 @@ public class AuthingService implements UserCenterServiceInter {
 
         String accountType = getAccountType(account);
         String msg = "";
-        if (accountType.equals("email"))
-            msg = authingUserDao.sendEmailCodeV3(appId, account, channel);
-        else if (accountType.equals("phone"))
-            msg = authingUserDao.sendPhoneCodeV3(appId, account, channel);
-        else
+        if (accountType.equals(Constant.EMAIL_TYPE)) {
+            msg = channel.equalsIgnoreCase(Constant.CHANNEL_REGISTER_BY_PASSWORD)
+                    ? sendCodeForRegisterByPwd(account, accountType, community, channel)
+                    : authingUserDao.sendEmailCodeV3(appId, account, channel);
+        } else if (accountType.equals(Constant.PHONE_TYPE)) {
+            msg = channel.equalsIgnoreCase(Constant.CHANNEL_REGISTER_BY_PASSWORD)
+                    ? sendCodeForRegisterByPwd(account, accountType, community, channel)
+                    : authingUserDao.sendPhoneCodeV3(appId, account, channel);
+        } else {
             return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        }
 
         if (!msg.equals("success"))
             return result(HttpStatus.BAD_REQUEST, null, msg, null);
         else return result(HttpStatus.OK, "success", null);
-    }
-
-    public ResponseEntity sendCodeRegister(HttpServletRequest request, boolean isSuccess) {
-        try {
-            String community = request.getParameter("community");
-            String account = request.getParameter("account");
-            String channel = request.getParameter("channel");
-
-            // 验证码二次校验
-            if (!isSuccess)
-                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, null);
-
-            // channel校验
-            if (StringUtils.isBlank(channel) || !channel.equalsIgnoreCase("channel_register")) {
-                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
-            }
-
-            // 邮箱or手机号格式校验，并获取验证码过期时间
-            long codeExpire;
-            String accountType = getAccountType(account);
-            if (accountType.equals(Constant.EMAIL_TYPE)) {
-                codeExpire = Long.parseLong(env.getProperty("mail.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
-            } else if (accountType.equals(Constant.PHONE_TYPE)) {
-                codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
-            } else {
-                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
-            }
-
-            // 限制1分钟只能发送一次 （剩余的过期时间 + 60s > 验证码过期时间，表示一分钟之内发送过验证码）
-            long limit = Long.parseLong(env.getProperty("send.code.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
-            String redisKey = account.toLowerCase() + community.toLowerCase() + channel.toLowerCase();
-
-            long remainingExpirationSecond = redisDao.expire(redisKey);
-            if (remainingExpirationSecond + limit > codeExpire) {
-                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
-            }
-
-            // 发送验证码
-            String[] strings = codeUtil.sendCode(accountType, account, mailSender, env, community.toLowerCase());
-            if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success")) {
-                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0008, null, null);
-            }
-
-            redisDao.set(redisKey, strings[0], codeExpire);
-            return result(HttpStatus.OK, null, strings[2], null);
-        } catch (Exception e) {
-            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
-        }
     }
 
     @Override
@@ -253,7 +212,7 @@ public class AuthingService implements UserCenterServiceInter {
 
         if (StringUtils.isNotBlank(password)) {
             // 密码登录 验证码校验
-            String redisKey = account.toLowerCase() + community.toLowerCase() + "channel_register";
+            String redisKey = account.toLowerCase() + community.toLowerCase() + Constant.CHANNEL_REGISTER_BY_PASSWORD;
             String codeTemp = (String) redisDao.get(redisKey);
             if (codeTemp == null) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0001, null, null);
@@ -1472,5 +1431,33 @@ public class AuthingService implements UserCenterServiceInter {
         } catch (Exception ignored) {
         }
         return cookie;
+    }
+
+    private String sendCodeForRegisterByPwd(String account, String accountType,
+                                            String community, String channel) {
+        try {
+            long codeExpire = accountType.equals(Constant.EMAIL_TYPE)
+                    ? Long.parseLong(env.getProperty("mail.code.expire", Constant.DEFAULT_EXPIRE_SECOND))
+                    : Long.parseLong(env.getProperty("msgsms.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
+
+            // 限制1分钟只能发送一次 （剩余的过期时间 + 60s > 验证码过期时间，表示一分钟之内发送过验证码）
+            long limit = Long.parseLong(env.getProperty("send.code.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
+            String redisKey = account.toLowerCase() + community.toLowerCase() + channel.toLowerCase();
+            long remainingExpirationSecond = redisDao.expire(redisKey);
+            if (remainingExpirationSecond + limit > codeExpire) {
+                return MessageCodeConfig.E0009.getMsgZh();
+            }
+
+            // 发送验证码
+            String[] strings = codeUtil.sendCode(accountType, account, mailSender, env, community.toLowerCase());
+            if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success")) {
+                return MessageCodeConfig.E0008.getMsgZh();
+            }
+
+            redisDao.set(redisKey, strings[0], codeExpire);
+            return "success";
+        } catch (Exception e) {
+            return MessageCodeConfig.E0008.getMsgZh();
+        }
     }
 }
