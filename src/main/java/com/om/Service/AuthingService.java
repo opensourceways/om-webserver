@@ -1450,7 +1450,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
 
             // 发送验证码
-            String[] strings = codeUtil.sendCode(accountType, account, mailSender, env, community.toLowerCase());
+            String[] strings = codeUtil.sendCode(accountType, account, mailSender, env, "");
             if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success")) {
                 return MessageCodeConfig.E0008.getMsgZh();
             }
