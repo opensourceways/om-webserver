@@ -284,7 +284,6 @@ public class RedisDao {
             int code = dataNode.get("code").intValue();
             return code == 200;
         } catch (JsonProcessingException e) {
-            e.printStackTrace();
             return false;
         }
     }

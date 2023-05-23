@@ -58,7 +58,6 @@ public class QueryService {
             try {
                 result = queryDao.queryAllUserOwnertype(community);
             } catch (Exception e) {
-                e.printStackTrace();
             }
             boolean set = redisDao.set(key, result,
                     Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));

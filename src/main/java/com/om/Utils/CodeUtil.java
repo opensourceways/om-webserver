@@ -93,7 +93,6 @@ public class CodeUtil {
                     break;
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return new String[]{code, String.valueOf(codeExpire), resMsg};
     }
@@ -209,7 +208,6 @@ public class CodeUtil {
             try {
                 temp = URLEncoder.encode(map.get(s), "UTF-8");
             } catch (Exception e) {
-                e.printStackTrace();
             }
             sb.append(s).append("=").append(temp).append("&");
         }
@@ -241,7 +239,6 @@ public class CodeUtil {
             md.update((nonce + time + appSecret).getBytes());
             passwordDigest = md.digest();
         } catch (Exception e) {
-            e.printStackTrace();
         }
         // PasswordDigest
         String passwordDigestBase64Str = Base64.getEncoder().encodeToString(passwordDigest);

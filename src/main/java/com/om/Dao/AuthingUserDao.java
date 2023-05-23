@@ -220,7 +220,6 @@ public class AuthingUserDao {
                     return true;
             }
         } catch (Exception e) {
-            e.printStackTrace();
             throw new ServerErrorException();
         }
     }
@@ -350,7 +349,6 @@ public class AuthingUserDao {
         try {
             return managementClient.users().detail(userId, true, true).execute();
         } catch (Exception e) {
-            e.printStackTrace();
             return null;
         }
     }
@@ -401,7 +399,6 @@ public class AuthingUserDao {
             int code = response.getBody().getObject().getInt("code");
             return code == 200;
         } catch (Exception e) {
-            e.printStackTrace();
             return false;
         }
     }
@@ -425,7 +422,6 @@ public class AuthingUserDao {
 
             return false;
         } catch (Exception e) {
-            e.printStackTrace();
             return false;
         }
     }
@@ -473,7 +469,6 @@ public class AuthingUserDao {
                     return false;
             }
         } catch (Exception e) {
-            e.printStackTrace();
             return false;
         }
         return true;
@@ -489,7 +484,6 @@ public class AuthingUserDao {
                 msg = resObj.toString();
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return msg;
     }
@@ -717,7 +711,6 @@ public class AuthingUserDao {
                     .asJson();
             if (response.getBody().getObject().getInt("code") == 200) msg = "success";
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return msg;
     }
@@ -826,7 +819,6 @@ public class AuthingUserDao {
             if (obsClient.doesObjectExist(datastatImgBucket, objName) && !objName.equals(defaultPhoto))
                 obsClient.deleteObject(datastatImgBucket, objName);
         } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
@@ -839,7 +831,6 @@ public class AuthingUserDao {
                     .asJson();
             return response.getBody().getObject().get("accessToken").toString();
         } catch (Exception e) {
-            e.printStackTrace();
             return "";
         }
     }
@@ -874,7 +865,6 @@ public class AuthingUserDao {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return appIds;
     }

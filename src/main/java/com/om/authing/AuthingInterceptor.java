@@ -216,7 +216,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
             jwtVerifier.verify(headerToken);
             return md5Token;
         } catch (Exception e) {
-            e.printStackTrace();
             return "unauthorized";
         }
     }

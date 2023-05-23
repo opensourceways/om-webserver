@@ -67,7 +67,6 @@ public class OneidDao {
                 token = response.getBody().getObject().getString("data");
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return token;
     }
@@ -85,7 +84,6 @@ public class OneidDao {
                 user = response.getBody().getObject().getJSONObject("data");
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return user;
     }
@@ -99,7 +97,6 @@ public class OneidDao {
                     .asJson();
             if (response.getStatus() == 200) res = true;
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return res;
     }
@@ -118,7 +115,6 @@ public class OneidDao {
                 user = response.getBody().getObject().getJSONObject("data");
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return user;
     }
@@ -136,7 +132,6 @@ public class OneidDao {
                 user = response.getBody().getObject().getJSONObject("data");
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return user;
     }
@@ -183,7 +178,6 @@ public class OneidDao {
             String userJsonStr = objectMapper.writeValueAsString(map);
             user = updateUser(poolId, poolSecret, userId, userJsonStr);
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return user;
     }
@@ -218,7 +212,6 @@ public class OneidDao {
             String userJsonStr = objectMapper.writeValueAsString(map);
             user = updateUser(poolId, poolSecret, userId, userJsonStr);
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return user;
     }
@@ -253,7 +246,6 @@ public class OneidDao {
             String userJsonStr = objectMapper.writeValueAsString(map);
             user = updateUser(poolId, poolSecret, userId, userJsonStr);
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return user;
     }

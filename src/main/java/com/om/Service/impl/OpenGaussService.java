@@ -166,7 +166,6 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.OK, null, "success", null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
             return result(HttpStatus.INTERNAL_SERVER_ERROR, null, "Internal Server Error", null);
         }
     }
@@ -341,7 +340,6 @@ public class OpenGaussService implements UserCenterServiceInter {
             String userId = decode.getAudience().get(0);
             userObj = oneidDao.getUser(poolId, poolSecret, userId, "id");
         } catch (Exception e) {
-            e.printStackTrace();
         }
 
         HashMap<String, Object> userData = new HashMap<>();
@@ -391,7 +389,6 @@ public class OpenGaussService implements UserCenterServiceInter {
 
             return result(HttpStatus.OK, null, "success", null);
         } catch (Exception e) {
-            e.printStackTrace();
             return result(HttpStatus.UNAUTHORIZED, null, "unauthorized", null);
         }
     }
@@ -417,7 +414,6 @@ public class OpenGaussService implements UserCenterServiceInter {
             userData.put("username", jsonObjStringValue(user, "username"));
             return result(HttpStatus.OK, null, "success", userData);
         } catch (Exception e) {
-            e.printStackTrace();
             return result(HttpStatus.UNAUTHORIZED, null, "unauthorized", null);
         }
     }
@@ -487,7 +483,6 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.OK, null, "update base info success", null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
 
         return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
@@ -515,7 +510,6 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.OK, null, "update photo success", null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
 
         return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
@@ -621,7 +615,6 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, user.toString(), null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
     }
@@ -667,7 +660,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, user.toString(), null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+
         }
         return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);*/
     }
@@ -709,7 +702,6 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, user.toString(), null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
     }
@@ -819,7 +811,6 @@ public class OpenGaussService implements UserCenterServiceInter {
             HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
             redisDao.remove(idTokenKey);
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return result(HttpStatus.OK, null, "delete user success", null);
     }
