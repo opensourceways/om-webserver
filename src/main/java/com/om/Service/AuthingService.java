@@ -377,7 +377,6 @@ public class AuthingService implements UserCenterServiceInter {
             String res = String.format("%s?code=%s&state=%s", redirectUri, code, state);
             return resultOidc(HttpStatus.OK, "OK", res);
         } catch (Exception e) {
-            e.printStackTrace();
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
         }
     }
@@ -413,7 +412,6 @@ public class AuthingService implements UserCenterServiceInter {
 
             return resultOidc(HttpStatus.OK, "OK", loginPageRedirect);
         } catch (Exception e) {
-            e.printStackTrace();
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
         }
     }
@@ -445,7 +443,6 @@ public class AuthingService implements UserCenterServiceInter {
             } else
                 return resultOidc(HttpStatus.BAD_REQUEST, "grant_type must be authorization_code or refresh_token", null);
         } catch (Exception e) {
-            e.printStackTrace();
             redisDao.remove("code");
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
         }
@@ -513,7 +510,6 @@ public class AuthingService implements UserCenterServiceInter {
             res.putAll(userData);
             return new ResponseEntity<>(res, HttpStatus.OK);
         } catch (Exception e) {
-            e.printStackTrace();
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
         }
     }
@@ -537,7 +533,6 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("email", email);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
-            e.printStackTrace();
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
@@ -579,7 +574,6 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("companyList", companyNameList);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
-            e.printStackTrace();
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
@@ -619,7 +613,6 @@ public class AuthingService implements UserCenterServiceInter {
 
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
-            e.printStackTrace();
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
@@ -642,7 +635,6 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("username", username);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
-            e.printStackTrace();
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
@@ -708,7 +700,6 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.OK, "success", userData);
 
         } catch (Exception e) {
-            e.printStackTrace();
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
@@ -722,7 +713,6 @@ public class AuthingService implements UserCenterServiceInter {
             // 返回结果
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
-            e.printStackTrace();
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
 
@@ -1155,7 +1145,6 @@ public class AuthingService implements UserCenterServiceInter {
                         message = buckets.next().get("message").get("message").asText();
                     }
                 } catch (JsonProcessingException e) {
-                    e.printStackTrace();
                     message = e.getMessage();
                 }
                 return result(HttpStatus.BAD_REQUEST, null, message, null);
@@ -1203,7 +1192,6 @@ public class AuthingService implements UserCenterServiceInter {
             HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
             redisDao.remove(idTokenKey);
         } catch (Exception e) {
-            e.printStackTrace();
         }
         return result(HttpStatus.OK, "delete user success", null);
     }
@@ -1287,7 +1275,6 @@ public class AuthingService implements UserCenterServiceInter {
             redisDao.remove(code);
             return new ResponseEntity(tokens, HttpStatus.OK);
         } catch (Exception e) {
-            e.printStackTrace();
             redisDao.remove(code);
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
         }
@@ -1345,7 +1332,6 @@ public class AuthingService implements UserCenterServiceInter {
 
             return new ResponseEntity(userTokenMap, HttpStatus.OK);
         } catch (Exception e) {
-            e.printStackTrace();
             return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
         }
     }
