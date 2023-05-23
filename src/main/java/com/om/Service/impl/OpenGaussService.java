@@ -660,7 +660,6 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, user.toString(), null);
             }
         } catch (Exception e) {
-
         }
         return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);*/
     }
