@@ -29,6 +29,8 @@ import com.om.Utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
@@ -46,6 +48,8 @@ import java.util.stream.Stream;
 
 @Repository
 public class AuthingUserDao {
+    private static final Logger logger =  LoggerFactory.getLogger(AuthingUserDao.class);
+
     private final static String AUTHINGAPIHOST = "https://core.authing.cn";
 
     private final static String AUTHINGAPIHOST_V2 = AUTHINGAPIHOST + "/api/v2";
@@ -147,7 +151,8 @@ public class AuthingUserDao {
 
             return msg;
         } catch (Exception e) {
-            return "验证码发送失败";
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return MessageCodeConfig.E0008.getMsgZh();
         }
     }
 
@@ -167,7 +172,8 @@ public class AuthingUserDao {
 
             return msg;
         } catch (Exception e) {
-            return "验证码发送失败";
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return MessageCodeConfig.E0008.getMsgZh();
         }
     }
 
@@ -220,6 +226,7 @@ public class AuthingUserDao {
                     return true;
             }
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             throw new ServerErrorException();
         }
     }
@@ -308,6 +315,7 @@ public class AuthingUserDao {
         try {
             return managementClient.application().findById(appId).execute();
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
     }
@@ -326,7 +334,7 @@ public class AuthingUserDao {
             user.put("id_token", res.get("id_token").toString());
             return user;
         } catch (Exception ex) {
-            ex.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), ex);
             return null;
         }
     }
@@ -340,6 +348,7 @@ public class AuthingUserDao {
             int code = response.getBody().getObject().getInt("code");
             return code == 200;
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return false;
         }
     }
@@ -349,6 +358,7 @@ public class AuthingUserDao {
         try {
             return managementClient.users().detail(userId, true, true).execute();
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
     }
@@ -358,6 +368,7 @@ public class AuthingUserDao {
             User user = managementClient.users().find(new FindUserParam().withUsername(username)).execute();
             return getUserById(user.getId());
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
     }
@@ -383,7 +394,7 @@ public class AuthingUserDao {
                     .asJson();
             return response.getBody().getObject().getJSONObject("data");
         } catch (Exception e) {
-            System.out.println("User Get Error");
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
     }
@@ -399,6 +410,7 @@ public class AuthingUserDao {
             int code = response.getBody().getObject().getInt("code");
             return code == 200;
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return false;
         }
     }
@@ -422,6 +434,7 @@ public class AuthingUserDao {
 
             return false;
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return false;
         }
     }
@@ -441,6 +454,7 @@ public class AuthingUserDao {
             }
             return pers;
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return pers;
         }
     }
@@ -469,6 +483,7 @@ public class AuthingUserDao {
                     return false;
             }
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return false;
         }
         return true;
@@ -484,6 +499,7 @@ public class AuthingUserDao {
                 msg = resObj.toString();
             }
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return msg;
     }
@@ -501,7 +517,8 @@ public class AuthingUserDao {
             HttpResponse<JsonNode> response = authPost("/update-password", appId, user.getToken(), body);
             JSONObject resObj = response.getBody().getObject();
             msg = resObj.getInt("statusCode") != 200 ? resObj.getString("message") : Constant.SUCCESS;
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return msg;
     }
@@ -531,7 +548,8 @@ public class AuthingUserDao {
                     .header("Content-Type", "application/json").body(body).asJson();
             JSONObject resObj = response.getBody().getObject();
             msg = resObj.getInt("statusCode") != 200 ? resObj.getString("message") : Constant.SUCCESS;
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return msg;
     }
@@ -554,6 +572,7 @@ public class AuthingUserDao {
                     return "false";
             }
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return e.getMessage();
         }
         return "true";
@@ -587,9 +606,8 @@ public class AuthingUserDao {
                     return resFail;
             }
         } catch (Exception e) {
-            String message = e.getMessage();
-            System.out.println(message);
-            return message;
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return e.getMessage();
         }
         return "unbind success";
     }
@@ -612,6 +630,7 @@ public class AuthingUserDao {
                     return "false";
             }
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return e.getMessage();
         }
         return "true";
@@ -648,6 +667,7 @@ public class AuthingUserDao {
             list.add(mapOpenatom);
             return list;
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
     }
@@ -662,6 +682,7 @@ public class AuthingUserDao {
 
             authentication.linkAccount(token, secondToken).execute();
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return e.getMessage();
         }
         return "true";
@@ -711,6 +732,7 @@ public class AuthingUserDao {
                     .asJson();
             if (response.getBody().getObject().getInt("code") == 200) msg = "success";
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return msg;
     }
@@ -732,7 +754,8 @@ public class AuthingUserDao {
                         .body(body)
                         .asJson();
                 if (response.getBody().getObject().getInt("code") == 200) flag = true;
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             }
         }
         return flag;
@@ -773,9 +796,11 @@ public class AuthingUserDao {
             authentication.updateProfile(updateUserInput).execute();
             return msg;
         } catch (ServerErrorException e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             throw e;
         } catch (Exception ex) {
-            return "更新失败";
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), ex);
+            return MessageCodeConfig.E0007.getMsgZh();
         }
     }
 
@@ -805,6 +830,7 @@ public class AuthingUserDao {
             deleteObsObjectByUrl(photo);
             return true;
         } catch (Exception ex) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), ex);
             return false;
         }
     }
@@ -819,6 +845,7 @@ public class AuthingUserDao {
             if (obsClient.doesObjectExist(datastatImgBucket, objName) && !objName.equals(defaultPhoto))
                 obsClient.deleteObject(datastatImgBucket, objName);
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
     }
 
@@ -831,6 +858,7 @@ public class AuthingUserDao {
                     .asJson();
             return response.getBody().getObject().get("accessToken").toString();
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return "";
         }
     }
@@ -865,6 +893,7 @@ public class AuthingUserDao {
                 }
             }
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return appIds;
     }
@@ -884,6 +913,7 @@ public class AuthingUserDao {
             }
             return msg;
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return MessageCodeConfig.E00024.getMsgZh();
         }
     }
@@ -906,7 +936,8 @@ public class AuthingUserDao {
             msg = (resObj.getInt("statusCode") == 200)
                     ? resObj.get("data")
                     : resObj.getString("message");
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return msg;
     }

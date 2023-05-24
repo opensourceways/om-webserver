@@ -14,8 +14,11 @@ package com.om.Utils;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
+import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -38,6 +41,8 @@ import java.util.UUID;
 
 
 public class CodeUtil {
+    private static final Logger logger =  LoggerFactory.getLogger(CodeUtil.class);
+
     // 华为云MSGSMS，用于格式化鉴权头域，给"Authorization"参数赋值
     public static final String AUTH_HEADER_VALUE = "WSSE realm=\"SDP\",profile=\"UsernameToken\",type=\"Appkey\"";
 
@@ -93,6 +98,7 @@ public class CodeUtil {
                     break;
             }
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return new String[]{code, String.valueOf(codeExpire), resMsg};
     }
@@ -208,6 +214,7 @@ public class CodeUtil {
             try {
                 temp = URLEncoder.encode(map.get(s), "UTF-8");
             } catch (Exception e) {
+                logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             }
             sb.append(s).append("=").append(temp).append("&");
         }
@@ -239,6 +246,7 @@ public class CodeUtil {
             md.update((nonce + time + appSecret).getBytes());
             passwordDigest = md.digest();
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         // PasswordDigest
         String passwordDigestBase64Str = Base64.getEncoder().encodeToString(passwordDigest);
