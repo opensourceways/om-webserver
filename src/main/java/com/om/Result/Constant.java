@@ -37,6 +37,7 @@ public class Constant {
     public static final String EMAIL_REPLACE_REG = "(^\\w)[^@]*(@.*$)";
 
     public static final String DEFAULT_EXPIRE_SECOND = "60";
+    public static final String ONEID_EXPIRE_SECOND = "3000";
     public static final String AUTHING = "authing";
     public static final String ONEID_VERSION_V1 = "openeuler";
     public static final String ONEID_VERSION_V2 = "mindspore";
@@ -51,5 +52,14 @@ public class Constant {
     public static final String CHANNEL_REGISTER_BY_PASSWORD = "channel_register_by_password";
     public static final String CHANNEL_LOGIN = "channel_login";
     public static final String CHANNEL_RESET_PASSWORD = "channel_reset_password";
+
+    public static final String RESET_PASSWORD_SUFFIX = "_reset_password";
+    public static final String ONEID_TOKEN_KEY = "Oneid-Token";
+ 
+    public static final String ONEID_USER_C_PATH = "/composite-user";
+    public static final String ONEID_USER_URD_PATH = "/composite-user/{account}";
+    public static final String ONEID_CHECK_PASSWORD_PATH = "/auth/check-password/{account}";
+    public static final String ONEID_TOKEN_PATH = "/auth/get-management-token";
+
 }
 
