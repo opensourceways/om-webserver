@@ -195,4 +195,26 @@ public class JwtTokenCreateService {
                 .withExpiresAt(expireAt) //过期时间
                 .sign(Algorithm.HMAC256(appSecret + authingTokenBasePassword));
     }
+
+    public String resetPasswordToken(String account, long expireSeconds) {
+        LocalDateTime nowDate = LocalDateTime.now();
+        Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
+        LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
+        Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
+
+        String token = JWT.create()
+                          .withAudience(account)
+                          .withIssuedAt(issuedAt)
+                          .withExpiresAt(expireAt)
+                          .sign(Algorithm.HMAC256(account + tokenBasePassword));
+
+        try {
+            RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
+            return RSAUtil.publicEncrypt(token, publicKey);
+        } catch (Exception e) {
+            System.out.println("RSA Encrypt error");
+            return token;
+        }
+    }
+
 }
