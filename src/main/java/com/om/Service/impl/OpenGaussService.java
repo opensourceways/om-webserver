@@ -752,10 +752,11 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity updatePassword(HttpServletRequest request) {
-        String appId = request.getParameter("client_id");
-        String account = request.getParameter("account");
-        String oldPassword = request.getParameter("old_password");
-        String newPassword = request.getParameter("new_password");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
+        String appId = (String) getBodyPara(body, "client_id");
+        String account = (String) getBodyPara(body, "account");
+        String oldPassword = (String) getBodyPara(body, "old_password");
+        String newPassword = (String) getBodyPara(body, "new_password");
 
         // app校验
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null) {
@@ -787,10 +788,11 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity resetPwdVerify(HttpServletRequest servletRequest) {
-        String community = servletRequest.getParameter("community");
-        String appId = servletRequest.getParameter("client_id");
-        String account = servletRequest.getParameter("account");
-        String code = servletRequest.getParameter("code");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String appId = (String) getBodyPara(body, "client_id");
+        String account = (String) getBodyPara(body, "account");
+        String community = (String) getBodyPara(body, "community");
+        String code = (String) getBodyPara(body, "code");
 
         // app verification
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
@@ -832,10 +834,11 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity resetPwd(HttpServletRequest servletRequest) {
-        String community = servletRequest.getParameter("community");
-        String appId = servletRequest.getParameter("client_id");
-        String token = servletRequest.getParameter("token");
-        String password = servletRequest.getParameter("password");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String appId = (String) getBodyPara(body, "client_id");
+        String token = (String) getBodyPara(body, "token");
+        String community = (String) getBodyPara(body, "community");
+        String password = (String) getBodyPara(body, "password");
 
         // app verification
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
