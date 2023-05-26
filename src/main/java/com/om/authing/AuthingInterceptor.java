@@ -19,10 +19,13 @@ import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
+import com.om.Modules.MessageCodeConfig;
 import com.om.Service.JwtTokenCreateService;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -72,6 +75,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private String cookieSecures;
 
     private static HashMap<String, Boolean> domain2secure;
+
+    private static final Logger logger =  LoggerFactory.getLogger(AuthingInterceptor.class);
 
     @PostConstruct
     public void init() {
@@ -216,7 +221,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             jwtVerifier.verify(headerToken);
             return md5Token;
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return "unauthorized";
         }
     }
