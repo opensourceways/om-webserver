@@ -53,6 +53,8 @@ public class Constant {
     public static final String CHANNEL_LOGIN = "channel_login";
     public static final String CHANNEL_RESET_PASSWORD = "channel_reset_password";
 
+    public static final String SEND_CODE = "_sendCode_";
+    public static final String REGISTER_SUFFIX = "_register";
     public static final String RESET_PASSWORD_SUFFIX = "_reset_password";
     public static final String ONEID_TOKEN_KEY = "Oneid-Token";
  
