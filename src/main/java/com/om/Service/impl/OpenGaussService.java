@@ -754,9 +754,8 @@ public class OpenGaussService implements UserCenterServiceInter {
     public ResponseEntity updatePassword(HttpServletRequest request) {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
         String appId = (String) getBodyPara(body, "client_id");
-        String account = (String) getBodyPara(body, "account");
-        String oldPassword = (String) getBodyPara(body, "old_password");
-        String newPassword = (String) getBodyPara(body, "new_password");
+        String oldPassword = (String) getBodyPara(body, "old_pwd");
+        String newPassword = (String) getBodyPara(body, "new_pwd");
 
         // app校验
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null) {
@@ -836,9 +835,8 @@ public class OpenGaussService implements UserCenterServiceInter {
     public ResponseEntity resetPwd(HttpServletRequest servletRequest) {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
         String appId = (String) getBodyPara(body, "client_id");
-        String token = (String) getBodyPara(body, "token");
-        String community = (String) getBodyPara(body, "community");
-        String password = (String) getBodyPara(body, "password");
+        String token = (String) getBodyPara(body, "pwd_reset_token");
+        String password = (String) getBodyPara(body, "new_pwd");
 
         // app verification
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
