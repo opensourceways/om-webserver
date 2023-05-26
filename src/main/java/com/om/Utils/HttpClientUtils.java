@@ -27,6 +27,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.Modules.MessageCodeConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
@@ -49,9 +50,13 @@ import org.apache.http.protocol.HTTP;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
 import org.elasticsearch.client.RestHighLevelClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 public class HttpClientUtils implements Serializable {
+    private static final Logger logger =  LoggerFactory.getLogger(HttpClientUtils.class);
+
     static PoolingHttpClientConnectionManager connectionManager;
     static ConnectionKeepAliveStrategy myStrategy;
     static CredentialsProvider credentialsProvider;
@@ -62,7 +67,7 @@ public class HttpClientUtils implements Serializable {
         try {
             sslcontext = skipSsl();
         } catch (NoSuchAlgorithmException | KeyManagementException e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         //设置协议http和https对应的处理socket链接工厂的对象
         Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
@@ -138,7 +143,7 @@ public class HttpClientUtils implements Serializable {
                 try {
                     sc = skipSsl();
                 } catch (NoSuchAlgorithmException | KeyManagementException e) {
-                    e.printStackTrace();
+                    logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
                 }
                 return httpAsyncClientBuilder.setSSLContext(sc);
             });
@@ -150,7 +155,7 @@ public class HttpClientUtils implements Serializable {
 
             client = new RestHighLevelClient(builder);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return client;
     }
@@ -166,7 +171,7 @@ public class HttpClientUtils implements Serializable {
             try {
                 secure = secures[i];
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             }
             res.put(domain, Boolean.valueOf(secure));
         }
@@ -242,7 +247,7 @@ public class HttpClientUtils implements Serializable {
                         });
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return body;
     }
