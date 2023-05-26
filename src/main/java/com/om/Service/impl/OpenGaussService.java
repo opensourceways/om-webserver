@@ -152,7 +152,8 @@ public class OpenGaussService implements UserCenterServiceInter {
             userInfo.put(accountType, account);
 
             // 验证码校验
-            String redisKey = account + "_sendCode_" + community + "_register";
+            String redisKey =
+                    account.toLowerCase() + Constant.SEND_CODE + community.toLowerCase() + Constant.REGISTER_SUFFIX;
             String codeTemp = (String) redisDao.get(redisKey);
             String codeCheck = checkCode(code, codeTemp);
             if (!codeCheck.equals("success")) {
@@ -213,9 +214,13 @@ public class OpenGaussService implements UserCenterServiceInter {
 
             // 限制1分钟只能发送一次 （剩余的过期时间 + 60s > 验证码过期时间，表示一分钟之内发送过验证码）
             long limit = Long.parseLong(env.getProperty("send.code.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
-            String redisKeyTemp = account.toLowerCase() + "_sendCode_" + community;
-            String redisKey = channel.toLowerCase().equals("channel_register") ? redisKeyTemp + "_register" : redisKeyTemp;
-            redisKey = channel.toLowerCase().equals("channel_reset_password") ? redisKey + Constant.RESET_PASSWORD_SUFFIX : redisKey;
+            String redisKeyTemp = account.toLowerCase() + Constant.SEND_CODE + community.toLowerCase();
+            channel = channel.toLowerCase();
+            String redisKey =
+                    channel.equals(Constant.CHANNEL_REGISTER) || channel.equals(Constant.CHANNEL_REGISTER_BY_PASSWORD)
+                    ? redisKeyTemp + Constant.REGISTER_SUFFIX : redisKeyTemp;
+            redisKey = channel.equals(Constant.CHANNEL_RESET_PASSWORD)
+                    ? redisKey + Constant.RESET_PASSWORD_SUFFIX : redisKey;
 
             long remainingExpirationSecond = redisDao.expire(redisKey);
             if (remainingExpirationSecond + limit > codeExpire) {
