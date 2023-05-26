@@ -13,8 +13,11 @@ package com.om.Dao;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.*;
 import org.asynchttpclient.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
@@ -37,6 +40,8 @@ public class QueryDao {
     String url;
 
     static ObjectMapper objectMapper = new ObjectMapper();
+
+    private static final Logger logger =  LoggerFactory.getLogger(QueryDao.class);
 
     public String queryAllUserOwnertype(String community) {
         String queryStr = "{\"size\":0,\"query\":{\"bool\":{\"filter\":[{\"query_string\":{\"analyze_wildcard\":true,\"query\":\"!is_removed:1\"}}]}},\"aggs\":{\"group_field\":{\"terms\":{\"field\":\"sig_name.keyword\",\"size\":500},\"aggs\":{\"user\":{\"terms\":{\"field\":\"user_login.keyword\",\"size\":1000,\"min_doc_count\":1},\"aggs\":{\"type\":{\"terms\":{\"field\":\"owner_type.keyword\"},\"aggs\":{}}}}}}}}";
@@ -96,7 +101,7 @@ public class QueryDao {
             resMap.put("msg", "success");
             return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
         }
     }

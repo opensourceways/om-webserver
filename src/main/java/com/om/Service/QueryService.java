@@ -22,9 +22,13 @@ import com.om.Dao.AuthingUserDao;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
 import java.util.*;
+
+import com.om.Modules.MessageCodeConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
@@ -48,6 +52,8 @@ public class QueryService {
     @Autowired
     AuthingUserDao authingUserDao;
 
+    private static final Logger logger =  LoggerFactory.getLogger(QueryService.class);
+
     public String queryUserOwnertype(String community, String user, String username)
             throws JsonProcessingException {
         String key = community.toLowerCase() + "all" + "ownertype";
@@ -58,7 +64,7 @@ public class QueryService {
             try {
                 result = queryDao.queryAllUserOwnertype(community);
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             }
             boolean set = redisDao.set(key, result,
                     Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));

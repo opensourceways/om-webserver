@@ -16,8 +16,11 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.Claim;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
+import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.RSAUtil;
 import com.om.Vo.TokenUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -63,6 +66,8 @@ public class JwtTokenCreateService {
     @Value("${token.expire.seconds}")
     private String tokenExpireSeconds;
 
+    private static final Logger logger =  LoggerFactory.getLogger(JwtTokenCreateService.class);
+
     public String getToken(TokenUser user) {
         if (!user.getCommunity().equalsIgnoreCase("openeuler")
                 && !user.getCommunity().equalsIgnoreCase("opengauss")
@@ -96,7 +101,7 @@ public class JwtTokenCreateService {
         try {
             expireSeconds = Integer.parseInt(authingTokenExpireSeconds);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
