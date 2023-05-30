@@ -91,8 +91,8 @@ public class OneidDao {
     public JSONObject createUser(String poolId, String poolSecret, String userJsonStr) {
         JSONObject user = null;
         try {
-            String mToken = redisDao.get(Constant.ONEID_TOKEN_KEY).toString();
-            if (StringUtils.isBlank(mToken)) {
+            String mToken = (String) redisDao.get(Constant.ONEID_TOKEN_KEY);
+            if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
                 mToken = getManagementToken(poolId, poolSecret);
             }
 
@@ -113,8 +113,8 @@ public class OneidDao {
     public boolean deleteUser(String poolId, String poolSecret, String userId) {
         boolean res = false;
         try {
-            String mToken = redisDao.get(Constant.ONEID_TOKEN_KEY).toString();
-            if (StringUtils.isBlank(mToken)) {
+            String mToken = (String) redisDao.get(Constant.ONEID_TOKEN_KEY);
+            if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
                 mToken = getManagementToken(poolId, poolSecret);
             }
 
@@ -131,8 +131,8 @@ public class OneidDao {
     public JSONObject updateUser(String poolId, String poolSecret, String userId, String userJsonStr) {
         JSONObject user = null;
         try {
-            String mToken = redisDao.get(Constant.ONEID_TOKEN_KEY).toString();
-            if (StringUtils.isBlank(mToken)) {
+            String mToken = (String) redisDao.get(Constant.ONEID_TOKEN_KEY);
+            if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
                 mToken = getManagementToken(poolId, poolSecret);
             }
 
@@ -154,8 +154,8 @@ public class OneidDao {
     public JSONObject getUser(String poolId, String poolSecret, String account, String accountType) {
         JSONObject user = null;
         try {
-            String mToken = redisDao.get(Constant.ONEID_TOKEN_KEY).toString();
-            if (StringUtils.isBlank(mToken)) {
+            String mToken = (String) redisDao.get(Constant.ONEID_TOKEN_KEY);
+            if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
                 mToken = getManagementToken(poolId, poolSecret);
             }
 
@@ -176,8 +176,8 @@ public class OneidDao {
     public Object getUserWithPasswordCheck(String poolId, String poolSecret, String account, 
                                     String accountType, String password) {
         try {
-            String mToken = redisDao.get(Constant.ONEID_TOKEN_KEY).toString();
-            if (StringUtils.isBlank(mToken)) {
+            String mToken = (String) redisDao.get(Constant.ONEID_TOKEN_KEY);
+            if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
                 mToken = getManagementToken(poolId, poolSecret);
             }
 
