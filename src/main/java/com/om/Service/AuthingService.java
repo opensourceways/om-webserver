@@ -443,6 +443,25 @@ public class AuthingService implements UserCenterServiceInter {
                 String redirectUri = parameterMap.getOrDefault("redirect_uri", new String[]{""})[0];
                 String code = parameterMap.getOrDefault("code", new String[]{""})[0];
                 return getOidcTokenByCode(appId, appSecret, code, redirectUri);
+            } else if (grantType.equals("password")) {
+                String appId;
+                String appSecret;
+                if (parameterMap.containsKey("client_id") && parameterMap.containsKey("client_secret")) {
+                    appId = parameterMap.getOrDefault("client_id", new String[]{""})[0];
+                    appSecret = parameterMap.getOrDefault("client_secret", new String[]{""})[0];
+                } else {
+                    String header = servletRequest.getHeader("Authorization");
+                    byte[] authorization = Base64.getDecoder().decode(header.replace("Basic ", ""));
+                    String[] split = new String(authorization).split(":");
+                    appId = split[0];
+                    appSecret = split[1];
+                }
+                String redirectUri = parameterMap.getOrDefault("redirect_uri", new String[]{""})[0];
+                String account = parameterMap.getOrDefault("account", new String[]{""})[0];
+                String username = parameterMap.getOrDefault("username", new String[]{""})[0];
+                String password = parameterMap.getOrDefault("password", new String[]{""})[0];
+                String scope =  parameterMap.getOrDefault("scope", new String[]{""})[0];
+                return getOidcTokenByPassword(appId, appSecret, account, username, password, redirectUri, scope);
             } else if (grantType.equals("refresh_token")) {
                 String refreshToken = parameterMap.getOrDefault("refresh_token", new String[]{""})[0];
                 return oidcRefreshToken(refreshToken);
@@ -1297,6 +1316,85 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
+    private ResponseEntity getOidcTokenByPassword(String appId, String appSecret, String account, String username, 
+            String password, String redirectUri, String scope) {
+        try {
+            // 参数校验
+            if (StringUtils.isBlank(appId) || StringUtils.isBlank(appSecret))
+                return resultOidc(HttpStatus.BAD_REQUEST, "not found the app", null);
+
+            if (StringUtils.isBlank(password) || StringUtils.isBlank(redirectUri))
+                return resultOidc(HttpStatus.BAD_REQUEST, "when grant_type is password, parameters must contain password、redirectUri", null);
+
+            scope = StringUtils.isBlank(scope) ? "openid profile" : scope;
+            
+            // app密码校验
+            Application app = authingUserDao.getAppById(appId);
+            if (app == null || !app.getSecret().equals(appSecret)) {
+                return resultOidc(HttpStatus.NOT_FOUND, "app invalid or secret error", null);
+            }
+
+            // 限制一分钟登录失败次数
+            String loginErrorCountKey = account + "loginCount";
+            Object v = redisDao.get(loginErrorCountKey);
+            int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
+            if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6"))) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, null);
+            }
+
+            // 用户密码校验
+            Object loginRes = login(appId, account, username, null, password);
+
+            // 获取用户信息
+            String idToken;
+            String userId;
+            if (loginRes instanceof JSONObject) {
+                JSONObject userObj = (JSONObject) loginRes;
+                idToken = userObj.getString("id_token");
+                userId = JWT.decode(idToken).getSubject();
+            } else {
+                long codeExpire = Long.parseLong(env.getProperty("mail.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
+                loginErrorCount += 1;
+                redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
+                return result(HttpStatus.BAD_REQUEST, null, (String) loginRes, null);
+            }
+
+            //登录成功解除登录失败次数限制
+            redisDao.remove(loginErrorCountKey);
+
+            // 生成access_token和refresh_token
+            long accessTokenExpire = Long.parseLong(env.getProperty("oidc.access.token.expire", "1800"));
+            long refreshTokenExpire = Long.parseLong(env.getProperty("oidc.refresh.token.expire", "86400"));
+            String accessToken = jwtTokenCreateService.oidcToken(userId, OIDCISSUER, scope, accessTokenExpire, null);
+            String refreshToken = jwtTokenCreateService.oidcToken(userId, OIDCISSUER, scope, refreshTokenExpire, null);
+
+            long expire = Long.parseLong(
+                    env.getProperty("oidc.access.token.expire", "1800"));
+
+            HashMap<String, Object> tokens = new HashMap<>();
+            tokens.put("access_token", accessToken);
+            tokens.put("scope", scope);
+            tokens.put("expires_in", expire);
+            tokens.put("token_type", "Bearer");
+            List<String> scopes = Arrays.asList(scope.split(" "));
+            if (scopes.contains("offline_access")) {
+                tokens.put("refresh_token", refreshToken);
+            }
+            if (scopes.contains("id_token")) {
+                tokens.put("idToken", idToken);
+            }
+
+            // 缓存 oidcToken
+            String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(tokens);
+            redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
+
+            return new ResponseEntity(tokens, HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+        }
+    }
+
     private ResponseEntity oidcRefreshToken(String refreshToken) {
         try {
             if (StringUtils.isBlank(refreshToken))
@@ -1337,7 +1435,7 @@ public class AuthingService implements UserCenterServiceInter {
             userTokenMap.put("expires_in", expire);
             List<String> scopes = Arrays.asList(scope.split(" "));
             if (scopes.contains("id_token")) {
-                userTokenMap.put("id_token", jsonNode.get("idToken").asText());
+                userTokenMap.put("idToken", jsonNode.get("idToken").asText());
             }
 
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
