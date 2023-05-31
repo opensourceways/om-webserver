@@ -267,6 +267,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         String community = (String) getBodyPara(body, "community");
         String appId = (String) getBodyPara(body, "client_id");
         String account = (String) getBodyPara(body, "account");
+        String username = (String) getBodyPara(body, "username");
         String code = (String) getBodyPara(body, "code");
         String password = (String) getBodyPara(body, "password");
 
@@ -305,6 +306,8 @@ public class OpenGaussService implements UserCenterServiceInter {
             } else {
                 msg = oneidDao.loginByPassword(poolId, poolSecret, account, accountType, password, appId);
             }
+        } else if (!StringUtils.isBlank(username) && !StringUtils.isBlank(password)) {
+            msg = oneidDao.loginByPassword(poolId, poolSecret, username, "username", password, appId);
         } else {
             return result(HttpStatus.BAD_REQUEST, null, accountType, null);
         }
