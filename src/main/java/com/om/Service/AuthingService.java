@@ -456,10 +456,9 @@ public class AuthingService implements UserCenterServiceInter {
                 }
                 String redirectUri = parameterMap.getOrDefault("redirect_uri", new String[]{""})[0];
                 String account = parameterMap.getOrDefault("account", new String[]{""})[0];
-                String username = parameterMap.getOrDefault("username", new String[]{""})[0];
                 String password = parameterMap.getOrDefault("password", new String[]{""})[0];
                 String scope =  parameterMap.getOrDefault("scope", new String[]{""})[0];
-                return getOidcTokenByPassword(appId, appSecret, account, username, password, redirectUri, scope);
+                return getOidcTokenByPassword(appId, appSecret, account, password, redirectUri, scope);
             } else if (grantType.equals("refresh_token")) {
                 String refreshToken = parameterMap.getOrDefault("refresh_token", new String[]{""})[0];
                 return oidcRefreshToken(refreshToken);
@@ -1314,7 +1313,7 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-    private ResponseEntity getOidcTokenByPassword(String appId, String appSecret, String account, String username, 
+    private ResponseEntity getOidcTokenByPassword(String appId, String appSecret, String account, 
             String password, String redirectUri, String scope) {
         try {
             // 参数校验
@@ -1341,7 +1340,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
 
             // 用户密码校验
-            Object loginRes = login(appId, account, username, null, password);
+            Object loginRes = login(appId, account, null, password);
 
             // 获取用户信息
             String idToken;
