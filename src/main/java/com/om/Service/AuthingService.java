@@ -252,10 +252,8 @@ public class AuthingService implements UserCenterServiceInter {
     public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
         String appId = (String) getBodyPara(body, "client_id");
-        String community = (String) getBodyPara(body, "community");
         String permission = (String) getBodyPara(body, "permission");
         String account = (String) getBodyPara(body, "account");
-        String username = (String) getBodyPara(body, "username");
         String code = (String) getBodyPara(body, "code");
         String password = (String) getBodyPara(body, "password");
 
@@ -268,7 +266,7 @@ public class AuthingService implements UserCenterServiceInter {
         }
 
         // 登录成功返回用户token
-        Object loginRes = login(appId, account, username, code, password);
+        Object loginRes = login(appId, account, code, password);
 
         // 获取用户信息
         String idToken;
@@ -1456,10 +1454,9 @@ public class AuthingService implements UserCenterServiceInter {
         return body.getOrDefault(paraName, null);
     }
 
-    private Object login(String appId, String account, String username, String code, String password) {
-        // code/password 同时传入报错，username/account 同时存在报错
-        if ((StringUtils.isNotBlank(account) && StringUtils.isNotBlank(username))
-                || (StringUtils.isNotBlank(code) && StringUtils.isNotBlank(password))) {
+    private Object login(String appId, String account, String code, String password) {
+        // code/password 同时传入报错
+        if ((StringUtils.isNotBlank(code) && StringUtils.isNotBlank(password))) {
             return MessageCodeConfig.E00012.getMsgZh();
         }
 
@@ -1486,10 +1483,8 @@ public class AuthingService implements UserCenterServiceInter {
                 msg = StringUtils.isNotBlank(code)
                         ? authingUserDao.loginByPhoneCode(app, account, code)
                         : authingUserDao.loginByPhonePwd(app, account, password);
-            } else if (StringUtils.isNotBlank(username)) { // 用户名登录
-                msg = authingUserDao.loginByUsernamePwd(app, username, password);
-            } else {
-                msg = accountType;
+            } else { // 用户名登录
+                msg = authingUserDao.loginByUsernamePwd(app, account, password);
             }
         } catch (ServerErrorException e) {
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
