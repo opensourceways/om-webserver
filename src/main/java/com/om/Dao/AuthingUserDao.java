@@ -255,7 +255,7 @@ public class AuthingUserDao {
 
     public Object loginByEmailPwd(Application app, String email, String password) throws ServerErrorException {
         if (!isUserExists(app.getId(), email, "email")) {
-            return MessageCodeConfig.E00034.getMsgZh();
+            return MessageCodeConfig.E00052.getMsgZh();
         }
 
         String body = String.format("{\"connection\": \"PASSWORD\"," +
@@ -268,7 +268,7 @@ public class AuthingUserDao {
 
     public Object loginByPhonePwd(Application app, String phone, String password) throws ServerErrorException {
         if (!isUserExists(app.getId(), phone, "phone")) {
-            return MessageCodeConfig.E00034.getMsgZh();
+            return MessageCodeConfig.E00052.getMsgZh();
         }
 
         String body = String.format("{\"connection\": \"PASSWORD\"," +
@@ -281,7 +281,7 @@ public class AuthingUserDao {
 
     public Object loginByUsernamePwd(Application app, String username, String password) throws ServerErrorException {
         if (!isUserExists(app.getId(), username, "username")) {
-            return MessageCodeConfig.E00034.getMsgZh();
+            return MessageCodeConfig.E00052.getMsgZh();
         }
 
         String body = String.format("{\"connection\": \"PASSWORD\"," +
