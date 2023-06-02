@@ -175,6 +175,7 @@ public enum MessageCodeConfig {
         map.put("账号或密码有误", E00052);
         map.put("解密密码失败", E00052);
         map.put("Execute query failed: Password is not valid", E00052);
+        map.put("密码不允许为空", E00052);
         map.put("密码修改失败", E00053);
         map.put("密码不符合当前密码强度", E00054);
         map.put("原始密码不正确", E00055);
