@@ -153,9 +153,6 @@ public class JwtTokenCreateService {
         String permission = new String(Base64.getDecoder()
                 .decode(claimMap.get("permission").asString().getBytes()));
 
-        // 缓存正在进行刷新的headerToken，确保同一用户同一时间并发刷新时只刷新一次
-        redisDao.set(headJwtTokenMd5, "refreshing", 10L);
-
         // 生成新的token和headToken
         String username = JWT.decode(headerJwtToken).getAudience().get(0);
         return authingUserToken(appId, userId, username, permission, inputPermission, idToken);

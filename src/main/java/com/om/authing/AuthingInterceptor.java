@@ -20,6 +20,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
+import com.om.Result.Constant;
 import com.om.Service.JwtTokenCreateService;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
@@ -157,29 +158,17 @@ public class AuthingInterceptor implements HandlerInterceptor {
         // 校验token
         String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, userId,
                 issuedAt, expiresAt, permission);
-
-        // 如果token过期，使用headToken刷新token
-        String newHeaderJwtToken = headerJwtToken;
-        String idToken = (String) redisDao.get("idToken_" + headJwtTokenMd5);
-        if (verifyTokenMsg.equals("token expires") && idToken != null) {
-            if (redisDao.get(headJwtTokenMd5) == null) {
-                newHeaderJwtToken = refreshToken(httpServletRequest, httpServletResponse,
-                        verifyToken, userId, claims);
-            }
-            verifyTokenMsg = "success";
-        }
-
-        if (!verifyTokenMsg.equals("success")) {
-            tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
+        if (!Constant.SUCCESS.equals(verifyTokenMsg)) {
+            tokenError(httpServletRequest, httpServletResponse, verifyDomainMsg);
             return false;
         }
 
-        // 每次调用刷新headerToken的过期时间，保证有交付保持登录
-        int tokenExpire = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "1800"));
-        String newVerifyToken = DigestUtils.md5DigestAsHex(newHeaderJwtToken.getBytes());
-        redisDao.set("idToken_" + newVerifyToken, idToken, (long) tokenExpire);
-        HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, verifyTokenName,
-                newHeaderJwtToken, false, tokenExpire, "/", domain2secure);
+        // 每次交互刷新token
+        String refreshMsg = refreshToken(httpServletRequest, httpServletResponse, verifyToken, userId, claims);
+        if (!Constant.SUCCESS.equals(refreshMsg)) {
+            tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
+            return false;
+        }
 
         return true;
     }
@@ -326,19 +315,35 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
     private String refreshToken(HttpServletRequest request, HttpServletResponse response,
                                 String verifyToken, String userId, Map<String, Claim> claimMap) {
+        String oldTokenKey = Constant.ID_TOKEN_PREFIX + verifyToken;
+        String idToken = (String) redisDao.get(oldTokenKey);
+        if (idToken == null) {
+            return Constant.TOKEN_EXPIRES;
+        }
+
         // headToken刷新token
         String[] tokens = jwtTokenCreateService.refreshAuthingUserToken(request, response, userId, claimMap);
 
         // 刷新cookie
-        int tokenExpire = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "1800"));
+        int tokenExpire = Integer.parseInt(
+                env.getProperty("authing.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
         String maxAgeTemp = env.getProperty("authing.cookie.max.age");
         int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : tokenExpire;
         HttpClientUtils.setCookie(request, response, cookieTokenName, tokens[0],
                 true, maxAge, "/", domain2secure);
+        HttpClientUtils.setCookie(request, response, verifyTokenName, tokens[1],
+                false, tokenExpire, "/", domain2secure);
+        String newVerifyToken = DigestUtils.md5DigestAsHex(tokens[1].getBytes());
+        redisDao.set(Constant.ID_TOKEN_PREFIX + newVerifyToken, idToken, (long) tokenExpire);
 
-        // 旧token失效
-        redisDao.remove("idToken_" + verifyToken);
-        return tokens[1];
+        // 旧token失效,保持一个短时间的有效性
+        long validityPeriod =
+                Long.parseLong(env.getProperty("old.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
+        if (redisDao.expire(oldTokenKey) > validityPeriod) {
+            redisDao.set(oldTokenKey, idToken, validityPeriod);
+        }
+
+        return Constant.SUCCESS;
     }
 
     private void tokenError(HttpServletRequest httpServletRequest,
