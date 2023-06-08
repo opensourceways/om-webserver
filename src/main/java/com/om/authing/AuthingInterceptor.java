@@ -323,19 +323,17 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
         // headToken刷新token
         String[] tokens = jwtTokenCreateService.refreshAuthingUserToken(request, response, userId, claimMap);
-        String cookieYg = tokens[0];
-        String cookieUt = tokens[1];
 
         // 刷新cookie
         int tokenExpire = Integer.parseInt(
                 env.getProperty("authing.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
         String maxAgeTemp = env.getProperty("authing.cookie.max.age");
         int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : tokenExpire;
-        HttpClientUtils.setCookie(request, response, cookieTokenName, cookieYg,
+        HttpClientUtils.setCookie(request, response, cookieTokenName, tokens[Constant.TOKEN_YG],
                 true, maxAge, "/", domain2secure);
-        HttpClientUtils.setCookie(request, response, verifyTokenName, cookieUt,
+        HttpClientUtils.setCookie(request, response, verifyTokenName, tokens[Constant.TOKEN_UT],
                 false, tokenExpire, "/", domain2secure);
-        String newVerifyToken = DigestUtils.md5DigestAsHex(cookieUt.getBytes());
+        String newVerifyToken = DigestUtils.md5DigestAsHex(tokens[Constant.TOKEN_UT].getBytes());
         redisDao.set(Constant.ID_TOKEN_PREFIX + newVerifyToken, idToken, (long) tokenExpire);
 
         // 旧token失效,保持一个短时间的有效性
