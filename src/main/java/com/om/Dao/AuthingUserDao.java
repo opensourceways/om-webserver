@@ -110,6 +110,9 @@ public class AuthingUserDao {
     @Value("${datastat.img.default.photo}")
     String defaultPhoto;
 
+    @Value("${datastat.img.photo.suffix}")
+    String photoSuffix;
+
     // -- temporary (解决gitee多身份源解绑问题) -- TODO
     @Value("${temp.extIdpIds}")
     String extIdpIds;
@@ -127,12 +130,15 @@ public class AuthingUserDao {
 
     public Map<String, AuthenticationClient> appClientMap;
 
+    private List<String> photoSuffixes;
+
     @PostConstruct
     public void init() {
         appClientMap = new HashMap<>();
         managementClient = new ManagementClient(userPoolId, secret);
         obsClient = new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint);
         reservedUsernames = getUsernameReserved();
+        photoSuffixes = Arrays.asList(photoSuffix.split(";"));
     }
 
     public String sendPhoneCodeV3(String appId, String account, String channel) {
@@ -817,6 +823,9 @@ public class AuthingUserDao {
             // 重命名文件
             String fileName = file.getOriginalFilename();
             String extension = fileName.substring(fileName.lastIndexOf("."));
+            if (!photoSuffixes.contains(extension.toLowerCase())) {
+                return false;
+            }
             String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
 
             //上传文件到OBS
