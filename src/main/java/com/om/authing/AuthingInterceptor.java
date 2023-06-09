@@ -19,10 +19,14 @@ import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
+import com.om.Modules.MessageCodeConfig;
+import com.om.Result.Constant;
 import com.om.Service.JwtTokenCreateService;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -73,6 +77,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
     private static HashMap<String, Boolean> domain2secure;
 
+    private static final Logger logger =  LoggerFactory.getLogger(AuthingInterceptor.class);
+
     @PostConstruct
     public void init() {
         domain2secure = HttpClientUtils.getConfigCookieInfo(allowDomains, cookieSecures);
@@ -88,18 +94,11 @@ public class AuthingInterceptor implements HandlerInterceptor {
         // 检查有没有需要用户权限的注解，仅拦截AuthingToken和AuthingUserToken
         HandlerMethod handlerMethod = (HandlerMethod) object;
         Method method = handlerMethod.getMethod();
-        if (!method.isAnnotationPresent(AuthingToken.class) && !method.isAnnotationPresent(AuthingUserToken.class)
-                && !method.isAnnotationPresent(CompanyToken.class)) {
+        if (!method.isAnnotationPresent(AuthingUserToken.class)) {
             return true;
         }
-        AuthingToken userLoginToken = method.getAnnotation(AuthingToken.class);
         AuthingUserToken authingUserToken = method.getAnnotation(AuthingUserToken.class);
-        SigToken sigToken = method.getAnnotation(SigToken.class);
-        CompanyToken companyToken = method.getAnnotation(CompanyToken.class);
-        if ((userLoginToken == null || !userLoginToken.required())
-                && (authingUserToken == null || !authingUserToken.required())
-                && (sigToken == null || !sigToken.required())
-                && (companyToken == null || !companyToken.required())) {
+        if (authingUserToken == null || !authingUserToken.required()) {
             return true;
         }
 
@@ -159,45 +158,16 @@ public class AuthingInterceptor implements HandlerInterceptor {
         // 校验token
         String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, userId,
                 issuedAt, expiresAt, permission);
-
-        // 如果token过期，使用headToken刷新token
-        String newHeaderJwtToken = headerJwtToken;
-        String idToken = (String) redisDao.get("idToken_" + headJwtTokenMd5);
-        if (verifyTokenMsg.equals("token expires") && idToken != null) {
-            if (redisDao.get(headJwtTokenMd5) == null) {
-                newHeaderJwtToken = refreshToken(httpServletRequest, httpServletResponse,
-                        verifyToken, userId, claims);
-            }
-            verifyTokenMsg = "success";
-        }
-
-        if (!verifyTokenMsg.equals("success")) {
-            tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
+        if (!Constant.SUCCESS.equals(verifyTokenMsg)) {
+            tokenError(httpServletRequest, httpServletResponse, verifyDomainMsg);
             return false;
         }
 
-        // 每次调用刷新headerToken的过期时间，保证有交付保持登录
-        int tokenExpire = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "1800"));
-        String newVerifyToken = DigestUtils.md5DigestAsHex(newHeaderJwtToken.getBytes());
-        redisDao.set("idToken_" + newVerifyToken, idToken, (long) tokenExpire);
-        HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, verifyTokenName,
-                newHeaderJwtToken, false, tokenExpire, "/", domain2secure);
-
-        // 校验sig权限
-        if (sigToken != null && sigToken.required()) {
-            String verifyUserMsg = verifyUser(sigToken, userId, permission);
-            if (!verifyUserMsg.equals("success")) {
-                tokenError(httpServletRequest, httpServletResponse, verifyUserMsg);
-                return false;
-            }
-        }
-        // 校验company权限
-        if (companyToken != null && companyToken.required()) {
-            String verifyCompanyPerMsg = verifyCompanyPer(companyToken, userId);
-            if (!verifyCompanyPerMsg.equals("success")) {
-                tokenError(httpServletRequest, httpServletResponse, verifyCompanyPerMsg);
-                return false;
-            }
+        // 每次交互刷新token
+        String refreshMsg = refreshToken(httpServletRequest, httpServletResponse, verifyToken, userId, claims);
+        if (!Constant.SUCCESS.equals(refreshMsg)) {
+            tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
+            return false;
         }
 
         return true;
@@ -240,52 +210,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
             jwtVerifier.verify(headerToken);
             return md5Token;
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return "unauthorized";
         }
-    }
-
-    /**
-     * 校验用户（登录状态，操作权限）
-     *
-     * @param sigToken   SigToken（仅带有该注解的接口需要校验操作权限）
-     * @param userId     用户id
-     * @param permission 需要的操作权限
-     * @return 校验结果
-     */
-    private String verifyUser(SigToken sigToken, String userId, String permission) {
-        try {
-            // token 页面请求权限验证
-            if (sigToken != null && sigToken.required()) {
-                String[] split = permission.split("->");
-                boolean hasActionPer = authingUserDao.checkUserPermission(userId, split[0], split[1], split[2]);
-                if (!hasActionPer) {
-                    return "has no permission";
-                }
-            }
-        } catch (Exception e) {
-            return "has no permission";
-        }
-        return "success";
-    }
-
-    private String verifyCompanyPer(CompanyToken companyToken, String userId) {
-        try {
-            if (companyToken != null && companyToken.required()) {
-                ArrayList<String> pers =
-                        authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
-                for (String per : pers) {
-                    String[] perList = per.split(":");
-                    if (perList.length > 1
-                            && perList[1].equalsIgnoreCase(env.getProperty("openeuler.companyAction"))) {
-                        return "success";
-                    }
-                }
-            }
-        } catch (Exception e) {
-            return "has no permission";
-        }
-        return "has no permission";
     }
 
     /**
@@ -388,19 +315,35 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
     private String refreshToken(HttpServletRequest request, HttpServletResponse response,
                                 String verifyToken, String userId, Map<String, Claim> claimMap) {
+        String oldTokenKey = Constant.ID_TOKEN_PREFIX + verifyToken;
+        String idToken = (String) redisDao.get(oldTokenKey);
+        if (idToken == null) {
+            return Constant.TOKEN_EXPIRES;
+        }
+
         // headToken刷新token
         String[] tokens = jwtTokenCreateService.refreshAuthingUserToken(request, response, userId, claimMap);
 
         // 刷新cookie
-        int tokenExpire = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "1800"));
+        int tokenExpire = Integer.parseInt(
+                env.getProperty("authing.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
         String maxAgeTemp = env.getProperty("authing.cookie.max.age");
         int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : tokenExpire;
-        HttpClientUtils.setCookie(request, response, cookieTokenName, tokens[0],
+        HttpClientUtils.setCookie(request, response, cookieTokenName, tokens[Constant.TOKEN_YG],
                 true, maxAge, "/", domain2secure);
+        HttpClientUtils.setCookie(request, response, verifyTokenName, tokens[Constant.TOKEN_UT],
+                false, tokenExpire, "/", domain2secure);
+        String newVerifyToken = DigestUtils.md5DigestAsHex(tokens[Constant.TOKEN_UT].getBytes());
+        redisDao.set(Constant.ID_TOKEN_PREFIX + newVerifyToken, idToken, (long) tokenExpire);
 
-        // 旧token失效
-        redisDao.remove("idToken_" + verifyToken);
-        return tokens[1];
+        // 旧token失效,保持一个短时间的有效性
+        long validityPeriod =
+                Long.parseLong(env.getProperty("old.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
+        if (redisDao.expire(oldTokenKey) > validityPeriod) {
+            redisDao.set(oldTokenKey, idToken, validityPeriod);
+        }
+
+        return Constant.SUCCESS;
     }
 
     private void tokenError(HttpServletRequest httpServletRequest,

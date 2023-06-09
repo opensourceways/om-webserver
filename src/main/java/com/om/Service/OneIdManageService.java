@@ -20,7 +20,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
+import com.om.Modules.MessageCodeConfig;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
@@ -47,6 +50,8 @@ public class OneIdManageService {
 
     @Autowired
     ObjectMapper objectMapper;
+
+    private static final Logger logger =  LoggerFactory.getLogger(OneIdManageService.class);
 
     static final String[] PARAMETER_DEFAULT_VALUE = new String[]{""};
 
@@ -79,7 +84,7 @@ public class OneIdManageService {
                         "grant_type must be token or refresh_token", null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
 
@@ -156,7 +161,7 @@ public class OneIdManageService {
             Map<String, Object> tokens = createTokens(appId, appSecret);
             return result(HttpStatus.OK, "OK", tokens);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
     }
@@ -185,7 +190,7 @@ public class OneIdManageService {
 
             return result(HttpStatus.OK, "OK", newTokens);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
     }
@@ -225,7 +230,7 @@ public class OneIdManageService {
 
             return jsonNode;
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return "token error or expire";
         }
     }

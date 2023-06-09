@@ -15,6 +15,7 @@ import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.om.Result.Constant;
 import com.om.Service.AuthingService;
 import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
@@ -67,21 +68,15 @@ public class AuthingController {
         return service.accountExists(servletRequest, servletResponse);
     }
 
-    @RequestMapping(value = "/captcha/sendCode")
+    @RequestMapping(value = {"/captcha/sendCode", "/v3/sendCode"})
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
-        CaptchaVO captchaVO = new CaptchaVO();
-        captchaVO.setCaptchaVerification(captchaVerification);
-        ResponseModel response = captchaService.verification(captchaVO);
-        boolean isSuccess = response.isSuccess();
-
         UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.sendCodeV3(servletRequest, servletResponse, isSuccess);
+        return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
     @RequestMapping(value = "/register", method = RequestMethod.POST)
-    public ResponseEntity register(HttpServletRequest servletRequest,
-                                   HttpServletResponse servletResponse) {
+    public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.register(servletRequest, servletResponse);
     }
@@ -186,10 +181,10 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/sendcode")
     public ResponseEntity sendCode(@RequestParam(value = "account") String account,
-                                   @RequestParam(value = "field") String field,
-                                   @RequestParam(value = "account_type") String account_type,
-                                   @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.sendCode(token, account, account_type, field);
+                                   @RequestParam(value = "channel") String channel,
+                                   @CookieValue(value = "_Y_G_", required = false) String token,
+                                   @RequestParam("captchaVerification") String captchaVerification) {
+        return authingService.sendCode(token, account, channel, verifyCaptcha(captchaVerification));
     }
 
     @AuthingUserToken
@@ -197,7 +192,8 @@ public class AuthingController {
     public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest,
                                          HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.sendCodeUnbind(servletRequest, servletResponse);
+        String captchaVerification = servletRequest.getParameter("captchaVerification");
+        return service.sendCodeUnbind(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
     @AuthingUserToken
@@ -279,24 +275,28 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "/public/key", method = RequestMethod.GET)
-    public ResponseEntity getPublicKey() throws JsonProcessingException {
-        return authingService.getPublicKey();
+    public ResponseEntity getPublicKey(HttpServletRequest request) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        return service.getPublicKey();
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/update/password", method = RequestMethod.POST)
     public ResponseEntity updatePassword(HttpServletRequest request) {
-        return authingService.updatePassword(request);
+        UserCenterServiceInter service = getServiceImpl(request);
+        return service.updatePassword(request);
     }
 
     @RequestMapping(value = "/reset/password/verify", method = RequestMethod.POST)
     public ResponseEntity resetPwdVerify(HttpServletRequest request) {
-        return  authingService.resetPwdVerify(request);
+        UserCenterServiceInter service = getServiceImpl(request);
+        return  service.resetPwdVerify(request);
     }
 
     @RequestMapping(value = "/reset/password", method = RequestMethod.POST)
     public ResponseEntity resetPwd(HttpServletRequest request) {
-        return  authingService.resetPwd(request);
+        UserCenterServiceInter service = getServiceImpl(request);
+        return  service.resetPwd(request);
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
@@ -307,8 +307,17 @@ public class AuthingController {
         }
 
         String serviceType =
-                (community == null || community.toLowerCase().equals("openeuler"))
-                        ? "authing" : community.toLowerCase();
+                (community == null
+                        || community.toLowerCase().equals(Constant.ONEID_VERSION_V1)
+                        || community.toLowerCase().equals(Constant.ONEID_VERSION_V2))
+                        ? Constant.AUTHING : community.toLowerCase();
         return userCenterServiceContext.getUserCenterService(serviceType);
+    }
+
+    private boolean verifyCaptcha(String captchaVerification) {
+        CaptchaVO captchaVO = new CaptchaVO();
+        captchaVO.setCaptchaVerification(captchaVerification);
+        ResponseModel response = captchaService.verification(captchaVO);
+        return response.isSuccess();
     }
 }

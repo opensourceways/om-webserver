@@ -30,4 +30,42 @@ public class Constant {
     public static final String USERNAMEREGEX = "^[a-zA-Z][0-9a-zA-Z_]{1,18}[0-9a-zA-Z]$";
     public static final String NICKNAMEREGEX = "^[a-zA-Z\\u4e00-\\u9fa5][0-9a-zA-Z_\\u4e00-\\u9fa5]{1,18}[0-9a-zA-Z\\u4e00-\\u9fa5]$";
     public static final String COMPANYNAMEREGEX = "^[0-9a-zA-Z\\u4e00-\\u9fa5][0-9a-zA-Z,\\.&\\(\\)（）\\s\\u4e00-\\u9fa5]{0,98}[0-9a-zA-Z\\.\\u4e00-\\u9fa5]$";
+
+    public static final String FULL_SENSITIVE_REG = "^.*(password|secret|token|code).*$";
+    public static final String HALF_SENSITIVE_REG = "^.*(account).*$";
+    public static final String PHONE_REPLACE_REG = "(^\\d{3})\\d.*(\\d{4})";
+    public static final String EMAIL_REPLACE_REG = "(^\\w)[^@]*(@.*$)";
+
+    public static final String DEFAULT_EXPIRE_SECOND = "60";
+    public static final String ONEID_EXPIRE_SECOND = "3000";
+    public static final String AUTHING = "authing";
+    public static final String ONEID_VERSION_V1 = "openeuler";
+    public static final String ONEID_VERSION_V2 = "mindspore";
+
+    public static final String SUCCESS = "success";
+    public static final String EMAIL_TYPE = "email";
+    public static final String PHONE_TYPE = "phone";
+    public static final String DEFAULT_EXPIRE_MINUTE = "1";
+    public static final String DEFAULT_CODE_LENGTH = "6";
+
+    public static final String CHANNEL_REGISTER = "channel_register";
+    public static final String CHANNEL_REGISTER_BY_PASSWORD = "channel_register_by_password";
+    public static final String CHANNEL_LOGIN = "channel_login";
+    public static final String CHANNEL_RESET_PASSWORD = "channel_reset_password";
+
+    public static final String SEND_CODE = "_sendCode_";
+    public static final String REGISTER_SUFFIX = "_register";
+    public static final String RESET_PASSWORD_SUFFIX = "_reset_password";
+    public static final String ONEID_TOKEN_KEY = "Oneid-Token";
+    public static final String ID_TOKEN_PREFIX = "idToken_";
+    public static final String TOKEN_EXPIRES = "token expires";
+    public static final int TOKEN_YG = 0;
+    public static final int TOKEN_UT = 1;
+ 
+    public static final String ONEID_USER_C_PATH = "/composite-user";
+    public static final String ONEID_USER_URD_PATH = "/composite-user/{account}";
+    public static final String ONEID_CHECK_PASSWORD_PATH = "/auth/check-password/{account}";
+    public static final String ONEID_TOKEN_PATH = "/auth/get-management-token";
+
 }
+
