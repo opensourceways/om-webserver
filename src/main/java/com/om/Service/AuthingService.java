@@ -1014,7 +1014,8 @@ public class AuthingService implements UserCenterServiceInter {
 
         String originConnId = identityObj.getJSONArray("originConnIds").get(0).toString();
         if (originConnId.equals(env.getProperty("social.connId.github"))) {
-            String github_login = jsonObjStringValue(userInfoInIdpObj, "profile").replace("https://api.github.com/users/", "");
+            String target = env.getProperty("github.users.api");
+            String github_login = jsonObjStringValue(userInfoInIdpObj, "profile").replace(target, "");
             res.put("identity", "github");
             res.put("login_name", github_login);
             res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "username"));
