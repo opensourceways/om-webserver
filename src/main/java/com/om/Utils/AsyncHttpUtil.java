@@ -16,6 +16,7 @@ import io.netty.handler.ssl.JdkSslContext;
 import java.net.Socket;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
@@ -59,7 +60,7 @@ public  static Response getHTML(String url, String method, Map header) throws No
     return response;
 }
     public static SSLContext skipSsl() throws NoSuchAlgorithmException, KeyManagementException {
-        SSLContext sc = SSLContext.getInstance("SSL");
+        SSLContext sc = SSLContext.getInstance("TLSv1.2");
 
         // 实现一个X509TrustManager接口，用于绕过验证，不用修改里面的方法
         X509TrustManager trustManager = new X509ExtendedTrustManager() {
@@ -97,11 +98,12 @@ public  static Response getHTML(String url, String method, Map header) throws No
 
             @Override
             public X509Certificate[] getAcceptedIssuers() {
-                return null;
+                return new X509Certificate[0];
             }
         };
 
-        sc.init(null, new TrustManager[] { trustManager }, null);
+        SecureRandom secureRandom = SecureRandom.getInstance("NativePRNGBlocking");
+        sc.init(null, new TrustManager[] { trustManager }, secureRandom);
         return sc;
     }
 
