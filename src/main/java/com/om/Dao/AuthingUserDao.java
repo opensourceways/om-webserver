@@ -23,10 +23,14 @@ import com.mashape.unirest.http.exceptions.UnirestException;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
+import com.om.Modules.ServerErrorException;
 import com.om.Result.Constant;
 import com.om.Utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
@@ -44,6 +48,8 @@ import java.util.stream.Stream;
 
 @Repository
 public class AuthingUserDao {
+    private static final Logger logger =  LoggerFactory.getLogger(AuthingUserDao.class);
+    
     @Value("${authing.userPoolId}")
     String userPoolId;
 
@@ -98,6 +104,9 @@ public class AuthingUserDao {
     @Value("${datastat.img.default.photo}")
     String defaultPhoto;
 
+    @Value("${datastat.img.photo.suffix}")
+    String photoSuffix;
+
     @Value("${authing.api.host}")
     String authingApiHost;
 
@@ -124,12 +133,15 @@ public class AuthingUserDao {
 
     public Map<String, AuthenticationClient> appClientMap;
 
+    private List<String> photoSuffixes;
+
     @PostConstruct
     public void init() {
         appClientMap = new HashMap<>();
         managementClient = new ManagementClient(userPoolId, secret);
         obsClient = new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint);
         reservedUsernames = getUsernameReserved();
+        photoSuffixes = Arrays.asList(photoSuffix.split(";"));
     }
 
     public String sendPhoneCodeV3(String appId, String account, String channel) {
@@ -148,7 +160,8 @@ public class AuthingUserDao {
 
             return msg;
         } catch (Exception e) {
-            return "验证码发送失败";
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return MessageCodeConfig.E0008.getMsgZh();
         }
     }
 
@@ -168,57 +181,47 @@ public class AuthingUserDao {
 
             return msg;
         } catch (Exception e) {
-            return "验证码发送失败";
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return MessageCodeConfig.E0008.getMsgZh();
         }
     }
 
     // 邮箱验证码注册
-    public String registerByEmailCode(String appId, String email, String code,
-                                      String username) {
-        String msg = "success";
-        try {
-            String body = String.format("{\"connection\": \"PASSCODE\"," +
-                    "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"}," +
-                    "\"profile\":{\"username\":\"%s\"}}",
-                    email, code, username);
-            HttpResponse<JsonNode> response =
-                    authPost("/signup", appId, body);
+    public String registerByEmailCode(String appId, String email, String code, String username) {
+        String body = String.format("{\"connection\": \"PASSCODE\"," +
+                "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"}," +
+                "\"profile\":{\"username\":\"%s\"}}", email, code, username);
+        return register(appId, body);
+    }
 
-            JSONObject resObj = response.getBody().getObject();
-            int statusCode = resObj.getInt("statusCode");
-            if (statusCode != 200) msg = resObj.getString("message");
-
-            return msg;
-        } catch (Exception e) {
-            return MessageCodeConfig.E00024.getMsgZh();
-        }
+    // 手机验证码注册
+    public String registerByPhoneCode(String appId, String phone, String code, String username) {
+        String body = String.format("{\"connection\": \"PASSCODE\"," +
+                "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"}," +
+                "\"profile\":{\"username\":\"%s\"}}", phone, code, username);
+        return register(appId, body);
     }
 
     // 邮箱验密码注册
-    public String registerByEmailPwd(String appId, String email, String username,
-                                     String password) {
-        String msg = "success";
-        try {
-            String body = String.format("{\"connection\": \"PASSWORD\"," +
-                    "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
-                    "\"profile\":{\"username\":\"%s\"}," +
-                    "\"options\":{\"passwordEncryptType\":\"rsa\"}}",
-                    email, password, username);
-            HttpResponse<JsonNode> response =
-                    authPost("/signup", appId, body);
+    public String registerByEmailPwd(String appId, String email, String password, String username) {
+        String body = String.format("{\"connection\": \"PASSWORD\"," +
+                "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
+                "\"profile\":{\"username\":\"%s\"}," +
+                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", email, password, username);
+        return register(appId, body);
+    }
 
-            JSONObject resObj = response.getBody().getObject();
-            int statusCode = resObj.getInt("statusCode");
-            if (statusCode != 200) msg = resObj.getString("message");
-
-            return msg;
-        } catch (Exception e) {
-            return MessageCodeConfig.E00024.getMsgZh();
-        }
+    // 手机密码注册
+    public String registerByPhonePwd(String appId, String phone, String password, String username) {
+        String body = String.format("{\"connection\": \"PASSWORD\"," +
+                "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"}," +
+                "\"profile\":{\"username\":\"%s\"}," +
+                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username);
+        return register(appId, body);
     }
 
     // 校验用户是否存在（用户名 or 邮箱 or 手机号）
-    public boolean isUserExists(String appId, String account, String accountType) {
+    public boolean isUserExists(String appId, String account, String accountType) throws ServerErrorException {
         try {
             AuthenticationClient authentication = appClientMap.get(appId);
             switch (accountType.toLowerCase()) {
@@ -232,124 +235,70 @@ public class AuthingUserDao {
                     return true;
             }
         } catch (Exception e) {
-            return true;
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            throw new ServerErrorException();
         }
     }
 
-    public Object loginByEmailCode(Application app, String email, String code) {
-        String msg = "登录失败";
-        try {
-            if (!isUserExists(app.getId(), email, "email")) return "用户不存在";
-            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", email, code, app.getId(), app.getSecret());
-            HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/signin")
-                    .header("x-authing-app-id", app.getId())
-                    .header("Content-Type", "application/json")
-                    .body(body)
-                    .asJson();
-
-            JSONObject resObj = response.getBody().getObject();
-            int statusCode = resObj.getInt("statusCode");
-            if (statusCode != 200) msg = resObj.getString("message");
-            else return resObj.get("data");
-        } catch (Exception ignored) {
+    public Object loginByEmailCode(Application app, String email, String code) throws ServerErrorException {
+        if (!isUserExists(app.getId(), email, "email")) {
+            return MessageCodeConfig.E00034.getMsgZh();
         }
-        return msg;
+
+        String body = String.format("{\"connection\": \"PASSCODE\"," +
+                "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"}," +
+                "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", email, code, app.getId(), app.getSecret());
+        return login(app.getId(), body);
     }
 
-    public Object loginByPhoneCode(Application app, String phone, String code) {
-        String msg = "登录失败";
-        try {
-            if (!isUserExists(app.getId(), phone, "phone")) return "用户不存在";
-            String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, app.getId(), app.getSecret());
-            HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/signin")
-                    .header("x-authing-app-id", app.getId())
-                    .header("Content-Type", "application/json")
-                    .body(body)
-                    .asJson();
-
-            JSONObject resObj = response.getBody().getObject();
-            int statusCode = resObj.getInt("statusCode");
-            if (statusCode != 200) msg = resObj.getString("message");
-            else return resObj.get("data");
-        } catch (Exception ignored) {
+    public Object loginByPhoneCode(Application app, String phone, String code) throws ServerErrorException {
+        if (!isUserExists(app.getId(), phone, "phone")) {
+            return MessageCodeConfig.E00034.getMsgZh();
         }
 
-        return msg;
+        String body = String.format("{\"connection\": \"PASSCODE\"," +
+                "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"}," +
+                "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, app.getId(), app.getSecret());
+        return login(app.getId(), body);
     }
 
-    public Object loginByEmailPwd(Application app, String email, String password) {
-        String msg = MessageCodeConfig.E00027.getMsgZh();
-        try {
-            if (!isUserExists(app.getId(), email, "email")) {
-                return MessageCodeConfig.E00034.getMsgZh();
-            }
-
-            String body = String.format("{\"connection\": \"PASSWORD\"," +
-                            "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
-                            "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
-                            "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
-                    email, password, app.getId(), app.getSecret());
-            HttpResponse<JsonNode> response =
-                    authPost("/signin", app.getId(), body);
-
-            JSONObject resObj = response.getBody().getObject();
-            int statusCode = resObj.getInt("statusCode");
-            if (statusCode != 200) msg = resObj.getString("message");
-            else return resObj.get("data");
-        } catch (Exception ignored) {
+    public Object loginByEmailPwd(Application app, String email, String password) throws ServerErrorException {
+        if (!isUserExists(app.getId(), email, "email")) {
+            return MessageCodeConfig.E00052.getMsgZh();
         }
 
-        return msg;
+        String body = String.format("{\"connection\": \"PASSWORD\"," +
+                        "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
+                        "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
+                        "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
+                email, password, app.getId(), app.getSecret());
+        return login(app.getId(), body);
     }
 
-    public Object loginByPhonePwd(Application app, String phone, String password) {
-        String msg = MessageCodeConfig.E00027.getMsgZh();
-        try {
-            if (!isUserExists(app.getId(), phone, "phone")) {
-                return MessageCodeConfig.E00034.getMsgZh();
-            }
-
-            String body = String.format("{\"connection\": \"PASSWORD\"," +
-                            "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"}," +
-                            "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
-                            "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
-                    phone, password, app.getId(), app.getSecret());
-            HttpResponse<JsonNode> response =
-                    authPost("/signin", app.getId(), body);
-
-            JSONObject resObj = response.getBody().getObject();
-            int statusCode = resObj.getInt("statusCode");
-            if (statusCode != 200) msg = resObj.getString("message");
-            else return resObj.get("data");
-        } catch (Exception ignored) {
+    public Object loginByPhonePwd(Application app, String phone, String password) throws ServerErrorException {
+        if (!isUserExists(app.getId(), phone, "phone")) {
+            return MessageCodeConfig.E00052.getMsgZh();
         }
 
-        return msg;
+        String body = String.format("{\"connection\": \"PASSWORD\"," +
+                        "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"}," +
+                        "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
+                        "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
+                phone, password, app.getId(), app.getSecret());
+        return login(app.getId(), body);
     }
 
-    public Object loginByUsernamePwd(Application app, String username, String password) {
-        String msg = MessageCodeConfig.E00049.getMsgZh();
-        try {
-            if (!isUserExists(app.getId(), username, "username")) {
-                return MessageCodeConfig.E00034.getMsgZh();
-            }
-
-            String body = String.format("{\"connection\": \"PASSWORD\"," +
-                            "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"}," +
-                            "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
-                            "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
-                    username, password, app.getId(), app.getSecret());
-            HttpResponse<JsonNode> response =
-                    authPost("/signin", app.getId(), body);
-
-            JSONObject resObj = response.getBody().getObject();
-            int statusCode = resObj.getInt("statusCode");
-            if (statusCode != 200) msg = resObj.getString("message");
-            else return resObj.get("data");
-        } catch (Exception ignored) {
+    public Object loginByUsernamePwd(Application app, String username, String password) throws ServerErrorException {
+        if (!isUserExists(app.getId(), username, "username")) {
+            return MessageCodeConfig.E00052.getMsgZh();
         }
 
-        return msg;
+        String body = String.format("{\"connection\": \"PASSWORD\"," +
+                        "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"}," +
+                        "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
+                        "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
+                username, password, app.getId(), app.getSecret());
+        return login(app.getId(), body);
     }
 
     public Application initAppClient(String appId) {
@@ -375,6 +324,7 @@ public class AuthingUserDao {
         try {
             return managementClient.application().findById(appId).execute();
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
     }
@@ -393,7 +343,7 @@ public class AuthingUserDao {
             user.put("id_token", res.get("id_token").toString());
             return user;
         } catch (Exception ex) {
-            ex.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), ex);
             return null;
         }
     }
@@ -407,6 +357,7 @@ public class AuthingUserDao {
             int code = response.getBody().getObject().getInt("code");
             return code == 200;
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return false;
         }
     }
@@ -416,7 +367,7 @@ public class AuthingUserDao {
         try {
             return managementClient.users().detail(userId, true, true).execute();
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
     }
@@ -426,6 +377,7 @@ public class AuthingUserDao {
             User user = managementClient.users().find(new FindUserParam().withUsername(username)).execute();
             return getUserById(user.getId());
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
     }
@@ -451,7 +403,7 @@ public class AuthingUserDao {
                     .asJson();
             return response.getBody().getObject().getJSONObject("data");
         } catch (Exception e) {
-            System.out.println("User Get Error");
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
     }
@@ -467,7 +419,7 @@ public class AuthingUserDao {
             int code = response.getBody().getObject().getInt("code");
             return code == 200;
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return false;
         }
     }
@@ -491,7 +443,7 @@ public class AuthingUserDao {
 
             return false;
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return false;
         }
     }
@@ -511,6 +463,7 @@ public class AuthingUserDao {
             }
             return pers;
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return pers;
         }
     }
@@ -539,120 +492,74 @@ public class AuthingUserDao {
                     return false;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return false;
         }
         return true;
     }
 
     public String getPublicKey() {
-        String msg = "Internal Server Error";
+        String msg = MessageCodeConfig.E00048.getMsgEn();
         try {
-            HttpResponse<JsonNode> response =
-                    Unirest.get(authingApiHostV3 + "/system").asJson();
+            HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/system").asJson();
             if (response.getStatus() == 200) {
                 JSONObject resObj = response.getBody().getObject();
                 resObj.remove("sm2");
                 msg = resObj.toString();
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return msg;
     }
 
     public String updatePassword(String token, String oldPwd, String newPwd) {
-        String msg = MessageCodeConfig.E00050.getMsgZh();
+        String msg = MessageCodeConfig.E00053.getMsgZh();
         try {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User user = (User) appUserInfo[1];
 
             String body = String.format("{\"newPassword\": \"%s\"," +
-                            "\"oldPassword\": \"%s\"," +
-                            "\"passwordEncryptType\": \"rsa\"}",
-                    newPwd, oldPwd);
-            HttpResponse<JsonNode> response =
-                    authPost("/update-password", appId, user.getToken(), body);
-
+                    "\"oldPassword\": \"%s\"," +
+                    "\"passwordEncryptType\": \"rsa\"}", newPwd, oldPwd);
+            HttpResponse<JsonNode> response = authPost("/update-password", appId, user.getToken(), body);
             JSONObject resObj = response.getBody().getObject();
-            int statusCode = resObj.getInt("statusCode");
-            if (statusCode != 200) {
-                msg = resObj.getString("message");
-            } else {
-                msg = "success";
-            }
-        } catch (Exception ignored) {
+            msg = resObj.getInt("statusCode") != 200 ? resObj.getString("message") : Constant.SUCCESS;
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
-
         return msg;
     }
 
     public Object resetPwdVerifyEmail(String appId, String email, String code) {
-        Object msg = MessageCodeConfig.E00012.getMsgZh();
-        try {
-            String body = String.format("{\"verifyMethod\": \"EMAIL_PASSCODE\"," +
-                            "\"emailPassCodePayload\": " +
-                            "{\"email\": \"%s\",\"passCode\": \"%s\"}}",
-                    email, code);
-            HttpResponse<JsonNode> response =
-                    authPost("/verify-reset-password-request", appId, body);
-
-            JSONObject resObj = response.getBody().getObject();
-            int statusCode = resObj.getInt("statusCode");
-            msg = (statusCode == 200)
-                    ? resObj.getJSONObject("data")
-                    : resObj.getString("message");
-        } catch (Exception ignored) {
-        }
-
-        return msg;
+        String body = String.format("{\"verifyMethod\": \"EMAIL_PASSCODE\"," +
+                "\"emailPassCodePayload\": " +
+                "{\"email\": \"%s\",\"passCode\": \"%s\"}}", email, code);
+        return resetPwdVerify(appId, body);
     }
 
     public Object resetPwdVerifyPhone(String appId, String phone, String code) {
-        Object msg = MessageCodeConfig.E00012.getMsgZh();
-        try {
-            String body = String.format("{\"verifyMethod\": \"PHONE_PASSCODE\"," +
-                            "\"phonePassCodePayload\": " +
-                            "{\"phoneNumber\": \"%s\",\"passCode\": \"%s\"}}",
-                    phone, code);
-            HttpResponse<JsonNode> response =
-                    authPost("/verify-reset-password-request", appId, body);
-
-            JSONObject resObj = response.getBody().getObject();
-            int statusCode = resObj.getInt("statusCode");
-            msg = (statusCode == 200)
-                    ? resObj.getJSONObject("data")
-                    : resObj.getString("message");
-        } catch (Exception ignored) {
-        }
-
-        return msg;
+        String body = String.format("{\"verifyMethod\": \"PHONE_PASSCODE\"," +
+                        "\"phonePassCodePayload\": " +
+                        "{\"phoneNumber\": \"%s\",\"passCode\": \"%s\"}}",
+                phone, code);
+        return resetPwdVerify(appId, body);
     }
 
     public String resetPwd(String pwdResetToken, String newPwd) {
-        String msg = MessageCodeConfig.E00050.getMsgZh();
+        String msg = MessageCodeConfig.E00053.getMsgZh();
         try {
             String body = String.format("{\"passwordResetToken\": \"%s\"," +
-                            "\"password\": \"%s\"," +
-                            "\"passwordEncryptType\": \"rsa\"}",
-                    pwdResetToken, newPwd);
-            HttpResponse<JsonNode> response =
-                    Unirest.post(authingApiHostV3 + "/reset-password")
-                            .header("Content-Type", "application/json")
-                            .body(body)
-                            .asJson();
-
+                    "\"password\": \"%s\"," +
+                    "\"passwordEncryptType\": \"rsa\"}", pwdResetToken, newPwd);
+            HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/reset-password")
+                    .header("Content-Type", "application/json").body(body).asJson();
             JSONObject resObj = response.getBody().getObject();
-            int statusCode = resObj.getInt("statusCode");
-            if (statusCode != 200) {
-                msg = resObj.getString("message");
-            } else {
-                msg = "success";
-            }
-        } catch (Exception ignored) {
+            msg = resObj.getInt("statusCode") != 200 ? resObj.getString("message") : Constant.SUCCESS;
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
-
         return msg;
     }
 
@@ -674,6 +581,7 @@ public class AuthingUserDao {
                     return "false";
             }
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return e.getMessage();
         }
         return "true";
@@ -707,9 +615,8 @@ public class AuthingUserDao {
                     return resFail;
             }
         } catch (Exception e) {
-            String message = e.getMessage();
-            System.out.println(message);
-            return message;
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return e.getMessage();
         }
         return "unbind success";
     }
@@ -732,6 +639,7 @@ public class AuthingUserDao {
                     return "false";
             }
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return e.getMessage();
         }
         return "true";
@@ -768,6 +676,7 @@ public class AuthingUserDao {
             list.add(mapOpenatom);
             return list;
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
     }
@@ -782,6 +691,7 @@ public class AuthingUserDao {
 
             authentication.linkAccount(token, secondToken).execute();
         } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return e.getMessage();
         }
         return "true";
@@ -831,7 +741,7 @@ public class AuthingUserDao {
                     .asJson();
             if (response.getBody().getObject().getInt("code") == 200) msg = "success";
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return msg;
     }
@@ -853,13 +763,14 @@ public class AuthingUserDao {
                         .body(body)
                         .asJson();
                 if (response.getBody().getObject().getInt("code") == 200) flag = true;
-            } catch (Exception ignored) {
+            } catch (Exception e) {
+                logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             }
         }
         return flag;
     }
 
-    public String updateUserBaseInfo(String token, Map<String, Object> map) {
+    public String updateUserBaseInfo(String token, Map<String, Object> map) throws ServerErrorException {
         String msg = "success";
         try {
             Object[] appUserInfo = getAppUserInfo(token);
@@ -893,8 +804,12 @@ public class AuthingUserDao {
             }
             authentication.updateProfile(updateUserInput).execute();
             return msg;
+        } catch (ServerErrorException e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            throw e;
         } catch (Exception ex) {
-            return "更新失败";
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), ex);
+            return MessageCodeConfig.E0007.getMsgZh();
         }
     }
 
@@ -911,6 +826,9 @@ public class AuthingUserDao {
             // 重命名文件
             String fileName = file.getOriginalFilename();
             String extension = fileName.substring(fileName.lastIndexOf("."));
+            if (!photoSuffixes.contains(extension.toLowerCase())) {
+                return false;
+            }
             String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
 
             //上传文件到OBS
@@ -924,6 +842,7 @@ public class AuthingUserDao {
             deleteObsObjectByUrl(photo);
             return true;
         } catch (Exception ex) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), ex);
             return false;
         }
     }
@@ -938,7 +857,7 @@ public class AuthingUserDao {
             if (obsClient.doesObjectExist(datastatImgBucket, objName) && !objName.equals(defaultPhoto))
                 obsClient.deleteObject(datastatImgBucket, objName);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
     }
 
@@ -951,12 +870,12 @@ public class AuthingUserDao {
                     .asJson();
             return response.getBody().getObject().get("accessToken").toString();
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return "";
         }
     }
 
-    public String checkUsername(String appId, String userName) {
+    public String checkUsername(String appId, String userName) throws ServerErrorException {
         String msg = "success";
         if (StringUtils.isBlank(userName))
             msg = "用户名不能为空";
@@ -968,12 +887,75 @@ public class AuthingUserDao {
         return msg;
     }
 
+    public List<String> userAccessibleApps(String userId) {
+        ArrayList<String> appIds = new ArrayList<>();
+        try {
+            String token = getUser(userId).getToken();
+            HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/get-my-accessible-apps")
+                    .header("Authorization", token)
+                    .header("x-authing-userpool-id", userPoolId)
+                    .asJson();
+            if (response.getStatus() == 200) {
+                JSONArray data = response.getBody().getObject().getJSONArray("data");
+                for (Object item : data) {
+                    if (item instanceof JSONObject) {
+                        JSONObject app = (JSONObject) item;
+                        appIds.add(app.getString("appId"));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+        }
+        return appIds;
+    }
+
     private List<String> getUsernameReserved() {
         if (StringUtils.isBlank(usernameReserved)) return null;
         return Arrays.stream(usernameReserved.split(",")).map(String::trim).collect(Collectors.toList());
     }
 
-    public HttpResponse<JsonNode> authPost(String uriPath, String appId, String body)
+    private String register(String appId, String body) {
+        String msg = Constant.SUCCESS;
+        try {
+            HttpResponse<JsonNode> response = authPost("/signup", appId, body);
+            JSONObject resObj = response.getBody().getObject();
+            if (resObj.getInt("statusCode") != 200) {
+                msg = resObj.getString("message");
+            }
+            return msg;
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return MessageCodeConfig.E00024.getMsgZh();
+        }
+    }
+
+    private Object login(String appId, String body) {
+        Object msg = MessageCodeConfig.E00027.getMsgZh();
+        return authPostResData("/signin", appId, body, msg);
+    }
+
+    private Object resetPwdVerify(String appId, String body) {
+        Object msg = MessageCodeConfig.E00012.getMsgZh();
+        return authPostResData("/verify-reset-password-request", appId, body, msg);
+    }
+
+    private Object authPostResData(String uriPath, String appId, String body, Object defaultMsg) {
+        Object msg = defaultMsg;
+        try {
+            HttpResponse<JsonNode> response = authPost(uriPath, appId, body);
+            JSONObject resObj = response.getBody().getObject();
+            msg = (resObj.getInt("statusCode") == 200)
+                    ? resObj.get("data")
+                    : resObj.getString("message");
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+        }
+        return msg;
+    }
+
+
+    private HttpResponse<JsonNode> authPost(String uriPath, String appId, String body)
             throws UnirestException {
         return Unirest.post(authingApiHostV3 + uriPath)
                 .header("x-authing-app-id", appId)
@@ -982,8 +964,8 @@ public class AuthingUserDao {
                 .asJson();
     }
 
-    public HttpResponse<JsonNode> authPost(String uriPath, String appId, String token,
-                                           String body) throws UnirestException {
+    private HttpResponse<JsonNode> authPost(String uriPath, String appId, String token,
+                                            String body) throws UnirestException {
         return Unirest.post(authingApiHostV3 + uriPath)
                 .header("Authorization", token)
                 .header("x-authing-app-id", appId)

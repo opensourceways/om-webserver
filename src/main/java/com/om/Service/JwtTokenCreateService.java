@@ -16,9 +16,11 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.Claim;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
-import com.om.Modules.*;
+import com.om.Modules.MessageCodeConfig;
 import com.om.Utils.RSAUtil;
 import com.om.Vo.TokenUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
@@ -38,17 +40,11 @@ import java.util.Map;
 @Service
 public class JwtTokenCreateService {
     @Autowired
-    private openEuler openeuler;
-    @Autowired
-    private openGauss opengauss;
-    @Autowired
-    private openLookeng openlookeng;
-    @Autowired
-    private mindSpore mindspore;
-    @Autowired
     RedisDao redisDao;
+
     @Autowired
     AuthingUserDao authingUserDao;
+
     @Autowired
     private Environment env;
 
@@ -64,33 +60,30 @@ public class JwtTokenCreateService {
     @Value("${rsa.authing.publicKey}")
     private String rsaAuthingPublicKey;
 
+    @Value("${token.base.password}")
+    private String tokenBasePassword;
+
+    @Value("${token.expire.seconds}")
+    private String tokenExpireSeconds;
+
+    private static final Logger logger =  LoggerFactory.getLogger(JwtTokenCreateService.class);
+
     public String getToken(TokenUser user) {
-        openComObject communityObj;
-        switch (user.getCommunity().toLowerCase()) {
-            case "openeuler":
-                communityObj = openeuler;
-                break;
-            case "opengauss":
-                communityObj = opengauss;
-                break;
-            case "openlookeng":
-                communityObj = openlookeng;
-                break;
-            case "mindspore":
-                communityObj = mindspore;
-                break;
-            default:
-                return null;
+        if (!user.getCommunity().equalsIgnoreCase("openeuler")
+                && !user.getCommunity().equalsIgnoreCase("opengauss")
+                && !user.getCommunity().equalsIgnoreCase("mindspore")
+                && !user.getCommunity().equalsIgnoreCase("openlookeng")) {
+            return null;
         }
 
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
-        int expireSeconds = Integer.parseInt(communityObj.getTokenExpireSeconds());
+        int expireSeconds = Integer.parseInt(tokenExpireSeconds);
         LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
 
-        String basePassword = communityObj.getTokenBasePassword();
+        String basePassword = tokenBasePassword;
 
         return JWT.create()
                 .withAudience(user.getUsername()) //谁接受签名
@@ -108,7 +101,7 @@ public class JwtTokenCreateService {
         try {
             expireSeconds = Integer.parseInt(authingTokenExpireSeconds);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -160,9 +153,6 @@ public class JwtTokenCreateService {
         String permission = new String(Base64.getDecoder()
                 .decode(claimMap.get("permission").asString().getBytes()));
 
-        // 缓存正在进行刷新的headerToken，确保同一用户同一时间并发刷新时只刷新一次
-        redisDao.set(headJwtTokenMd5, "refreshing", 10L);
-
         // 生成新的token和headToken
         String username = JWT.decode(headerJwtToken).getAudience().get(0);
         return authingUserToken(appId, userId, username, permission, inputPermission, idToken);
@@ -207,4 +197,26 @@ public class JwtTokenCreateService {
                 .withExpiresAt(expireAt) //过期时间
                 .sign(Algorithm.HMAC256(appSecret + authingTokenBasePassword));
     }
+
+    public String resetPasswordToken(String account, long expireSeconds) {
+        LocalDateTime nowDate = LocalDateTime.now();
+        Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
+        LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
+        Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
+
+        String token = JWT.create()
+                          .withAudience(account)
+                          .withIssuedAt(issuedAt)
+                          .withExpiresAt(expireAt)
+                          .sign(Algorithm.HMAC256(account + tokenBasePassword));
+
+        try {
+            RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
+            return RSAUtil.publicEncrypt(token, publicKey);
+        } catch (Exception e) {
+            System.out.println("RSA Encrypt error");
+            return token;
+        }
+    }
+
 }
