@@ -44,12 +44,6 @@ import java.util.stream.Stream;
 
 @Repository
 public class AuthingUserDao {
-    private final static String AUTHINGAPIHOST = "https://core.authing.cn";
-
-    private final static String AUTHINGAPIHOST_V2 = AUTHINGAPIHOST + "/api/v2";
-
-    private final static String AUTHINGAPIHOST_V3 = "https://api.authing.cn/api/v3";
-
     @Value("${authing.userPoolId}")
     String userPoolId;
 
@@ -104,6 +98,15 @@ public class AuthingUserDao {
     @Value("${datastat.img.default.photo}")
     String defaultPhoto;
 
+    @Value("${authing.api.host}")
+    String authingApiHost;
+
+    @Value("${authing.api.hostv2}")
+    String authingApiHostV2;
+
+    @Value("${authing.api.hostv3}")
+    String authingApiHostV3;
+
     // -- temporary (解决gitee多身份源解绑问题) -- TODO
     @Value("${temp.extIdpIds}")
     String extIdpIds;
@@ -133,7 +136,7 @@ public class AuthingUserDao {
         String msg = "success";
         try {
             String body = String.format("{\"phoneNumber\": \"%s\",\"channel\": \"%s\"}", account, channel.toUpperCase());
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/send-sms")
+            HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/send-sms")
                     .header("x-authing-app-id", appId)
                     .header("Content-Type", "application/json")
                     .body(body)
@@ -153,7 +156,7 @@ public class AuthingUserDao {
         String msg = "success";
         try {
             String body = String.format("{\"email\": \"%s\",\"channel\": \"%s\"}", account, channel.toUpperCase());
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/send-email")
+            HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/send-email")
                     .header("x-authing-app-id", appId)
                     .header("Content-Type", "application/json")
                     .body(body)
@@ -238,7 +241,7 @@ public class AuthingUserDao {
         try {
             if (!isUserExists(app.getId(), email, "email")) return "用户不存在";
             String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", email, code, app.getId(), app.getSecret());
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
+            HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/signin")
                     .header("x-authing-app-id", app.getId())
                     .header("Content-Type", "application/json")
                     .body(body)
@@ -258,7 +261,7 @@ public class AuthingUserDao {
         try {
             if (!isUserExists(app.getId(), phone, "phone")) return "用户不存在";
             String body = String.format("{\"connection\": \"PASSCODE\",\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"},\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, app.getId(), app.getSecret());
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V3 + "/signin")
+            HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/signin")
                     .header("x-authing-app-id", app.getId())
                     .header("Content-Type", "application/json")
                     .body(body)
@@ -397,7 +400,7 @@ public class AuthingUserDao {
 
     public boolean logout(String appId, String idToken, String userId) {
         try {
-            HttpResponse<JsonNode> response = Unirest.get(String.format(AUTHINGAPIHOST + "/logout?appId=%s&userId=%s", appId, userId))
+            HttpResponse<JsonNode> response = Unirest.get(String.format(authingApiHost + "/logout?appId=%s&userId=%s", appId, userId))
                     .header("Authorization", idToken)
                     .header("x-authing-userpool-id", userPoolId)
                     .asJson();
@@ -442,7 +445,7 @@ public class AuthingUserDao {
     public JSONObject getUserById(String userId) {
         try {
             String token = getManagementToken();
-            HttpResponse<JsonNode> response = Unirest.get(AUTHINGAPIHOST_V2 + "/users/" + userId)
+            HttpResponse<JsonNode> response = Unirest.get(authingApiHostV2 + "/users/" + userId)
                     .header("Authorization", token)
                     .header("x-authing-userpool-id", userPoolId)
                     .asJson();
@@ -457,7 +460,7 @@ public class AuthingUserDao {
     public boolean deleteUserById(String userId) {
         try {
             String token = getManagementToken();
-            HttpResponse<JsonNode> response = Unirest.delete(AUTHINGAPIHOST_V2 + "/users/" + userId)
+            HttpResponse<JsonNode> response = Unirest.delete(authingApiHostV2 + "/users/" + userId)
                     .header("Authorization", token)
                     .header("x-authing-userpool-id", userPoolId)
                     .asJson();
@@ -546,7 +549,7 @@ public class AuthingUserDao {
         String msg = "Internal Server Error";
         try {
             HttpResponse<JsonNode> response =
-                    Unirest.get(AUTHINGAPIHOST_V3 + "/system").asJson();
+                    Unirest.get(authingApiHostV3 + "/system").asJson();
             if (response.getStatus() == 200) {
                 JSONObject resObj = response.getBody().getObject();
                 resObj.remove("sm2");
@@ -635,7 +638,7 @@ public class AuthingUserDao {
                             "\"passwordEncryptType\": \"rsa\"}",
                     pwdResetToken, newPwd);
             HttpResponse<JsonNode> response =
-                    Unirest.post(AUTHINGAPIHOST_V3 + "/reset-password")
+                    Unirest.post(authingApiHostV3 + "/reset-password")
                             .header("Content-Type", "application/json")
                             .body(body)
                             .asJson();
@@ -820,7 +823,7 @@ public class AuthingUserDao {
 
             String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", identifier, extIdpId);
             Unirest.setTimeouts(0, 0);
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V2 + "/users/identity/unlinkByUser")
+            HttpResponse<JsonNode> response = Unirest.post(authingApiHostV2 + "/users/identity/unlinkByUser")
                     .header("Authorization", us.getToken())
                     .header("x-authing-userpool-id", userPoolId)
                     .header("Content-Type", "application/json")
@@ -843,7 +846,7 @@ public class AuthingUserDao {
             try {
                 String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", split[i], split1[i]);
                 Unirest.setTimeouts(0, 0);
-                HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V2 + "/users/identity/unlinkByUser")
+                HttpResponse<JsonNode> response = Unirest.post(authingApiHostV2 + "/users/identity/unlinkByUser")
                         .header("Authorization", us.getToken())
                         .header("x-authing-userpool-id", userPoolId)
                         .header("Content-Type", "application/json")
@@ -942,7 +945,7 @@ public class AuthingUserDao {
     private String getManagementToken() {
         try {
             String body = String.format("{\"userPoolId\":\"%s\",\"secret\":\"%s\"}", userPoolId, secret);
-            HttpResponse<JsonNode> response = Unirest.post(AUTHINGAPIHOST_V2 + "/userpools/access-token")
+            HttpResponse<JsonNode> response = Unirest.post(authingApiHostV2 + "/userpools/access-token")
                     .header("Content-Type", "application/json")
                     .body(body)
                     .asJson();
@@ -972,7 +975,7 @@ public class AuthingUserDao {
 
     public HttpResponse<JsonNode> authPost(String uriPath, String appId, String body)
             throws UnirestException {
-        return Unirest.post(AUTHINGAPIHOST_V3 + uriPath)
+        return Unirest.post(authingApiHostV3 + uriPath)
                 .header("x-authing-app-id", appId)
                 .header("Content-Type", "application/json")
                 .body(body)
@@ -981,7 +984,7 @@ public class AuthingUserDao {
 
     public HttpResponse<JsonNode> authPost(String uriPath, String appId, String token,
                                            String body) throws UnirestException {
-        return Unirest.post(AUTHINGAPIHOST_V3 + uriPath)
+        return Unirest.post(authingApiHostV3 + uriPath)
                 .header("Authorization", token)
                 .header("x-authing-app-id", appId)
                 .header("Content-Type", "application/json")
