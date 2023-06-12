@@ -56,13 +56,12 @@ public class QueryService {
 
     public String queryUserOwnertype(String community, String user, String username)
             throws JsonProcessingException {
-        String key = community.toLowerCase() + "all" + "ownertype";
-        String result = null;
-        result = (String) redisDao.get(key);
+        String key = community.toLowerCase() + user + "ownertype";
+        String result = (String) redisDao.get(key);
         if (result == null) {
             // 查询数据库，更新redis 缓存。
             try {
-                result = queryDao.queryAllUserOwnertype(community);
+                result = queryDao.queryUserOwnertype(community, user);
             } catch (Exception e) {
                 logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             }
@@ -74,16 +73,7 @@ public class QueryService {
         }
 
         String giteeLogin = StringUtils.isNotBlank(user) ? user.toLowerCase() : getGiteeLoginFromAuthing(username);
-
-        ObjectMapper objectMapper = new ObjectMapper();
-        JsonNode all = objectMapper.readTree(result);
-        JsonNode userData = all.get("data").get(giteeLogin);
-        if (userData != null) {
-            result = objectMapper.valueToTree(userData).toString();
-        } else {
-            result = "[]";
-        }
-        result = "{\"code\":200,\"data\":" + result + ",\"msg\":\"ok\"}";
+        result = queryDao.queryUserOwnertype(community, giteeLogin);
         return result;
     }
 
