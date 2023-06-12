@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.OneidDao;
 import com.om.Dao.RedisDao;
+import com.om.Modules.LoginFailCounter;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Result.Result;
@@ -24,6 +25,7 @@ import com.om.Service.JwtTokenCreateService;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
+import com.om.Utils.LimitUtil;
 import com.om.Utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
@@ -67,6 +69,9 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Autowired
     JavaMailSender mailSender;
+
+    @Autowired
+    LimitUtil limitUtil;
 
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
@@ -262,37 +267,46 @@ public class OpenGaussService implements UserCenterServiceInter {
     }
 
     @Override
-    public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+    public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                boolean isSuccess) {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
         String community = (String) getBodyPara(body, "community");
         String appId = (String) getBodyPara(body, "client_id");
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
         String password = (String) getBodyPara(body, "password");
-
-        // app校验
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        String ip = HttpClientUtils.getRemoteIp(servletRequest);
+        LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account, ip);
 
         // 限制一分钟登录失败次数
-        String loginErrorCountKey = account + "loginCount";
-        Object v = redisDao.get(loginErrorCountKey);
-        int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
-        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6")))
-            return result(HttpStatus.BAD_REQUEST, null, "失败次数过多，请稍后重试", null);
+        if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null,
+                    limitUtil.loginFail(failCounter));
+        }
+
+        // 多次失败需要图片验证码
+        if (limitUtil.isNeedCaptcha(failCounter).get(Constant.NEED_CAPTCHA_VERIFICATION)) {
+            if (!isSuccess) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null,
+                        limitUtil.loginFail(failCounter));
+            }
+        }
+
+        // app校验
+        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null) {
+            return result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00047, null,
+                    limitUtil.loginFail(failCounter));
+        }
 
         // 验证码校验
         String redisKey = account + "_sendCode_" + community;
         String codeTemp = (String) redisDao.get(redisKey);
         String codeCheck = checkCode(code, codeTemp);
         if (!StringUtils.isBlank(password)) {
-            codeCheck = "success";
+            codeCheck = Constant.SUCCESS;
         }
-        if (!codeCheck.equals("success")) {
-            long codeExpire = Long.parseLong(env.getProperty("login.error.limit.seconds", "60"));
-            loginErrorCount += 1;
-            redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
-            return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
+        if (!codeCheck.equals(Constant.SUCCESS)) {
+            return result(HttpStatus.BAD_REQUEST, null, codeCheck, limitUtil.loginFail(failCounter));
         }
 
         // 登录
@@ -315,14 +329,11 @@ public class OpenGaussService implements UserCenterServiceInter {
             user = (JSONObject) msg;
             idToken = user.getString("id_token");
         } else {
-            long codeExpire = Long.parseLong(env.getProperty("login.error.limit.seconds", "60"));
-            loginErrorCount += 1;
-            redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
-            return result(HttpStatus.BAD_REQUEST, null, (String) msg, null);
+            return result(HttpStatus.BAD_REQUEST, null, (String) msg, limitUtil.loginFail(failCounter));
         }
 
-        //登录成功解除登录失败次数限制
-        redisDao.remove(loginErrorCountKey);
+        // 登录成功解除登录失败次数限制
+        redisDao.remove(account + Constant.LOGIN_COUNT);
 
         // 生成token
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"),
