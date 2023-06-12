@@ -53,6 +53,10 @@ public class Constant {
     public static final String CHANNEL_LOGIN = "channel_login";
     public static final String CHANNEL_RESET_PASSWORD = "channel_reset_password";
 
+    public static final String NEED_CAPTCHA_VERIFICATION = "need_captcha_verification";
+    public static final String NEED_CAPTCHA_VERIFICATION_LIMIT = "3";
+    public static final String LOGIN_ERROR_LIMIT = "6";
+    public static final String LOGIN_COUNT = "loginCount";
     public static final String SEND_CODE = "_sendCode_";
     public static final String REGISTER_SUFFIX = "_register";
     public static final String RESET_PASSWORD_SUFFIX = "_reset_password";
