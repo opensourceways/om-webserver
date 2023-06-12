@@ -11,13 +11,15 @@
 
 package com.om.Dao;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
 import com.om.Modules.MessageCodeConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
-
-import java.util.HashMap;
 
 /**
  * @author zhxia
@@ -26,20 +28,21 @@ import java.util.HashMap;
 
 @Repository
 public class QueryDao {
-    static ObjectMapper objectMapper = new ObjectMapper();
+    @Value("${owner.type.api}")
+    String apiFormat;
 
     private static final Logger logger =  LoggerFactory.getLogger(QueryDao.class);
 
-    public String queryAllUserOwnertype(String community) {
+    public String queryUserOwnertype(String community, String user) {
+        String urlFormat = String.format(apiFormat, user);
         try {
-            HashMap<String, Object> resMap = new HashMap<>();
-            resMap.put("code", 200);
-            resMap.put("data", null);
-            resMap.put("msg", "success");
-            return objectMapper.valueToTree(resMap).toString();
-        } catch (Exception e) {
+            HttpResponse<JsonNode> response = Unirest.get(urlFormat)
+                    .header("Content-Type", "application/json").asJson();
+            String res = response.getBody().toString();
+            return res;
+        } catch (UnirestException e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
-            return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
+            return "{\"msg\":\"error\",\"code\":404,\"data\":null}";
         }
     }
 }
