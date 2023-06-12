@@ -48,8 +48,9 @@ public class LimitUtil {
     public HashMap<String, Boolean> isNeedCaptcha(LoginFailCounter failCounter) {
         HashMap<String, Boolean> data = new HashMap<>();
         data.put(Constant.NEED_CAPTCHA_VERIFICATION, false);
-        if (failCounter.getAccountCount() >= Constant.NEED_CAPTCHA_VERIFICATION_LIMIT
-                || failCounter.getIpCount() >= Constant.NEED_CAPTCHA_VERIFICATION_LIMIT) {
+        int needCaptchaLimit =
+                Integer.parseInt(env.getProperty("need.captcha.limit.count", Constant.NEED_CAPTCHA_VERIFICATION_LIMIT));
+        if (failCounter.getAccountCount() >= needCaptchaLimit) {
             data.put(Constant.NEED_CAPTCHA_VERIFICATION, true);
         }
         return data;
@@ -59,12 +60,6 @@ public class LimitUtil {
         failCounter.setAccountCount(failCounter.getAccountCount() + 1);
         redisDao.set(failCounter.getAccountKey(), String.valueOf(failCounter.getAccountCount()),
                 failCounter.getLimitSeconds());
-
-        if (StringUtils.isNotBlank(failCounter.getIp())) {
-            failCounter.setIpCount(failCounter.getIpCount() + 1);
-            redisDao.set(failCounter.getIpKey(), String.valueOf(failCounter.getIpCount()),
-                    failCounter.getLimitSeconds());
-        }
 
         return isNeedCaptcha(failCounter);
     }

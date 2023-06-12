@@ -265,17 +265,13 @@ public class AuthingService implements UserCenterServiceInter {
         String ip = HttpClientUtils.getRemoteIp(servletRequest);
         LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account, ip);
 
-        // 限制一分钟登录失败次数, 账号和IP
+        // 限制一分钟登录失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null,
                     limitUtil.loginFail(failCounter));
         }
-        if (StringUtils.isNotBlank(ip) && failCounter.getIpCount() >= failCounter.getLimitCount()) {
-            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null,
-                    limitUtil.loginFail(failCounter));
-        }
 
-        // 失败3次需要图片验证码
+        // 多次失败需要图片验证码
         if (limitUtil.isNeedCaptcha(failCounter).get(Constant.NEED_CAPTCHA_VERIFICATION)) {
             if (!isSuccess) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null,
@@ -302,7 +298,6 @@ public class AuthingService implements UserCenterServiceInter {
 
         // 登录成功解除登录失败次数限制
         redisDao.remove(account + Constant.LOGIN_COUNT);
-        redisDao.remove(ip + Constant.LOGIN_COUNT);
 
         // 资源权限
         String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
