@@ -252,4 +252,11 @@ public class HttpClientUtils implements Serializable {
         }
         return body;
     }
+
+    public static String getRemoteIp(HttpServletRequest request) {
+        String ip = request.getHeader("x-forwarded-for");
+        return (StringUtils.isBlank(ip) || "unknown".equalsIgnoreCase(ip))
+                ? request.getRemoteAddr()
+                : ip;
+    }
 }

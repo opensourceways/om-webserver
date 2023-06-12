@@ -25,7 +25,7 @@ public interface UserCenterServiceInter {
 
     ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
-    ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+    ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse, boolean isSuccess);
 
     ResponseEntity personalCenterUserInfo(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 
