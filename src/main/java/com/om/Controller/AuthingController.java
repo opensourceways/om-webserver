@@ -83,9 +83,10 @@ public class AuthingController {
 
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity login(HttpServletRequest servletRequest,
-                                HttpServletResponse servletResponse) {
+                                HttpServletResponse servletResponse,
+                                @RequestParam(value = "captchaVerification", required = false) String captchaVerify) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.login(servletRequest, servletResponse);
+        return service.login(servletRequest, servletResponse, verifyCaptcha(captchaVerify));
     }
 
     @RequestMapping(value = "/app/verify")
@@ -290,13 +291,13 @@ public class AuthingController {
     @RequestMapping(value = "/reset/password/verify", method = RequestMethod.POST)
     public ResponseEntity resetPwdVerify(HttpServletRequest request) {
         UserCenterServiceInter service = getServiceImpl(request);
-        return  service.resetPwdVerify(request);
+        return service.resetPwdVerify(request);
     }
 
     @RequestMapping(value = "/reset/password", method = RequestMethod.POST)
     public ResponseEntity resetPwd(HttpServletRequest request) {
         UserCenterServiceInter service = getServiceImpl(request);
-        return  service.resetPwd(request);
+        return service.resetPwd(request);
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
