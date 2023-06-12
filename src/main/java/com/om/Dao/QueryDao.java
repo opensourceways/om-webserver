@@ -42,7 +42,7 @@ public class QueryDao {
             return res;
         } catch (UnirestException e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
-            return "{\"msg\":\"success\",\"code\":404,\"data\":null}";
+            return "{\"msg\":\"error\",\"code\":404,\"data\":null}";
         }
     }
 }
