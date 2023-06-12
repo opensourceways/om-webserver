@@ -77,6 +77,8 @@ public enum MessageCodeConfig {
     E00057("E00057", "User already exists, log in directly", "用户已存在，请直接登录"),
     E00058("E00058", "Must be 6 to 20 characters long. Must contain at least 3 of the following character types: letters, digits, and special characters", "请使用至少 6 位字符作为密码，须包含英文、数字与符号中的两种"),
     E00059("E00059", "Password needs to be different from previous one", "新密码不能与原密码相同"),
+    E00060("E00060", "Reset password fail", "重置密码失败"),
+    E00061("E00061", "Password is not set", "密码未设置"),
     ;
 
     private String code;
@@ -185,6 +187,11 @@ public enum MessageCodeConfig {
         map.put("Password is not correct", E00052);
         map.put("Password needs to be different from previous", E00059);
         map.put("invalid password", E00058);
+        map.put("reset password token expire", E00056);
+        map.put("reset password fail", E00060);
+        map.put("User not exist", E00034);
+        map.put("User not exist", E00034);
+        map.put("No password is set", E00061);
 
         return map;
     }
