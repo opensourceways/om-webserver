@@ -11,20 +11,13 @@
 
 package com.om.Dao;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Modules.MessageCodeConfig;
-import com.om.Utils.*;
-import org.asynchttpclient.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
-import java.util.*;
-
-import static java.nio.charset.StandardCharsets.UTF_8;
+import java.util.HashMap;
 
 /**
  * @author zhxia
@@ -33,71 +26,15 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 @Repository
 public class QueryDao {
-    @Autowired
-    AsyncHttpUtil asyncHttpUtil;
-
-    @Value("${esurl}")
-    String url;
-
     static ObjectMapper objectMapper = new ObjectMapper();
 
     private static final Logger logger =  LoggerFactory.getLogger(QueryDao.class);
 
     public String queryAllUserOwnertype(String community) {
-        String queryStr = "{\"size\":0,\"query\":{\"bool\":{\"filter\":[{\"query_string\":{\"analyze_wildcard\":true,\"query\":\"!is_removed:1\"}}]}},\"aggs\":{\"group_field\":{\"terms\":{\"field\":\"sig_name.keyword\",\"size\":500},\"aggs\":{\"user\":{\"terms\":{\"field\":\"user_login.keyword\",\"size\":1000,\"min_doc_count\":1},\"aggs\":{\"type\":{\"terms\":{\"field\":\"owner_type.keyword\"},\"aggs\":{}}}}}}}}";
-        String index;
-
-        switch (community.toLowerCase()) {
-            case "openeuler":
-                index = "/openeuler_sigs_pure_committers_20220210";
-                break;
-            case "opengauss":
-                index = "/opengauss_sigs_committers_20220518";
-                break;
-            default:
-                return "{\"code\":400,\"data\":\"query error\",\"msg\":\"query error\"}";
-        }
-
         try {
-            AsyncHttpClient client = AsyncHttpUtil.getClient();
-            RequestBuilder builder = asyncHttpUtil.getBuilder();
-            builder.setUrl(this.url + index + "/_search");
-            builder.setBody(queryStr);
-            ListenableFuture<Response> f = client.executeRequest(builder.build());
-            String responseBody = f.get().getResponseBody(UTF_8);
-            JsonNode dataNode = objectMapper.readTree(responseBody);
-            Iterator<JsonNode> buckets = dataNode.get("aggregations").get("group_field").get("buckets").elements();
-
-            HashMap<String, ArrayList<Object>> userData = new HashMap<>();
-            while (buckets.hasNext()) {
-                JsonNode bucket = buckets.next();
-                String sig = bucket.get("key").asText();
-                Iterator<JsonNode> users = bucket.get("user").get("buckets").elements();
-                while (users.hasNext()) {
-                    JsonNode userBucket = users.next();
-                    String user = userBucket.get("key").asText();
-                    Iterator<JsonNode> types = userBucket.get("type").get("buckets").elements();
-                    ArrayList<String> typeList = new ArrayList<>();
-                    while (types.hasNext()) {
-                        JsonNode type = types.next();
-                        typeList.add(type.get("key").asText());
-                    }
-                    HashMap<String, Object> user_type = new HashMap<>();
-                    user_type.put("sig", sig);
-                    user_type.put("type", typeList);
-
-                    if (userData.containsKey(user.toLowerCase())) {
-                        userData.get(user.toLowerCase()).add(user_type);
-                    } else {
-                        ArrayList<Object> templist = new ArrayList<>();
-                        templist.add(user_type);
-                        userData.put(user.toLowerCase(), templist);
-                    }
-                }
-            }
             HashMap<String, Object> resMap = new HashMap<>();
             resMap.put("code", 200);
-            resMap.put("data", userData);
+            resMap.put("data", null);
             resMap.put("msg", "success");
             return objectMapper.valueToTree(resMap).toString();
         } catch (Exception e) {
