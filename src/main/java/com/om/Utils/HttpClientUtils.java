@@ -15,6 +15,7 @@ import java.io.BufferedReader;
 import java.io.Serializable;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
 import java.util.Map;
@@ -101,7 +102,7 @@ public class HttpClientUtils implements Serializable {
     }
 
     public static SSLContext skipSsl() throws NoSuchAlgorithmException, KeyManagementException {
-        SSLContext sc = SSLContext.getInstance("SSL");
+        SSLContext sc = SSLContext.getInstance("TLSv1.2");
 
         // 实现一个X509TrustManager接口，用于绕过验证，不用修改里面的方法
         X509TrustManager trustManager = new X509TrustManager() {
@@ -122,8 +123,8 @@ public class HttpClientUtils implements Serializable {
                 return null;
             }
         };
-
-        sc.init(null, new TrustManager[]{trustManager}, null);
+        SecureRandom secureRandom = SecureRandom.getInstance("NativePRNGBlocking");
+        sc.init(null, new TrustManager[]{trustManager}, secureRandom);
         return sc;
     }
 
