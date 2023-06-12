@@ -94,8 +94,6 @@ public class HttpClientUtils implements Serializable {
 
 
         credentialsProvider = new BasicCredentialsProvider();
-        credentialsProvider.setCredentials(AuthScope.ANY,
-                new UsernamePasswordCredentials("admin", "Cloudfoundry@123"));
     }
 
     public static CloseableHttpClient getClient() {
