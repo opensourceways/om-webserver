@@ -325,6 +325,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
         // headToken刷新token
         String[] tokens = jwtTokenCreateService.refreshAuthingUserToken(request, response, userId, claimMap);
+        System.out.println("*** before set UT : " + tokens[Constant.TOKEN_UT]);
+        System.out.println("*** before set YG : " + tokens[Constant.TOKEN_YG]);
 
         // 刷新cookie
         int tokenExpire = Integer.parseInt(
@@ -345,8 +347,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
             redisDao.set(oldTokenKey, idToken, validityPeriod);
         }
 
-        System.out.println("*** set UT : " + tokens[Constant.TOKEN_UT]);
-        System.out.println("*** set YG : " + tokens[Constant.TOKEN_YG]);
+        System.out.println("*** after set UT : " + tokens[Constant.TOKEN_UT]);
+        System.out.println("*** after set YG : " + tokens[Constant.TOKEN_YG]);
         return Constant.SUCCESS;
     }
 
