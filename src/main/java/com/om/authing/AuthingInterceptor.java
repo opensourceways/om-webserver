@@ -104,6 +104,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
         // 校验header中的token
         String headerJwtToken = httpServletRequest.getHeader("token");
+        System.out.println("*** old UT : " + headerJwtToken);
         String headJwtTokenMd5 = verifyHeaderToken(headerJwtToken);
         if (headJwtTokenMd5.equals("unauthorized") || headJwtTokenMd5.equals("token expires")) {
             tokenError(httpServletRequest, httpServletResponse, headJwtTokenMd5);
@@ -126,6 +127,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
         // 解密cookie中加密的token
         String token = tokenCookie.getValue();
+        System.out.println("*** old YG : " + token);
         try {
             RSAPrivateKey privateKey = RSAUtil.getPrivateKey(rsaAuthingPrivateKey);
             token = RSAUtil.privateDecrypt(token, privateKey);
@@ -343,6 +345,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
             redisDao.set(oldTokenKey, idToken, validityPeriod);
         }
 
+        System.out.println("*** set UT : " + tokens[Constant.TOKEN_UT]);
+        System.out.println("*** set YG : " + tokens[Constant.TOKEN_YG]);
         return Constant.SUCCESS;
     }
 
