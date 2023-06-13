@@ -463,7 +463,7 @@ public class AuthingUserDao {
             }
             return pers;
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+//            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return pers;
         }
     }
