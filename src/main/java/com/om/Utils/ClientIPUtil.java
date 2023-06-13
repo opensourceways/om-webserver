@@ -56,7 +56,6 @@ public class ClientIPUtil {
                 ip = inet.getHostAddress();
             }
         }
-//        logger.info("getClientIp  IP is " + ip + ", headerName = " + headerName);
         return ip;
     }
     private static boolean checkIp(String ip) {
