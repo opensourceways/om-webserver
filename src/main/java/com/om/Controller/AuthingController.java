@@ -75,7 +75,7 @@ public class AuthingController {
         return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
-    @RequestMapping(value = "/captcha/login", method = RequestMethod.POST)
+    @RequestMapping(value = "/captcha/checkLogin", method = RequestMethod.POST)
     public ResponseEntity captchaLogin(HttpServletRequest servletRequest) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.captchaLogin(servletRequest);
