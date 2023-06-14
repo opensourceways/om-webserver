@@ -254,6 +254,13 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     @Override
+    public ResponseEntity captchaLogin(HttpServletRequest request) {
+        String account = request.getParameter("account");
+        LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
+        return result(HttpStatus.OK, Constant.SUCCESS, limitUtil.isNeedCaptcha(failCounter));
+    }
+
+    @Override
     public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                 boolean isSuccess) {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
@@ -262,8 +269,7 @@ public class AuthingService implements UserCenterServiceInter {
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
         String password = (String) getBodyPara(body, "password");
-        String ip = HttpClientUtils.getRemoteIp(servletRequest);
-        LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account, ip);
+        LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
 
         // 限制一分钟登录失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
