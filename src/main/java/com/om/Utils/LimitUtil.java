@@ -29,15 +29,12 @@ public class LimitUtil {
     @Autowired
     Environment env;
 
-    public LoginFailCounter initLoginFailCounter(String account, String ip) {
+    public LoginFailCounter initLoginFailCounter(String account) {
         String loginFailAccountCountKey = account + Constant.LOGIN_COUNT;
-        String loginFailIpCountKey = ip + Constant.LOGIN_COUNT;
         return new LoginFailCounter()
-                .setAccount(account).setIp(ip)
+                .setAccount(account)
                 .setAccountKey(loginFailAccountCountKey)
-                .setIpKey(loginFailIpCountKey)
                 .setAccountCount(redisDao.getLoginErrorCount(loginFailAccountCountKey))
-                .setIpCount(redisDao.getLoginErrorCount(loginFailIpCountKey))
                 .setLimitCount(
                         Integer.parseInt(env.getProperty("login.error.limit.count", Constant.LOGIN_ERROR_LIMIT)))
                 .setLimitSeconds(

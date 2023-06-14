@@ -19,6 +19,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.Map;
 
 public interface UserCenterServiceInter {
+    ResponseEntity captchaLogin(HttpServletRequest servletRequest);
+
     ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
     ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse, boolean isSuccess);
