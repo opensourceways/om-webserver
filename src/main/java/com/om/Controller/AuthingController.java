@@ -90,9 +90,9 @@ public class AuthingController {
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity login(HttpServletRequest servletRequest,
                                 HttpServletResponse servletResponse,
-                                @RequestParam(value = "captchaVerification", required = false) String captchaVerify) {
+                                @RequestBody Map<String, Object> body) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.login(servletRequest, servletResponse, verifyCaptcha(captchaVerify));
+        return service.login(servletRequest, servletResponse, verifyCaptcha((String) body.get("captchaVerification")));
     }
 
     @RequestMapping(value = "/app/verify")
