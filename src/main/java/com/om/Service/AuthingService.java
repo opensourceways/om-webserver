@@ -549,7 +549,8 @@ public class AuthingService implements UserCenterServiceInter {
             res.put("data", userData);
             res.put("msg", "OK");
             res.putAll(userData);
-            return new ResponseEntity<>(res, HttpStatus.OK);
+            ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(res, HttpStatus.OK);
+            return responseEntity;
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
@@ -1161,7 +1162,8 @@ public class AuthingService implements UserCenterServiceInter {
         res.put("code", status.value());
         res.put("data", data);
         res.put("msg", msg);
-        return new ResponseEntity<>(res, status);
+        ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(res, status);
+        return responseEntity;
     }
 
     private ResponseEntity resultOidc(HttpStatus status, String msg, Object body) {
@@ -1171,7 +1173,8 @@ public class AuthingService implements UserCenterServiceInter {
         res.put("message", msg);
         if (body != null)
             res.put("body", body);
-        return new ResponseEntity<>(res, status);
+        ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(res, status);
+        return responseEntity;
     }
 
     private ResponseEntity result(HttpStatus status, MessageCodeConfig msgCode, String msg, Object data) {
@@ -1324,7 +1327,8 @@ public class AuthingService implements UserCenterServiceInter {
 
 
             redisDao.remove(code);
-            return new ResponseEntity(tokens, HttpStatus.OK);
+            ResponseEntity responseEntity = new ResponseEntity(tokens, HttpStatus.OK);
+            return responseEntity;
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             redisDao.remove(code);
@@ -1404,7 +1408,8 @@ public class AuthingService implements UserCenterServiceInter {
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(tokens);
             redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
 
-            return new ResponseEntity(tokens, HttpStatus.OK);
+            ResponseEntity responseEntity = new ResponseEntity(tokens, HttpStatus.OK);
+            return responseEntity;
         } catch (Exception e) {
             logger.error(e.getMessage());
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
@@ -1461,7 +1466,8 @@ public class AuthingService implements UserCenterServiceInter {
             redisDao.remove(refreshTokenKey);
             redisDao.set(DigestUtils.md5DigestAsHex(accessToken.getBytes()), accessToken, accessTokenExpire);
 
-            return new ResponseEntity(userTokenMap, HttpStatus.OK);
+            ResponseEntity responseEntity = new ResponseEntity(userTokenMap, HttpStatus.OK);
+            return responseEntity;
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
