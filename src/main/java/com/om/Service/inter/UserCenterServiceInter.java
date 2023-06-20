@@ -56,4 +56,6 @@ public interface UserCenterServiceInter {
     ResponseEntity resetPwdVerify(HttpServletRequest servletRequest);
 
     ResponseEntity resetPwd(HttpServletRequest servletRequest);
+
+    ResponseEntity appVerify(String appId, String redirect);
 }

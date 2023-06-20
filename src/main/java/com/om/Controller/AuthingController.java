@@ -96,9 +96,11 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "/app/verify")
-    public ResponseEntity appVerify(@RequestParam(value = "client_id") String clientId,
+    public ResponseEntity appVerify(HttpServletRequest servletRequest,
+                                    @RequestParam(value = "client_id") String clientId,
                                     @RequestParam(value = "redirect_uri") String redirect) {
-        return authingService.appVerify(clientId, redirect);
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.appVerify(clientId, redirect);
     }
 
     @AuthingUserToken

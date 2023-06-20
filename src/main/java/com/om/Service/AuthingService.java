@@ -324,6 +324,7 @@ public class AuthingService implements UserCenterServiceInter {
         return result(HttpStatus.OK, "success", userData);
     }
 
+    @Override
     public ResponseEntity appVerify(String appId, String redirect) {
         List<String> uris = authingUserDao.getAppRedirectUris(appId);
         for (String uri : uris) {
