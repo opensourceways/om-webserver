@@ -44,6 +44,8 @@ import javax.crypto.NoSuchPaddingException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.net.URL;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -892,6 +894,44 @@ public class OpenGaussService implements UserCenterServiceInter {
             logger.error(e.getMessage());
         }
         return result(HttpStatus.BAD_REQUEST, null, "reset password fail", null);
+    }
+
+    @Override
+    public ResponseEntity appVerify(String appId, String redirect) {
+        if (StringUtils.isBlank(appId) || StringUtils.isBlank(redirect)) {
+            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        }
+        String property = env.getProperty("opengauss.app.urls");
+        String[] group = property.split(";");
+        String urls = null;
+        for (String appUrl : group) {
+            String[] pair = appUrl.split(":");
+            if (pair.length >= 2 && appId.equals(pair[0])) {
+                urls = pair[1];
+            }
+        }
+
+        List<String> uris = new ArrayList<>();
+        if (!StringUtils.isBlank(urls)) uris = Arrays.asList(urls.split(","));
+        for (String uri : uris) {
+            if (uri.endsWith("*") && redirect.startsWith(uri.substring(0, uri.length() - 1)))
+                return result(HttpStatus.OK, null, "success", null);
+            else if (redirect.equals(uri) || getHostFromUrl(redirect).endsWith(uri))
+                return result(HttpStatus.OK, null, "success", null);
+        }
+        return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
+    }
+
+    private String getHostFromUrl(String link) {
+        URL url;
+        String host = "";
+        try {
+            url = new URL(link);
+            host = url.getHost();
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
+        return host;
     }
 
     private String getAccountType(String account) {
