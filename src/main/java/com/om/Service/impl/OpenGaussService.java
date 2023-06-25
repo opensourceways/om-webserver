@@ -235,6 +235,12 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
             }
 
+            String interceptor =
+                    codeUtil.interceptor(channel, oneidDao.isUserExists(poolId, poolSecret, account, accountType));
+            if (!Constant.SUCCESS.equals(interceptor)) {
+                return result(HttpStatus.BAD_REQUEST, null, interceptor, null);
+            }
+
             // 发送验证码
             String[] strings = codeUtil.sendCode(accountType, account, mailSender, env, community.toLowerCase());
             if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success"))
