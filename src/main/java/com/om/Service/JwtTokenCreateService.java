@@ -35,10 +35,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.security.interfaces.RSAPublicKey;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Date;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class JwtTokenCreateService {
@@ -163,7 +160,8 @@ public class JwtTokenCreateService {
                 .decode(claimMap.get("permission").asString().getBytes()));
 
         // 生成新的token和headToken
-        String username = JWT.decode(headerJwtToken).getAudience().get(0);
+        List<String> audience = JWT.decode(headerJwtToken).getAudience();
+        String username = audience.isEmpty() ? "" : audience.get(0);
         return authingUserToken(appId, userId, username, permission, inputPermission, idToken);
     }
 
