@@ -230,14 +230,14 @@ public class CodeUtil {
      * @param appSecret APP_Secret
      * @return
      */
-    public String buildWsseHeader(String appKey, String appSecret) {
+    public String buildWsseHeader(String appKey, String appSecret) throws NoSuchAlgorithmException {
         if (null == appKey || null == appSecret || appKey.isEmpty() || appSecret.isEmpty()) {
-            System.out.println("buildWsseHeader(): appKey or appSecret is null.");
+            logger.error("buildWsseHeader(): appKey or appSecret is null.");
             return null;
         }
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
         String time = sdf.format(new Date()); //Created
-        String nonce = UUID.randomUUID().toString().replace("-", ""); //Nonce
+        String nonce = randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH); //Nonce
 
         MessageDigest md;
         byte[] passwordDigest = null;
@@ -249,6 +249,7 @@ public class CodeUtil {
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
+
         // PasswordDigest
         String passwordDigestBase64Str = Base64.getEncoder().encodeToString(passwordDigest);
 

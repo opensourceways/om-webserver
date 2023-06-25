@@ -29,6 +29,8 @@ import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -236,14 +238,17 @@ public class OneidDao {
 
     public JSONObject updatePhoto(String poolId, String poolSecret, String userId, MultipartFile file) {
         JSONObject user = null;
+        InputStream inputStream = null;
         try {
+            inputStream = file.getInputStream();
+
             // 重命名文件
             String fileName = file.getOriginalFilename();
             String extension = fileName.substring(fileName.lastIndexOf("."));
             String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
 
             //上传文件到OBS
-            PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, file.getInputStream());
+            PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, inputStream);
             String objectUrl = putObjectResult.getObjectUrl();
 
             // 修改用户头像
@@ -253,6 +258,14 @@ public class OneidDao {
             user = updateUser(poolId, poolSecret, userId, userJsonStr);
         } catch (Exception e) {
             logger.error(e.getMessage());
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    logger.error(e.getMessage());
+                }
+            }
         }
         return user;
     }
