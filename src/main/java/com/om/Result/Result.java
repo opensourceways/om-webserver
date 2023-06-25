@@ -94,6 +94,7 @@ public class Result {
             msgMap.put("message_zh", msgCode.getMsgZh());
             res.put("msg", msgMap);
         }
-        return new ResponseEntity<>(res, status);
+        ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(res, status);
+        return responseEntity;
     }
 }

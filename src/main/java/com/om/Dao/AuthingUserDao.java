@@ -37,6 +37,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -814,7 +816,10 @@ public class AuthingUserDao {
     }
 
     public boolean updatePhoto(String token, MultipartFile file) {
+        InputStream inputStream = null;
         try {
+            inputStream = file.getInputStream();
+
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User user = (User) appUserInfo[1];
@@ -832,7 +837,7 @@ public class AuthingUserDao {
             String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
 
             //上传文件到OBS
-            PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, file.getInputStream());
+            PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, inputStream);
             String objectUrl = putObjectResult.getObjectUrl();
 
             // 修改用户头像
@@ -844,6 +849,14 @@ public class AuthingUserDao {
         } catch (Exception ex) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), ex);
             return false;
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    logger.error(e.getMessage());
+                }
+            }
         }
     }
 
