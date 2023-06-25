@@ -46,6 +46,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import java.net.URL;
+import java.net.URLDecoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -926,7 +927,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         URL url;
         String host = "";
         try {
-            url = new URL(link);
+            url = new URL(URLDecoder.decode(link, "UTF-8"));
             host = url.getHost();
         } catch (Exception e) {
             logger.error(e.getMessage());
