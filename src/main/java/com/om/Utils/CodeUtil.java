@@ -280,4 +280,18 @@ public class CodeUtil {
         SecureRandom random = SecureRandom.getInstanceStrong();
         return new BigInteger(160, random).toString(strLength);
     }
+
+    public String interceptor(String channel, boolean isUserExist) {
+        if ((Constant.CHANNEL_REGISTER.equals(channel) || Constant.CHANNEL_REGISTER_BY_PASSWORD.equals(channel))
+        && isUserExist) {
+            return MessageCodeConfig.E00057.getMsgZh();
+        }
+
+        if ((Constant.CHANNEL_LOGIN.equals(channel) || Constant.CHANNEL_RESET_PASSWORD.equals(channel))
+                && !isUserExist) {
+            return MessageCodeConfig.E00034.getMsgZh();
+        }
+
+        return Constant.SUCCESS;
+    }
 }
