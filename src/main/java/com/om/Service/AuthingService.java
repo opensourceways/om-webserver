@@ -169,6 +169,19 @@ public class AuthingService implements UserCenterServiceInter {
         }
 
         String accountType = getAccountType(account);
+        if (!accountType.equals(Constant.EMAIL_TYPE) && !accountType.equals(Constant.PHONE_TYPE)) {
+            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        }
+        try {
+            String interceptor =
+                    codeUtil.interceptor(channel.toLowerCase(), authingUserDao.isUserExists(appId, account, accountType));
+            if (!Constant.SUCCESS.equals(interceptor)) {
+                return result(HttpStatus.BAD_REQUEST, null, interceptor, null);
+            }
+        } catch (ServerErrorException e) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00047, null, null);
+        }
+
         String msg = "";
         if (accountType.equals(Constant.EMAIL_TYPE)) {
             msg = channel.equalsIgnoreCase(Constant.CHANNEL_REGISTER_BY_PASSWORD)
