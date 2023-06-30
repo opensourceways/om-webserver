@@ -222,7 +222,7 @@
         <dependency>
             <groupId>cn.authing</groupId>
             <artifactId>java-core</artifactId>
-            <version>4.3.76</version>
+            <version>4.3.76.2</version>
             <scope>system</scope>
             <systemPath>${project.build.directory}/lib/java-core-4.3.76.2.jar</systemPath>
         </dependency>
