@@ -12,6 +12,8 @@
 package com.om.Service;
 
 import cn.authing.core.types.Application;
+
+import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -30,6 +32,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
+import org.springframework.web.util.HtmlUtils;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -246,6 +249,6 @@ public class OneIdManageService {
         if (claim != null) {
             res.putAll(claim);
         }
-        return new ResponseEntity<>(res, status);
+        return new ResponseEntity<>(HtmlUtils.htmlEscape(JSON.toJSONString(res)), status);
     }
 }

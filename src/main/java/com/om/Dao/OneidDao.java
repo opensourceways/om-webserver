@@ -31,7 +31,9 @@ import org.springframework.web.multipart.MultipartFile;
 import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -53,6 +55,9 @@ public class OneidDao {
 
     @Value("${datastat.img.bucket.name}")
     String datastatImgBucket;
+
+    @Value("${datastat.img.photo.suffix}")
+    String photoSuffix;
 
     @Autowired
     private RedisDao redisDao;
@@ -245,6 +250,10 @@ public class OneidDao {
             // 重命名文件
             String fileName = file.getOriginalFilename();
             String extension = fileName.substring(fileName.lastIndexOf("."));
+            List<String> photoSuffixes = Arrays.asList(photoSuffix.split(";"));
+            if (!photoSuffixes.contains(extension.toLowerCase())) {
+                throw new Exception("Upload photo format is not acceptable");
+            }
             String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
 
             //上传文件到OBS
