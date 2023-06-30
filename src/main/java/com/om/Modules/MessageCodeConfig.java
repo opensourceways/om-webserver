@@ -190,7 +190,7 @@ public enum MessageCodeConfig {
         map.put("reset password token expire", E00056);
         map.put("reset password fail", E00060);
         map.put("User not exist", E00034);
-        map.put("No password is set", E00061);
+        map.put("No password is set", E00052);
         map.put("Account not exist", E00052);
 
         return map;
