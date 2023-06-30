@@ -13,6 +13,8 @@ package com.om.Service;
 
 import cn.authing.core.types.Application;
 import cn.authing.core.types.User;
+
+import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -42,6 +44,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.HtmlUtils;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
@@ -563,8 +566,7 @@ public class AuthingService implements UserCenterServiceInter {
             res.put("data", userData);
             res.put("msg", "OK");
             res.putAll(userData);
-            ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(res, HttpStatus.OK);
-            return responseEntity;
+            return result(HttpStatus.OK, "success", res);
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
@@ -1176,7 +1178,7 @@ public class AuthingService implements UserCenterServiceInter {
         res.put("code", status.value());
         res.put("data", data);
         res.put("msg", msg);
-        ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(res, status);
+        ResponseEntity<String> responseEntity = new ResponseEntity<>(HtmlUtils.htmlEscape(JSON.toJSONString(res)), status);
         return responseEntity;
     }
 
@@ -1187,7 +1189,7 @@ public class AuthingService implements UserCenterServiceInter {
         res.put("message", msg);
         if (body != null)
             res.put("body", body);
-        ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(res, status);
+        ResponseEntity<String> responseEntity = new ResponseEntity<>(HtmlUtils.htmlEscape(JSON.toJSONString(res)), status);
         return responseEntity;
     }
 
@@ -1341,8 +1343,7 @@ public class AuthingService implements UserCenterServiceInter {
 
 
             redisDao.remove(code);
-            ResponseEntity responseEntity = new ResponseEntity(tokens, HttpStatus.OK);
-            return responseEntity;
+            return result(HttpStatus.OK, "success", tokens);
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             redisDao.remove(code);
@@ -1422,8 +1423,7 @@ public class AuthingService implements UserCenterServiceInter {
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(tokens);
             redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
 
-            ResponseEntity responseEntity = new ResponseEntity(tokens, HttpStatus.OK);
-            return responseEntity;
+            return result(HttpStatus.OK, "success", tokens);
         } catch (Exception e) {
             logger.error(e.getMessage());
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
@@ -1480,8 +1480,7 @@ public class AuthingService implements UserCenterServiceInter {
             redisDao.remove(refreshTokenKey);
             redisDao.set(DigestUtils.md5DigestAsHex(accessToken.getBytes()), accessToken, accessTokenExpire);
 
-            ResponseEntity responseEntity = new ResponseEntity(userTokenMap, HttpStatus.OK);
-            return responseEntity;
+            return result(HttpStatus.OK, "success", userTokenMap);
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
