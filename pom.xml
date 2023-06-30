@@ -224,7 +224,7 @@
             <artifactId>java-core</artifactId>
             <version>4.3.76</version>
             <scope>system</scope>
-            <systemPath>${project.basedir}/src/main/resources/java-core-4.3.76.2.jar</systemPath>
+            <systemPath>${project.build.directory}/lib/java-core-4.3.76.2.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
@@ -281,12 +281,12 @@
                             <goal>copy-resources</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.build.directory}/src/main/resources</outputDirectory>
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
                             <resources>
                                 <resource>
                                     <directory>${project.basedir}/src/main/resources</directory>
                                     <includes>
-                                        <include>*.jar</include>
+                                        <include>java-core-4.3.76.2.jar</include>
                                     </includes>
                                 </resource>
                             </resources>
