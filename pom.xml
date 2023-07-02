@@ -223,6 +223,8 @@
             <groupId>cn.authing</groupId>
             <artifactId>java-core</artifactId>
             <version>4.3.76.2</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/src/main/resources/java-core-4.3.76.2.jar</systemPath>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
