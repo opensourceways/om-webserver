@@ -21,6 +21,9 @@ RUN git clone -b ${BRANCH} https://gitee.com/opensourceway/om-webserver.git && \
         cd om-webserver && \
         mvn clean install package -Dmaven.test.skip && \
         mv ./target/om-webserver-0.0.1-SNAPSHOT.jar ../om-webserver.jar
-RUN mvn install:install-file -Dfile=${project.basedir}/src/main/resources/java-core-4.3.76.2.jar -DgroupId=cn.authing -DartifactId=java-core -Dversion=4.3.76.2 -Dpackaging=jar
+echo $(pwd)
+echo ${project.basedir}
+ 
+RUN mvn install:install-file -Dfile=/var/lib/om-webserver/om-webserver/src/main/resources/java-core-4.3.76.2.jar -DgroupId=cn.authing -DartifactId=java-core -Dversion=4.3.76.2 -Dpackaging=jar
 
 CMD java -jar om-webserver.jar
