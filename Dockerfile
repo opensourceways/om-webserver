@@ -16,12 +16,12 @@ RUN wget https://dlcdn.apache.org/maven/maven-3/3.8.8/binaries/apache-maven-3.8.
 ENV MAVEN_HOEM=/var/lib/om-webserver/apache-maven-3.8.8
 ENV PATH=$MAVEN_HOEM/bin:$PATH
 
+RUN git clone -b ${BRANCH} https://gitee.com/opensourceway/om-webserver.git
+RUN mvn install:install-file -Dfile=/var/lib/om-webserver/om-webserver/src/main/resources/java-core-4.3.76.2.jar -DgroupId=cn.authing -DartifactId=java-core -Dversion=4.3.76.2 -Dpackaging=jar
 
-RUN git clone -b ${BRANCH} https://gitee.com/opensourceway/om-webserver.git && \
-        cd om-webserver && \
+RUN cd om-webserver && \
         mvn clean install package -Dmaven.test.skip && \
         mv ./target/om-webserver-0.0.1-SNAPSHOT.jar ../om-webserver.jar
  
-RUN mvn install:install-file -Dfile=/var/lib/om-webserver/om-webserver/src/main/resources/java-core-4.3.76.2.jar -DgroupId=cn.authing -DartifactId=java-core -Dversion=4.3.76.2 -Dpackaging=jar
 
 CMD java -jar om-webserver.jar
