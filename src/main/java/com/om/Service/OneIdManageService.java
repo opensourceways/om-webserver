@@ -249,6 +249,6 @@ public class OneIdManageService {
         if (claim != null) {
             res.putAll(claim);
         }
-        return new ResponseEntity<>(HtmlUtils.htmlEscape(JSON.toJSONString(res)), status);
+        return new ResponseEntity<>(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), status);
     }
 }
