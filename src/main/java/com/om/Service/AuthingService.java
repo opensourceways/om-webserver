@@ -1178,7 +1178,7 @@ public class AuthingService implements UserCenterServiceInter {
         res.put("code", status.value());
         res.put("data", data);
         res.put("msg", msg);
-        ResponseEntity<String> responseEntity = new ResponseEntity<>(HtmlUtils.htmlEscape(JSON.toJSONString(res)), status);
+        ResponseEntity<String> responseEntity = new ResponseEntity<>(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), status);
         return responseEntity;
     }
 
@@ -1189,7 +1189,7 @@ public class AuthingService implements UserCenterServiceInter {
         res.put("message", msg);
         if (body != null)
             res.put("body", body);
-        ResponseEntity<String> responseEntity = new ResponseEntity<>(HtmlUtils.htmlEscape(JSON.toJSONString(res)), status);
+        ResponseEntity<String> responseEntity = new ResponseEntity<>(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), status);
         return responseEntity;
     }
 
