@@ -175,15 +175,6 @@ public class AuthingService implements UserCenterServiceInter {
         if (!accountType.equals(Constant.EMAIL_TYPE) && !accountType.equals(Constant.PHONE_TYPE)) {
             return result(HttpStatus.BAD_REQUEST, null, accountType, null);
         }
-        try {
-            String interceptor =
-                    codeUtil.interceptor(channel.toLowerCase(), authingUserDao.isUserExists(appId, account, accountType));
-            if (!Constant.SUCCESS.equals(interceptor)) {
-                return result(HttpStatus.BAD_REQUEST, null, interceptor, null);
-            }
-        } catch (ServerErrorException e) {
-            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00047, null, null);
-        }
 
         String msg = "";
         if (accountType.equals(Constant.EMAIL_TYPE)) {
@@ -228,7 +219,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
 
             // 邮箱 OR 手机号校验
-            accountType = checkPhoneAndEmail(appId, account);
+            accountType = getAccountType(account);
             if (!accountType.equals(Constant.EMAIL_TYPE) && !accountType.equals(Constant.PHONE_TYPE)) {
                 return result(HttpStatus.BAD_REQUEST, null, accountType, null);
             }
@@ -1178,7 +1169,7 @@ public class AuthingService implements UserCenterServiceInter {
         res.put("code", status.value());
         res.put("data", data);
         res.put("msg", msg);
-        ResponseEntity<String> responseEntity = new ResponseEntity<>(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), status);
+        ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), status);
         return responseEntity;
     }
 
@@ -1189,7 +1180,7 @@ public class AuthingService implements UserCenterServiceInter {
         res.put("message", msg);
         if (body != null)
             res.put("body", body);
-        ResponseEntity<String> responseEntity = new ResponseEntity<>(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), status);
+        ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), status);
         return responseEntity;
     }
 
