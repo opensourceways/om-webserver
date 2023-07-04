@@ -96,7 +96,7 @@ public class Result {
             msgMap.put("message_zh", msgCode.getMsgZh());
             res.put("msg", msgMap);
         }
-        ResponseEntity<String> responseEntity = new ResponseEntity<>(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), status);
+        ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), status);
         return responseEntity;
     }
 }
