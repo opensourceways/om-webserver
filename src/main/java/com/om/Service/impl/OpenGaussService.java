@@ -154,10 +154,6 @@ public class OpenGaussService implements UserCenterServiceInter {
             if (accountType.equals("请输入正确的手机号或者邮箱")) {
                 return result(HttpStatus.BAD_REQUEST, null, accountType, null);
             }
-            if (oneidDao.isUserExists(poolId, poolSecret, account, accountType)) {
-                return result(HttpStatus.BAD_REQUEST, null, "该账号已注册", null);
-            }
-            userInfo.put(accountType, account);
 
             // 验证码校验
             String redisKey =
@@ -170,6 +166,11 @@ public class OpenGaussService implements UserCenterServiceInter {
                 redisDao.set(registerErrorCountKey, String.valueOf(registerErrorCount), codeExpire);
                 return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
             }
+
+            // 校验用户是否已经存在
+            if (oneidDao.isUserExists(poolId, poolSecret, account, accountType))
+                return result(HttpStatus.BAD_REQUEST, null, "该账号已注册", null);
+            userInfo.put(accountType, account);
 
             // 密码校验
             if (!StringUtils.isBlank(password)) {
@@ -233,12 +234,6 @@ public class OpenGaussService implements UserCenterServiceInter {
             long remainingExpirationSecond = redisDao.expire(redisKey);
             if (remainingExpirationSecond + limit > codeExpire) {
                 return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
-            }
-
-            String interceptor =
-                    codeUtil.interceptor(channel, oneidDao.isUserExists(poolId, poolSecret, account, accountType));
-            if (!Constant.SUCCESS.equals(interceptor)) {
-                return result(HttpStatus.BAD_REQUEST, null, interceptor, null);
             }
 
             // 发送验证码
@@ -886,6 +881,9 @@ public class OpenGaussService implements UserCenterServiceInter {
             // reset password
             String accountType = getAccountType(account);
             JSONObject user = oneidDao.getUser(poolId, poolSecret, account, accountType);
+            if (user == null) {
+                return result(HttpStatus.BAD_REQUEST, null, "用户不存在", null);
+            }
             String userId = user.getString("id");
             HashMap<String, String> map = new HashMap<>();
             map.put("password", password);
