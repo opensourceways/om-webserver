@@ -1334,7 +1334,8 @@ public class AuthingService implements UserCenterServiceInter {
 
 
             redisDao.remove(code);
-            return result(HttpStatus.OK, "success", tokens);
+            ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(tokens)), HashMap.class), HttpStatus.OK);
+            return responseEntity;
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             redisDao.remove(code);
@@ -1414,7 +1415,8 @@ public class AuthingService implements UserCenterServiceInter {
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(tokens);
             redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
 
-            return result(HttpStatus.OK, "success", tokens);
+            ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(tokens)), HashMap.class), HttpStatus.OK);
+            return responseEntity;
         } catch (Exception e) {
             logger.error(e.getMessage());
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
@@ -1471,7 +1473,8 @@ public class AuthingService implements UserCenterServiceInter {
             redisDao.remove(refreshTokenKey);
             redisDao.set(DigestUtils.md5DigestAsHex(accessToken.getBytes()), accessToken, accessTokenExpire);
 
-            return result(HttpStatus.OK, "success", userTokenMap);
+            ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(userTokenMap)), HashMap.class), HttpStatus.OK);
+            return responseEntity;
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
