@@ -557,7 +557,8 @@ public class AuthingService implements UserCenterServiceInter {
             res.put("data", userData);
             res.put("msg", "OK");
             res.putAll(userData);
-            return result(HttpStatus.OK, "success", res);
+            ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(res, HttpStatus.OK)
+            return responseEntity;
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
