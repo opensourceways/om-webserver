@@ -255,7 +255,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         String community = servletRequest.getParameter("community");
         String appId = servletRequest.getParameter("client_id");
         String userName = servletRequest.getParameter("username");
-        String account = servletRequest.getParameter("account");
+        String account = null;
 
         // app校验
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
