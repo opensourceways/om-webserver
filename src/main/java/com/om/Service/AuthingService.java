@@ -557,7 +557,7 @@ public class AuthingService implements UserCenterServiceInter {
             res.put("data", userData);
             res.put("msg", "OK");
             res.putAll(userData);
-            ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(res, HttpStatus.OK)
+            ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(res, HttpStatus.OK);
             return responseEntity;
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
