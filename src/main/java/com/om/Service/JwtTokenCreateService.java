@@ -161,7 +161,7 @@ public class JwtTokenCreateService {
 
         // 生成新的token和headToken
         List<String> audience = JWT.decode(headerJwtToken).getAudience();
-        String username = audience.isEmpty() ? "" : audience.get(0);
+        String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
         return authingUserToken(appId, userId, username, permission, inputPermission, idToken);
     }
 
