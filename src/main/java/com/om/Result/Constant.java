@@ -72,5 +72,6 @@ public class Constant {
     public static final String ONEID_CHECK_PASSWORD_PATH = "/auth/check-password/{account}";
     public static final String ONEID_TOKEN_PATH = "/auth/get-management-token";
 
+    public static final String PHOTO_NOT_ALLOWED_CHARS = "\\,/,:,*,?,\",<,>,|";
 }
 
