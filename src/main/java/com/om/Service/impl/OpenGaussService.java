@@ -168,8 +168,10 @@ public class OpenGaussService implements UserCenterServiceInter {
             }
 
             // 校验用户是否已经存在
-            if (oneidDao.isUserExists(poolId, poolSecret, account, accountType))
+            if (oneidDao.isUserExists(poolId, poolSecret, account, accountType)) {
+                redisDao.updateValue(redisKey, codeTemp + "_used", 0);
                 return result(HttpStatus.BAD_REQUEST, null, "该账号已注册", null);
+            }
             userInfo.put(accountType, account);
 
             // 密码校验
@@ -253,7 +255,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         String community = servletRequest.getParameter("community");
         String appId = servletRequest.getParameter("client_id");
         String userName = servletRequest.getParameter("username");
-        String account = servletRequest.getParameter("account");
+        String account = null;
 
         // app校验
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
@@ -339,6 +341,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             user = (JSONObject) msg;
             idToken = user.getString("id_token");
         } else {
+            redisDao.updateValue(redisKey, codeTemp + "_used", 0);
             return result(HttpStatus.BAD_REQUEST, null, (String) msg, limitUtil.loginFail(failCounter));
         }
 
@@ -844,6 +847,14 @@ public class OpenGaussService implements UserCenterServiceInter {
         // remove restiction when code correct
         redisDao.remove(resetErrorCountKey);
 
+        // check if user exist
+        String accountType = getAccountType(account);
+        JSONObject user = oneidDao.getUser(poolId, poolSecret, account, accountType);
+        if (user == null) {
+            redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+            return result(HttpStatus.BAD_REQUEST, null, "用户不存在", null);
+        }
+
         // generate token
         long codeExpire = Long.parseLong(env.getProperty("resetPwd.token.limit.seconds", "300"));
         String token = jwtTokenCreateService.resetPasswordToken(account, codeExpire);
@@ -882,6 +893,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             String accountType = getAccountType(account);
             JSONObject user = oneidDao.getUser(poolId, poolSecret, account, accountType);
             if (user == null) {
+                redisDao.updateValue(key4Token, tokenInRedis.toString() + "_used", 0);
                 return result(HttpStatus.BAD_REQUEST, null, "用户不存在", null);
             }
             String userId = user.getString("id");

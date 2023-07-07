@@ -115,7 +115,7 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         String userName = servletRequest.getParameter("username");
-        String account = servletRequest.getParameter("account");
+        String account = null;
         String appId = servletRequest.getParameter("client_id");
 
         // 校验appId
