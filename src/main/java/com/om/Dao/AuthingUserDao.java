@@ -830,6 +830,11 @@ public class AuthingUserDao {
 
             // 重命名文件
             String fileName = file.getOriginalFilename();
+            for (String c : Constant.PHOTO_NOT_ALLOWED_CHARS.split(",")) {
+                if (fileName.contains(c)) {
+                    throw new Exception("Filename is invalid");
+                }
+            }
             String extension = fileName.substring(fileName.lastIndexOf("."));
             if (!photoSuffixes.contains(extension.toLowerCase())) {
                 return false;
