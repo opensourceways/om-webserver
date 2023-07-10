@@ -26,10 +26,21 @@ import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 
+@Component
 public class RSAUtil implements Serializable {
-    public static final String RSA_ALGORITHM = "RSA";
+    public static String KEY_ALGORITHM;
+    
+    public static String RSA_ALGORITHM;
+
+    @Value("${rsa.key.algorithm:RSA}")
+    public void setKeyAlgorithm(String keyAlgorithm) { RSAUtil.KEY_ALGORITHM = keyAlgorithm; }
+
+    @Value("${rsa.authing.algorithm:RSA/ECB/OAEPWithSHA-256AndMGF1Padding}")
+    public void setRsaAlgorithm(String rsaAlgorithm) { RSAUtil.RSA_ALGORITHM = rsaAlgorithm; }
 
     /**
      * 随机生成密钥对(公钥和私钥)
@@ -63,7 +74,7 @@ public class RSAUtil implements Serializable {
      */
     public static RSAPublicKey getPublicKey(String publicKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
         // 通过X509编码的Key指令获得公钥对象
-        KeyFactory keyFactory = KeyFactory.getInstance(RSA_ALGORITHM);
+        KeyFactory keyFactory = KeyFactory.getInstance(KEY_ALGORITHM);
         X509EncodedKeySpec x509KeySpec = new X509EncodedKeySpec(Base64.decodeBase64(publicKey));
         return (RSAPublicKey) keyFactory.generatePublic(x509KeySpec);
     }
@@ -75,7 +86,7 @@ public class RSAUtil implements Serializable {
      */
     public static RSAPrivateKey getPrivateKey(String privateKey) throws NoSuchAlgorithmException, InvalidKeySpecException {
         //通过PKCS#8编码的Key指令获得私钥对象
-        KeyFactory keyFactory = KeyFactory.getInstance(RSA_ALGORITHM);
+        KeyFactory keyFactory = KeyFactory.getInstance(KEY_ALGORITHM);
         PKCS8EncodedKeySpec pkcs8KeySpec = new PKCS8EncodedKeySpec(Base64.decodeBase64(privateKey));
         return (RSAPrivateKey) keyFactory.generatePrivate(pkcs8KeySpec);
     }
@@ -143,7 +154,7 @@ public class RSAUtil implements Serializable {
             maxBlock = keySize / 8;
         } else {
             // 最大加密明文长度(密钥长度/8-11)
-            maxBlock = keySize / 8 - 11;
+            maxBlock = keySize / 8 - 66;
         }
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
