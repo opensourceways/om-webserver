@@ -31,4 +31,6 @@ public class ManagementLog implements Serializable {
 
     private String ErrorLog;
 
+    private String operator;
+    
 }
