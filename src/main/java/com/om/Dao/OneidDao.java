@@ -18,6 +18,7 @@ import com.mashape.unirest.http.Unirest;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Result.Constant;
+import com.om.Utils.CommonUtil;
 
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
@@ -259,6 +260,9 @@ public class OneidDao {
             if (!photoSuffixes.contains(extension.toLowerCase())) {
                 throw new Exception("Upload photo format is not acceptable");
             }
+
+            if (!CommonUtil.isFileContentTypeValid(file)) throw new Exception("File content type is invalid");
+
             String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
 
             //上传文件到OBS
