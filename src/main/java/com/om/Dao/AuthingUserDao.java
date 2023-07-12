@@ -25,6 +25,7 @@ import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Modules.ServerErrorException;
 import com.om.Result.Constant;
+import com.om.Utils.CommonUtil;
 import com.om.Utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
@@ -839,6 +840,9 @@ public class AuthingUserDao {
             if (!photoSuffixes.contains(extension.toLowerCase())) {
                 return false;
             }
+
+            if (!CommonUtil.isFileContentTypeValid(file)) throw new Exception("File content type is invalid");
+
             String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
 
             //上传文件到OBS
