@@ -1,7 +1,6 @@
 package com.om.Utils;
 
 import java.io.IOException;
-import java.io.InputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,8 +12,7 @@ public class CommonUtil {
     
     public static boolean isFileContentTypeValid(MultipartFile file) throws IOException {
         try {
-            InputStream inputStream = file.getInputStream();
-            byte[] fileContent = inputStream.readAllBytes();
+            byte[] fileContent = file.getBytes();
 
             // 验证文件头信息
             if (fileContent.length >= 2 && fileContent[0] == (byte) 0xFF && fileContent[1] == (byte) 0xD8) {
