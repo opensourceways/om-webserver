@@ -240,6 +240,13 @@ public class AuthingService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, null);
             }
             // 密码登录
+            try {
+                password = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(password));
+            } catch (Exception e) {
+                logger.error("Hex to Base64 fail. " + e.getMessage());
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+            }
+
             if (accountType.equals(Constant.EMAIL_TYPE)) {
                 msg = authingUserDao.registerByEmailPwd(appId, account, password, username);
             } else {
@@ -298,7 +305,8 @@ public class AuthingService implements UserCenterServiceInter {
             try {
                 password = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(password));
             } catch (Exception e) {
-                logger.error("Hex to Base64 fail");
+                logger.error("Hex to Base64 fail. " + e.getMessage());
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
         }
 
@@ -1056,6 +1064,7 @@ public class AuthingService implements UserCenterServiceInter {
             String pwdResetToken = (String) getBodyPara(body, "pwd_reset_token");
             String newPwd = (String) getBodyPara(body, "new_pwd");
 
+            newPwd = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(newPwd));
             String resetMsg = authingUserDao.resetPwd(pwdResetToken, newPwd);
             if (resetMsg.equals(Constant.SUCCESS)) {
                 return result(HttpStatus.OK, Constant.SUCCESS, null);
