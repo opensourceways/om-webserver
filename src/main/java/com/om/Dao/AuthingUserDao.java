@@ -244,23 +244,17 @@ public class AuthingUserDao {
     }
 
     public Object loginByEmailCode(Application app, String email, String code) throws ServerErrorException {
-        if (!isUserExists(app.getId(), email, "email")) {
-            return MessageCodeConfig.E00034.getMsgZh();
-        }
-
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"}," +
+                "\"options\": {\"autoRegister\": false}," +
                 "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", email, code, app.getId(), app.getSecret());
         return login(app.getId(), body);
     }
 
     public Object loginByPhoneCode(Application app, String phone, String code) throws ServerErrorException {
-        if (!isUserExists(app.getId(), phone, "phone")) {
-            return MessageCodeConfig.E00034.getMsgZh();
-        }
-
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"}," +
+                "\"options\": {\"autoRegister\": false}," +
                 "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, app.getId(), app.getSecret());
         return login(app.getId(), body);
     }
