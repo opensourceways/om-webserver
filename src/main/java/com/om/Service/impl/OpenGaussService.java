@@ -27,6 +27,9 @@ import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.LimitUtil;
 import com.om.Utils.RSAUtil;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -316,6 +319,11 @@ public class OpenGaussService implements UserCenterServiceInter {
         String codeCheck = checkCode(code, codeTemp);
         if (!StringUtils.isBlank(password)) {
             codeCheck = Constant.SUCCESS;
+            try {
+                password = Base64.encodeBase64String(Hex.decodeHex(password));
+            } catch (Exception e) {
+                logger.error("Hex to Base64 fail");
+            }
         }
         if (!codeCheck.equals(Constant.SUCCESS)) {
             return result(HttpStatus.BAD_REQUEST, null, codeCheck, limitUtil.loginFail(failCounter));
