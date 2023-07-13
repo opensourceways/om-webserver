@@ -179,6 +179,12 @@ public class OpenGaussService implements UserCenterServiceInter {
 
             // 密码校验
             if (!StringUtils.isBlank(password)) {
+                try {
+                    password = Base64.encodeBase64String(Hex.decodeHex(password));
+                } catch (Exception e) {
+                    logger.error("Hex to Base64 fail. " + e.getMessage());
+                    return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+                }
                 userInfo.put("password", password);
             }
             
@@ -322,7 +328,8 @@ public class OpenGaussService implements UserCenterServiceInter {
             try {
                 password = Base64.encodeBase64String(Hex.decodeHex(password));
             } catch (Exception e) {
-                logger.error("Hex to Base64 fail");
+                logger.error("Hex to Base64 fail. " + e.getMessage());
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
         }
         if (!codeCheck.equals(Constant.SUCCESS)) {
@@ -906,6 +913,8 @@ public class OpenGaussService implements UserCenterServiceInter {
             }
             String userId = user.getString("id");
             HashMap<String, String> map = new HashMap<>();
+
+            password = Base64.encodeBase64String(Hex.decodeHex(password));
             map.put("password", password);
             String userJsonString = objectMapper.writeValueAsString(map);
             user = oneidDao.updateUser(poolId, poolSecret, userId, userJsonString);
