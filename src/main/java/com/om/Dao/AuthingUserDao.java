@@ -618,6 +618,31 @@ public class AuthingUserDao {
         return "unbind success";
     }
 
+    public AuthenticationClient initUserAuthentication(String appId, User user) {
+        initAppClient(appId);
+        AuthenticationClient authentication = appClientMap.get(appId);
+        authentication.setCurrentUser(user);
+        return authentication;
+    }
+
+    public String bindAccount(AuthenticationClient authentication, String account, String code, String type) {
+        try {
+            switch (type.toLowerCase()) {
+                case "email":
+                    authentication.bindEmail(account, code).execute();
+                    break;
+                case "phone":
+                    authentication.bindPhone(account, code).execute();
+                    break;
+                default:
+                    return "false";
+            }
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+        return "true";
+    }
+
     public String bindAccount(String token, String account, String code, String type) {
         try {
             Object[] appUserInfo = getAppUserInfo(token);
