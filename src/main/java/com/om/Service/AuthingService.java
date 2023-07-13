@@ -31,6 +31,8 @@ import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.LimitUtil;
 import com.om.Utils.RSAUtil;
+
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -289,6 +291,14 @@ public class AuthingService implements UserCenterServiceInter {
             if (!isSuccess) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null,
                         limitUtil.loginFail(failCounter));
+            }
+        }
+
+        if (StringUtils.isNotBlank(password)) {
+            try {
+                password = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(password));
+            } catch (Exception e) {
+                logger.error("Hex to Base64 fail");
             }
         }
 
