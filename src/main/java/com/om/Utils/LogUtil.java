@@ -45,9 +45,13 @@ public class LogUtil {
         // 从token中获取
         String token = request.getHeader("token");
         if (StringUtils.isNotBlank(token)) {
-            DecodedJWT decode = JWT.decode(token);
-            String userId = decode.getAudience().get(0);
-            return userId;
+            try {
+                DecodedJWT decode = JWT.decode(token);
+                String userId = decode.getAudience().get(0);
+                return userId;
+            } catch (Exception e) {
+                logger.info("Log using token fail");
+            }
         }
 
         // 从param中获取
