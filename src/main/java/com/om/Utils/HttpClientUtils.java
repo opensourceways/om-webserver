@@ -145,7 +145,7 @@ public class HttpClientUtils implements Serializable {
     }
 
     private static void saveUserIdToAttr(HttpServletRequest request, Map<String, Object> body) {
-        String[] idKeyList = {"username", "account"};
+        String[] idKeyList = {"username"};
         List<String> idKey = Arrays.asList(idKeyList);
         for (Map.Entry<String, Object> entry : body.entrySet()) {
             if (idKey.contains(entry.getKey())) {
