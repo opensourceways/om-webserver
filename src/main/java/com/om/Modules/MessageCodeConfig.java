@@ -192,6 +192,7 @@ public enum MessageCodeConfig {
         map.put("User not exist", E00034);
         map.put("No password is set", E00052);
         map.put("Account not exist", E00052);
+        map.put("已绑定邮箱", E00016);
 
         return map;
     }
