@@ -2,6 +2,7 @@ package com.om.Utils;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -43,6 +44,14 @@ public class CommonUtil {
         } catch (Exception e) {
             throw new IOException("Rewrite image fail");
         }
+    }
+
+    public static boolean deleteFile(String path) {
+        File file = new File(path);
+        if (file.exists()) {
+            return file.delete();
+        }
+        return true;
     }
 
 }
