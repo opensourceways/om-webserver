@@ -22,7 +22,7 @@ public class ManagementOperationLogAOP {
     private HttpServletResponse response;
 
     //定义切点
-    @Pointcut("execution(* com.om.Controller..*.*(..))")
+    @Pointcut("execution(* com.om.Controller.*.*(..))")
     public void pointcut() {
     }
 
