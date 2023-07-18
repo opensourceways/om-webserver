@@ -17,6 +17,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.OneidDao;
 import com.om.Dao.RedisDao;
+import com.om.Modules.LoginFailCounter;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Result.Result;
@@ -24,9 +25,15 @@ import com.om.Service.JwtTokenCreateService;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
+import com.om.Utils.LimitUtil;
 import com.om.Utils.RSAUtil;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
@@ -37,8 +44,12 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.net.URL;
+import java.net.URLDecoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -47,6 +58,9 @@ import java.util.*;
 
 @Service("opengauss")
 public class OpenGaussService implements UserCenterServiceInter {
+
+    private static final Logger logger =  LoggerFactory.getLogger(OpenGaussService.class);
+
     @Autowired
     private Environment env;
 
@@ -61,6 +75,9 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Autowired
     JavaMailSender mailSender;
+
+    @Autowired
+    LimitUtil limitUtil;
 
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
@@ -86,7 +103,7 @@ public class OpenGaussService implements UserCenterServiceInter {
     @PostConstruct
     public void init() {
         codeUtil = new CodeUtil();
-        error2code = authingUserDao.getErrorCode();
+        error2code = MessageCodeConfig.getErrorCode();
         appId2Secret = getApps();
         result = new Result();
         channels = getSendCodeChannel();
@@ -94,17 +111,20 @@ public class OpenGaussService implements UserCenterServiceInter {
         poolId = env.getProperty("opengauss.pool.key");
         poolSecret = env.getProperty("opengauss.pool.secret");
         domain2secure = HttpClientUtils.getConfigCookieInfo(Objects.requireNonNull(env.getProperty("cookie.token.domains")), Objects.requireNonNull(env.getProperty("cookie.token.secures")));
+        oneidDao.getManagementToken(poolId, poolSecret);
     }
 
     @Override
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         try {
-            String community = servletRequest.getParameter("community");
-            String appId = servletRequest.getParameter("client_id");
-            String userName = servletRequest.getParameter("username");
-            String account = servletRequest.getParameter("account");
-            String code = servletRequest.getParameter("code");
-            String company = servletRequest.getParameter("company");
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+            String community = (String) getBodyPara(body, "community");
+            String appId = (String) getBodyPara(body, "client_id");
+            String userName = (String) getBodyPara(body, "username");
+            String account = (String) getBodyPara(body, "account");
+            String code = (String) getBodyPara(body, "code");
+            String company = (String) getBodyPara(body, "company");
+            String password = (String) getBodyPara(body, "password");
 
             // 限制一分钟内失败次数
             String registerErrorCountKey = account + "registerCount";
@@ -137,13 +157,10 @@ public class OpenGaussService implements UserCenterServiceInter {
             if (accountType.equals("请输入正确的手机号或者邮箱")) {
                 return result(HttpStatus.BAD_REQUEST, null, accountType, null);
             }
-            if (oneidDao.isUserExists(poolId, poolSecret, account, accountType)) {
-                return result(HttpStatus.BAD_REQUEST, null, "该账号已注册", null);
-            }
-            userInfo.put(accountType, account);
 
             // 验证码校验
-            String redisKey = account + "_sendCode_" + community + "_register";
+            String redisKey =
+                    account.toLowerCase() + Constant.SEND_CODE + community.toLowerCase() + Constant.REGISTER_SUFFIX;
             String codeTemp = (String) redisDao.get(redisKey);
             String codeCheck = checkCode(code, codeTemp);
             if (!codeCheck.equals("success")) {
@@ -153,6 +170,24 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
             }
 
+            // 校验用户是否已经存在
+            if (oneidDao.isUserExists(poolId, poolSecret, account, accountType)) {
+                redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+                return result(HttpStatus.BAD_REQUEST, null, "该账号已注册", null);
+            }
+            userInfo.put(accountType, account);
+
+            // 密码校验
+            if (!StringUtils.isBlank(password)) {
+                try {
+                    password = Base64.encodeBase64String(Hex.decodeHex(password));
+                } catch (Exception e) {
+                    logger.error("Hex to Base64 fail. " + e.getMessage());
+                    return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+                }
+                userInfo.put("password", password);
+            }
+            
             // 用户注册
             String userJsonStr = objectMapper.writeValueAsString(userInfo);
             JSONObject user = oneidDao.createUser(poolId, poolSecret, userJsonStr);
@@ -165,7 +200,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.OK, null, "success", null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
             return result(HttpStatus.INTERNAL_SERVER_ERROR, null, "Internal Server Error", null);
         }
     }
@@ -199,8 +234,13 @@ public class OpenGaussService implements UserCenterServiceInter {
 
             // 限制1分钟只能发送一次 （剩余的过期时间 + 60s > 验证码过期时间，表示一分钟之内发送过验证码）
             long limit = Long.parseLong(env.getProperty("send.code.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
-            String redisKeyTemp = account.toLowerCase() + "_sendCode_" + community;
-            String redisKey = channel.toLowerCase().equals("channel_register") ? redisKeyTemp + "_register" : redisKeyTemp;
+            String redisKeyTemp = account.toLowerCase() + Constant.SEND_CODE + community.toLowerCase();
+            channel = channel.toLowerCase();
+            String redisKey =
+                    channel.equals(Constant.CHANNEL_REGISTER) || channel.equals(Constant.CHANNEL_REGISTER_BY_PASSWORD)
+                    ? redisKeyTemp + Constant.REGISTER_SUFFIX : redisKeyTemp;
+            redisKey = channel.equals(Constant.CHANNEL_RESET_PASSWORD)
+                    ? redisKey + Constant.RESET_PASSWORD_SUFFIX : redisKey;
 
             long remainingExpirationSecond = redisDao.expire(redisKey);
             if (remainingExpirationSecond + limit > codeExpire) {
@@ -224,7 +264,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         String community = servletRequest.getParameter("community");
         String appId = servletRequest.getParameter("client_id");
         String userName = servletRequest.getParameter("username");
-        String account = servletRequest.getParameter("account");
+        String account = null;
 
         // app校验
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
@@ -242,32 +282,58 @@ public class OpenGaussService implements UserCenterServiceInter {
     }
 
     @Override
-    public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        String community = servletRequest.getParameter("community");
-        String appId = servletRequest.getParameter("client_id");
-        String account = servletRequest.getParameter("account");
-        String code = servletRequest.getParameter("code");
+    public ResponseEntity captchaLogin(HttpServletRequest request) {
+        String account = request.getParameter("account");
+        LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
+        return result(HttpStatus.OK, null, Constant.SUCCESS, limitUtil.isNeedCaptcha(failCounter));
+    }
 
-        // app校验
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+    @Override
+    public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                boolean isSuccess) {
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String community = (String) getBodyPara(body, "community");
+        String appId = (String) getBodyPara(body, "client_id");
+        String account = (String) getBodyPara(body, "account");
+        String code = (String) getBodyPara(body, "code");
+        String password = (String) getBodyPara(body, "password");
+        LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
 
         // 限制一分钟登录失败次数
-        String loginErrorCountKey = account + "loginCount";
-        Object v = redisDao.get(loginErrorCountKey);
-        int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
-        if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6")))
-            return result(HttpStatus.BAD_REQUEST, null, "失败次数过多，请稍后重试", null);
+        if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null,
+                    limitUtil.loginFail(failCounter));
+        }
+
+        // 多次失败需要图片验证码
+        if (limitUtil.isNeedCaptcha(failCounter).get(Constant.NEED_CAPTCHA_VERIFICATION)) {
+            if (!isSuccess) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null,
+                        limitUtil.loginFail(failCounter));
+            }
+        }
+
+        // app校验
+        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null) {
+            return result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00047, null,
+                    limitUtil.loginFail(failCounter));
+        }
 
         // 验证码校验
         String redisKey = account + "_sendCode_" + community;
         String codeTemp = (String) redisDao.get(redisKey);
         String codeCheck = checkCode(code, codeTemp);
-        if (!codeCheck.equals("success")) {
-            long codeExpire = Long.parseLong(env.getProperty("login.error.limit.seconds", "60"));
-            loginErrorCount += 1;
-            redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
-            return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
+        if (!StringUtils.isBlank(password)) {
+            codeCheck = Constant.SUCCESS;
+            try {
+                password = Base64.encodeBase64String(Hex.decodeHex(password));
+            } catch (Exception e) {
+                logger.error("Hex to Base64 fail. " + e.getMessage());
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+            }
+        }
+        if (!codeCheck.equals(Constant.SUCCESS)) {
+            return result(HttpStatus.BAD_REQUEST, null, codeCheck, limitUtil.loginFail(failCounter));
         }
 
         // 登录
@@ -275,9 +341,13 @@ public class OpenGaussService implements UserCenterServiceInter {
         Object msg;
         if (accountType.equals("email") || accountType.equals("phone")) {
             // todo 待调用oneid-server
-            msg = oneidDao.loginByAccountCode(poolId, poolSecret, account, accountType, code, appId);
+            if (StringUtils.isBlank(password)) {
+                msg = oneidDao.loginByAccountCode(poolId, poolSecret, account, accountType, code, appId);
+            } else {
+                msg = oneidDao.loginByPassword(poolId, poolSecret, account, accountType, password, appId);
+            }
         } else {
-            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+            msg = oneidDao.loginByPassword(poolId, poolSecret, account, "username", password, appId);
         }
 
         String idToken;
@@ -286,14 +356,12 @@ public class OpenGaussService implements UserCenterServiceInter {
             user = (JSONObject) msg;
             idToken = user.getString("id_token");
         } else {
-            long codeExpire = Long.parseLong(env.getProperty("login.error.limit.seconds", "60"));
-            loginErrorCount += 1;
-            redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
-            return result(HttpStatus.BAD_REQUEST, null, (String) msg, null);
+            redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+            return result(HttpStatus.BAD_REQUEST, null, (String) msg, limitUtil.loginFail(failCounter));
         }
 
-        //登录成功解除登录失败次数限制
-        redisDao.remove(loginErrorCountKey);
+        // 登录成功解除登录失败次数限制
+        redisDao.remove(account + Constant.LOGIN_COUNT);
 
         // 生成token
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"),
@@ -303,9 +371,14 @@ public class OpenGaussService implements UserCenterServiceInter {
 
         // 写cookie
         String cookieTokenName = env.getProperty("cookie.token.name");
+        String verifyTokenName = env.getProperty("cookie.verify.token.name");
         String maxAgeTemp = env.getProperty("authing.cookie.max.age");
-        int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : Integer.parseInt(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds")));
-        HttpClientUtils.setCookie(servletRequest, servletResponse, cookieTokenName, token, true, maxAge, "/", domain2secure);
+        int expire = Integer.parseInt(env.getProperty("authing.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
+        int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : expire;
+        HttpClientUtils.setCookie(servletRequest, servletResponse, cookieTokenName,
+                token, true, maxAge, "/", domain2secure);
+        HttpClientUtils.setCookie(servletRequest, servletResponse, verifyTokenName,
+                verifyToken, false, expire, "/", domain2secure);
 
         // 返回结果
         HashMap<String, Object> userData = new HashMap<>();
@@ -334,7 +407,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             String userId = decode.getAudience().get(0);
             userObj = oneidDao.getUser(poolId, poolSecret, userId, "id");
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
 
         HashMap<String, Object> userData = new HashMap<>();
@@ -384,7 +457,7 @@ public class OpenGaussService implements UserCenterServiceInter {
 
             return result(HttpStatus.OK, null, "success", null);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, null, "unauthorized", null);
         }
     }
@@ -410,7 +483,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             userData.put("username", jsonObjStringValue(user, "username"));
             return result(HttpStatus.OK, null, "success", userData);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, null, "unauthorized", null);
         }
     }
@@ -480,7 +553,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.OK, null, "update base info success", null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
 
         return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
@@ -508,7 +581,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.OK, null, "update photo success", null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
 
         return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
@@ -614,7 +687,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, user.toString(), null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
     }
@@ -660,7 +733,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, user.toString(), null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);*/
     }
@@ -702,9 +775,197 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, user.toString(), null);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
+    }
+
+    @Override
+    public ResponseEntity getPublicKey() {
+        Object publicKey = redisDao.get("Oneid-RSA-Public-Key");
+        if (publicKey == null) {
+            oneidDao.getManagementToken(poolId, poolSecret);
+            publicKey = redisDao.get("Oneid-RSA-Public-Key");
+        }
+        if (publicKey == null) {
+            return result(HttpStatus.BAD_REQUEST, null, "Public key not exist", null);
+        } else {
+            return result(HttpStatus.OK, null, "success", publicKey.toString());
+        }
+    }
+
+    @Override
+    public ResponseEntity updatePassword(HttpServletRequest request) {
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
+        String appId = (String) getBodyPara(body, "client_id");
+        String oldPassword = (String) getBodyPara(body, "old_pwd");
+        String newPassword = (String) getBodyPara(body, "new_pwd");
+
+        // app校验
+        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null) {
+            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        }
+
+        // verify password
+        if (StringUtils.isBlank(oldPassword) || StringUtils.isBlank(newPassword)) {
+            return result(HttpStatus.NOT_FOUND, null, "请输入密码", null);
+        }
+
+        // update password
+        try {
+            Cookie cookie = getCookie(request, env.getProperty("cookie.token.name"));
+            String token = cookie.getValue();
+            DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
+            String userId = decode.getAudience().get(0);
+            Object ret = oneidDao.modifyPassword(poolId, poolSecret, userId, "id", oldPassword, newPassword);
+            if (ret instanceof JSONObject) {
+                return result(HttpStatus.OK, null, "update password succeed", null);
+            } else {
+                return result(HttpStatus.BAD_REQUEST, null, (String) ret, null);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
+        return result(HttpStatus.BAD_REQUEST, null, "update password fail", null);
+    }
+
+    @Override
+    public ResponseEntity resetPwdVerify(HttpServletRequest servletRequest) {
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String appId = (String) getBodyPara(body, "client_id");
+        String account = (String) getBodyPara(body, "account");
+        String community = (String) getBodyPara(body, "community");
+        String code = (String) getBodyPara(body, "code");
+
+        // app verification
+        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
+            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+
+        // restrict failure count in one minute
+        String resetErrorCountKey = account + "resetPwdCount";
+        Object v = redisDao.get(resetErrorCountKey);
+        int resetErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
+        if (resetErrorCount >= Integer.parseInt(env.getProperty("resetPwd.error.limit.count", "6")))
+            return result(HttpStatus.BAD_REQUEST, null, "失败次数过多，请稍后重试", null);
+
+        // code verificatin
+        String redisKey = account + "_sendCode_" + community + Constant.RESET_PASSWORD_SUFFIX;
+        String codeTemp = (String) redisDao.get(redisKey);
+        String codeCheck = checkCode(code, codeTemp);
+        if (!codeCheck.equals("success")) {
+            long codeExpire = Long.parseLong(env.getProperty("resetPwd.error.limit.seconds", "60"));
+            resetErrorCount += 1;
+            redisDao.set(resetErrorCountKey, String.valueOf(resetErrorCount), codeExpire);
+            return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
+        }
+
+        // remove restiction when code correct
+        redisDao.remove(resetErrorCountKey);
+
+        // check if user exist
+        String accountType = getAccountType(account);
+        JSONObject user = oneidDao.getUser(poolId, poolSecret, account, accountType);
+        if (user == null) {
+            redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+            return result(HttpStatus.BAD_REQUEST, null, "用户不存在", null);
+        }
+
+        // generate token
+        long codeExpire = Long.parseLong(env.getProperty("resetPwd.token.limit.seconds", "300"));
+        String token = jwtTokenCreateService.resetPasswordToken(account, codeExpire);
+
+        // record in redis
+        String key4Token = account + Constant.RESET_PASSWORD_SUFFIX;
+        redisDao.set(key4Token, token, codeExpire);
+
+        // return token
+        redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+        return result(HttpStatus.OK, null, "success", token);
+    }
+
+    @Override
+    public ResponseEntity resetPwd(HttpServletRequest servletRequest) {
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String appId = (String) getBodyPara(body, "client_id");
+        String token = (String) getBodyPara(body, "pwd_reset_token");
+        String password = (String) getBodyPara(body, "new_pwd");
+
+        // app verification
+        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
+            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+
+        try {
+            // token verification
+            DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
+            String account = decode.getAudience().get(0);
+            String key4Token = account + Constant.RESET_PASSWORD_SUFFIX;
+            Object tokenInRedis = redisDao.get(key4Token);
+            if (tokenInRedis == null || tokenInRedis.toString().endsWith("_used")) {
+                return result(HttpStatus.BAD_REQUEST, null, "reset password token expire", null);
+            }
+            
+            // reset password
+            String accountType = getAccountType(account);
+            JSONObject user = oneidDao.getUser(poolId, poolSecret, account, accountType);
+            if (user == null) {
+                redisDao.updateValue(key4Token, tokenInRedis.toString() + "_used", 0);
+                return result(HttpStatus.BAD_REQUEST, null, "用户不存在", null);
+            }
+            String userId = user.getString("id");
+            HashMap<String, String> map = new HashMap<>();
+
+            password = Base64.encodeBase64String(Hex.decodeHex(password));
+            map.put("password", password);
+            String userJsonString = objectMapper.writeValueAsString(map);
+            user = oneidDao.updateUser(poolId, poolSecret, userId, userJsonString);
+            if (user == null) {
+                return result(HttpStatus.BAD_REQUEST, null, "reset password fail", null);
+            } else {
+                redisDao.updateValue(key4Token, tokenInRedis.toString() + "_used", 0);
+                return result(HttpStatus.OK, null, "reset password succeed", null);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
+        return result(HttpStatus.BAD_REQUEST, null, "reset password fail", null);
+    }
+
+    @Override
+    public ResponseEntity appVerify(String appId, String redirect) {
+        if (StringUtils.isBlank(appId) || StringUtils.isBlank(redirect)) {
+            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        }
+        String property = env.getProperty("opengauss.app.urls");
+        String[] group = property.split(";");
+        String urls = null;
+        for (String appUrl : group) {
+            String[] pair = appUrl.split(":");
+            if (pair.length >= 2 && appId.equals(pair[0])) {
+                urls = pair[1];
+            }
+        }
+
+        List<String> uris = new ArrayList<>();
+        if (!StringUtils.isBlank(urls)) uris = Arrays.asList(urls.split(","));
+        for (String uri : uris) {
+            if (uri.endsWith("*") && redirect.startsWith(uri.substring(0, uri.length() - 1)))
+                return result(HttpStatus.OK, null, "success", null);
+            else if (redirect.equals(uri) || getHostFromUrl(redirect).endsWith(uri))
+                return result(HttpStatus.OK, null, "success", null);
+        }
+        return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
+    }
+
+    private String getHostFromUrl(String link) {
+        URL url;
+        String host = "";
+        try {
+            url = new URL(URLDecoder.decode(link, "UTF-8"));
+            host = url.getHost();
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
+        return host;
     }
 
     private String getAccountType(String account) {
@@ -792,7 +1053,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
             redisDao.remove(idTokenKey);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return result(HttpStatus.OK, null, "delete user success", null);
     }
@@ -806,4 +1067,33 @@ public class OpenGaussService implements UserCenterServiceInter {
         }
         return "success";
     }
+
+    private Object getBodyPara(Map<String, Object> body, String paraName) {
+        return body.getOrDefault(paraName, null);
+    }
+
+    private Cookie getCookie(HttpServletRequest request, String cookieName) {
+        Cookie cookie = null;
+        try {
+            Cookie[] cookies = request.getCookies();
+            cookie = getCookie(cookies, cookieName);
+        } catch (Exception ignored) {
+        }
+        return cookie;
+    }
+
+    private Cookie getCookie(Cookie[] cookies, String cookieName) {
+        Cookie cookie = null;
+        try {
+            for (Cookie cookieEle : cookies) {
+                if (cookieEle.getName().equals(cookieName)) {
+                    cookie = cookieEle;
+                    break;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return cookie;
+    }
+
 }

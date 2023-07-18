@@ -19,13 +19,15 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.Map;
 
 public interface UserCenterServiceInter {
+    ResponseEntity captchaLogin(HttpServletRequest servletRequest);
+
     ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
     ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse, boolean isSuccess);
 
     ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
-    ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+    ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse, boolean isSuccess);
 
     ResponseEntity personalCenterUserInfo(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 
@@ -46,4 +48,14 @@ public interface UserCenterServiceInter {
     ResponseEntity unbindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 
     ResponseEntity bindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
+
+    ResponseEntity getPublicKey();
+
+    ResponseEntity updatePassword(HttpServletRequest servletRequest);
+
+    ResponseEntity resetPwdVerify(HttpServletRequest servletRequest);
+
+    ResponseEntity resetPwd(HttpServletRequest servletRequest);
+
+    ResponseEntity appVerify(String appId, String redirect);
 }
