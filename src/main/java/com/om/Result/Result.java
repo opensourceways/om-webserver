@@ -11,9 +11,11 @@
 
 package com.om.Result;
 
+import com.alibaba.fastjson2.JSON;
 import com.om.Modules.MessageCodeConfig;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.util.HtmlUtils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -94,6 +96,7 @@ public class Result {
             msgMap.put("message_zh", msgCode.getMsgZh());
             res.put("msg", msgMap);
         }
-        return new ResponseEntity<>(res, status);
+        ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), status);
+        return responseEntity;
     }
 }

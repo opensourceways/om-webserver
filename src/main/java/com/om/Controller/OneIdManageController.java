@@ -11,10 +11,16 @@
 
 package com.om.Controller;
 
+import com.anji.captcha.model.common.ResponseModel;
+import com.anji.captcha.model.vo.CaptchaVO;
+import com.anji.captcha.service.CaptchaService;
 import com.om.Service.OneIdManageService;
+import com.om.token.ManageToken;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,8 +33,32 @@ public class OneIdManageController {
     @Autowired
     OneIdManageService oneIdManageService;
 
+    @Autowired
+    CaptchaService captchaService;
+
     @RequestMapping(value = "/token", method = RequestMethod.POST)
     public ResponseEntity tokenApply(@RequestBody Map<String, String> body) {
         return oneIdManageService.tokenApply(body);
+    }
+    
+    @ManageToken
+    @RequestMapping(value = "/sendcode", method = RequestMethod.POST)
+    public ResponseEntity sendCode(@RequestBody Map<String, String> body,
+                                   @RequestHeader(value = "token") String token) {
+        return oneIdManageService.sendCode(body, token, verifyCaptcha(body.get("captchaVerification")));
+    }
+
+    @ManageToken
+    @RequestMapping(value = "/bind/account", method = RequestMethod.POST)
+    public ResponseEntity bindAccount(@RequestBody Map<String, String> body,
+                                      @RequestHeader(value = "token") String token) {
+        return oneIdManageService.bindAccount(body, token);
+    }
+
+    private boolean verifyCaptcha(String captchaVerification) {
+        CaptchaVO captchaVO = new CaptchaVO();
+        captchaVO.setCaptchaVerification(captchaVerification);
+        ResponseModel response = captchaService.verification(captchaVO);
+        return response.isSuccess();
     }
 }

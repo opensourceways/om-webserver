@@ -14,12 +14,16 @@ package com.om.Utils;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
+import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
@@ -36,8 +40,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
-
+@Component
 public class CodeUtil {
+    private static final Logger logger =  LoggerFactory.getLogger(CodeUtil.class);
+
     // 华为云MSGSMS，用于格式化鉴权头域，给"Authorization"参数赋值
     public static final String AUTH_HEADER_VALUE = "WSSE realm=\"SDP\",profile=\"UsernameToken\",type=\"Appkey\"";
 
@@ -50,7 +56,7 @@ public class CodeUtil {
         String code = null;
         try {
             // 生成验证码
-            code = randomNumBuilder(Integer.parseInt(env.getProperty("code.length", "6")));
+            code = randomNumBuilder(Integer.parseInt(env.getProperty("code.length", Constant.DEFAULT_CODE_LENGTH)));
 
             switch (accountType.toLowerCase()) {
                 case "email":
@@ -59,7 +65,7 @@ public class CodeUtil {
                     String from = env.getProperty("spring.mail.username");
                     // 邮件信息
                     String[] info = buildEmailCodeInfo(account, code,
-                            env.getProperty("mail.template.expire.minutes", "1"));
+                            env.getProperty("mail.template.expire.minutes", Constant.DEFAULT_EXPIRE_MINUTE));
                     // 发送验证码
                     resMsg = sendHtmlMail(mailSender, from, account, info[0], info[1]);
                     break;
@@ -93,7 +99,7 @@ public class CodeUtil {
                     break;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return new String[]{code, String.valueOf(codeExpire), resMsg};
     }
@@ -209,7 +215,7 @@ public class CodeUtil {
             try {
                 temp = URLEncoder.encode(map.get(s), "UTF-8");
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             }
             sb.append(s).append("=").append(temp).append("&");
         }
@@ -224,14 +230,14 @@ public class CodeUtil {
      * @param appSecret APP_Secret
      * @return
      */
-    public String buildWsseHeader(String appKey, String appSecret) {
+    public String buildWsseHeader(String appKey, String appSecret) throws NoSuchAlgorithmException {
         if (null == appKey || null == appSecret || appKey.isEmpty() || appSecret.isEmpty()) {
-            System.out.println("buildWsseHeader(): appKey or appSecret is null.");
+            logger.error("buildWsseHeader(): appKey or appSecret is null.");
             return null;
         }
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
         String time = sdf.format(new Date()); //Created
-        String nonce = UUID.randomUUID().toString().replace("-", ""); //Nonce
+        String nonce = randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH); //Nonce
 
         MessageDigest md;
         byte[] passwordDigest = null;
@@ -241,8 +247,9 @@ public class CodeUtil {
             md.update((nonce + time + appSecret).getBytes());
             passwordDigest = md.digest();
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
+
         // PasswordDigest
         String passwordDigestBase64Str = Base64.getEncoder().encodeToString(passwordDigest);
 
@@ -272,5 +279,19 @@ public class CodeUtil {
     public String randomStrBuilder(int strLength) throws NoSuchAlgorithmException {
         SecureRandom random = SecureRandom.getInstanceStrong();
         return new BigInteger(160, random).toString(strLength);
+    }
+
+    public String interceptor(String channel, boolean isUserExist) {
+        if ((Constant.CHANNEL_REGISTER.equals(channel) || Constant.CHANNEL_REGISTER_BY_PASSWORD.equals(channel))
+        && isUserExist) {
+            return MessageCodeConfig.E00057.getMsgZh();
+        }
+
+        if ((Constant.CHANNEL_LOGIN.equals(channel) || Constant.CHANNEL_RESET_PASSWORD.equals(channel))
+                && !isUserExist) {
+            return MessageCodeConfig.E00034.getMsgZh();
+        }
+
+        return Constant.SUCCESS;
     }
 }

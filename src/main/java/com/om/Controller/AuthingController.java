@@ -68,30 +68,39 @@ public class AuthingController {
         return service.accountExists(servletRequest, servletResponse);
     }
 
-    @RequestMapping(value = "/v3/sendCode")
+    @RequestMapping(value = {"/captcha/sendCode", "/v3/sendCode"})
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
-    @RequestMapping(value = "/register")
+    @RequestMapping(value = "/captcha/checkLogin")
+    public ResponseEntity captchaLogin(HttpServletRequest servletRequest) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.captchaLogin(servletRequest);
+    }
+
+    @RequestMapping(value = "/register", method = RequestMethod.POST)
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.register(servletRequest, servletResponse);
     }
 
-    @RequestMapping(value = "/login")
+    @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity login(HttpServletRequest servletRequest,
-                                HttpServletResponse servletResponse) {
+                                HttpServletResponse servletResponse,
+                                @RequestBody Map<String, Object> body) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.login(servletRequest, servletResponse);
+        return service.login(servletRequest, servletResponse, verifyCaptcha((String) body.get("captchaVerification")));
     }
 
     @RequestMapping(value = "/app/verify")
-    public ResponseEntity appVerify(@RequestParam(value = "client_id") String clientId,
+    public ResponseEntity appVerify(HttpServletRequest servletRequest,
+                                    @RequestParam(value = "client_id") String clientId,
                                     @RequestParam(value = "redirect_uri") String redirect) {
-        return authingService.appVerify(clientId, redirect);
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.appVerify(clientId, redirect);
     }
 
     @AuthingUserToken
@@ -272,6 +281,31 @@ public class AuthingController {
             throws JsonProcessingException {
         String res = queryService.queryUserOwnertype(community, user, username);
         return res;
+    }
+
+    @RequestMapping(value = "/public/key", method = RequestMethod.GET)
+    public ResponseEntity getPublicKey(HttpServletRequest request) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        return service.getPublicKey();
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/update/password", method = RequestMethod.POST)
+    public ResponseEntity updatePassword(HttpServletRequest request) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        return service.updatePassword(request);
+    }
+
+    @RequestMapping(value = "/reset/password/verify", method = RequestMethod.POST)
+    public ResponseEntity resetPwdVerify(HttpServletRequest request) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        return service.resetPwdVerify(request);
+    }
+
+    @RequestMapping(value = "/reset/password", method = RequestMethod.POST)
+    public ResponseEntity resetPwd(HttpServletRequest request) {
+        UserCenterServiceInter service = getServiceImpl(request);
+        return service.resetPwd(request);
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {

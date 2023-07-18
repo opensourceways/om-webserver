@@ -17,18 +17,30 @@ import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
+import com.om.Result.Constant;
+import com.om.Utils.CommonUtil;
+
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
 public class OneidDao {
+
+    private static final Logger logger =  LoggerFactory.getLogger(OneidDao.class);
 
     @Value("${oneid.api.host}")
     String apiHost;
@@ -45,6 +57,12 @@ public class OneidDao {
     @Value("${datastat.img.bucket.name}")
     String datastatImgBucket;
 
+    @Value("${datastat.img.photo.suffix}")
+    String photoSuffix;
+
+    @Autowired
+    private RedisDao redisDao;
+
     public static ObsClient obsClient;
 
     private static ObjectMapper objectMapper;
@@ -55,19 +73,25 @@ public class OneidDao {
         objectMapper = new ObjectMapper();
     }
 
-    private String getManagementToken(String poolId, String poolSecret) {
+    public String getManagementToken(String poolId, String poolSecret) {
         String token = "";
         try {
             String body = String.format("{\"accessKeyId\": \"%s\",\"accessKeySecret\": \"%s\"}", poolId, poolSecret);
-            HttpResponse<JsonNode> response = Unirest.post(apiHost + "/auth/get-management-token")
+            HttpResponse<JsonNode> response = Unirest.post(apiHost + Constant.ONEID_TOKEN_PATH)
                     .header("Content-Type", "application/json")
                     .body(body)
                     .asJson();
             if (response.getStatus() == 200) {
+                // save token
+                long oneidExpire = Long.parseLong(Constant.ONEID_EXPIRE_SECOND);
                 token = response.getBody().getObject().getString("data");
+                redisDao.set(Constant.ONEID_TOKEN_KEY, token, oneidExpire);
+
+                // save rsa public key
+                redisDao.set("Oneid-RSA-Public-Key", response.getHeaders().getFirst("RSA-Public-Key"), oneidExpire);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return token;
     }
@@ -75,8 +99,12 @@ public class OneidDao {
     public JSONObject createUser(String poolId, String poolSecret, String userJsonStr) {
         JSONObject user = null;
         try {
-            String mToken = getManagementToken(poolId, poolSecret);
-            HttpResponse<JsonNode> response = Unirest.post(apiHost + "/users")
+            String mToken = (String) redisDao.get(Constant.ONEID_TOKEN_KEY);
+            if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
+                mToken = getManagementToken(poolId, poolSecret);
+            }
+
+            HttpResponse<JsonNode> response = Unirest.post(apiHost + Constant.ONEID_USER_C_PATH)
                     .header("Content-Type", "application/json")
                     .header("Authorization", mToken)
                     .body(userJsonStr)
@@ -85,7 +113,7 @@ public class OneidDao {
                 user = response.getBody().getObject().getJSONObject("data");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return user;
     }
@@ -93,13 +121,17 @@ public class OneidDao {
     public boolean deleteUser(String poolId, String poolSecret, String userId) {
         boolean res = false;
         try {
-            String mToken = getManagementToken(poolId, poolSecret);
-            HttpResponse<JsonNode> response = Unirest.delete(apiHost + "/users/" + userId)
+            String mToken = (String) redisDao.get(Constant.ONEID_TOKEN_KEY);
+            if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
+                mToken = getManagementToken(poolId, poolSecret);
+            }
+
+            HttpResponse<JsonNode> response = Unirest.delete(apiHost + Constant.ONEID_USER_URD_PATH.replace("{account}", userId))
                     .header("Authorization", mToken)
                     .asJson();
             if (response.getStatus() == 200) res = true;
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return res;
     }
@@ -107,8 +139,12 @@ public class OneidDao {
     public JSONObject updateUser(String poolId, String poolSecret, String userId, String userJsonStr) {
         JSONObject user = null;
         try {
-            String mToken = getManagementToken(poolId, poolSecret);
-            HttpResponse<JsonNode> response = Unirest.put(apiHost + "/users/" + userId)
+            String mToken = (String) redisDao.get(Constant.ONEID_TOKEN_KEY);
+            if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
+                mToken = getManagementToken(poolId, poolSecret);
+            }
+
+            HttpResponse<JsonNode> response = Unirest.put(apiHost + Constant.ONEID_USER_URD_PATH.replace("{account}", userId))
                     .header("Content-Type", "application/json")
                     .header("Authorization", mToken)
                     .body(userJsonStr)
@@ -118,7 +154,7 @@ public class OneidDao {
                 user = response.getBody().getObject().getJSONObject("data");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return user;
     }
@@ -126,8 +162,12 @@ public class OneidDao {
     public JSONObject getUser(String poolId, String poolSecret, String account, String accountType) {
         JSONObject user = null;
         try {
-            String mToken = getManagementToken(poolId, poolSecret);
-            HttpResponse<JsonNode> response = Unirest.get(apiHost + "/users/" + account)
+            String mToken = (String) redisDao.get(Constant.ONEID_TOKEN_KEY);
+            if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
+                mToken = getManagementToken(poolId, poolSecret);
+            }
+
+            HttpResponse<JsonNode> response = Unirest.get(apiHost + Constant.ONEID_USER_URD_PATH.replace("{account}", account))
                     .header("Authorization", mToken)
                     .queryString("userIdType", accountType)
                     .asJson();
@@ -136,9 +176,34 @@ public class OneidDao {
                 user = response.getBody().getObject().getJSONObject("data");
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return user;
+    }
+
+    public Object getUserWithPasswordCheck(String poolId, String poolSecret, String account, 
+                                    String accountType, String password) {
+        try {
+            String mToken = (String) redisDao.get(Constant.ONEID_TOKEN_KEY);
+            if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
+                mToken = getManagementToken(poolId, poolSecret);
+            }
+
+            HttpResponse<JsonNode> response = Unirest.get(apiHost + Constant.ONEID_CHECK_PASSWORD_PATH.replace("{account}", account))
+                    .header("Authorization", mToken)
+                    .queryString("userIdType", accountType)
+                    .queryString("password", password)
+                    .asJson();
+
+            if (response.getStatus() == 200) {
+                return response.getBody().getObject().getJSONObject("data");
+            } else {
+                return response.getBody().getObject().getString("message");
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return e.getMessage();
+        }
     }
 
     // 校验用户是否存在（用户名 or 邮箱 or 手机号）
@@ -161,20 +226,47 @@ public class OneidDao {
         return user;
     }
 
+    public Object loginByPassword(String poolId, String poolSecret, String account, String accountType, String password, String appId) {
+        Object ret = getUserWithPasswordCheck(poolId, poolSecret, account, accountType, password);
+        JSONObject user;
+        if (ret instanceof JSONObject) {
+            user = (JSONObject) ret;
+            user.accumulate("id_token", user.getString("id"));
+            return user;
+        } else {
+            return (String) ret;
+        }
+    }
+
     public boolean logout(String idToken, String appId) {
         return true;
     }
 
     public JSONObject updatePhoto(String poolId, String poolSecret, String userId, MultipartFile file) {
         JSONObject user = null;
+        InputStream inputStream = null;
         try {
+            inputStream = CommonUtil.rewriteImage(file);
+
             // 重命名文件
             String fileName = file.getOriginalFilename();
+            for (String c : Constant.PHOTO_NOT_ALLOWED_CHARS.split(",")) {
+                if (fileName.contains(c)) {
+                    throw new Exception("Filename is invalid");
+                }
+            }
             String extension = fileName.substring(fileName.lastIndexOf("."));
+            List<String> photoSuffixes = Arrays.asList(photoSuffix.split(";"));
+            if (!photoSuffixes.contains(extension.toLowerCase())) {
+                throw new Exception("Upload photo format is not acceptable");
+            }
+
+            if (!CommonUtil.isFileContentTypeValid(file)) throw new Exception("File content type is invalid");
+
             String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
 
             //上传文件到OBS
-            PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, file.getInputStream());
+            PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, inputStream);
             String objectUrl = putObjectResult.getObjectUrl();
 
             // 修改用户头像
@@ -183,7 +275,15 @@ public class OneidDao {
             String userJsonStr = objectMapper.writeValueAsString(map);
             user = updateUser(poolId, poolSecret, userId, userJsonStr);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    logger.error(e.getMessage());
+                }
+            }
         }
         return user;
     }
@@ -218,7 +318,7 @@ public class OneidDao {
             String userJsonStr = objectMapper.writeValueAsString(map);
             user = updateUser(poolId, poolSecret, userId, userJsonStr);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return user;
     }
@@ -253,8 +353,33 @@ public class OneidDao {
             String userJsonStr = objectMapper.writeValueAsString(map);
             user = updateUser(poolId, poolSecret, userId, userJsonStr);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error(e.getMessage());
         }
         return user;
     }
+
+    public Object modifyPassword(String poolId, String poolSecret, String account, 
+                                 String accountType, String oldPassword, String newPassword) {
+        Object ret = getUserWithPasswordCheck(poolId, poolSecret, account, accountType, oldPassword);
+        JSONObject user;
+        if (ret instanceof JSONObject) {
+            user = (JSONObject) ret;
+        } else {
+            return (String) ret;
+        }
+
+        String id = user.getString("id");
+        HashMap<String, String> map = new HashMap<>();
+        map.put("password", newPassword);
+        try {
+            String userJsonString = objectMapper.writeValueAsString(map);
+            user = updateUser(poolId, poolSecret, id, userJsonString);
+            if (user == null) return "密码不合法或重复";
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return e.getMessage();
+        }
+        return user;
+    }
+
 }
