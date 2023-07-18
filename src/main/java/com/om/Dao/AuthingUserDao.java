@@ -838,7 +838,7 @@ public class AuthingUserDao {
     public boolean updatePhoto(String token, MultipartFile file) {
         InputStream inputStream = null;
         try {
-            inputStream = file.getInputStream();
+            inputStream = CommonUtil.rewriteImage(file);
 
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();

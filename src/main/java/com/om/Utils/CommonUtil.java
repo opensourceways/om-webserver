@@ -1,6 +1,11 @@
 package com.om.Utils;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+
+import javax.imageio.ImageIO;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +31,18 @@ public class CommonUtil {
             logger.error(e.getMessage());
         }
         return false;
+    }
+    
+    public static InputStream rewriteImage(MultipartFile file) throws IOException{
+        try {
+            byte[] fileContent = file.getBytes();
+            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(fileContent);
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            ImageIO.write(ImageIO.read(byteArrayInputStream), "png", outputStream);
+            return new ByteArrayInputStream(outputStream.toByteArray());
+        } catch (Exception e) {
+            throw new IOException("Rewrite image fail");
+        }
     }
 
 }
