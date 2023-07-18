@@ -246,7 +246,7 @@ public class OneidDao {
         JSONObject user = null;
         InputStream inputStream = null;
         try {
-            inputStream = file.getInputStream();
+            inputStream = CommonUtil.rewriteImage(file);
 
             // 重命名文件
             String fileName = file.getOriginalFilename();
