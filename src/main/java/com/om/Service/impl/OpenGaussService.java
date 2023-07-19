@@ -942,6 +942,9 @@ public class OpenGaussService implements UserCenterServiceInter {
             return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
         }
         String property = env.getProperty("opengauss.app.urls");
+        if (StringUtils.isBlank(property)) {
+            return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
+        }
         String[] group = property.split(";");
         String urls = null;
         for (String appUrl : group) {
