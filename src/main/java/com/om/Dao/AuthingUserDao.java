@@ -50,10 +50,10 @@ import java.util.stream.Stream;
 public class AuthingUserDao {
     private static final Logger logger =  LoggerFactory.getLogger(AuthingUserDao.class);
     
-    @Value("${authing.userPoolId}")
+    @Value("${authing.userPoolId:default}")
     String userPoolId;
 
-    @Value("${authing.secret}")
+    @Value("${authing.secret:default}")
     String secret;
 
     @Value("${datastat.img.ak}")
@@ -68,37 +68,37 @@ public class AuthingUserDao {
     @Value("${datastat.img.bucket.name}")
     String datastatImgBucket;
 
-    @Value("${social.extIdpId.github}")
+    @Value("${social.extIdpId.github:default}")
     String socialExtIdpIdGithub;
 
-    @Value("${social.identifier.github}")
+    @Value("${social.identifier.github:default}")
     String socialIdentifierGithub;
 
-    @Value("${social.authorizationUrl.github}")
+    @Value("${social.authorizationUrl.github:default}")
     String socialAuthUrlGithub;
 
-    @Value("${enterprise.extIdpId.gitee}")
+    @Value("${enterprise.extIdpId.gitee:default}")
     String enterExtIdpIdGitee;
 
-    @Value("${enterprise.identifier.gitee}")
+    @Value("${enterprise.identifier.gitee:default}")
     String enterIdentifieGitee;
 
-    @Value("${enterprise.authorizationUrl.gitee}")
+    @Value("${enterprise.authorizationUrl.gitee:default}")
     String enterAuthUrlGitee;
 
-    @Value("${enterprise.extIdpId.openatom}")
+    @Value("${enterprise.extIdpId.openatom:default}")
     String enterExtIdpIdOpenatom;
 
-    @Value("${enterprise.identifier.openatom}")
+    @Value("${enterprise.identifier.openatom:default}")
     String enterIdentifieOpenatom;
 
-    @Value("${enterprise.authorizationUrl.openatom}")
+    @Value("${enterprise.authorizationUrl.openatom:default}")
     String enterAuthUrlOpenatom;
 
     @Value("${rsa.authing.privateKey}")
     String rsaAuthingPrivateKey;
 
-    @Value("${username.reserved}")
+    @Value("${username.reserved:default}")
     String usernameReserved;
 
     @Value("${datastat.img.default.photo}")
@@ -107,13 +107,13 @@ public class AuthingUserDao {
     @Value("${datastat.img.photo.suffix}")
     String photoSuffix;
 
-    @Value("${authing.api.host}")
+    @Value("${authing.api.host:default}")
     String authingApiHost;
 
-    @Value("${authing.api.hostv2}")
+    @Value("${authing.api.hostv2:default}")
     String authingApiHostV2;
 
-    @Value("${authing.api.hostv3}")
+    @Value("${authing.api.hostv3:default}")
     String authingApiHostV3;
 
     // -- temporary (解决gitee多身份源解绑问题) -- TODO

@@ -57,10 +57,10 @@ public class AuthingInterceptor implements HandlerInterceptor {
     @Autowired
     private Environment env;
 
-    @Value("${authing.token.base.password}")
+    @Value("${authing.token.base.password:default}")
     private String authingTokenBasePassword;
 
-    @Value("${rsa.authing.privateKey}")
+    @Value("${rsa.authing.privateKey:default}")
     private String rsaAuthingPrivateKey;
 
     @Value("${cookie.token.name}")
@@ -327,7 +327,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         // 刷新cookie
         int tokenExpire = Integer.parseInt(
                 env.getProperty("authing.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
-        String maxAgeTemp = env.getProperty("authing.cookie.max.age");
+        String maxAgeTemp = env.getProperty("authing.cookie.max.age", "-1");
         int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : tokenExpire;
         HttpClientUtils.setCookie(request, response, cookieTokenName, tokens[Constant.TOKEN_YG],
                 true, maxAge, "/", domain2secure);

@@ -88,7 +88,7 @@ public class QueryService {
             for (Object identity : identities) {
                 JSONObject identityObj = (JSONObject) identity;
                 String originConnId = identityObj.getJSONArray("originConnIds").get(0).toString();
-                if (!originConnId.equals(env.getProperty("enterprise.connId.gitee"))) continue;
+                if (!originConnId.equals(env.getProperty("enterprise.connId.gitee", ""))) continue;
                 giteeLogin = identityObj.getJSONObject("userInfoInIdp").getJSONObject("customData")
                         .getString("giteeLogin");
             }

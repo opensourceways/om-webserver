@@ -48,13 +48,13 @@ public class JwtTokenCreateService {
     @Autowired
     private Environment env;
 
-    @Value("${authing.token.expire.seconds}")
+    @Value("${authing.token.expire.seconds:default}")
     private String authingTokenExpireSeconds;
 
-    @Value("${authing.token.base.password}")
+    @Value("${authing.token.base.password:default}")
     private String authingTokenBasePassword;
 
-    @Value("${oidc.token.base.password}")
+    @Value("${oidc.token.base.password:default}")
     private String oidcTokenBasePassword;
 
     @Value("${rsa.authing.publicKey}")
@@ -117,7 +117,7 @@ public class JwtTokenCreateService {
         redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
 
         String perStr = "";
-        ArrayList<String> pers = authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
+        ArrayList<String> pers = authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode", ""));
         for (String per : pers) {
             perStr += per + ",";
         }
