@@ -179,15 +179,6 @@ public class AuthingController {
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/delete/user")
-    public ResponseEntity deleteUser(HttpServletRequest httpServletRequest,
-                                     HttpServletResponse servletResponse,
-                                     @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(httpServletRequest);
-        return service.deleteUser(httpServletRequest, servletResponse, token);
-    }
-
-    @AuthingUserToken
     @RequestMapping(value = "/sendcode")
     public ResponseEntity sendCode(@RequestParam(value = "account") String account,
                                    @RequestParam(value = "channel") String channel,
@@ -232,27 +223,6 @@ public class AuthingController {
         return service.bindAccount(servletRequest, servletResponse, token);
     }
 
-
-    @AuthingUserToken
-    @RequestMapping(value = "/conn/list")
-    public ResponseEntity linkConnList(@CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.linkConnList(token);
-    }
-
-    @AuthingUserToken
-    @RequestMapping(value = "/link/account")
-    public ResponseEntity linkAccount(@CookieValue(value = "_Y_G_", required = false) String token,
-                                      @RequestParam(value = "secondtoken") String secondtoken) {
-        return authingService.linkAccount(token, secondtoken);
-    }
-
-    @AuthingUserToken
-    @RequestMapping(value = "/unlink/account")
-    public ResponseEntity unLinkAccount(@CookieValue(value = "_Y_G_", required = false) String token,
-                                        @RequestParam(value = "platform") String platform) {
-        return authingService.unLinkAccount(token, platform);
-    }
-
     @AuthingUserToken
     @RequestMapping(value = "/update/baseInfo", method = RequestMethod.POST)
     public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest,
@@ -281,31 +251,6 @@ public class AuthingController {
             throws JsonProcessingException {
         String res = queryService.queryUserOwnertype(community, user, username);
         return res;
-    }
-
-    @RequestMapping(value = "/public/key", method = RequestMethod.GET)
-    public ResponseEntity getPublicKey(HttpServletRequest request) {
-        UserCenterServiceInter service = getServiceImpl(request);
-        return service.getPublicKey();
-    }
-
-    @AuthingUserToken
-    @RequestMapping(value = "/update/password", method = RequestMethod.POST)
-    public ResponseEntity updatePassword(HttpServletRequest request) {
-        UserCenterServiceInter service = getServiceImpl(request);
-        return service.updatePassword(request);
-    }
-
-    @RequestMapping(value = "/reset/password/verify", method = RequestMethod.POST)
-    public ResponseEntity resetPwdVerify(HttpServletRequest request) {
-        UserCenterServiceInter service = getServiceImpl(request);
-        return service.resetPwdVerify(request);
-    }
-
-    @RequestMapping(value = "/reset/password", method = RequestMethod.POST)
-    public ResponseEntity resetPwd(HttpServletRequest request) {
-        UserCenterServiceInter service = getServiceImpl(request);
-        return service.resetPwd(request);
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
