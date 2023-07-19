@@ -205,12 +205,6 @@ public class AuthingService implements UserCenterServiceInter {
         String code = (String) getBodyPara(body, "code");
         String appId = (String) getBodyPara(body, "client_id");
         String password = (String) getBodyPara(body, "password");
-        String acceptTerm = (String) getBodyPara(body, "accept_term");
-
-        // 校验是否同意隐私政策
-        if (acceptTerm == null || !Constant.CONSENT_ACCEPT_TERM.equals(acceptTerm)) {
-            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00062, null, null);
-        }
 
         // 校验appId
         if (authingUserDao.initAppClient(appId) == null) {
