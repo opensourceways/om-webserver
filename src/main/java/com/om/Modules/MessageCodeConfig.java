@@ -79,6 +79,7 @@ public enum MessageCodeConfig {
     E00059("E00059", "Password needs to be different from previous one", "新密码不能与原密码相同"),
     E00060("E00060", "Reset password fail", "重置密码失败"),
     E00061("E00061", "Password is not set", "密码未设置"),
+    E00062("E00062", "Not agree to accept term", "未同意隐私政策")
     ;
 
     private String code;
