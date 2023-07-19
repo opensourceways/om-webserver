@@ -125,7 +125,6 @@ public class OpenGaussService implements UserCenterServiceInter {
             String code = (String) getBodyPara(body, "code");
             String company = (String) getBodyPara(body, "company");
             String password = (String) getBodyPara(body, "password");
-            String acceptTerm = (String) getBodyPara(body, "accept_term");
 
             // 限制一分钟内失败次数
             String registerErrorCountKey = account + "registerCount";
@@ -133,11 +132,6 @@ public class OpenGaussService implements UserCenterServiceInter {
             int registerErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
             if (registerErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6")))
                 return result(HttpStatus.BAD_REQUEST, null, "请求过于频繁", null);
-
-            // 校验是否同意隐私政策
-            if (acceptTerm == null || !Constant.CONSENT_ACCEPT_TERM.equals(acceptTerm)) {
-                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00062, null, null);
-            }
                 
             HashMap<String, Object> userInfo = new HashMap<>();
             // 公司名校验
