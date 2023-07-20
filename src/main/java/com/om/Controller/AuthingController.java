@@ -50,32 +50,32 @@ public class AuthingController {
     @Autowired
     private CaptchaService captchaService;
 
-    @RequestMapping(value = "/captcha/get")
+    @RequestMapping(value = "/captcha/get", method = RequestMethod.POST)
     public ResponseModel captchaGet(@RequestBody CaptchaVO data, HttpServletRequest request) {
         data.setBrowserInfo(getRemoteId(request));
         return captchaService.get(data);
     }
 
-    @RequestMapping(value = "/captcha/check")
+    @RequestMapping(value = "/captcha/check", method = RequestMethod.POST)
     public ResponseModel captchaCheck(@RequestBody CaptchaVO data, HttpServletRequest request) {
         data.setBrowserInfo(getRemoteId(request));
         return captchaService.check(data);
     }
 
-    @RequestMapping(value = "/account/exists")
+    @RequestMapping(value = "/account/exists", method = RequestMethod.GET)
     public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.accountExists(servletRequest, servletResponse);
     }
 
-    @RequestMapping(value = {"/captcha/sendCode", "/v3/sendCode"})
+    @RequestMapping(value = {"/captcha/sendCode", "/v3/sendCode"}, method = RequestMethod.GET)
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
-    @RequestMapping(value = "/captcha/checkLogin")
+    @RequestMapping(value = "/captcha/checkLogin", method = RequestMethod.GET)
     public ResponseEntity captchaLogin(HttpServletRequest servletRequest) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.captchaLogin(servletRequest);
@@ -95,7 +95,7 @@ public class AuthingController {
         return service.login(servletRequest, servletResponse, verifyCaptcha((String) body.get("captchaVerification")));
     }
 
-    @RequestMapping(value = "/app/verify")
+    @RequestMapping(value = "/app/verify", method = RequestMethod.GET)
     public ResponseEntity appVerify(HttpServletRequest servletRequest,
                                     @RequestParam(value = "client_id") String clientId,
                                     @RequestParam(value = "redirect_uri") String redirect) {
@@ -124,13 +124,13 @@ public class AuthingController {
         return authingService.oidcToken(servletRequest);
     }
 
-    @RequestMapping(value = "/oidc/user")
+    @RequestMapping(value = "/oidc/user", method = RequestMethod.GET)
     public ResponseEntity oidcUser(HttpServletRequest servletRequest) {
         return authingService.userByAccessToken(servletRequest);
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/logout")
+    @RequestMapping(value = "/logout", method = RequestMethod.GET)
     public ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                  @CookieValue(value = "_Y_G_", required = false) String token) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
@@ -138,7 +138,7 @@ public class AuthingController {
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/user/refresh")
+    @RequestMapping(value = "/user/refresh", method = RequestMethod.GET)
     public ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                       @CookieValue(value = "_Y_G_", required = false) String token) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
@@ -146,20 +146,20 @@ public class AuthingController {
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/user/permission")
+    @RequestMapping(value = "/user/permission", method = RequestMethod.GET)
     public ResponseEntity getUser(@RequestParam(value = "community") String community,
                                   @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.authingUserPermission(community, token);
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/user/permissions")
+    @RequestMapping(value = "/user/permissions", method = RequestMethod.GET)
     public ResponseEntity userPermissions(@RequestParam(value = "community") String community,
                                           @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.userPermissions(community, token);
     }
 
-    @RequestMapping(value = "/token/apply")
+    @RequestMapping(value = "/token/apply", method = RequestMethod.GET)
     public ResponseEntity tokenApply(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
                                      @RequestParam(value = "community") String community,
@@ -170,7 +170,7 @@ public class AuthingController {
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/personal/center/user")
+    @RequestMapping(value = "/personal/center/user", method = RequestMethod.GET)
     public ResponseEntity userInfo(HttpServletRequest servletRequest,
                                    HttpServletResponse servletResponse,
                                    @CookieValue(value = "_Y_G_", required = false) String token) {
@@ -179,7 +179,7 @@ public class AuthingController {
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/sendcode")
+    @RequestMapping(value = "/sendcode", method = RequestMethod.GET)
     public ResponseEntity sendCode(@RequestParam(value = "account") String account,
                                    @RequestParam(value = "channel") String channel,
                                    @CookieValue(value = "_Y_G_", required = false) String token,
@@ -188,7 +188,7 @@ public class AuthingController {
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/sendcode/unbind")
+    @RequestMapping(value = "/sendcode/unbind", method = RequestMethod.GET)
     public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest,
                                          HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
@@ -197,7 +197,7 @@ public class AuthingController {
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/update/account")
+    @RequestMapping(value = "/update/account", method = RequestMethod.GET)
     public ResponseEntity updateAccount(HttpServletRequest servletRequest,
                                         HttpServletResponse servletResponse,
                                         @CookieValue(value = "_Y_G_", required = false) String token) {
@@ -206,7 +206,7 @@ public class AuthingController {
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/unbind/account")
+    @RequestMapping(value = "/unbind/account", method = RequestMethod.GET)
     public ResponseEntity unbindAccount(HttpServletRequest servletRequest,
                                         HttpServletResponse servletResponse,
                                         @CookieValue(value = "_Y_G_", required = false) String token) {
@@ -215,7 +215,7 @@ public class AuthingController {
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/bind/account")
+    @RequestMapping(value = "/bind/account", method = RequestMethod.GET)
     public ResponseEntity bindAccount(HttpServletRequest servletRequest,
                                       HttpServletResponse servletResponse,
                                       @CookieValue(value = "_Y_G_", required = false) String token) {
@@ -244,7 +244,7 @@ public class AuthingController {
     }
 
     @ManageToken
-    @RequestMapping("/user/ownertype")
+    @RequestMapping(value = "/user/ownertype", method = RequestMethod.GET)
     public String queryUserOwnerType(@RequestParam(value = "community") String community,
                                      @RequestParam(value = "user", required = false) String user,
                                      @RequestParam(value = "username", required = false) String username)
