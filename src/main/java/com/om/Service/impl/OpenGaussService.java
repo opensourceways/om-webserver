@@ -118,16 +118,16 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
-        String community = (String) getBodyPara(body, "community");
-        String appId = (String) getBodyPara(body, "client_id");
-        String userName = (String) getBodyPara(body, "username");
-        String account = (String) getBodyPara(body, "account");
-        String code = (String) getBodyPara(body, "code");
-        String company = (String) getBodyPara(body, "company");
         String password = "";
-
         try {
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+            String community = (String) getBodyPara(body, "community");
+            String appId = (String) getBodyPara(body, "client_id");
+            String userName = (String) getBodyPara(body, "username");
+            String account = (String) getBodyPara(body, "account");
+            String code = (String) getBodyPara(body, "code");
+            String company = (String) getBodyPara(body, "company");
+
             // 限制一分钟内失败次数
             String registerErrorCountKey = account + "registerCount";
             Object v = redisDao.get(registerErrorCountKey);
@@ -186,6 +186,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                     password = Base64.encodeBase64String(Hex.decodeHex(password));
                 } catch (Exception e) {
                     logger.error("Hex to Base64 fail. " + e.getMessage());
+                    SensitiveUtil.stringClear(password);
                     return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
                 }
                 userInfo.put("password", password);
@@ -301,7 +302,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         String appId = (String) getBodyPara(body, "client_id");
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
-        LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account, ip);
+        LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
 
         // 限制一分钟登录失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
@@ -335,6 +336,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                 password = Base64.encodeBase64String(Hex.decodeHex(password));
             } catch (Exception e) {
                 logger.error("Hex to Base64 fail. " + e.getMessage());
+                SensitiveUtil.stringClear(password);
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
         }
@@ -818,6 +820,8 @@ public class OpenGaussService implements UserCenterServiceInter {
 
         // verify password
         if (StringUtils.isBlank(oldPassword) || StringUtils.isBlank(newPassword)) {
+            SensitiveUtil.stringClear(oldPassword);
+            SensitiveUtil.stringClear(newPassword);
             return result(HttpStatus.NOT_FOUND, null, "请输入密码", null);
         }
 
@@ -901,13 +905,14 @@ public class OpenGaussService implements UserCenterServiceInter {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
         String appId = (String) getBodyPara(body, "client_id");
         String token = (String) getBodyPara(body, "pwd_reset_token");
+        String password = (String) getBodyPara(body, "new_pwd");
 
         // app verification
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null) {
+            SensitiveUtil.stringClear(password);
             return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
         }
-
-        String password = (String) getBodyPara(body, "new_pwd");
+      
         ResponseEntity msg = result(HttpStatus.BAD_REQUEST, null, "reset password fail", null);
 
         try {
@@ -917,6 +922,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             String key4Token = account + Constant.RESET_PASSWORD_SUFFIX;
             Object tokenInRedis = redisDao.get(key4Token);
             if (tokenInRedis == null || tokenInRedis.toString().endsWith("_used")) {
+                SensitiveUtil.stringClear(password);
                 return result(HttpStatus.BAD_REQUEST, null, "reset password token expire", null);
             }
             
@@ -925,6 +931,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             JSONObject user = oneidDao.getUser(poolId, poolSecret, account, accountType);
             if (user == null) {
                 redisDao.updateValue(key4Token, tokenInRedis.toString() + "_used", 0);
+                SensitiveUtil.stringClear(password);
                 return result(HttpStatus.BAD_REQUEST, null, "用户不存在", null);
             }
             String userId = user.getString("id");
