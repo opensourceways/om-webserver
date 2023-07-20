@@ -25,6 +25,7 @@ import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Modules.ServerErrorException;
 import com.om.Result.Constant;
+import com.om.Utils.CommonUtil;
 import com.om.Utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
@@ -37,6 +38,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
+import java.io.IOException;
+import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -241,23 +244,17 @@ public class AuthingUserDao {
     }
 
     public Object loginByEmailCode(Application app, String email, String code) throws ServerErrorException {
-        if (!isUserExists(app.getId(), email, "email")) {
-            return MessageCodeConfig.E00034.getMsgZh();
-        }
-
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"}," +
+                "\"options\": {\"autoRegister\": false}," +
                 "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", email, code, app.getId(), app.getSecret());
         return login(app.getId(), body);
     }
 
     public Object loginByPhoneCode(Application app, String phone, String code) throws ServerErrorException {
-        if (!isUserExists(app.getId(), phone, "phone")) {
-            return MessageCodeConfig.E00034.getMsgZh();
-        }
-
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"}," +
+                "\"options\": {\"autoRegister\": false}," +
                 "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, app.getId(), app.getSecret());
         return login(app.getId(), body);
     }
@@ -463,7 +460,7 @@ public class AuthingUserDao {
             }
             return pers;
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+//            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return pers;
         }
     }
@@ -619,6 +616,31 @@ public class AuthingUserDao {
             return e.getMessage();
         }
         return "unbind success";
+    }
+
+    public AuthenticationClient initUserAuthentication(String appId, User user) {
+        initAppClient(appId);
+        AuthenticationClient authentication = appClientMap.get(appId);
+        authentication.setCurrentUser(user);
+        return authentication;
+    }
+
+    public String bindAccount(AuthenticationClient authentication, String account, String code, String type) {
+        try {
+            switch (type.toLowerCase()) {
+                case "email":
+                    authentication.bindEmail(account, code).execute();
+                    break;
+                case "phone":
+                    authentication.bindPhone(account, code).execute();
+                    break;
+                default:
+                    return "false";
+            }
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+        return "true";
     }
 
     public String bindAccount(String token, String account, String code, String type) {
@@ -814,7 +836,10 @@ public class AuthingUserDao {
     }
 
     public boolean updatePhoto(String token, MultipartFile file) {
+        InputStream inputStream = null;
         try {
+            inputStream = file.getInputStream();
+
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User user = (User) appUserInfo[1];
@@ -825,14 +850,22 @@ public class AuthingUserDao {
 
             // 重命名文件
             String fileName = file.getOriginalFilename();
+            for (String c : Constant.PHOTO_NOT_ALLOWED_CHARS.split(",")) {
+                if (fileName.contains(c)) {
+                    throw new Exception("Filename is invalid");
+                }
+            }
             String extension = fileName.substring(fileName.lastIndexOf("."));
             if (!photoSuffixes.contains(extension.toLowerCase())) {
                 return false;
             }
+
+            if (!CommonUtil.isFileContentTypeValid(file)) throw new Exception("File content type is invalid");
+
             String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
 
             //上传文件到OBS
-            PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, file.getInputStream());
+            PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, inputStream);
             String objectUrl = putObjectResult.getObjectUrl();
 
             // 修改用户头像
@@ -844,6 +877,14 @@ public class AuthingUserDao {
         } catch (Exception ex) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), ex);
             return false;
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    logger.error(e.getMessage());
+                }
+            }
         }
     }
 

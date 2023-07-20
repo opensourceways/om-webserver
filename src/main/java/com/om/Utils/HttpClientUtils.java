@@ -13,7 +13,9 @@ package com.om.Utils;
 
 import java.io.BufferedReader;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -134,6 +136,7 @@ public class HttpClientUtils implements Serializable {
                 body = objectMapper.convertValue(objectMapper.readTree(wholeStr.toString()),
                         new TypeReference<Map<String, Object>>() {
                         });
+                saveUserIdToAttr(request, body);
             }
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
@@ -141,10 +144,14 @@ public class HttpClientUtils implements Serializable {
         return body;
     }
 
-    public static String getRemoteIp(HttpServletRequest request) {
-        String ip = request.getHeader("x-forwarded-for");
-        return (StringUtils.isBlank(ip) || "unknown".equalsIgnoreCase(ip))
-                ? request.getRemoteAddr()
-                : ip;
+    private static void saveUserIdToAttr(HttpServletRequest request, Map<String, Object> body) {
+        String[] idKeyList = {"username"};
+        List<String> idKey = Arrays.asList(idKeyList);
+        for (Map.Entry<String, Object> entry : body.entrySet()) {
+            if (idKey.contains(entry.getKey())) {
+                request.setAttribute(entry.getKey(), entry.getValue());
+                return;
+            }
+        }
     }
 }

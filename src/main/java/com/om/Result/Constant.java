@@ -53,6 +53,7 @@ public class Constant {
     public static final String CHANNEL_LOGIN = "channel_login";
     public static final String CHANNEL_RESET_PASSWORD = "channel_reset_password";
 
+    public static final int RANDOM_DEFAULT_LENGTH = 32;
     public static final String NEED_CAPTCHA_VERIFICATION = "need_captcha_verification";
     public static final String NEED_CAPTCHA_VERIFICATION_LIMIT = "3";
     public static final String LOGIN_ERROR_LIMIT = "6";
@@ -64,12 +65,15 @@ public class Constant {
     public static final String ID_TOKEN_PREFIX = "idToken_";
     public static final String TOKEN_EXPIRES = "token expires";
     public static final int TOKEN_YG = 0;
+    public static final String TOKEN_Y_G_ = "_Y_G_";
     public static final int TOKEN_UT = 1;
+    public static final String TOKEN_U_T_ = "_U_T_";
  
     public static final String ONEID_USER_C_PATH = "/composite-user";
     public static final String ONEID_USER_URD_PATH = "/composite-user/{account}";
     public static final String ONEID_CHECK_PASSWORD_PATH = "/auth/check-password/{account}";
     public static final String ONEID_TOKEN_PATH = "/auth/get-management-token";
 
+    public static final String PHOTO_NOT_ALLOWED_CHARS = "\\,/,:,*,?,\",<,>,|";
 }
 

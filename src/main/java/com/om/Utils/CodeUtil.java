@@ -23,6 +23,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.stereotype.Component;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
@@ -39,7 +40,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
 
-
+@Component
 public class CodeUtil {
     private static final Logger logger =  LoggerFactory.getLogger(CodeUtil.class);
 
@@ -229,14 +230,14 @@ public class CodeUtil {
      * @param appSecret APP_Secret
      * @return
      */
-    public String buildWsseHeader(String appKey, String appSecret) {
+    public String buildWsseHeader(String appKey, String appSecret) throws NoSuchAlgorithmException {
         if (null == appKey || null == appSecret || appKey.isEmpty() || appSecret.isEmpty()) {
-            System.out.println("buildWsseHeader(): appKey or appSecret is null.");
+            logger.error("buildWsseHeader(): appKey or appSecret is null.");
             return null;
         }
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
         String time = sdf.format(new Date()); //Created
-        String nonce = UUID.randomUUID().toString().replace("-", ""); //Nonce
+        String nonce = randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH); //Nonce
 
         MessageDigest md;
         byte[] passwordDigest = null;
@@ -248,6 +249,7 @@ public class CodeUtil {
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
+
         // PasswordDigest
         String passwordDigestBase64Str = Base64.getEncoder().encodeToString(passwordDigest);
 
@@ -277,5 +279,19 @@ public class CodeUtil {
     public String randomStrBuilder(int strLength) throws NoSuchAlgorithmException {
         SecureRandom random = SecureRandom.getInstanceStrong();
         return new BigInteger(160, random).toString(strLength);
+    }
+
+    public String interceptor(String channel, boolean isUserExist) {
+        if ((Constant.CHANNEL_REGISTER.equals(channel) || Constant.CHANNEL_REGISTER_BY_PASSWORD.equals(channel))
+        && isUserExist) {
+            return MessageCodeConfig.E00057.getMsgZh();
+        }
+
+        if ((Constant.CHANNEL_LOGIN.equals(channel) || Constant.CHANNEL_RESET_PASSWORD.equals(channel))
+                && !isUserExist) {
+            return MessageCodeConfig.E00034.getMsgZh();
+        }
+
+        return Constant.SUCCESS;
     }
 }

@@ -19,6 +19,8 @@ import javax.servlet.http.HttpServletResponse;
 import java.util.Map;
 
 public interface UserCenterServiceInter {
+    ResponseEntity captchaLogin(HttpServletRequest servletRequest);
+
     ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
     ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse, boolean isSuccess);
@@ -54,4 +56,6 @@ public interface UserCenterServiceInter {
     ResponseEntity resetPwdVerify(HttpServletRequest servletRequest);
 
     ResponseEntity resetPwd(HttpServletRequest servletRequest);
+
+    ResponseEntity appVerify(String appId, String redirect);
 }

@@ -29,6 +29,9 @@ import com.om.Utils.LimitUtil;
 import com.om.Utils.RSAUtil;
 import com.om.Utils.SensitiveUtil;
 
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -46,6 +49,9 @@ import javax.crypto.NoSuchPaddingException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.net.URL;
+import java.net.URLDecoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -153,10 +159,6 @@ public class OpenGaussService implements UserCenterServiceInter {
             if (accountType.equals("请输入正确的手机号或者邮箱")) {
                 return result(HttpStatus.BAD_REQUEST, null, accountType, null);
             }
-            if (oneidDao.isUserExists(poolId, poolSecret, account, accountType)) {
-                return result(HttpStatus.BAD_REQUEST, null, "该账号已注册", null);
-            }
-            userInfo.put(accountType, account);
 
             // 验证码校验
             String redisKey =
@@ -170,9 +172,22 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
             }
 
+            // 校验用户是否已经存在
+            if (oneidDao.isUserExists(poolId, poolSecret, account, accountType)) {
+                redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+                return result(HttpStatus.BAD_REQUEST, null, "该账号已注册", null);
+            }
+            userInfo.put(accountType, account);
+
             // 密码校验
             password = (String) getBodyPara(body, "password");
             if (!StringUtils.isBlank(password)) {
+                try {
+                    password = Base64.encodeBase64String(Hex.decodeHex(password));
+                } catch (Exception e) {
+                    logger.error("Hex to Base64 fail. " + e.getMessage());
+                    return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+                }
                 userInfo.put("password", password);
             }
             
@@ -254,7 +269,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         String community = servletRequest.getParameter("community");
         String appId = servletRequest.getParameter("client_id");
         String userName = servletRequest.getParameter("username");
-        String account = servletRequest.getParameter("account");
+        String account = null;
 
         // app校验
         if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
@@ -272,6 +287,13 @@ public class OpenGaussService implements UserCenterServiceInter {
     }
 
     @Override
+    public ResponseEntity captchaLogin(HttpServletRequest request) {
+        String account = request.getParameter("account");
+        LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
+        return result(HttpStatus.OK, null, Constant.SUCCESS, limitUtil.isNeedCaptcha(failCounter));
+    }
+
+    @Override
     public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                 boolean isSuccess) {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
@@ -279,7 +301,6 @@ public class OpenGaussService implements UserCenterServiceInter {
         String appId = (String) getBodyPara(body, "client_id");
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
-        String ip = HttpClientUtils.getRemoteIp(servletRequest);
         LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account, ip);
 
         // 限制一分钟登录失败次数
@@ -310,6 +331,12 @@ public class OpenGaussService implements UserCenterServiceInter {
         String codeCheck = checkCode(code, codeTemp);
         if (!StringUtils.isBlank(password)) {
             codeCheck = Constant.SUCCESS;
+            try {
+                password = Base64.encodeBase64String(Hex.decodeHex(password));
+            } catch (Exception e) {
+                logger.error("Hex to Base64 fail. " + e.getMessage());
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+            }
         }
         if (!codeCheck.equals(Constant.SUCCESS)) {
             SensitiveUtil.stringClear(password);
@@ -336,6 +363,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             user = (JSONObject) msg;
             idToken = user.getString("id_token");
         } else {
+            redisDao.updateValue(redisKey, codeTemp + "_used", 0);
             SensitiveUtil.stringClear(password);
             return result(HttpStatus.BAD_REQUEST, null, (String) msg, limitUtil.loginFail(failCounter));
         }
@@ -847,6 +875,14 @@ public class OpenGaussService implements UserCenterServiceInter {
         // remove restiction when code correct
         redisDao.remove(resetErrorCountKey);
 
+        // check if user exist
+        String accountType = getAccountType(account);
+        JSONObject user = oneidDao.getUser(poolId, poolSecret, account, accountType);
+        if (user == null) {
+            redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+            return result(HttpStatus.BAD_REQUEST, null, "用户不存在", null);
+        }
+
         // generate token
         long codeExpire = Long.parseLong(env.getProperty("resetPwd.token.limit.seconds", "300"));
         String token = jwtTokenCreateService.resetPasswordToken(account, codeExpire);
@@ -887,8 +923,14 @@ public class OpenGaussService implements UserCenterServiceInter {
             // reset password
             String accountType = getAccountType(account);
             JSONObject user = oneidDao.getUser(poolId, poolSecret, account, accountType);
+            if (user == null) {
+                redisDao.updateValue(key4Token, tokenInRedis.toString() + "_used", 0);
+                return result(HttpStatus.BAD_REQUEST, null, "用户不存在", null);
+            }
             String userId = user.getString("id");
             HashMap<String, String> map = new HashMap<>();
+
+            password = Base64.encodeBase64String(Hex.decodeHex(password));
             map.put("password", password);
             String userJsonString = objectMapper.writeValueAsString(map);
             user = oneidDao.updateUser(poolId, poolSecret, userId, userJsonString);
@@ -903,6 +945,44 @@ public class OpenGaussService implements UserCenterServiceInter {
         }
         SensitiveUtil.stringClear(password);
         return msg;
+    }
+
+    @Override
+    public ResponseEntity appVerify(String appId, String redirect) {
+        if (StringUtils.isBlank(appId) || StringUtils.isBlank(redirect)) {
+            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        }
+        String property = env.getProperty("opengauss.app.urls");
+        String[] group = property.split(";");
+        String urls = null;
+        for (String appUrl : group) {
+            String[] pair = appUrl.split(":");
+            if (pair.length >= 2 && appId.equals(pair[0])) {
+                urls = pair[1];
+            }
+        }
+
+        List<String> uris = new ArrayList<>();
+        if (!StringUtils.isBlank(urls)) uris = Arrays.asList(urls.split(","));
+        for (String uri : uris) {
+            if (uri.endsWith("*") && redirect.startsWith(uri.substring(0, uri.length() - 1)))
+                return result(HttpStatus.OK, null, "success", null);
+            else if (redirect.equals(uri) || getHostFromUrl(redirect).endsWith(uri))
+                return result(HttpStatus.OK, null, "success", null);
+        }
+        return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
+    }
+
+    private String getHostFromUrl(String link) {
+        URL url;
+        String host = "";
+        try {
+            url = new URL(URLDecoder.decode(link, "UTF-8"));
+            host = url.getHost();
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
+        return host;
     }
 
     private String getAccountType(String account) {

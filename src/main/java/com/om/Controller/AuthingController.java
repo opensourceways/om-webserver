@@ -75,6 +75,12 @@ public class AuthingController {
         return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
+    @RequestMapping(value = "/captcha/checkLogin")
+    public ResponseEntity captchaLogin(HttpServletRequest servletRequest) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.captchaLogin(servletRequest);
+    }
+
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
@@ -84,15 +90,17 @@ public class AuthingController {
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity login(HttpServletRequest servletRequest,
                                 HttpServletResponse servletResponse,
-                                @RequestParam(value = "captchaVerification", required = false) String captchaVerify) {
+                                @RequestBody Map<String, Object> body) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.login(servletRequest, servletResponse, verifyCaptcha(captchaVerify));
+        return service.login(servletRequest, servletResponse, verifyCaptcha((String) body.get("captchaVerification")));
     }
 
     @RequestMapping(value = "/app/verify")
-    public ResponseEntity appVerify(@RequestParam(value = "client_id") String clientId,
+    public ResponseEntity appVerify(HttpServletRequest servletRequest,
+                                    @RequestParam(value = "client_id") String clientId,
                                     @RequestParam(value = "redirect_uri") String redirect) {
-        return authingService.appVerify(clientId, redirect);
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.appVerify(clientId, redirect);
     }
 
     @AuthingUserToken

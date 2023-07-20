@@ -17,8 +17,11 @@ import com.auth0.jwt.interfaces.Claim;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
+import com.om.Result.Constant;
+import com.om.Utils.CodeUtil;
 import com.om.Utils.RSAUtil;
 import com.om.Vo.TokenUser;
+import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,10 +35,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.security.interfaces.RSAPublicKey;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Date;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class JwtTokenCreateService {
@@ -44,6 +44,9 @@ public class JwtTokenCreateService {
 
     @Autowired
     AuthingUserDao authingUserDao;
+
+    @Autowired
+    CodeUtil codeUtil;
 
     @Autowired
     private Environment env;
@@ -92,6 +95,7 @@ public class JwtTokenCreateService {
                 .sign(Algorithm.HMAC256(user.getPassword() + basePassword));
     }
 
+    @SneakyThrows
     public String[] authingUserToken(String appId, String userId, String username,
                                      String permission, String inputPermission, String idToken) {
         // 过期时间
@@ -112,6 +116,7 @@ public class JwtTokenCreateService {
                 .withAudience(username) //谁接受签名
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(headTokenExpireAt) //过期时间
+                .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .sign(Algorithm.HMAC256(authingTokenBasePassword));
         String verifyToken = DigestUtils.md5DigestAsHex(headToken.getBytes());
         redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
@@ -128,6 +133,7 @@ public class JwtTokenCreateService {
                 .withAudience(userId) //谁接受签名
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(expireAt) //过期时间
+                .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .withClaim("permission", permissionStr)
                 .withClaim("inputPermission", inputPermission)
                 .withClaim("verifyToken", verifyToken)
@@ -154,7 +160,8 @@ public class JwtTokenCreateService {
                 .decode(claimMap.get("permission").asString().getBytes()));
 
         // 生成新的token和headToken
-        String username = JWT.decode(headerJwtToken).getAudience().get(0);
+        List<String> audience = JWT.decode(headerJwtToken).getAudience();
+        String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
         return authingUserToken(appId, userId, username, permission, inputPermission, idToken);
     }
 

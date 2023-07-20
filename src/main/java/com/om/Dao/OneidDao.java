@@ -18,6 +18,7 @@ import com.mashape.unirest.http.Unirest;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Result.Constant;
+import com.om.Utils.CommonUtil;
 
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONObject;
@@ -29,7 +30,11 @@ import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
 
 import javax.annotation.PostConstruct;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 @Repository
@@ -51,6 +56,9 @@ public class OneidDao {
 
     @Value("${datastat.img.bucket.name}")
     String datastatImgBucket;
+
+    @Value("${datastat.img.photo.suffix}")
+    String photoSuffix;
 
     @Autowired
     private RedisDao redisDao;
@@ -236,14 +244,29 @@ public class OneidDao {
 
     public JSONObject updatePhoto(String poolId, String poolSecret, String userId, MultipartFile file) {
         JSONObject user = null;
+        InputStream inputStream = null;
         try {
+            inputStream = file.getInputStream();
+
             // 重命名文件
             String fileName = file.getOriginalFilename();
+            for (String c : Constant.PHOTO_NOT_ALLOWED_CHARS.split(",")) {
+                if (fileName.contains(c)) {
+                    throw new Exception("Filename is invalid");
+                }
+            }
             String extension = fileName.substring(fileName.lastIndexOf("."));
+            List<String> photoSuffixes = Arrays.asList(photoSuffix.split(";"));
+            if (!photoSuffixes.contains(extension.toLowerCase())) {
+                throw new Exception("Upload photo format is not acceptable");
+            }
+
+            if (!CommonUtil.isFileContentTypeValid(file)) throw new Exception("File content type is invalid");
+
             String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
 
             //上传文件到OBS
-            PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, file.getInputStream());
+            PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, inputStream);
             String objectUrl = putObjectResult.getObjectUrl();
 
             // 修改用户头像
@@ -253,6 +276,14 @@ public class OneidDao {
             user = updateUser(poolId, poolSecret, userId, userJsonStr);
         } catch (Exception e) {
             logger.error(e.getMessage());
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    logger.error(e.getMessage());
+                }
+            }
         }
         return user;
     }

@@ -13,6 +13,8 @@ package com.om.Service;
 
 import cn.authing.core.types.Application;
 import cn.authing.core.types.User;
+
+import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -31,6 +33,7 @@ import com.om.Utils.LimitUtil;
 import com.om.Utils.RSAUtil;
 import com.om.Utils.SensitiveUtil;
 
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -44,6 +47,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.HtmlUtils;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
@@ -114,7 +118,7 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         String userName = servletRequest.getParameter("username");
-        String account = servletRequest.getParameter("account");
+        String account = null;
         String appId = servletRequest.getParameter("client_id");
 
         // 校验appId
@@ -171,6 +175,10 @@ public class AuthingService implements UserCenterServiceInter {
         }
 
         String accountType = getAccountType(account);
+        if (!accountType.equals(Constant.EMAIL_TYPE) && !accountType.equals(Constant.PHONE_TYPE)) {
+            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        }
+
         String msg = "";
         if (accountType.equals(Constant.EMAIL_TYPE)) {
             msg = channel.equalsIgnoreCase(Constant.CHANNEL_REGISTER_BY_PASSWORD)
@@ -213,7 +221,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
 
             // 邮箱 OR 手机号校验
-            accountType = checkPhoneAndEmail(appId, account);
+            accountType = getAccountType(account);
             if (!accountType.equals(Constant.EMAIL_TYPE) && !accountType.equals(Constant.PHONE_TYPE)) {
                 return result(HttpStatus.BAD_REQUEST, null, accountType, null);
             }
@@ -235,6 +243,13 @@ public class AuthingService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, null);
             }
             // 密码登录
+            try {
+                password = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(password));
+            } catch (Exception e) {
+                logger.error("Hex to Base64 fail. " + e.getMessage());
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+            }
+
             if (accountType.equals(Constant.EMAIL_TYPE)) {
                 msg = authingUserDao.registerByEmailPwd(appId, account, password, username);
             } else {
@@ -259,6 +274,13 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     @Override
+    public ResponseEntity captchaLogin(HttpServletRequest request) {
+        String account = request.getParameter("account");
+        LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
+        return result(HttpStatus.OK, Constant.SUCCESS, limitUtil.isNeedCaptcha(failCounter));
+    }
+
+    @Override
     public ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                 boolean isSuccess) {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
@@ -266,8 +288,7 @@ public class AuthingService implements UserCenterServiceInter {
         String permission = (String) getBodyPara(body, "permission");
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
-        String ip = HttpClientUtils.getRemoteIp(servletRequest);
-        LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account, ip);
+        LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
 
         // 限制一分钟登录失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
@@ -284,6 +305,15 @@ public class AuthingService implements UserCenterServiceInter {
         }
 
         String password = (String) getBodyPara(body, "password");
+
+        if (StringUtils.isNotBlank(password)) {
+            try {
+                password = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(password));
+            } catch (Exception e) {
+                logger.error("Hex to Base64 fail. " + e.getMessage());
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+            }
+        }
 
         // 登录成功返回用户token
         Object loginRes = login(appId, account, code, password);
@@ -326,6 +356,7 @@ public class AuthingService implements UserCenterServiceInter {
         return result(HttpStatus.OK, "success", userData);
     }
 
+    @Override
     public ResponseEntity appVerify(String appId, String redirect) {
         List<String> uris = authingUserDao.getAppRedirectUris(appId);
         for (String uri : uris) {
@@ -553,7 +584,8 @@ public class AuthingService implements UserCenterServiceInter {
             res.put("data", userData);
             res.put("msg", "OK");
             res.putAll(userData);
-            return new ResponseEntity<>(res, HttpStatus.OK);
+            ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(res, HttpStatus.OK);
+            return responseEntity;
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
@@ -1044,6 +1076,7 @@ public class AuthingService implements UserCenterServiceInter {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
         String pwdResetToken = (String) getBodyPara(body, "pwd_reset_token");
         String newPwd = (String) getBodyPara(body, "new_pwd");
+        newPwd = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(newPwd));
         try {
             String resetMsg = authingUserDao.resetPwd(pwdResetToken, newPwd);
             if (resetMsg.equals(Constant.SUCCESS)) {
@@ -1170,7 +1203,8 @@ public class AuthingService implements UserCenterServiceInter {
         res.put("code", status.value());
         res.put("data", data);
         res.put("msg", msg);
-        return new ResponseEntity<>(res, status);
+        ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), status);
+        return responseEntity;
     }
 
     private ResponseEntity resultOidc(HttpStatus status, String msg, Object body) {
@@ -1180,14 +1214,15 @@ public class AuthingService implements UserCenterServiceInter {
         res.put("message", msg);
         if (body != null)
             res.put("body", body);
-        return new ResponseEntity<>(res, status);
+        ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), status);
+        return responseEntity;
     }
 
-    private ResponseEntity result(HttpStatus status, MessageCodeConfig msgCode, String msg, Object data) {
+    public ResponseEntity result(HttpStatus status, MessageCodeConfig msgCode, String msg, Object data) {
         return result.setResult(status, msgCode, msg, data, error2code);
     }
 
-    private ResponseEntity message(String res) {
+    public ResponseEntity message(String res) {
         switch (res) {
             case "true":
                 return result(HttpStatus.OK, "success", null);
@@ -1210,7 +1245,7 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-    private String getAccountType(String account) {
+    public String getAccountType(String account) {
         String accountType;
         if (account.matches(Constant.EMAILREGEX))
             accountType = "email";
@@ -1333,7 +1368,8 @@ public class AuthingService implements UserCenterServiceInter {
 
 
             redisDao.remove(code);
-            return new ResponseEntity(tokens, HttpStatus.OK);
+            ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(tokens)), HashMap.class), HttpStatus.OK);
+            return responseEntity;
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             redisDao.remove(code);
@@ -1413,7 +1449,8 @@ public class AuthingService implements UserCenterServiceInter {
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(tokens);
             redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
 
-            return new ResponseEntity(tokens, HttpStatus.OK);
+            ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(tokens)), HashMap.class), HttpStatus.OK);
+            return responseEntity;
         } catch (Exception e) {
             logger.error(e.getMessage());
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
@@ -1470,7 +1507,8 @@ public class AuthingService implements UserCenterServiceInter {
             redisDao.remove(refreshTokenKey);
             redisDao.set(DigestUtils.md5DigestAsHex(accessToken.getBytes()), accessToken, accessTokenExpire);
 
-            return new ResponseEntity(userTokenMap, HttpStatus.OK);
+            ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(userTokenMap)), HashMap.class), HttpStatus.OK);
+            return responseEntity;
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
