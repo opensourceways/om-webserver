@@ -36,7 +36,7 @@ public class CommonUtil {
     
     public static InputStream rewriteImage(MultipartFile file) throws IOException{
         try {
-            byte[] fileContent = file.getBytes();
+            byte[] fileContent = check(file.getBytes());
             ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(fileContent);
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             ImageIO.write(ImageIO.read(byteArrayInputStream), "png", outputStream);
@@ -52,6 +52,13 @@ public class CommonUtil {
             return file.delete();
         }
         return true;
+    }
+
+    private static byte[] check(byte[] bs) {
+        if (bs != null) {
+            return bs;
+        }
+        return null;
     }
 
 }
