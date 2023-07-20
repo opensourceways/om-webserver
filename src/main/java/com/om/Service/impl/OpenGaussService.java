@@ -132,7 +132,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             int registerErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
             if (registerErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6")))
                 return result(HttpStatus.BAD_REQUEST, null, "请求过于频繁", null);
-
+                
             HashMap<String, Object> userInfo = new HashMap<>();
             // 公司名校验
             if (company == null || !company.matches(Constant.COMPANYNAMEREGEX))
@@ -936,6 +936,9 @@ public class OpenGaussService implements UserCenterServiceInter {
             return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
         }
         String property = env.getProperty("opengauss.app.urls");
+        if (StringUtils.isBlank(property)) {
+            return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
+        }
         String[] group = property.split(";");
         String urls = null;
         for (String appUrl : group) {
