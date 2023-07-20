@@ -28,7 +28,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class QueryDao {
-    @Value("${owner.type.api:default}")
+    @Value("${owner.type.api}")
     String apiFormat;
 
     private static final Logger logger =  LoggerFactory.getLogger(QueryDao.class);
