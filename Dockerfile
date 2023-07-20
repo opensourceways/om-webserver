@@ -23,4 +23,4 @@ RUN cd om-webserver && \
         mv ./target/om-webserver-0.0.1-SNAPSHOT.jar ../om-webserver.jar
  
 
-CMD java -jar om-webserver.jar --spring.config.location=${APPLICATION_PATH:/var/lib/om-webserver/target/classes/application.yml}
+CMD java -jar om-webserver.jar --spring.config.location=${APPLICATION_PATH}
