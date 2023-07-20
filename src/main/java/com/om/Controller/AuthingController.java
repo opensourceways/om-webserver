@@ -138,25 +138,10 @@ public class AuthingController {
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/user/refresh", method = RequestMethod.GET)
-    public ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-                                      @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.refreshUser(servletRequest, servletResponse, token);
-    }
-
-    @AuthingUserToken
     @RequestMapping(value = "/user/permission", method = RequestMethod.GET)
     public ResponseEntity getUser(@RequestParam(value = "community") String community,
                                   @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.authingUserPermission(community, token);
-    }
-
-    @AuthingUserToken
-    @RequestMapping(value = "/user/permissions", method = RequestMethod.GET)
-    public ResponseEntity userPermissions(@RequestParam(value = "community") String community,
-                                          @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.userPermissions(community, token);
     }
 
     @RequestMapping(value = "/token/apply", method = RequestMethod.GET)
@@ -170,57 +155,12 @@ public class AuthingController {
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/personal/center/user", method = RequestMethod.GET)
-    public ResponseEntity userInfo(HttpServletRequest servletRequest,
-                                   HttpServletResponse servletResponse,
-                                   @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.personalCenterUserInfo(servletRequest, servletResponse, token);
-    }
-
-    @AuthingUserToken
-    @RequestMapping(value = "/sendcode", method = RequestMethod.GET)
-    public ResponseEntity sendCode(@RequestParam(value = "account") String account,
-                                   @RequestParam(value = "channel") String channel,
-                                   @CookieValue(value = "_Y_G_", required = false) String token,
-                                   @RequestParam("captchaVerification") String captchaVerification) {
-        return authingService.sendCode(token, account, channel, verifyCaptcha(captchaVerification));
-    }
-
-    @AuthingUserToken
-    @RequestMapping(value = "/sendcode/unbind", method = RequestMethod.GET)
-    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest,
-                                         HttpServletResponse servletResponse) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        String captchaVerification = servletRequest.getParameter("captchaVerification");
-        return service.sendCodeUnbind(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
-    }
-
-    @AuthingUserToken
     @RequestMapping(value = "/update/account", method = RequestMethod.GET)
     public ResponseEntity updateAccount(HttpServletRequest servletRequest,
                                         HttpServletResponse servletResponse,
                                         @CookieValue(value = "_Y_G_", required = false) String token) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.updateAccount(servletRequest, servletResponse, token);
-    }
-
-    @AuthingUserToken
-    @RequestMapping(value = "/unbind/account", method = RequestMethod.GET)
-    public ResponseEntity unbindAccount(HttpServletRequest servletRequest,
-                                        HttpServletResponse servletResponse,
-                                        @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.unbindAccount(servletRequest, servletResponse, token);
-    }
-
-    @AuthingUserToken
-    @RequestMapping(value = "/bind/account", method = RequestMethod.GET)
-    public ResponseEntity bindAccount(HttpServletRequest servletRequest,
-                                      HttpServletResponse servletResponse,
-                                      @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.bindAccount(servletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
@@ -231,26 +171,6 @@ public class AuthingController {
                                              @RequestBody Map<String, Object> map) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.updateUserBaseInfo(servletRequest, servletResponse, token, map);
-    }
-
-    @AuthingUserToken
-    @RequestMapping(value = "/update/photo", method = RequestMethod.POST)
-    public ResponseEntity upload(HttpServletRequest servletRequest,
-                                 HttpServletResponse servletResponse,
-                                 @CookieValue(value = "_Y_G_", required = false) String token,
-                                 @RequestParam(value = "file") MultipartFile file) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.updatePhoto(servletRequest, servletResponse, token, file);
-    }
-
-    @ManageToken
-    @RequestMapping(value = "/user/ownertype", method = RequestMethod.GET)
-    public String queryUserOwnerType(@RequestParam(value = "community") String community,
-                                     @RequestParam(value = "user", required = false) String user,
-                                     @RequestParam(value = "username", required = false) String username)
-            throws JsonProcessingException {
-        String res = queryService.queryUserOwnertype(community, user, username);
-        return res;
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
