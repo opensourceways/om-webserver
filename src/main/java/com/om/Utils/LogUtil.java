@@ -10,6 +10,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.JoinPoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -17,11 +18,12 @@ import javax.servlet.http.HttpServletResponse;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
+import java.util.HashMap;
 
 public class LogUtil {
     private static final Logger logger = LoggerFactory.getLogger(LogUtil.class);
 
-    public static void managementOperate(JoinPoint joinPoint, int status, String message, HttpServletRequest request, HttpServletResponse response) {
+    public static void managementOperate(JoinPoint joinPoint, HttpServletRequest request, HttpServletResponse response, Object returnObject) {
         ManagementLog log = new ManagementLog();
         log.setType("OmOperate");
 
@@ -36,8 +38,17 @@ public class LogUtil {
 
         log.setAppIP(ClientIPUtil.getClientIpAddress(request));
 
-        log.setStatus(status);
-        log.setMessage(message);
+        if (returnObject instanceof ResponseEntity) {
+            ResponseEntity responseEntity = (ResponseEntity) returnObject;
+            log.setStatus(responseEntity.getStatusCodeValue());
+            if (responseEntity.getBody() instanceof HashMap) {
+                HashMap<String, Object> body = (HashMap) responseEntity.getBody();
+                Object msg = (body.get("msg") == null)?
+                              body.get("message") : 
+                              body.get("msg");
+                log.setMessage((msg == null)? "" : msg.toString());
+            }
+        }
 
         log.setOperator(getUserId(request, response));
 
