@@ -18,8 +18,10 @@ import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
+import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.LoginFailCounter;
 import com.om.Modules.MessageCodeConfig;
@@ -84,6 +86,9 @@ public class AuthingService implements UserCenterServiceInter {
 
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
+
+    @Autowired
+    QueryDao queryDao;
 
     private static final Logger logger =  LoggerFactory.getLogger(AuthingService.class);
 
@@ -559,6 +564,16 @@ public class AuthingService implements UserCenterServiceInter {
                 if (scope.equals("identities")) {
                     ArrayList<Map<String, Object>> identities = authingUserIdentity(userObj);
                     userData.put("identities", identities);
+                    continue;
+                }
+                // 用户SIG组信息
+                if (scope.equals("groups")) {
+                    // Gitee Name
+                    String giteeLogin = getGiteeLoginFromAuthing(userId);
+                    String userSigInfo = queryDao.queryUserOwnertype("openeuler", giteeLogin);
+
+                    ArrayList<String> groups = getUserRelatedSigs(userSigInfo);
+                    userData.put("groups", groups);
                     continue;
                 }
                 String[] claims = oidcScopeOthers.getOrDefault(scope, new String[]{scope});
@@ -1608,5 +1623,42 @@ public class AuthingService implements UserCenterServiceInter {
         } catch (Exception e) {
             return MessageCodeConfig.E0008.getMsgZh();
         }
+    }
+
+    private String getGiteeLoginFromAuthing(String userId) {
+        String giteeLogin = "";
+        if (StringUtils.isBlank(userId)) {
+            return giteeLogin;
+        }
+        try {
+            JSONObject userInfo = authingUserDao.getUserById(userId);
+            JSONArray identities = userInfo.getJSONArray("identities");
+            for (Object identity : identities) {
+                JSONObject identityObj = (JSONObject) identity;
+                String originConnId = identityObj.getJSONArray("originConnIds").get(0).toString();
+                if (!originConnId.equals(env.getProperty("enterprise.connId.gitee"))) continue;
+                giteeLogin = identityObj.getJSONObject("userInfoInIdp").getJSONObject("customData")
+                        .getString("giteeLogin");
+            }
+        } catch (Exception e) {
+            logger.error("Fail to get gitee name. " + e.getMessage());
+        }
+        return giteeLogin;
+    }
+
+    private ArrayList<String> getUserRelatedSigs(String userSigInfo) {
+        ArrayList<String> userRelatedSigs = new ArrayList<>();
+        try {
+            JsonNode body = objectMapper.readTree(userSigInfo);
+            if (body.get("data") != null) {
+                for (JsonNode sigInfo : body.get("data")) {
+                    userRelatedSigs.add(sigInfo.get("sig").asText());
+                }
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
+
+        return userRelatedSigs;
     }
 }
