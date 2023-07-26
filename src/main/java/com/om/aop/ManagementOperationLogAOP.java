@@ -28,7 +28,7 @@ public class ManagementOperationLogAOP {
 
     @AfterReturning(pointcut = "pointcut()", returning = "returnObject")
     public void afterReturning(JoinPoint joinPoint, Object returnObject) {
-        LogUtil.managementOperate(joinPoint, response.getStatus(), "", request, response);
+        LogUtil.managementOperate(joinPoint, request, response, returnObject);
     }
 
 }
