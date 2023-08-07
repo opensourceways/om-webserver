@@ -137,13 +137,6 @@ public class AuthingController {
         return service.logout(servletRequest, servletResponse, token);
     }
 
-    @AuthingUserToken
-    @RequestMapping(value = "/user/permission", method = RequestMethod.GET)
-    public ResponseEntity getUser(@RequestParam(value = "community") String community,
-                                  @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.authingUserPermission(community, token);
-    }
-
     @RequestMapping(value = "/token/apply", method = RequestMethod.GET)
     public ResponseEntity tokenApply(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
@@ -152,15 +145,6 @@ public class AuthingController {
                                      @RequestParam(value = "permission") String permission,
                                      @RequestParam(value = "redirect") String redirect) {
         return authingService.tokenApply(httpServletRequest, servletResponse, community, code, permission, redirect);
-    }
-
-    @AuthingUserToken
-    @RequestMapping(value = "/update/account", method = RequestMethod.GET)
-    public ResponseEntity updateAccount(HttpServletRequest servletRequest,
-                                        HttpServletResponse servletResponse,
-                                        @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.updateAccount(servletRequest, servletResponse, token);
     }
 
     @AuthingUserToken
