@@ -942,7 +942,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         String[] group = property.split(";");
         String urls = null;
         for (String appUrl : group) {
-            String[] pair = appUrl.split(":");
+            String[] pair = appUrl.split(":", 2);
             if (pair.length >= 2 && appId.equals(pair[0])) {
                 urls = pair[1];
             }
@@ -953,7 +953,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         for (String uri : uris) {
             if (uri.endsWith("*") && redirect.startsWith(uri.substring(0, uri.length() - 1)))
                 return result(HttpStatus.OK, null, "success", null);
-            else if (redirect.equals(uri) || getHostFromUrl(redirect).endsWith(uri))
+            else if (redirect.equals(uri))
                 return result(HttpStatus.OK, null, "success", null);
         }
         return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
