@@ -81,6 +81,12 @@ public class AuthingController {
         return service.captchaLogin(servletRequest);
     }
 
+    @RequestMapping(value = "/register", method = RequestMethod.POST)
+    public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.register(servletRequest, servletResponse);
+    }
+
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity login(HttpServletRequest servletRequest,
                                 HttpServletResponse servletResponse,
