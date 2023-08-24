@@ -79,6 +79,12 @@ public class AuthingController {
         return service.captchaLogin(servletRequest);
     }
 
+    @RequestMapping(value = "/register", method = RequestMethod.POST)
+    public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.register(servletRequest, servletResponse);
+    }
+
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity login(HttpServletRequest servletRequest,
                                 HttpServletResponse servletResponse,
@@ -253,6 +259,16 @@ public class AuthingController {
                                              @RequestBody Map<String, Object> map) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.updateUserBaseInfo(servletRequest, servletResponse, token, map);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/update/photo", method = RequestMethod.POST)
+    public ResponseEntity upload(HttpServletRequest servletRequest,
+                                 HttpServletResponse servletResponse,
+                                 @CookieValue(value = "_Y_G_", required = false) String token,
+                                 @RequestParam(value = "file") MultipartFile file) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.updatePhoto(servletRequest, servletResponse, token, file);
     }
 
     @RequestMapping(value = "/public/key", method = RequestMethod.GET)
