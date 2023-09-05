@@ -609,12 +609,14 @@ public class AuthingService implements UserCenterServiceInter {
             String photo = user.getPhoto();
             String username = user.getUsername();
             String email = user.getEmail();
+            String aigcPrivacyAccepted = user.getFormatted() == null ? "" : user.getFormatted();
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("photo", photo);
             userData.put("username", username);
             userData.put("email", email);
+            userData.put("aigcPrivacyAccepted", aigcPrivacyAccepted);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);

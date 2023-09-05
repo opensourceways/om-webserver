@@ -119,6 +119,9 @@ public class AuthingUserDao {
     @Value("${authing.api.hostv3}")
     String authingApiHostV3;
 
+    @Value("${aigc.privacy.version}")
+    String aigcPrivacyVersion;
+
     // -- temporary (解决gitee多身份源解绑问题) -- TODO
     @Value("${temp.extIdpIds}")
     String extIdpIds;
@@ -819,6 +822,11 @@ public class AuthingUserDao {
                         if (StringUtils.isNotBlank(user.getUsername()) && !user.getUsername().startsWith("oauth2_"))
                             return "用户名唯一，不可修改";
                         updateUserInput.withUsername(inputValue);
+                        break;
+                    case "aigcprivacyaccepted":
+                        if (aigcPrivacyVersion.equals(inputValue)) {
+                            updateUserInput.withFormatted(aigcPrivacyVersion);
+                        }
                         break;
                     default:
                         break;
