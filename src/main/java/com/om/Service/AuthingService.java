@@ -609,7 +609,8 @@ public class AuthingService implements UserCenterServiceInter {
             String photo = user.getPhoto();
             String username = user.getUsername();
             String email = user.getEmail();
-            String aigcPrivacyAccepted = user.getFormatted() == null ? "" : user.getFormatted();
+            String aigcPrivacyAccepted = env.getProperty("aigc.privacy.version").equals(user.getFormatted()) ? 
+                                         user.getFormatted() : "";
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
