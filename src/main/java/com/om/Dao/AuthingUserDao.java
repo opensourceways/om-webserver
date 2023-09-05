@@ -827,6 +827,9 @@ public class AuthingUserDao {
                         if (aigcPrivacyVersion.equals(inputValue)) {
                             updateUserInput.withFormatted(aigcPrivacyVersion);
                         }
+                        if ("revoked".equals(inputValue)) {
+                            updateUserInput.withFormatted("revoked");
+                        }
                         break;
                     default:
                         break;
