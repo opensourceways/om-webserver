@@ -164,6 +164,10 @@ public class OneIdManageService {
         }
     }
 
+    public ResponseEntity authenticate(String community, String userCookie) {
+        return authingService.authingUserPermission(community, userCookie);
+    }
+
     /**
      * APP是否存在，且密码是否正确
      *
