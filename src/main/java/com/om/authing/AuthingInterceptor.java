@@ -159,14 +159,14 @@ public class AuthingInterceptor implements HandlerInterceptor {
         String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, userId,
                 issuedAt, expiresAt, permission);
         if (!Constant.SUCCESS.equals(verifyTokenMsg)) {
-            tokenError(httpServletRequest, httpServletResponse, verifyDomainMsg);
+            tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
             return false;
         }
 
         // 每次交互刷新token
         String refreshMsg = refreshToken(httpServletRequest, httpServletResponse, verifyToken, userId, claims);
         if (!Constant.SUCCESS.equals(refreshMsg)) {
-            tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
+            tokenError(httpServletRequest, httpServletResponse, refreshMsg);
             return false;
         }
 
