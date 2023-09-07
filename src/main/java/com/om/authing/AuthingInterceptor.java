@@ -24,6 +24,8 @@ import com.om.Result.Constant;
 import com.om.Service.JwtTokenCreateService;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
+import com.om.token.ManageToken;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -102,8 +104,14 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // get if manageToken present
+        ManageToken manageToken = method.getAnnotation(ManageToken.class);
+
         // 校验header中的token
         String headerJwtToken = httpServletRequest.getHeader("token");
+        if (manageToken != null && manageToken.required()) {
+            headerJwtToken = httpServletRequest.getHeader("user-token");
+        }
         String headJwtTokenMd5 = verifyHeaderToken(headerJwtToken);
         if (headJwtTokenMd5.equals("unauthorized") || headJwtTokenMd5.equals("token expires")) {
             tokenError(httpServletRequest, httpServletResponse, headJwtTokenMd5);
@@ -161,6 +169,11 @@ public class AuthingInterceptor implements HandlerInterceptor {
         if (!Constant.SUCCESS.equals(verifyTokenMsg)) {
             tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
             return false;
+        }
+
+        // skip refresh if manageToken present
+        if (manageToken != null && manageToken.required()) {
+            return true;
         }
 
         // 每次交互刷新token
