@@ -12,6 +12,7 @@
 package com.om.Controller;
 
 import com.om.Service.OneIdManageService;
+import com.om.authing.AuthingUserToken;
 import com.om.token.ManageToken;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,7 @@ public class ManagerController {
     }
 
     @ManageToken
+    @AuthingUserToken
     @RequestMapping(value = "/authenticate", method = RequestMethod.GET)
     public ResponseEntity authenticate(
         @RequestParam("community") String community,
