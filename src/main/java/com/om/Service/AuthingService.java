@@ -761,6 +761,7 @@ public class AuthingService implements UserCenterServiceInter {
             String picture = user.get("picture").toString();
             String username = (String) user.get("username");
             String email = (String) user.get("email");
+            if (StringUtils.isBlank(email)) email = genPredefinedEmail(userId, username);
 
             // 资源权限
             String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
@@ -1663,5 +1664,19 @@ public class AuthingService implements UserCenterServiceInter {
         }
 
         return userRelatedSigs;
+    }
+
+    private String genPredefinedEmail(String userId, String username) {
+        try {
+            if (StringUtils.isBlank(userId) || StringUtils.isBlank(username)) {
+                return "";
+            }
+            // generate email in predefined formats
+            String email = username + Constant.AUTO_GEN_EMAIL_SUFFIX;
+            return authingUserDao.updateEmailById(userId, email);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return "";
+        }
     }
 }
