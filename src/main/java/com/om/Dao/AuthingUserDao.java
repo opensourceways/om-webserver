@@ -407,6 +407,17 @@ public class AuthingUserDao {
             return null;
         }
     }
+    
+    // 更新用户邮箱
+    public String updateEmailById(String userId, String email) {
+        try {
+            User res = managementClient.users().update(userId, new UpdateUserInput().withEmail(email)).execute();
+            return res.getEmail();
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return "";
+        }
+    }
 
     // 删除用户
     public boolean deleteUserById(String userId) {
