@@ -141,6 +141,8 @@ public class AuthingUserDao {
 
     private List<String> photoSuffixes;
 
+    private RedisDao redisDao;
+
     @PostConstruct
     public void init() {
         appClientMap = new HashMap<>();
@@ -202,12 +204,9 @@ public class AuthingUserDao {
 
     // 手机验证码注册
     public String registerByPhoneCode(String appId, String phone, String code, String username) {
-        // generate email in predefined formats if not exist
-        String email = username + Constant.AUTO_GEN_EMAIL_SUFFIX;
-        
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\", \"email\":\"%s\"}}", phone, code, username, email);
+                "\"profile\":{\"username\":\"%s\"}}", phone, code, username);
         return register(appId, body);
     }
 
@@ -222,13 +221,10 @@ public class AuthingUserDao {
 
     // 手机密码注册
     public String registerByPhonePwd(String appId, String phone, String password, String username) {
-        // generate email in predefined formats if not exist
-        String email = username + Constant.AUTO_GEN_EMAIL_SUFFIX;
-
         String body = String.format("{\"connection\": \"PASSWORD\"," +
                 "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\", \"email\":\"%s\"}," +
-                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username, email);
+                "\"profile\":{\"username\":\"%s\"}," +
+                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username);
         return register(appId, body);
     }
 
@@ -672,7 +668,13 @@ public class AuthingUserDao {
             authentication.setCurrentUser(user);
             switch (type.toLowerCase()) {
                 case "email":
-                    authentication.bindEmail(account, code).execute();
+                    String emailInDb = user.getEmail();
+                    // situation: email is auto-generated
+                    if (StringUtils.isNotBlank(emailInDb) && emailInDb.endsWith(Constant.AUTO_GEN_EMAIL_SUFFIX)) {
+                        bindEmailWithSelfDistributedCode(user.getId(), account, code);
+                    } else {
+                        authentication.bindEmail(account, code).execute();
+                    }
                     break;
                 case "phone":
                     authentication.bindPhone(account, code).execute();
@@ -685,6 +687,24 @@ public class AuthingUserDao {
             return e.getMessage();
         }
         return "true";
+    }
+
+    private void bindEmailWithSelfDistributedCode(String userId, String account, String code) throws Exception {
+        String redisKey = account + "_CodeBindEmail";
+        String codeTemp = (String) redisDao.get(redisKey);
+        if (codeTemp == null) {
+            throw new Exception("验证码无效或已过期");
+        }
+        if (!codeTemp.equals(code)) {
+            throw new Exception("验证码不正确");
+        }
+        String res = updateEmailById(userId, account);
+
+        if (res.equals(account)) {
+            redisDao.remove(redisKey);
+        } else {
+            throw new Exception("服务异常");
+        }
     }
 
     public List<Map<String, String>> linkConnList(String token) {
