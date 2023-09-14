@@ -550,7 +550,7 @@ public class AuthingService implements UserCenterServiceInter {
             for (String profile : profiles) {
                 String profileTemp = oidcScopeAuthingMapping.getOrDefault(profile, profile);
                 Object value = jsonObjObjectValue(userObj, profileTemp);
-                if (profile.equals("updated_at") && value != null) {
+                if ("updated_at".equals(profile) && value != null) {
                     DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
                     value = LocalDateTime.parse(value.toString(), df).toInstant(ZoneOffset.UTC).toEpochMilli();
                 }
@@ -580,6 +580,14 @@ public class AuthingService implements UserCenterServiceInter {
                 for (String claim : claims) {
                     String profileTemp = oidcScopeAuthingMapping.getOrDefault(claim, claim);
                     Object value = jsonObjObjectValue(userObj, profileTemp);
+                    
+                    // auto generate email if not exist
+                    if ("email".equals(claim) && value == null) {
+                        String prefix = jsonObjStringValue(userObj, "username");
+                        if (StringUtils.isBlank(prefix)) prefix = jsonObjStringValue(userObj, "phone");
+                        value = genPredefinedEmail(userId, prefix);
+                    }
+                    
                     if (scope.equals("address")) addressMap.put(claim, value);
                     else userData.put(claim, value);
                 }
@@ -849,7 +857,15 @@ public class AuthingService implements UserCenterServiceInter {
             token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String appId = decode.getClaim("client_id").asString();
-            if (accountType.equals("email")) {
+            String userId = decode.getAudience().get(0);
+            User user = authingUserDao.getUser(userId);
+            String emailInDb = user.getEmail();
+
+            if (accountType.equals("email") &&
+                StringUtils.isNotBlank(emailInDb) &&
+                emailInDb.endsWith(Constant.AUTO_GEN_EMAIL_SUFFIX)) {
+                msg = sendSelfDistributedCode(account, accountType, "CodeBindEmail");
+            } else if (accountType.equals("email")) { 
                 msg = authingUserDao.sendEmailCodeV3(appId, account, channel);
             } else if (accountType.equals("phone")) {
                 msg = authingUserDao.sendPhoneCodeV3(appId, account, channel);
@@ -868,17 +884,8 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-    @Override
-    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-                                         boolean isSuccess) {
-        String account = servletRequest.getParameter("account");
-        String accountType = servletRequest.getParameter("account_type");
-
-        // 图片验证码二次校验
-        if (!isSuccess)
-            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
-
-        String redisKey = account.toLowerCase() + "_CodeUnbind";
+    private String sendSelfDistributedCode(String account, String accountType, String channel) {
+        String redisKey = account.toLowerCase() + "_" + channel;
         try {
             // 邮箱or手机号格式校验，并获取验证码过期时间
             long codeExpire;
@@ -888,25 +895,45 @@ public class AuthingService implements UserCenterServiceInter {
             } else if (accountTypeCheck.equals("phone")) {
                 codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
             } else {
-                return result(HttpStatus.BAD_REQUEST, null, accountTypeCheck, null);
+                return accountTypeCheck;
             }
 
             // 限制1分钟只能发送一次 （剩余的过期时间 + 60s > 验证码过期时间，表示一分钟之内发送过验证码）
             long limit = Long.parseLong(env.getProperty("send.code.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
             long remainingExpirationSecond = redisDao.expire(redisKey);
             if (remainingExpirationSecond + limit > codeExpire) {
-                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
+                return MessageCodeConfig.E0009.getMsgZh();
             }
 
             // 发送验证码
             String[] strings = codeUtil.sendCode(accountType, account, mailSender, env, "");
-            if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success"))
-                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
+            if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success")) {
+                return MessageCodeConfig.E0008.getMsgZh();
+            }
 
             redisDao.set(redisKey, strings[0], Long.parseLong(strings[1]));
-            return result(HttpStatus.OK, strings[2], null);
+            return "success";
         } catch (Exception ex) {
-            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
+            return MessageCodeConfig.E0008.getMsgZh();
+        }
+    }
+
+    @Override
+    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                         boolean isSuccess) {
+        String account = servletRequest.getParameter("account");
+        String accountType = servletRequest.getParameter("account_type");
+
+        // 图片验证码二次校验
+        if (!isSuccess) {
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
+        }
+
+        String res = sendSelfDistributedCode(account, accountType, "CodeUnbind");
+        if (!res.equals("success")) {
+            return result(HttpStatus.BAD_REQUEST, null, res, null);
+        } else {
+            return result(HttpStatus.OK, "success", null);
         }
     }
 
