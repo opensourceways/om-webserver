@@ -202,9 +202,12 @@ public class AuthingUserDao {
 
     // 手机验证码注册
     public String registerByPhoneCode(String appId, String phone, String code, String username) {
+        // generate email in predefined formats if not exist
+        String email = username + Constant.AUTO_GEN_EMAIL_SUFFIX;
+        
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\"}}", phone, code, username);
+                "\"profile\":{\"username\":\"%s\", \"email\":\"%s\"}}", phone, code, username, email);
         return register(appId, body);
     }
 
@@ -219,10 +222,13 @@ public class AuthingUserDao {
 
     // 手机密码注册
     public String registerByPhonePwd(String appId, String phone, String password, String username) {
+        // generate email in predefined formats if not exist
+        String email = username + Constant.AUTO_GEN_EMAIL_SUFFIX;
+
         String body = String.format("{\"connection\": \"PASSWORD\"," +
                 "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\"}," +
-                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username);
+                "\"profile\":{\"username\":\"%s\", \"email\":\"%s\"}," +
+                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username, email);
         return register(appId, body);
     }
 
