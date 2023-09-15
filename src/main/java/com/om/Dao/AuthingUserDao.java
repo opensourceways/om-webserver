@@ -32,6 +32,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
@@ -141,6 +142,7 @@ public class AuthingUserDao {
 
     private List<String> photoSuffixes;
 
+    @Autowired
     private RedisDao redisDao;
 
     @PostConstruct
@@ -690,7 +692,7 @@ public class AuthingUserDao {
     }
 
     private void bindEmailWithSelfDistributedCode(String userId, String account, String code) throws Exception {
-        String redisKey = account + "_CodeBindEmail";
+        String redisKey = account.toLowerCase() + "_CodeBindEmail";
         String codeTemp = (String) redisDao.get(redisKey);
         if (codeTemp == null) {
             throw new Exception("验证码无效或已过期");
