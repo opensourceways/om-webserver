@@ -34,6 +34,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -145,6 +146,9 @@ public class AuthingUserDao {
     @Autowired
     private RedisDao redisDao;
 
+    @Autowired
+    private Environment env;
+
     @PostConstruct
     public void init() {
         appClientMap = new HashMap<>();
@@ -157,7 +161,8 @@ public class AuthingUserDao {
     public String sendPhoneCodeV3(String appId, String account, String channel) {
         String msg = "success";
         try {
-            String body = String.format("{\"phoneNumber\": \"%s\",\"channel\": \"%s\"}", account, channel.toUpperCase());
+            String phoneCountryCode = getPhoneCountryCode(account);
+            String body = String.format("{\"phoneNumber\": \"%s\",\"channel\": \"%s\",\"phoneCountryCode\": \"%s\"}", account, channel.toUpperCase(), phoneCountryCode);
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/send-sms")
                     .header("x-authing-app-id", appId)
                     .header("Content-Type", "application/json")
@@ -206,9 +211,11 @@ public class AuthingUserDao {
 
     // 手机验证码注册
     public String registerByPhoneCode(String appId, String phone, String code, String username) {
+        String phoneCountryCode = getPhoneCountryCode(phone);
+
         String body = String.format("{\"connection\": \"PASSCODE\"," +
-                "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\"}}", phone, code, username);
+                "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}," +
+                "\"profile\":{\"username\":\"%s\"}}", phone, code, phoneCountryCode, username);
         return register(appId, body);
     }
 
@@ -1063,5 +1070,14 @@ public class AuthingUserDao {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .asJson();
+    }
+
+    private String getPhoneCountryCode(String phone) {
+        String phoneCountryCode = "+86";
+        String[] countryCodes = env.getProperty("sms.international.countrys.code", "").split(",");
+        for (String countryCode : countryCodes) {
+            if (phone.startsWith(countryCode)) phoneCountryCode = countryCode;
+        }
+        return phoneCountryCode;
     }
 }
