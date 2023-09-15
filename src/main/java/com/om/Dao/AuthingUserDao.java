@@ -212,6 +212,7 @@ public class AuthingUserDao {
     // 手机验证码注册
     public String registerByPhoneCode(String appId, String phone, String code, String username) {
         String phoneCountryCode = getPhoneCountryCode(phone);
+        phone = getPurePhone(phone);
 
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}," +
@@ -267,6 +268,7 @@ public class AuthingUserDao {
 
     public Object loginByPhoneCode(Application app, String phone, String code) throws ServerErrorException {
         String phoneCountryCode = getPhoneCountryCode(phone);
+        phone = getPurePhone(phone);
 
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}," +
@@ -1081,5 +1083,13 @@ public class AuthingUserDao {
             if (phone.startsWith(countryCode)) phoneCountryCode = countryCode;
         }
         return phoneCountryCode;
+    }
+
+    private String getPurePhone(String phone) {
+        String[] countryCodes = env.getProperty("sms.international.countrys.code", "").split(",");
+        for (String countryCode : countryCodes) {
+            if (phone.startsWith(countryCode)) return phone.replace(countryCode, "");
+        }
+        return phone;
     }
 }
