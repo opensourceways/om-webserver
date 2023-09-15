@@ -162,6 +162,7 @@ public class AuthingUserDao {
         String msg = "success";
         try {
             String phoneCountryCode = getPhoneCountryCode(account);
+            account = getPurePhone(account);
             String body = String.format("{\"phoneNumber\": \"%s\",\"channel\": \"%s\",\"phoneCountryCode\": \"%s\"}", account, channel.toUpperCase(), phoneCountryCode);
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/send-sms")
                     .header("x-authing-app-id", appId)
