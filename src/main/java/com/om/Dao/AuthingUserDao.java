@@ -266,10 +266,12 @@ public class AuthingUserDao {
     }
 
     public Object loginByPhoneCode(Application app, String phone, String code) throws ServerErrorException {
+        String phoneCountryCode = getPhoneCountryCode(phone);
+
         String body = String.format("{\"connection\": \"PASSCODE\"," +
-                "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"}," +
+                "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}," +
                 "\"options\": {\"autoRegister\": false}," +
-                "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, app.getId(), app.getSecret());
+                "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, phoneCountryCode, app.getId(), app.getSecret());
         return login(app.getId(), body);
     }
 
