@@ -567,10 +567,13 @@ public class AuthingUserDao {
     }
 
     public Object resetPwdVerifyPhone(String appId, String phone, String code) {
+        String phoneCountryCode = getPhoneCountryCode(phone);
+        phone = getPurePhone(phone);
+
         String body = String.format("{\"verifyMethod\": \"PHONE_PASSCODE\"," +
                         "\"phonePassCodePayload\": " +
-                        "{\"phoneNumber\": \"%s\",\"passCode\": \"%s\"}}",
-                phone, code);
+                        "{\"phoneNumber\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}}",
+                phone, code, phoneCountryCode);
         return resetPwdVerify(appId, body);
     }
 
