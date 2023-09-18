@@ -567,10 +567,13 @@ public class AuthingUserDao {
     }
 
     public Object resetPwdVerifyPhone(String appId, String phone, String code) {
+        String phoneCountryCode = getPhoneCountryCode(phone);
+        phone = getPurePhone(phone);
+
         String body = String.format("{\"verifyMethod\": \"PHONE_PASSCODE\"," +
                         "\"phonePassCodePayload\": " +
-                        "{\"phoneNumber\": \"%s\",\"passCode\": \"%s\"}}",
-                phone, code);
+                        "{\"phoneNumber\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}}",
+                phone, code, phoneCountryCode);
         return resetPwdVerify(appId, body);
     }
 
@@ -685,7 +688,7 @@ public class AuthingUserDao {
                     String emailInDb = user.getEmail();
                     // situation: email is auto-generated
                     if (StringUtils.isNotBlank(emailInDb) && emailInDb.endsWith(Constant.AUTO_GEN_EMAIL_SUFFIX)) {
-                        bindEmailWithSelfDistributedCode(user.getId(), account, code);
+                        bindEmailWithSelfDistributedCode(authentication, user.getId(), account, code);
                     } else {
                         authentication.bindEmail(account, code).execute();
                     }
@@ -703,7 +706,8 @@ public class AuthingUserDao {
         return "true";
     }
 
-    private void bindEmailWithSelfDistributedCode(String userId, String account, String code) throws Exception {
+    private void bindEmailWithSelfDistributedCode(
+            AuthenticationClient authentication, String userId, String account, String code) throws Exception {
         String redisKey = account.toLowerCase() + "_CodeBindEmail";
         String codeTemp = (String) redisDao.get(redisKey);
         if (codeTemp == null) {
@@ -712,6 +716,12 @@ public class AuthingUserDao {
         if (!codeTemp.equals(code)) {
             throw new Exception("验证码不正确");
         }
+
+        // check if email is bind to other account
+        if (authentication.isUserExists(null, account, null, null).execute()) {
+            throw new Exception("该邮箱已被其它账户绑定");
+        }
+
         String res = updateEmailById(userId, account);
 
         if (res.equals(account)) {

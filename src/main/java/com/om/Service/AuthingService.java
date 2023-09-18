@@ -1141,6 +1141,7 @@ public class AuthingService implements UserCenterServiceInter {
         userData.put("username", jsonObjStringValue(userObj, "username"));
         userData.put("email", jsonObjStringValue(userObj, "email"));
         userData.put("phone", jsonObjStringValue(userObj, "phone"));
+        userData.put("phoneCountryCode", jsonObjStringValue(userObj, "phoneCountryCode"));
         userData.put("signedUp", jsonObjStringValue(userObj, "signedUp"));
         userData.put("nickname", jsonObjStringValue(userObj, "nickname"));
         userData.put("company", jsonObjStringValue(userObj, "company"));
