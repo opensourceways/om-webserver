@@ -292,6 +292,8 @@ public class AuthingUserDao {
     }
 
     public Object loginByPhonePwd(Application app, String phone, String password) throws ServerErrorException {
+        phone = getPurePhone(phone);
+
         if (!isUserExists(app.getId(), phone, "phone")) {
             return MessageCodeConfig.E00052.getMsgZh();
         }
@@ -735,9 +737,9 @@ public class AuthingUserDao {
         String phoneCountryCode = getPhoneCountryCode(phone);
         phone = getPurePhone(phone);
 
-        String body = String.format("\"phoneNumber\": \"%s\"," +
+        String body = String.format("{\"phoneNumber\": \"%s\"," +
             "\"passCode\": \"%s\"," +
-            "\"phoneCountryCode\": \"%s\"", 
+            "\"phoneCountryCode\": \"%s\"}", 
             phone, code, phoneCountryCode);
         
         HttpResponse<JsonNode> response = authPost("/bind-phone", appId, token, body);
@@ -754,10 +756,10 @@ public class AuthingUserDao {
         String newPhoneCountryCode = getPhoneCountryCode(newPhone);
         newPhone = getPurePhone(newPhone);
 
-        String body = String.format("\"verifyMethod\": \"PHONE_PASSCODE\"," +
+        String body = String.format("{\"verifyMethod\": \"PHONE_PASSCODE\"," +
             "\"phonePassCodePayload\": {" +
             "\"oldPhoneNumber\": \"%s\",\"oldPhonePassCode\": \"%s\",\"oldPhoneCountryCode\": \"%s\"," +
-            "\"newPhoneNumber\": \"%s\",\"newPhonePassCode\": \"%s\",\"newPhoneCountryCode\": \"%s\"}", 
+            "\"newPhoneNumber\": \"%s\",\"newPhonePassCode\": \"%s\",\"newPhoneCountryCode\": \"%s\"}}", 
             oldPhone, oldCode, oldPhoneCountryCode, newPhone, newCode, newPhoneCountryCode);
         
         HttpResponse<JsonNode> response = authPost("/verify-update-phone-request", appId, token, body);
@@ -778,7 +780,7 @@ public class AuthingUserDao {
     }
 
     private void applyUpdatePhoneToken(String appId, String userToken, String updatePhoneToken) throws Exception {
-        String body = String.format("\"updatePhoneToken\": \"%s\"", updatePhoneToken);
+        String body = String.format("{\"updatePhoneToken\": \"%s\"}", updatePhoneToken);
 
         HttpResponse<JsonNode> response = authPost("/update-phone", appId, userToken, body);
         JSONObject resObj = response.getBody().getObject();
@@ -1143,7 +1145,7 @@ public class AuthingUserDao {
                 .asJson();
     }
 
-    private String getPhoneCountryCode(String phone) {
+    public String getPhoneCountryCode(String phone) {
         String phoneCountryCode = "+86";
         String[] countryCodes = env.getProperty("sms.international.countrys.code", "").split(",");
         for (String countryCode : countryCodes) {
@@ -1152,7 +1154,7 @@ public class AuthingUserDao {
         return phoneCountryCode;
     }
 
-    private String getPurePhone(String phone) {
+    public String getPurePhone(String phone) {
         String[] countryCodes = env.getProperty("sms.international.countrys.code", "").split(",");
         for (String countryCode : countryCodes) {
             if (phone.startsWith(countryCode)) return phone.replace(countryCode, "");
