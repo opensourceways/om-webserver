@@ -605,7 +605,7 @@ public class AuthingUserDao {
                     authentication.updateEmail(account, code, oldAccount, oldCode).execute();
                     break;
                 case "phone":
-                    authentication.updatePhone(account, code, oldAccount, oldCode).execute();
+                    updatePhoneWithAuthingCode(oldAccount, oldCode, account, code, appId, us.getToken());
                     break;
                 default:
                     return "false";
@@ -694,7 +694,7 @@ public class AuthingUserDao {
                     }
                     break;
                 case "phone":
-                    authentication.bindPhone(account, code).execute();
+                    bindPhoneWithAuthingCode(account, code, appId, user.getToken());
                     break;
                 default:
                     return "false";
@@ -728,6 +728,62 @@ public class AuthingUserDao {
             redisDao.remove(redisKey);
         } else {
             throw new Exception("服务异常");
+        }
+    }
+
+    private void bindPhoneWithAuthingCode(String phone, String code, String appId, String token) throws Exception{
+        String phoneCountryCode = getPhoneCountryCode(phone);
+        phone = getPurePhone(phone);
+
+        String body = String.format("\"phoneNumber\": \"%s\"," +
+            "\"passCode\": \"%s\"," +
+            "\"phoneCountryCode\": \"%s\"", 
+            phone, code, phoneCountryCode);
+        
+        HttpResponse<JsonNode> response = authPost("/bind-phone", appId, token, body);
+        JSONObject resObj = response.getBody().getObject();
+        if (resObj.getInt("statusCode") != 200) {
+            throw new Exception(resObj.getString("message"));
+        }
+    }
+
+    private void updatePhoneWithAuthingCode(String oldPhone, String oldCode, String newPhone, String newCode,
+            String appId, String token) throws Exception {
+        String oldPhoneCountryCode = getPhoneCountryCode(oldPhone);
+        oldPhone = getPurePhone(oldPhone);
+        String newPhoneCountryCode = getPhoneCountryCode(newPhone);
+        newPhone = getPurePhone(newPhone);
+
+        String body = String.format("\"verifyMethod\": \"PHONE_PASSCODE\"," +
+            "\"phonePassCodePayload\": {" +
+            "\"oldPhoneNumber\": \"%s\",\"oldPhonePassCode\": \"%s\",\"oldPhoneCountryCode\": \"%s\"," +
+            "\"newPhoneNumber\": \"%s\",\"newPhonePassCode\": \"%s\",\"newPhoneCountryCode\": \"%s\"}", 
+            oldPhone, oldCode, oldPhoneCountryCode, newPhone, newCode, newPhoneCountryCode);
+        
+        HttpResponse<JsonNode> response = authPost("/verify-update-phone-request", appId, token, body);
+        JSONObject resObj = response.getBody().getObject();
+        if (resObj.getInt("statusCode") != 200) {
+            throw new Exception(resObj.getString("message"));
+        }
+
+        Object reqObj = resObj.get("data");
+        String reqToken = "";
+        if (reqObj instanceof JSONObject) {
+            JSONObject req = (JSONObject) reqObj;
+            reqToken = req.getString("updatePhoneToken");
+        } else {
+            throw new Exception("服务异常");
+        }
+        applyUpdatePhoneToken(appId, token, reqToken);
+    }
+
+    private void applyUpdatePhoneToken(String appId, String userToken, String updatePhoneToken) throws Exception {
+        String body = String.format("\"updatePhoneToken\": \"%s\"", updatePhoneToken);
+
+        HttpResponse<JsonNode> response = authPost("/update-phone", appId, userToken, body);
+        JSONObject resObj = response.getBody().getObject();
+        if (resObj.getInt("statusCode") != 200) {
+            throw new Exception(resObj.getString("message"));
         }
     }
 
