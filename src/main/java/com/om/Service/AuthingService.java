@@ -929,6 +929,11 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
         }
 
+        if ("phone".equals(accountType)) {
+            String phoneCountryCode = authingUserDao.getPhoneCountryCode(account);
+            account = phoneCountryCode + authingUserDao.getPurePhone(account);
+        }
+
         String res = sendSelfDistributedCode(account, accountType, "CodeUnbind");
         if (!res.equals("success")) {
             return result(HttpStatus.BAD_REQUEST, null, res, null);
@@ -966,7 +971,22 @@ public class AuthingService implements UserCenterServiceInter {
         if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType))
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
 
-        String redisKey = account + "_CodeUnbind";
+        String redisKeyPrefix = account;
+        if ("phone".equals(accountType)) {
+            String phoneCountryCode =  authingUserDao.getPhoneCountryCode(account);
+            account = authingUserDao.getPurePhone(account);
+            redisKeyPrefix = phoneCountryCode + account;
+            // TODO: currently international phone skip code verify
+            if (!"+86".equals(phoneCountryCode)) {
+                String res = authingUserDao.unbindAccount(token, account, accountType);
+                if (res.equals("unbind success")) {
+                    return result(HttpStatus.OK, res, null);
+                }
+                return result(HttpStatus.BAD_REQUEST, null, res, null);
+            }
+        }
+        
+        String redisKey = redisKeyPrefix + "_CodeUnbind";
         String codeTemp = (String) redisDao.get(redisKey);
         if (codeTemp == null) {
             return result(HttpStatus.BAD_REQUEST, null, "验证码无效或已过期", null);
@@ -1262,7 +1282,7 @@ public class AuthingService implements UserCenterServiceInter {
             case "false":
                 return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
             default:
-                if (res.length() <= Constant.AUTHING_RES_PREFIX_LENGTH) {
+                if (!res.contains(":")) {
                     return result(HttpStatus.BAD_REQUEST, null, res, null);
                 }
                 ObjectMapper objectMapper = new ObjectMapper();
