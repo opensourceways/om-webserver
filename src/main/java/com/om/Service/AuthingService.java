@@ -1262,10 +1262,13 @@ public class AuthingService implements UserCenterServiceInter {
             case "false":
                 return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
             default:
+                if (res.length() <= Constant.AUTHING_RES_PREFIX_LENGTH) {
+                    return result(HttpStatus.BAD_REQUEST, null, res, null);
+                }
                 ObjectMapper objectMapper = new ObjectMapper();
                 String message = "faild";
                 try {
-                    res = res.substring(14);
+                    res = res.substring(Constant.AUTHING_RES_PREFIX_LENGTH);
                     Iterator<com.fasterxml.jackson.databind.JsonNode> buckets = objectMapper.readTree(res).iterator();
                     if (buckets.hasNext()) {
                         message = buckets.next().get("message").get("message").asText();
