@@ -105,7 +105,7 @@ public class OneIdManageService {
         String channel = body.get("channel");
 
         // debug
-        logger.debug(body.get("captchaVerification"), body.get("account"), body.get("channel"));
+        logger.error(body.get("captchaVerification"), body.get("account"), body.get("channel"));
 
         // 图片验证码二次校验
         if (!isSuccess) {
