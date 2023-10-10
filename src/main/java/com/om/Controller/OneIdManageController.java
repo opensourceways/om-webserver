@@ -17,6 +17,8 @@ import com.anji.captcha.service.CaptchaService;
 import com.om.Service.OneIdManageService;
 import com.om.token.ManageToken;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,6 +32,8 @@ import java.util.Map;
 @RequestMapping(value = "/oneid/manager")
 @RestController
 public class OneIdManageController {
+    private static final Logger logger =  LoggerFactory.getLogger(OneIdManageController.class);
+
     @Autowired
     OneIdManageService oneIdManageService;
 
@@ -45,7 +49,7 @@ public class OneIdManageController {
     @RequestMapping(value = "/sendcode", method = RequestMethod.POST)
     public ResponseEntity sendCode(@RequestBody Map<String, String> body,
                                    @RequestHeader(value = "token") String token) {
-                                    
+        verifyCaptcha((String) body.get("captchaVerification"));                            
         return oneIdManageService.sendCode(body, token, true);
     }
 
@@ -60,6 +64,7 @@ public class OneIdManageController {
         CaptchaVO captchaVO = new CaptchaVO();
         captchaVO.setCaptchaVerification(captchaVerification);
         ResponseModel response = captchaService.verification(captchaVO);
+        logger.info(response.getRepMsg() + "\n" + response.getRepData().toString());
         return response.isSuccess();
     }
 }
