@@ -104,9 +104,6 @@ public class OneIdManageService {
         String account = body.get("account");
         String channel = body.get("channel");
 
-        // debug
-        logger.info(body.get("captchaVerification"), body.get("account"), body.get("channel"));
-
         // 图片验证码二次校验
         if (!isSuccess) {
             return authingService.result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
