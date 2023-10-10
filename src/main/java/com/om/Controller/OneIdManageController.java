@@ -66,7 +66,7 @@ public class OneIdManageController {
         ResponseModel response = captchaService.verification(captchaVO);
         logger.info("captchaVerification: " + captchaVerification);
         if (response != null) {
-            logger.info(response.getRepMsg() + "\n" + response.getRepData().toString());
+            logger.info(response.getRepMsg());
             return response.isSuccess();
         }
         return false;
