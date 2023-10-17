@@ -1155,7 +1155,7 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     // 解析authing user
-    private HashMap<String, Object> parseAuthingUser(JSONObject userObj) {
+    public HashMap<String, Object> parseAuthingUser(JSONObject userObj) {
         HashMap<String, Object> userData = new HashMap<>();
 
         userData.put("username", jsonObjStringValue(userObj, "username"));
