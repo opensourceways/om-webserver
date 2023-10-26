@@ -28,6 +28,7 @@ import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 
 import org.apache.commons.lang3.StringUtils;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -166,6 +167,32 @@ public class OneIdManageService {
 
     public ResponseEntity authenticate(String community, String userCookie) {
         return authingService.authingUserPermission(community, userCookie);
+    }
+
+    public ResponseEntity getUserInfo(String username, String userId) {
+        // search order: userId > username 
+        try {
+            if (StringUtils.isNotBlank(userId)) {
+                JSONObject userInfo = authingUserDao.getUserById(userId);
+                if (userInfo != null && 
+                    StringUtils.isNotBlank(username) &&
+                    !userInfo.getString("username").equals(username)) {
+                    return authingService.result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, null);
+                }
+                if (userInfo != null) {
+                    return authingService.result(HttpStatus.OK, null, "success", authingService.parseAuthingUser(userInfo));
+                } else {
+                    return authingService.result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, null);
+                }
+            }
+            if (StringUtils.isNotBlank(username)) {
+                JSONObject userInfo = authingUserDao.getUserByName(username);
+                if (userInfo != null) return authingService.result(HttpStatus.OK, null, "success", authingService.parseAuthingUser(userInfo));
+            }
+            return authingService.result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, null);
+        } catch (Exception e) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
     }
 
     /**
