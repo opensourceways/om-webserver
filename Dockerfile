@@ -27,7 +27,8 @@ RUN cd om-webserver \
 
 FROM openeuler/openeuler:22.03
 RUN groupadd -g 1001 om-webserver \
-    && useradd -u 1001 -g om-webserver -s /bin/bash -m om-webserver
+    && useradd -u 1001 -g om-webserver -s /bin/bash -m om-webserver \
+    && yum install -y fontconfig
 
 ENV WORKSPACE=/home/om-webserver
 ENV SOURCE=${WORKSPACE}/file/source
