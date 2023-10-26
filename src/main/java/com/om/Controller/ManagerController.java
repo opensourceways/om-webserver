@@ -45,5 +45,13 @@ public class ManagerController {
         @CookieValue(value = "_Y_G_", required = false) String userCookie) {
         return oneIdManageService.authenticate(community, userCookie);
     }
+
+    @ManageToken
+    @RequestMapping(value = "/getuserinfo", method = RequestMethod.GET)
+    public ResponseEntity getUser(
+        @RequestParam(value = "username", required = false) String username,
+        @RequestParam(value = "userId", required = false) String userId) {
+        return oneIdManageService.getUserInfo(username, userId);
+    }
     
 }
