@@ -441,6 +441,7 @@ public class AuthingService implements UserCenterServiceInter {
             String redirectUri = parameterMap.getOrDefault("redirect_uri", new String[]{""})[0];
             String scope = parameterMap.getOrDefault("scope", new String[]{""})[0];
             String state = parameterMap.getOrDefault("state", new String[]{""})[0];
+            String entity = parameterMap.getOrDefault("entity", new String[]{""})[0];
 
             // responseType校验
             if (!responseType.equals("code"))
@@ -459,6 +460,7 @@ public class AuthingService implements UserCenterServiceInter {
 
             // 重定向到登录页
             String loginPage = env.getProperty("oidc.login.page");
+            if ("register".equals(entity)) loginPage = env.getProperty("oidc.register.page");
             String loginPageRedirect = String.format("%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s", loginPage, clientId, scope, redirectUri, state);
             servletResponse.sendRedirect(loginPageRedirect);
 
@@ -1155,7 +1157,7 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     // 解析authing user
-    private HashMap<String, Object> parseAuthingUser(JSONObject userObj) {
+    public HashMap<String, Object> parseAuthingUser(JSONObject userObj) {
         HashMap<String, Object> userData = new HashMap<>();
 
         userData.put("username", jsonObjStringValue(userObj, "username"));
