@@ -23,6 +23,9 @@ import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
 import com.om.authing.AuthingUserToken;
 import com.om.token.ManageToken;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +41,8 @@ import static com.anji.captcha.controller.CaptchaController.getRemoteId;
 @RequestMapping(value = "/oneid")
 @RestController
 public class AuthingController {
+    private static final Logger logger =  LoggerFactory.getLogger(AuthingController.class);
+    
     @Autowired
     AuthingService authingService;
 
@@ -183,6 +188,12 @@ public class AuthingController {
         CaptchaVO captchaVO = new CaptchaVO();
         captchaVO.setCaptchaVerification(captchaVerification);
         ResponseModel response = captchaService.verification(captchaVO);
-        return response.isSuccess();
+        logger.info("captchaVerification: " + captchaVerification);
+        if (response != null) {
+            logger.info("captcha response msg: " + response.getRepMsg() + "  " +
+                        "captcha response status: " + response.isSuccess());
+            return response.isSuccess();
+        }
+        return false;
     }
 }
