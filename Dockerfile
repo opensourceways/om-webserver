@@ -49,4 +49,7 @@ EXPOSE 8080
 
 USER om-webserver
 
-CMD java -jar ${WORKSPACE}/target/om-webserver.jar --spring.config.location=${APPLICATION_PATH} -add-opens java.base/java.util=ALL-UNNAMED
+CMD java -jar ${WORKSPACE}/target/om-webserver.jar --spring.config.location=${APPLICATION_PATH} \
+    -add-opens java.base/java.util=ALL-UNNAMED \
+    -add-opens java.base/java.lang=ALL-UNNAMED \
+    -add-opens java.base/java.lang.reflect=ALL-UNNAMED
