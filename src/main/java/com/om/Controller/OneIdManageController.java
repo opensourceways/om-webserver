@@ -50,7 +50,7 @@ public class OneIdManageController {
     public ResponseEntity sendCode(@RequestBody Map<String, String> body,
                                    @RequestHeader(value = "token") String token) {
         verifyCaptcha((String) body.get("captchaVerification"));                           
-        return oneIdManageService.sendCode(body, token, true);
+        return oneIdManageService.sendCode(body, token, verifyCaptcha((String) body.get("captchaVerification")));
     }
 
     @ManageToken
@@ -64,7 +64,6 @@ public class OneIdManageController {
         CaptchaVO captchaVO = new CaptchaVO();
         captchaVO.setCaptchaVerification(captchaVerification);
         ResponseModel response = captchaService.verification(captchaVO);
-        logger.info("captchaVerification: " + captchaVerification);
         if (response != null) {
             logger.info("captcha response msg: " + response.getRepMsg() + "  " +
                         "captcha response status: " + response.isSuccess());
