@@ -1,3 +1,4 @@
+# FROM openeuler/openeuler:22.03 as Builder
 FROM gplane/pnpm as Builder
 
 ARG BRANCH
@@ -7,13 +8,13 @@ MAINTAINER zhongjun <jun.zhongjun2@gmail.com>
 WORKDIR /
 
 RUN apt-get update \
-    && wget https://download.oracle.com/java/17/archive/jdk-17.0.7_linux-x64_bin.tar.gz \
-    && tar -zxvf jdk-17.0.7_linux-x64_bin.tar.gz \
+    && wget https://mirrors.tuna.tsinghua.edu.cn/Adoptium/17/jdk/x64/linux/OpenJDK17U-jdk_x64_linux_hotspot_17.0.9_9.tar.gz \
+    && tar -zxvf OpenJDK17U-jdk_x64_linux_hotspot_17.0.9_9.tar.gz \
     && wget https://repo.huaweicloud.com/apache/maven/maven-3/3.8.1/binaries/apache-maven-3.8.1-bin.tar.gz \
     && tar -zxvf apache-maven-3.8.1-bin.tar.gz \
     && npm i pnpm -g
 
-ENV JAVA_HOME=/jdk-17.0.7
+ENV JAVA_HOME=/jdk-17.0.9+9
 ENV PATH=${JAVA_HOME}/bin:$PATH
 
 ENV MAVEN_HOME=/apache-maven-3.8.1
@@ -26,7 +27,9 @@ RUN cd om-webserver \
     && mv ./target/om-webserver-0.0.1-SNAPSHOT.jar ./target/om-webserver.jar
 
 FROM openeuler/openeuler:22.03
-RUN groupadd -g 1001 om-webserver \
+RUN yum update -y \
+    && yum install -y shadow \ 
+    && groupadd -g 1001 om-webserver \
     && useradd -u 1001 -g om-webserver -s /bin/bash -m om-webserver \
     && yum install -y fontconfig glibc-all-langpacks
 
@@ -40,9 +43,9 @@ WORKDIR ${WORKSPACE}
 COPY --chown=om-webserver --from=Builder /om-webserver/target ${WORKSPACE}/target
 
 RUN dnf install -y wget \
-    && wget https://download.bell-sw.com/java/17.0.9+11/bellsoft-jre17.0.9+11-linux-amd64.tar.gz -O jre-17.0.9.tar.gz \
-    && tar -zxvf jre-17.0.9.tar.gz 
-ENV JAVA_HOME=${WORKSPACE}/jre-17.0.9
+    && wget https://mirrors.tuna.tsinghua.edu.cn/Adoptium/17/jre/x64/linux/OpenJDK17U-jre_x64_linux_hotspot_17.0.9_9.tar.gz -O jre-17.0.9.tar.gz \
+    && tar -zxvf jre-17.0.9.tar.gz
+ENV JAVA_HOME=${WORKSPACE}/jdk-17.0.9+9-jre
 ENV PATH=${JAVA_HOME}/bin:$PATH
 
 EXPOSE 8080
