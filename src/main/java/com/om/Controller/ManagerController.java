@@ -50,8 +50,10 @@ public class ManagerController {
     @RequestMapping(value = "/getuserinfo", method = RequestMethod.GET)
     public ResponseEntity getUser(
         @RequestParam(value = "username", required = false) String username,
-        @RequestParam(value = "userId", required = false) String userId) {
-        return oneIdManageService.getUserInfo(username, userId);
+        @RequestParam(value = "userId", required = false) String userId,
+        @RequestParam(value = "giteeLogin", required = false) String giteeLogin,
+        @RequestParam(value = "githubLogin", required = false) String githubLogin) {
+        return oneIdManageService.getUserInfo(username, userId, giteeLogin, githubLogin);
     }
     
 }
