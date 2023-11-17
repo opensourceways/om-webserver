@@ -79,7 +79,9 @@ public enum MessageCodeConfig {
     E00059("E00059", "Password needs to be different from previous one", "新密码不能与原密码相同"),
     E00060("E00060", "Reset password fail", "重置密码失败"),
     E00061("E00061", "Password is not set", "密码未设置"),
-    E00062("E00062", "Not agree to accept term", "未同意隐私政策")
+    E00062("E00062", "Not agree to accept term", "未同意隐私政策"),
+    E00063("E00063", "Page does not exist.", "页面或资源不存在"),
+    E00064("E00064", "Only ID, username, gitee username, and github username are supported for single parameter search of users", "仅支持ID、用户名、gitee用户名、github用户名单一参数查找用户")
     ;
 
     private String code;

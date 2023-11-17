@@ -390,6 +390,24 @@ public class AuthingUserDao {
         }
     }
 
+    // 使用v3管理员接口获取用户信息
+    public JSONObject getUserV3(String userId, String userIdType) {
+        try {
+            String token = getManagementToken();
+            HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/get-user")
+                    .header("Authorization", token)
+                    .header("x-authing-userpool-id", userPoolId)
+                    .queryString("userId", userId)
+                    .queryString("userIdType", userIdType)
+                    .queryString("withIdentities", true)
+                    .asJson();
+            return response.getBody().getObject().getJSONObject("data");
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return null;
+        }
+    }
+
     public JSONObject getUserByName(String username) {
         try {
             User user = managementClient.users().find(new FindUserParam().withUsername(username)).execute();
