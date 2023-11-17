@@ -23,6 +23,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
+import com.om.Dao.GitDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
@@ -32,6 +33,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,7 +41,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.util.HtmlUtils;
 
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -60,7 +64,16 @@ public class OneIdManageService {
     RedisDao redisDao;
 
     @Autowired
+    GitDao gitDao;
+
+    @Autowired
     ObjectMapper objectMapper;
+
+    @Value("${enterprise.extIdpId.gitee}")
+    String giteeProviderId;
+
+    @Value("${social.extIdpId.github}")
+    String githubProviderId;
 
     private static final Logger logger =  LoggerFactory.getLogger(OneIdManageService.class);
 
@@ -169,27 +182,33 @@ public class OneIdManageService {
         return authingService.authingUserPermission(community, userCookie);
     }
 
-    public ResponseEntity getUserInfo(String username, String userId) {
-        // search order: userId > username 
+    public ResponseEntity getUserInfo(String username, String userId, String giteeLogin, String githubLogin) {
         try {
-            if (StringUtils.isNotBlank(userId)) {
-                JSONObject userInfo = authingUserDao.getUserById(userId);
-                if (userInfo != null && 
-                    StringUtils.isNotBlank(username) &&
-                    !userInfo.getString("username").equals(username)) {
-                    return authingService.result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, null);
-                }
-                if (userInfo != null) {
-                    return authingService.result(HttpStatus.OK, null, "success", authingService.parseAuthingUser(userInfo));
-                } else {
-                    return authingService.result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, null);
-                }
+            // only single param allowed
+            List<String> params = Arrays.asList(username, userId, giteeLogin, githubLogin);
+            int count = 0;
+            for (String param : params) {
+                if (StringUtils.isNotBlank(param)) count += 1;
             }
-            if (StringUtils.isNotBlank(username)) {
-                JSONObject userInfo = authingUserDao.getUserByName(username);
-                if (userInfo != null) return authingService.result(HttpStatus.OK, null, "success", authingService.parseAuthingUser(userInfo));
+            if (count != 1) return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00064, null, null);
+
+            JSONObject userInfo = null;
+            if (StringUtils.isNotBlank(userId)) userInfo = authingUserDao.getUserById(userId);
+            if (StringUtils.isNotBlank(username)) userInfo = authingUserDao.getUserByName(username);
+            if (StringUtils.isNotBlank(giteeLogin)) {
+                String giteeId = gitDao.getGiteeUserIdByLogin(giteeLogin);
+                if (StringUtils.isNotBlank(giteeId)) userInfo = authingUserDao.getUserV3(giteeProviderId.concat(":").concat(giteeId), "identity");
             }
-            return authingService.result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, null);
+            if (StringUtils.isNotBlank(githubLogin)) {
+                String githubId = gitDao.getGithubUserIdByLogin(githubLogin);
+                if (StringUtils.isNotBlank(githubId)) userInfo = authingUserDao.getUserV3(githubProviderId.concat(":").concat(githubId), "identity");
+            }
+
+            if (userInfo != null) {
+                return authingService.result(HttpStatus.OK, null, "success", authingService.parseAuthingUser(userInfo));
+            } else {
+                return authingService.result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, null);
+            }
         } catch (Exception e) {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
