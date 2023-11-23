@@ -11,6 +11,7 @@
 
 package com.om.Controller;
 
+import com.om.Service.AuthingService;
 import com.om.Service.OneIdManageService;
 import com.om.authing.AuthingUserToken;
 import com.om.token.ManageToken;
@@ -31,6 +32,9 @@ import java.util.Map;
 public class ManagerController {
     @Autowired
     OneIdManageService oneIdManageService;
+
+    @Autowired
+    AuthingService authingService;
 
     @RequestMapping(value = "/token", method = RequestMethod.POST)
     public ResponseEntity tokenApply(@RequestBody Map<String, String> body) {
@@ -55,5 +59,13 @@ public class ManagerController {
         @RequestParam(value = "githubLogin", required = false) String githubLogin) {
         return oneIdManageService.getUserInfo(username, userId, giteeLogin, githubLogin);
     }
-    
+
+    @ManageToken
+    @AuthingUserToken
+    @RequestMapping(value = "/u/permissions", method = RequestMethod.GET)
+    public ResponseEntity getUserPermissions(
+        @RequestParam("community") String community,
+        @CookieValue(value = "_Y_G_", required = false) String token) {
+        return authingService.userPermissions(community, token);
+    }
 }
