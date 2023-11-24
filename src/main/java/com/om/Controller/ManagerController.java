@@ -27,6 +27,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 @RequestMapping(value = "/oneid/manager")
 @RestController
 public class ManagerController {
@@ -67,5 +70,15 @@ public class ManagerController {
         @RequestParam("community") String community,
         @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.userPermissions(community, token);
+    }
+
+    @ManageToken
+    @AuthingUserToken
+    @RequestMapping(value = "/personal/center/user", method = RequestMethod.GET)
+    public ResponseEntity getUserCenterInfo(
+        HttpServletRequest servletRequest,
+        HttpServletResponse servletResponse,
+        @CookieValue(value = "_Y_G_", required = false) String token) {
+        return authingService.personalCenterUserInfo(servletRequest, servletResponse, token);
     }
 }
