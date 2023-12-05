@@ -58,4 +58,7 @@ public interface UserCenterServiceInter {
     ResponseEntity resetPwd(HttpServletRequest servletRequest);
 
     ResponseEntity appVerify(String appId, String redirect);
+
+    ResponseEntity oidcAuthorize(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+
 }
