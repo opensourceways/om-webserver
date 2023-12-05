@@ -19,6 +19,7 @@ import com.om.Result.Constant;
 import com.om.Service.AuthingService;
 import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
+import com.om.Service.impl.OpenGaussService;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
 import com.om.authing.AuthingUserToken;
@@ -40,6 +41,9 @@ import static com.anji.captcha.controller.CaptchaController.getRemoteId;
 public class AuthingController {
     @Autowired
     AuthingService authingService;
+
+    @Autowired
+    OpenGaussService openGaussService;
 
     @Autowired
     QueryService queryService;
@@ -216,6 +220,22 @@ public class AuthingController {
     public ResponseEntity resetPwd(HttpServletRequest request) {
         UserCenterServiceInter service = getServiceImpl(request);
         return service.resetPwd(request);
+    }
+
+    @RequestMapping(value = "/oidc/authorize", method = RequestMethod.GET)
+    public ResponseEntity<?> oidcAuthorize(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        return openGaussService.oidcAuthorize(servletRequest, servletResponse);
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/oidc/auth", method = RequestMethod.GET)
+    public ResponseEntity<?> oidcAuth(@CookieValue(value = "_Y_G_", required = false) String token,
+                                      @RequestParam(value = "client_id") String clientId,
+                                      @RequestParam(value = "redirect_uri") String redirectUri,
+                                      @RequestParam(value = "response_type") String responseType,
+                                      @RequestParam(value = "state", required = false) String state,
+                                      @RequestParam(value = "scope") String scope) {
+        return null;
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {

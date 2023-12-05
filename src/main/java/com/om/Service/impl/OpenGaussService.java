@@ -11,10 +11,13 @@
 
 package com.om.Service.impl;
 
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.TypeReference;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
+import com.om.Dao.OneidAppDao;
 import com.om.Dao.OneidDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.LoginFailCounter;
@@ -41,6 +44,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.HtmlUtils;
 
 import javax.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
@@ -72,6 +76,9 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Autowired
     OneidDao oneidDao;
+
+    @Autowired
+    OneidAppDao oneidAppDao;
 
     @Autowired
     JavaMailSender mailSender;
@@ -932,31 +939,32 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity appVerify(String appId, String redirect) {
-        if (StringUtils.isBlank(appId) || StringUtils.isBlank(redirect)) {
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
-        }
-        String property = env.getProperty("opengauss.app.urls");
-        if (StringUtils.isBlank(property)) {
-            return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
-        }
-        String[] group = property.split(";");
-        String urls = null;
-        for (String appUrl : group) {
-            String[] pair = appUrl.split(":", 2);
-            if (pair.length >= 2 && appId.equals(pair[0])) {
-                urls = pair[1];
+        try {
+            if (StringUtils.isBlank(appId) || StringUtils.isBlank(redirect)) {
+                return result(HttpStatus.BAD_REQUEST, null, "参数错误", null);
             }
+            JSONObject app = oneidAppDao.getApp(poolId, poolSecret, appId);
+
+            if (app == null) {
+                return result(HttpStatus.NOT_FOUND, null, "应用不存在", null);
+            }
+            String appRedirect = app.getString("redirect");
+            if (StringUtils.isBlank(appRedirect)) {
+                return result(HttpStatus.NOT_FOUND, null, "应用未配置回调地址", null);
+            }
+
+            List<String> redirectList = Arrays.asList(appRedirect.split(","));
+            if (!redirectList.contains(redirect)) {
+                return result(HttpStatus.NOT_FOUND, null, "应用回调地址不匹配", null);
+            }
+
+            return result(HttpStatus.OK, "success", null);
+
+        } catch (Exception e) {
+            logger.error(e.getMessage());
         }
 
-        List<String> uris = new ArrayList<>();
-        if (!StringUtils.isBlank(urls)) uris = Arrays.asList(urls.split(","));
-        for (String uri : uris) {
-            if (uri.endsWith("*") && redirect.startsWith(uri.substring(0, uri.length() - 1)))
-                return result(HttpStatus.OK, null, "success", null);
-            else if (redirect.equals(uri))
-                return result(HttpStatus.OK, null, "success", null);
-        }
-        return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
+        return result(HttpStatus.SERVICE_UNAVAILABLE, null, "app verify fail", null);
     }
 
     private String getHostFromUrl(String link) {
@@ -1097,6 +1105,84 @@ public class OpenGaussService implements UserCenterServiceInter {
         } catch (Exception ignored) {
         }
         return cookie;
+    }
+
+    @Override
+    public ResponseEntity<?> oidcAuthorize(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        try {
+            Map<String, String[]> parameterMap = servletRequest.getParameterMap();
+            String clientId = parameterMap.getOrDefault("client_id", new String[] { "" })[0];
+            String responseType = parameterMap.getOrDefault("response_type", new String[] { "" })[0];
+            String redirectUri = parameterMap.getOrDefault("redirect_uri", new String[] { "" })[0];
+            String scope = parameterMap.getOrDefault("scope", new String[] { "" })[0];
+            String state = parameterMap.getOrDefault("state", new String[] { "" })[0];
+            String entity = parameterMap.getOrDefault("entity", new String[] { "" })[0];
+
+            // responseType校验
+            if (!responseType.equals("code"))
+                return resultOidc(HttpStatus.NOT_FOUND, "currently response_type only supports code", null);
+
+            // app回调地址校验
+            ResponseEntity<?> responseEntity = appVerify(clientId, redirectUri);
+            if (responseEntity.getStatusCode().value() != 200)
+                return resultOidc(HttpStatus.NOT_FOUND, "redirect_uri not found in the app", null);
+
+            // 若缺少state,后端自动生成
+            state = StringUtils.isNotBlank(state) ? state : UUID.randomUUID().toString().replaceAll("-", "");
+
+            // scope默认<openid profile>
+            scope = StringUtils.isBlank(scope) ? "openid profile" : scope;
+
+            // 重定向到登录页
+            String loginPage = env.getProperty("oidc.login.page");
+            if ("register".equals(entity))
+                loginPage = env.getProperty("oidc.register.page");
+            String loginPageRedirect = String.format(
+                    "%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s", loginPage, clientId, scope,
+                    redirectUri, state);
+            servletResponse.sendRedirect(loginPageRedirect);
+
+            return resultOidc(HttpStatus.OK, "OK", loginPageRedirect);
+
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+        }
+    }
+
+    private ResponseEntity<?> result(HttpStatus status, String msg, Object data) {
+        HashMap<String, Object> res = new HashMap<>();
+        res.put("code", status.value());
+        res.put("data", data);
+        res.put("msg", msg);
+        ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(
+                JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(res)),
+                        new TypeReference<HashMap<String, Object>>() {
+                        }),
+                status);
+        return responseEntity;
+    }
+
+    private ResponseEntity<?> resultOidc(HttpStatus status, String msg, Object body) {
+        HashMap<String, Object> res = new HashMap<>();
+        res.put("status", status.value());
+        res.put("error", msg);
+        res.put("message", msg);
+        if (body != null)
+            res.put("body", body);
+        ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(
+                JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(res)),
+                        new TypeReference<HashMap<String, Object>>() {
+                        }),
+                status);
+        return responseEntity;
+    }
+
+    @Override
+    public ResponseEntity oidcAuth(String token, String appId, String redirectUri, String responseType, String state,
+                                   String scope) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'oidcAuth'");
     }
 
 }
