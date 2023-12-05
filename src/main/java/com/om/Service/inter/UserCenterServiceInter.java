@@ -61,6 +61,4 @@ public interface UserCenterServiceInter {
 
     ResponseEntity oidcAuthorize(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
-    ResponseEntity oidcAuth(String token, String appId, String redirectUri, String responseType, String state, String scope);
-
 }

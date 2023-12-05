@@ -227,17 +227,6 @@ public class AuthingController {
         return openGaussService.oidcAuthorize(servletRequest, servletResponse);
     }
 
-    @AuthingUserToken
-    @RequestMapping(value = "/oidc/auth", method = RequestMethod.GET)
-    public ResponseEntity<?> oidcAuth(@CookieValue(value = "_Y_G_", required = false) String token,
-                                      @RequestParam(value = "client_id") String clientId,
-                                      @RequestParam(value = "redirect_uri") String redirectUri,
-                                      @RequestParam(value = "response_type") String responseType,
-                                      @RequestParam(value = "state", required = false) String state,
-                                      @RequestParam(value = "scope") String scope) {
-        return null;
-    }
-
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
         String community = servletRequest.getParameter("community");
         if (community == null) {

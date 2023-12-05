@@ -1178,11 +1178,4 @@ public class OpenGaussService implements UserCenterServiceInter {
         return responseEntity;
     }
 
-    @Override
-    public ResponseEntity oidcAuth(String token, String appId, String redirectUri, String responseType, String state,
-                                   String scope) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'oidcAuth'");
-    }
-
 }
