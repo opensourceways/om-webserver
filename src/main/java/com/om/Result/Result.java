@@ -74,7 +74,7 @@ public class Result {
         return this;
     }
 
-    public ResponseEntity setResult(HttpStatus status, MessageCodeConfig msgCode, String msg, Object data, Map<String, MessageCodeConfig> error2code) {
+    public static ResponseEntity setResult(HttpStatus status, MessageCodeConfig msgCode, String msg, Object data, Map<String, MessageCodeConfig> error2code) {
         HashMap<String, Object> res = new HashMap<>();
         res.put("code", status.value());
         res.put("data", data);
@@ -99,4 +99,5 @@ public class Result {
         ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), status);
         return responseEntity;
     }
+
 }

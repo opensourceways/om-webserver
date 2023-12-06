@@ -19,8 +19,10 @@ import com.om.Result.Constant;
 import com.om.Service.AuthingService;
 import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
+import com.om.Service.inter.OidcServiceInter;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
+import com.om.Vo.dto.OidcAuthorize;
 import com.om.authing.AuthingUserToken;
 import com.om.token.ManageToken;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +45,9 @@ public class AuthingController {
 
     @Autowired
     QueryService queryService;
+
+    @Autowired
+    OidcServiceInter oidcService;
 
     @Autowired
     UserCenterServiceContext userCenterServiceContext;
@@ -216,6 +221,11 @@ public class AuthingController {
     public ResponseEntity resetPwd(HttpServletRequest request) {
         UserCenterServiceInter service = getServiceImpl(request);
         return service.resetPwd(request);
+    }
+
+    @RequestMapping(value = "/oidc/authorize", method = RequestMethod.GET)
+    public ResponseEntity<?> oidcAuthorize(OidcAuthorize oidcAuthorize) {
+        return oidcService.oidcAuthorize(oidcAuthorize);
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
