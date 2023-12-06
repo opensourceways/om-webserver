@@ -79,7 +79,10 @@ public enum MessageCodeConfig {
     E00059("E00059", "Password needs to be different from previous one", "新密码不能与原密码相同"),
     E00060("E00060", "Reset password fail", "重置密码失败"),
     E00061("E00061", "Password is not set", "密码未设置"),
-    E00062("E00062", "Not agree to accept term", "未同意隐私政策")
+    E00062("E00062", "Not agree to accept term", "未同意隐私政策"),
+    E00063("E00063", "Unsupported response type", "不支持的response type类型"),
+    E00064("E00064", "Invalid redirect url", "无效的回调地址"),
+    E00065("E00065", "Unsupported scope", "不支持的范围")
     ;
 
     private String code;
