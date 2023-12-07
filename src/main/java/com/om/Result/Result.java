@@ -100,4 +100,14 @@ public class Result {
         return responseEntity;
     }
 
+    public static ResponseEntity<?> resultOidc(HttpStatus status, String msg, Object body) {
+        HashMap<String, Object> res = new HashMap<>();
+        res.put("status", status.value());
+        res.put("error", msg);
+        res.put("message", msg);
+        if (body != null)
+            res.put("body", body);
+        return new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), status);
+    }
+
 }

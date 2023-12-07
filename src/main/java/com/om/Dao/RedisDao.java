@@ -44,7 +44,7 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class RedisDao {
     @Autowired
-    protected StringRedisTemplate redisTemplate;
+    protected static StringRedisTemplate redisTemplate;
 
     static ObjectMapper objectMapper = new ObjectMapper();
 
@@ -63,7 +63,7 @@ public class RedisDao {
      * @param key key
      * @return 还剩多少秒过期
      */
-    public long expire(String key) {
+    public static long expire(String key) {
         return redisTemplate.opsForValue().getOperations().getExpire(key);
     }
 
@@ -77,7 +77,7 @@ public class RedisDao {
      * @param offset 偏移量
      * @return boolean
      */
-    public boolean updateValue(String key, String value, long offset) {
+    public static boolean updateValue(String key, String value, long offset) {
         boolean result = false;
         if (exists(key)) {
             redisTemplate.opsForValue().set(key, value, offset);
@@ -97,7 +97,7 @@ public class RedisDao {
      * @Author: xiazhonghai
      * @Date: 2020/11/16 16:00
      */
-    public boolean set(final String key, String value, Long expire) {
+    public static boolean set(final String key, String value, Long expire) {
         boolean result = false;
         try {
             if (!checkValue(value)) return false;
@@ -124,7 +124,7 @@ public class RedisDao {
      * @Author: xiazhonghai
      * @Date: 2020/11/16 16:06
      */
-    public Object get(final String key) {
+    public static Object get(final String key) {
         Object result = null;
         redisTemplate.setValueSerializer(new GzipSerializer(getJsonserializer()));
         try {
@@ -139,7 +139,7 @@ public class RedisDao {
     /**
      * redis hash
      */
-    public boolean set(final String key, String field, String value, Long expire) {
+    public static boolean set(final String key, String field, String value, Long expire) {
         boolean result = false;
         try {
             if (!checkValue(value))
@@ -155,7 +155,7 @@ public class RedisDao {
         return result;
     }
 
-    public Object get(final String key, String field) {
+    public static Object get(final String key, String field) {
         Object result = null;
         redisTemplate.setValueSerializer(new GzipSerializer(getJsonserializer()));
         try {
@@ -176,7 +176,7 @@ public class RedisDao {
      * @Author: xiazhonghai
      * @Date: 2020/11/16 16:05
      */
-    public boolean exists(final String key) {
+    public static boolean exists(final String key) {
         boolean result = false;
         try {
             result = redisTemplate.hasKey(key);
@@ -195,7 +195,7 @@ public class RedisDao {
      * @Author: xiazhonghai
      * @Date: 2020/11/16 16:08
      */
-    public boolean remove(final String key) {
+    public static boolean remove(final String key) {
         boolean result = false;
         try {
             if (exists(key)) {
@@ -208,7 +208,7 @@ public class RedisDao {
         return result;
     }
 
-    class GzipSerializer implements RedisSerializer<Object> {
+    static class GzipSerializer implements RedisSerializer<Object> {
 
         public static final int BUFFER_SIZE = 4096;
         // 这里组合方式，使用到了一个序列化器
@@ -279,7 +279,7 @@ public class RedisDao {
         }
     }
 
-    private RedisSerializer getJsonserializer() {
+    private static RedisSerializer getJsonserializer() {
         Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);
         ObjectMapper om = new ObjectMapper();
         om.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
@@ -288,7 +288,7 @@ public class RedisDao {
         return jackson2JsonRedisSerializer;
     }
 
-    private boolean checkValue(String value) {
+    private static boolean checkValue(String value) {
         JsonNode dataNode;
         try {
             if (!value.startsWith("{")) return true;
