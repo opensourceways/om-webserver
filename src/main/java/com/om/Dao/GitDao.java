@@ -16,6 +16,7 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 
 import com.mashape.unirest.http.HttpResponse;
@@ -42,6 +43,7 @@ public class GitDao {
     @Value("${github.api.host}")
     String githubHost;
 
+    @Cacheable("giteeLogin")
     public String getGiteeUserIdByLogin(String giteeLogin) {
         JSONArray users = null;
         try {
@@ -74,6 +76,7 @@ public class GitDao {
         return Integer.toString(targetUser.getInt("id"));
     }
 
+    @Cacheable("githubLogin")
     public String getGithubUserIdByLogin(String githubLogin) {
         JSONArray users = null;
         try {
