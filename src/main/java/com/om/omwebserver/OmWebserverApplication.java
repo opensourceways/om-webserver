@@ -33,8 +33,8 @@ import com.om.Modules.TtlRedisCacheManager;
 @EnableCaching
 public class OmWebserverApplication {
 
-    @Value("spring.cache.ttl")
-    Long springCacheTtl;
+    @Value("${spring.cache.ttl}")
+    String springCacheTtl;
 
     public static void main(String[] args) {
         SpringApplication.run(OmWebserverApplication.class, args);
@@ -43,7 +43,7 @@ public class OmWebserverApplication {
     @Bean
     public RedisCacheManager ttlCacheManager(RedisConnectionFactory redisConnectionFactory) {
         RedisCacheConfiguration defaultCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
-            .entryTtl(Duration.ofDays(springCacheTtl));
+            .entryTtl(Duration.ofDays(Long.parseLong(springCacheTtl)));
 
         return new TtlRedisCacheManager(RedisCacheWriter.lockingRedisCacheWriter(redisConnectionFactory),
             defaultCacheConfig);
