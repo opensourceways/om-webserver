@@ -11,18 +11,42 @@
 
 package com.om.omwebserver;
 
+import java.time.Duration;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.data.redis.cache.RedisCacheConfiguration;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.cache.RedisCacheWriter;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.scheduling.annotation.EnableAsync;
+
+import com.om.Modules.TtlRedisCacheManager;
 
 @SpringBootApplication
 @ComponentScan(basePackages = {"com.om.*"})
 @EnableAsync
+@EnableCaching
 public class OmWebserverApplication {
+
+    @Value("spring.cache.ttl")
+    Long springCacheTtl;
 
     public static void main(String[] args) {
         SpringApplication.run(OmWebserverApplication.class, args);
+    }
+
+    @Bean
+    public RedisCacheManager ttlCacheManager(RedisConnectionFactory redisConnectionFactory) {
+        RedisCacheConfiguration defaultCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
+            .entryTtl(Duration.ofDays(springCacheTtl));
+
+        return new TtlRedisCacheManager(RedisCacheWriter.lockingRedisCacheWriter(redisConnectionFactory),
+            defaultCacheConfig);
     }
 
 }
