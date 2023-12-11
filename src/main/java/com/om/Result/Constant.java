@@ -11,6 +11,10 @@
 
 package com.om.Result;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * @author xiazhonghai
  * @date 2021/2/1 18:44
@@ -79,5 +83,11 @@ public class Constant {
 
     public static final String PHOTO_NOT_ALLOWED_CHARS = "\\,/,:,*,?,\",<,>,|";
     public static final String CONSENT_ACCEPT_TERM = "0";
+
+    public static final String OIDCISSUER = "ONEID";
+
+    public final static List<String> RESPONSE_TYPE_AVAILABLE = Collections.singletonList("code");
+
+    public final static List<String> SCOPE_AVAILABLE = Arrays.asList("openid", "profile", "email", "phone", "address", "offline_access");
 }
 
