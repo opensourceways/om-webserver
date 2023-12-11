@@ -50,7 +50,7 @@ public class CodeUtil {
     // 华为云MSGSMS，用于格式化鉴权头域，给"X-WSSE"参数赋值
     private static final String WSSE_HEADER_FORMAT = "UsernameToken Username=\"%s\",PasswordDigest=\"%s\",Nonce=\"%s\",Created=\"%s\"";
 
-    public String[] sendCode(String accountType, String account, JavaMailSender mailSender, Environment env, String community) {
+    public static String[] sendCode(String accountType, String account, JavaMailSender mailSender, Environment env, String community) {
         String resMsg = "fail";
         long codeExpire = 60L;
         String code = null;
@@ -113,7 +113,7 @@ public class CodeUtil {
      * @param title      标题
      * @param content    内容
      */
-    public String sendSimpleMail(JavaMailSender mailSender, String from, String to, String title, String content) {
+    public static String sendSimpleMail(JavaMailSender mailSender, String from, String to, String title, String content) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(from);
         message.setTo(to);
@@ -132,7 +132,7 @@ public class CodeUtil {
      * @param title      标题
      * @param content    html格式的内容
      */
-    public String sendHtmlMail(JavaMailSender mailSender, String from, String to, String title, String content) {
+    public static String sendHtmlMail(JavaMailSender mailSender, String from, String to, String title, String content) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper messageHelper = new MimeMessageHelper(message);
@@ -155,7 +155,7 @@ public class CodeUtil {
      * @param code  验证码
      * @return 邮件模板 {标题， 内容}
      */
-    public String[] buildEmailCodeInfo(String email, String code, String expireMinutes) {
+    public static String[] buildEmailCodeInfo(String email, String code, String expireMinutes) {
         String title = "Verification of Community User";
 
         // 构造模板引擎
@@ -186,7 +186,7 @@ public class CodeUtil {
      * @param signature      签名名称
      * @return
      */
-    public String buildSmsBody(String sender, String receiver, String templateId, String templateParas,
+    public static String buildSmsBody(String sender, String receiver, String templateId, String templateParas,
                                String statusCallBack, String signature) {
         if (null == sender || null == receiver || null == templateId || sender.isEmpty() || receiver.isEmpty()
                 || templateId.isEmpty()) {
@@ -230,7 +230,7 @@ public class CodeUtil {
      * @param appSecret APP_Secret
      * @return
      */
-    public String buildWsseHeader(String appKey, String appSecret) throws NoSuchAlgorithmException {
+    public static String buildWsseHeader(String appKey, String appSecret) throws NoSuchAlgorithmException {
         if (null == appKey || null == appSecret || appKey.isEmpty() || appSecret.isEmpty()) {
             logger.error("buildWsseHeader(): appKey or appSecret is null.");
             return null;
@@ -261,7 +261,7 @@ public class CodeUtil {
      *
      * @return 验证码
      */
-    public String randomNumBuilder(int codeLength) throws NoSuchAlgorithmException {
+    public static String randomNumBuilder(int codeLength) throws NoSuchAlgorithmException {
         StringBuilder result = new StringBuilder();
         SecureRandom instance = SecureRandom.getInstanceStrong();
         for (int i = 0; i < codeLength; i++) {
@@ -276,7 +276,7 @@ public class CodeUtil {
      * @param strLength 字符串长度
      * @return 随机字符串
      */
-    public String randomStrBuilder(int strLength) throws NoSuchAlgorithmException {
+    public static String randomStrBuilder(int strLength) throws NoSuchAlgorithmException {
         SecureRandom random = SecureRandom.getInstanceStrong();
         return new BigInteger(160, random).toString(strLength);
     }

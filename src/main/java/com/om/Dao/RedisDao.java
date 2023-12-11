@@ -54,7 +54,7 @@ public class RedisDao {
         Object loginErrorCount = this.get(loginErrorKey);
         return loginErrorCount == null ? 0 : Integer.parseInt(loginErrorCount.toString());
     }
-    
+
     /**
      * 获取过期时间
      * 没有设置过期时间，返回-1

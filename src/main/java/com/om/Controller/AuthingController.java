@@ -14,15 +14,16 @@ package com.om.Controller;
 import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.om.Result.Constant;
 import com.om.Service.AuthingService;
 import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
+import com.om.Service.inter.OidcServiceInter;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
+import com.om.Vo.dto.OidcAuth;
+import com.om.Vo.dto.OidcAuthorize;
 import com.om.authing.AuthingUserToken;
-import com.om.token.ManageToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -43,6 +44,9 @@ public class AuthingController {
 
     @Autowired
     QueryService queryService;
+
+    @Autowired
+    OidcServiceInter oidcService;
 
     @Autowired
     UserCenterServiceContext userCenterServiceContext;
@@ -216,6 +220,16 @@ public class AuthingController {
     public ResponseEntity resetPwd(HttpServletRequest request) {
         UserCenterServiceInter service = getServiceImpl(request);
         return service.resetPwd(request);
+    }
+
+    @RequestMapping(value = "/oidc/authorize", method = RequestMethod.GET)
+    public ResponseEntity<?> oidcAuthorize(OidcAuthorize oidcAuthorize) {
+        return oidcService.oidcAuthorize(oidcAuthorize);
+    }
+
+    @RequestMapping(value = "/oidc/auth", method = RequestMethod.GET)
+    public ResponseEntity oidcAuth(@CookieValue(value = "_Y_G_", required = false) String token, OidcAuth oidcAuth) {
+        return oidcService.oidcAuth(token, oidcAuth);
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
