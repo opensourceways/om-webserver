@@ -18,7 +18,7 @@ public class OneIdAppDao {
 
         if (response.getStatus() == 200) {
             JSONObject jsonObject = response.getBody().getObject().getJSONObject("data");
-            return JSON.to(OneIdEntity.App.class, jsonObject);
+            return JSON.parseObject(jsonObject.toString(), OneIdEntity.App.class);
         }
         return null;
     }

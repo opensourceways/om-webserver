@@ -1,5 +1,6 @@
 package com.om.Dao.oneId;
 
+import com.alibaba.fastjson2.JSON;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
@@ -23,9 +24,16 @@ public class OneIdConfig {
 
     private final Environment environment;
 
+    private static RedisDao redisDao;
+
     @Autowired
     public OneIdConfig(Environment environment) {
         this.environment = environment;
+    }
+
+    @Autowired
+    public void setRedisDao(RedisDao redisDao) {
+        OneIdConfig.redisDao = redisDao;
     }
 
     @PostConstruct
@@ -37,23 +45,23 @@ public class OneIdConfig {
     }
 
     public static String getManagementToken() throws Exception {
-        String mToken = (String)RedisDao.get(Constant.ONEID_TOKEN_KEY);
+        String mToken = (String)redisDao.get(Constant.ONEID_TOKEN_KEY);
         if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
             OneIdEntity.GetManagementToken managementToken = new OneIdEntity.GetManagementToken();
             managementToken.setAccessKeyId(USER_POOL_ID);
             managementToken.setAccessKeySecret(USER_POOL_SECRET);
 
             String url = API_HOST + Constant.ONEID_TOKEN_PATH;
-            HttpResponse<JsonNode> response = Unirest.post(url).header("Content-Type", "application/json").body(managementToken).asJson();
+            HttpResponse<JsonNode> response = Unirest.post(url).header("Content-Type", "application/json").body(JSON.toJSONString(managementToken)).asJson();
 
             if (response.getStatus() == 200) {
                 // save token
                 long oneIdExpire = Long.parseLong(Constant.ONEID_EXPIRE_SECOND);
                 mToken = response.getBody().getObject().getString("data");
-                RedisDao.set(Constant.ONEID_TOKEN_KEY, mToken, oneIdExpire);
+                redisDao.set(Constant.ONEID_TOKEN_KEY, mToken, oneIdExpire);
 
                 // save rsa public key
-                RedisDao.set("Oneid-RSA-Public-Key", response.getHeaders().getFirst("RSA-Public-Key"), oneIdExpire);
+                redisDao.set("Oneid-RSA-Public-Key", response.getHeaders().getFirst("RSA-Public-Key"), oneIdExpire);
             }
         }
         return mToken;
