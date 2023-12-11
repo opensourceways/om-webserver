@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.RedisDao;
 import com.om.Dao.oneId.OneIdAppDao;
 import com.om.Dao.oneId.OneIdEntity;
+import com.om.Result.Constant;
 import com.om.Result.Result;
 import com.om.Service.JwtTokenCreateService;
 import com.om.Service.inter.OidcServiceInter;
@@ -36,8 +37,6 @@ import java.util.regex.Pattern;
 @ConditionalOnProperty(value = "service.oidc", havingValue = "oidcServiceImplOneId")
 public class OidcServiceImplOneId implements OidcServiceInter {
 
-    private static final String OIDCISSUER = "ONEID";
-
     private static ObjectMapper objectMapper;
 
     @Autowired
@@ -53,14 +52,12 @@ public class OidcServiceImplOneId implements OidcServiceInter {
     RedisDao redisDao;
 
 
-    public final static List<String> RESPONSE_TYPE_AVAILABLE = Collections.singletonList("code");
 
-    public final static List<String> SCOPE_AVAILABLE = Arrays.asList("openid", "profile", "email", "phone", "address", "offline_access");
 
     @Override
     public ResponseEntity<?> oidcAuthorize(OidcAuthorize oidcAuthorize) {
         try {
-            if (!RESPONSE_TYPE_AVAILABLE.contains(oidcAuthorize.getResponse_type())) {
+            if (!Constant.RESPONSE_TYPE_AVAILABLE.contains(oidcAuthorize.getResponse_type())) {
                 return Result.resultOidc(HttpStatus.NOT_FOUND, "currently response_type only supports code", null);
             }
 
@@ -76,7 +73,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
                     return Result.resultOidc(HttpStatus.NOT_FOUND, "scope must contain <openid profile>", null);
                 }
                 for (String s : scopeList) {
-                    if (!SCOPE_AVAILABLE.contains(s)) {
+                    if (!Constant.SCOPE_AVAILABLE.contains(s)) {
                         return Result.resultOidc(HttpStatus.NOT_FOUND, "  Unsupported scope", null);
                     }
                 }
@@ -108,7 +105,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
     @Override
     public ResponseEntity<?> oidcAuth(String token, OidcAuth oidcAuth) {
         try {
-            if (!RESPONSE_TYPE_AVAILABLE.contains(oidcAuth.getResponse_type())) {
+            if (!Constant.RESPONSE_TYPE_AVAILABLE.contains(oidcAuth.getResponse_type())) {
                 return Result.resultOidc(HttpStatus.NOT_FOUND, "currently response_type only supports code", null);
             }
 
@@ -124,7 +121,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
                     return Result.resultOidc(HttpStatus.NOT_FOUND, "scope must contain <openid profile>", null);
                 }
                 for (String s : scopeList) {
-                    if (!SCOPE_AVAILABLE.contains(s)) {
+                    if (!Constant.SCOPE_AVAILABLE.contains(s)) {
                         return Result.resultOidc(HttpStatus.NOT_FOUND, "  Unsupported scope", null);
                     }
                 }
@@ -144,8 +141,8 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             long accessTokenExpire = Long.parseLong(environment.getProperty("oidc.access.token.expire", "1800"));
             long refreshTokenExpire = Long.parseLong(environment.getProperty("oidc.refresh.token.expire", "86400"));
 
-            String accessToken = jwtTokenCreateService.oidcToken(userId, OIDCISSUER, oidcAuth.getScope(), accessTokenExpire, null);
-            String refreshToken = jwtTokenCreateService.oidcToken(userId, OIDCISSUER, oidcAuth.getScope(), refreshTokenExpire, null);
+            String accessToken = jwtTokenCreateService.oidcToken(userId, Constant.OIDCISSUER, oidcAuth.getScope(), accessTokenExpire, null);
+            String refreshToken = jwtTokenCreateService.oidcToken(userId, Constant.OIDCISSUER, oidcAuth.getScope(), refreshTokenExpire, null);
 
             String code = CodeUtil.randomStrBuilder(32);
 
