@@ -49,6 +49,9 @@ public class OidcServiceImplOneId implements OidcServiceInter {
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
 
+    @Autowired
+    RedisDao redisDao;
+
 
     public final static List<String> RESPONSE_TYPE_AVAILABLE = Collections.singletonList("code");
 
@@ -73,7 +76,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
                     return Result.resultOidc(HttpStatus.NOT_FOUND, "scope must contain <openid profile>", null);
                 }
                 for (String s : scopeList) {
-                    if (SCOPE_AVAILABLE.contains(s)) {
+                    if (!SCOPE_AVAILABLE.contains(s)) {
                         return Result.resultOidc(HttpStatus.NOT_FOUND, "  Unsupported scope", null);
                     }
                 }
@@ -97,6 +100,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
 
             return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY).header(HttpHeaders.LOCATION, loginPageRedirect).build();
         } catch (Exception e) {
+            e.printStackTrace();
             return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
         }
     }
@@ -120,7 +124,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
                     return Result.resultOidc(HttpStatus.NOT_FOUND, "scope must contain <openid profile>", null);
                 }
                 for (String s : scopeList) {
-                    if (SCOPE_AVAILABLE.contains(s)) {
+                    if (!SCOPE_AVAILABLE.contains(s)) {
                         return Result.resultOidc(HttpStatus.NOT_FOUND, "  Unsupported scope", null);
                     }
                 }
@@ -134,7 +138,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             String headToken = decode.getClaim("verifyToken").asString();
-            String idToken = (String) RedisDao.get("idToken_" + headToken);
+            String idToken = (String) redisDao.get("idToken_" + headToken);
 
             long codeExpire = Long.parseLong(environment.getProperty("oidc.code.expire", "60"));
             long accessTokenExpire = Long.parseLong(environment.getProperty("oidc.access.token.expire", "1800"));
@@ -153,7 +157,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             codeMap.put("redirectUri", oidcAuth.getRedirect_uri());
             codeMap.put("scope", oidcAuth.getScope());
             String codeMapStr = "oidcCode:" + objectMapper.writeValueAsString(codeMap);
-            RedisDao.set(code, codeMapStr, codeExpire);
+            redisDao.set(code, codeMapStr, codeExpire);
 
             HashMap<String, String> userTokenMap = new HashMap<>();
             userTokenMap.put("access_token", accessToken);
@@ -161,7 +165,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             userTokenMap.put("idToken", idToken);
             userTokenMap.put("scope", oidcAuth.getScope());
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
-            RedisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
+            redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
 
             String res = String.format("%s?code=%s&state=%s", oidcAuth.getRedirect_uri(), code, oidcAuth.getState());
             return Result.resultOidc(HttpStatus.OK, "OK", res);
