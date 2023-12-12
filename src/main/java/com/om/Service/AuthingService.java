@@ -33,6 +33,7 @@ import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.LimitUtil;
 import com.om.Utils.RSAUtil;
+import com.om.Utils.SensitiveUtil;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
@@ -213,6 +214,7 @@ public class AuthingService implements UserCenterServiceInter {
 
         // 校验appId
         if (authingUserDao.initAppClient(appId) == null) {
+            SensitiveUtil.stringClear(password);
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00047, null, null);
         }
 
@@ -222,15 +224,18 @@ public class AuthingService implements UserCenterServiceInter {
             // 用户名校验
             msg = authingUserDao.checkUsername(appId, username);
             if (!msg.equals(Constant.SUCCESS)) {
+                SensitiveUtil.stringClear(password);
                 return result(HttpStatus.BAD_REQUEST, null, msg, null);
             }
 
             // 邮箱 OR 手机号校验
             accountType = getAccountType(account);
             if (!accountType.equals(Constant.EMAIL_TYPE) && !accountType.equals(Constant.PHONE_TYPE)) {
+                SensitiveUtil.stringClear(password);
                 return result(HttpStatus.BAD_REQUEST, null, accountType, null);
             }
         } catch (ServerErrorException e) {
+            SensitiveUtil.stringClear(password);
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
         }
 
@@ -239,9 +244,11 @@ public class AuthingService implements UserCenterServiceInter {
             String redisKey = account.toLowerCase() + community.toLowerCase() + Constant.CHANNEL_REGISTER_BY_PASSWORD;
             String codeTemp = (String) redisDao.get(redisKey);
             if (codeTemp == null) {
+                SensitiveUtil.stringClear(password);
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0001, null, null);
             }
             if(!code.equals(codeTemp)) {
+                SensitiveUtil.stringClear(password);
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, null);
             }
             // 密码登录
@@ -249,6 +256,7 @@ public class AuthingService implements UserCenterServiceInter {
                 password = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(password));
             } catch (Exception e) {
                 logger.error("Hex to Base64 fail. " + e.getMessage());
+                SensitiveUtil.stringClear(password);
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
 
@@ -257,6 +265,7 @@ public class AuthingService implements UserCenterServiceInter {
             } else {
                 msg = authingUserDao.registerByPhonePwd(appId, account, password, username);
             }
+            SensitiveUtil.stringClear(password);
         } else if (StringUtils.isNotBlank(code)) {
             // 验证码登录
             if (accountType.equals(Constant.EMAIL_TYPE)) {
@@ -289,7 +298,6 @@ public class AuthingService implements UserCenterServiceInter {
         String permission = (String) getBodyPara(body, "permission");
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
-        String password = (String) getBodyPara(body, "password");
         LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
 
         // 限制一分钟登录失败次数
@@ -306,11 +314,14 @@ public class AuthingService implements UserCenterServiceInter {
             }
         }
 
+        String password = (String) getBodyPara(body, "password");
+
         if (StringUtils.isNotBlank(password)) {
             try {
                 password = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(password));
             } catch (Exception e) {
                 logger.error("Hex to Base64 fail. " + e.getMessage());
+                SensitiveUtil.stringClear(password);
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
         }
@@ -328,6 +339,7 @@ public class AuthingService implements UserCenterServiceInter {
             userId = JWT.decode(idToken).getSubject();
             user = authingUserDao.getUser(userId);
         } else {
+            SensitiveUtil.stringClear(password);
             return result(HttpStatus.BAD_REQUEST, null, (String) loginRes,
                     limitUtil.loginFail(failCounter));
         }
@@ -351,6 +363,7 @@ public class AuthingService implements UserCenterServiceInter {
         userData.put("photo", user.getPhoto());
         userData.put("username", user.getUsername());
         userData.put("email_exist", StringUtils.isNotBlank(user.getEmail()));
+        SensitiveUtil.stringClear(password);
         return result(HttpStatus.OK, "success", userData);
     }
 
@@ -509,7 +522,9 @@ public class AuthingService implements UserCenterServiceInter {
                 String account = parameterMap.getOrDefault("account", new String[]{""})[0];
                 String password = parameterMap.getOrDefault("password", new String[]{""})[0];
                 String scope =  parameterMap.getOrDefault("scope", new String[]{""})[0];
-                return getOidcTokenByPassword(appId, appSecret, account, password, redirectUri, scope);
+                ResponseEntity res = getOidcTokenByPassword(appId, appSecret, account, password, redirectUri, scope);
+                SensitiveUtil.stringClear(password);
+                return res;
             } else if (grantType.equals("refresh_token")) {
                 String refreshToken = parameterMap.getOrDefault("refresh_token", new String[]{""})[0];
                 return oidcRefreshToken(refreshToken);
@@ -1076,19 +1091,23 @@ public class AuthingService implements UserCenterServiceInter {
 
     public ResponseEntity updatePassword(HttpServletRequest request) {
         String msg = MessageCodeConfig.E00050.getMsgZh();
+        ResponseEntity resEntity = result(HttpStatus.BAD_REQUEST, null, msg, null);
+        String oldPwd = "";
+        String newPwd = "";
         try {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
-            String oldPwd = (String) getBodyPara(body, "old_pwd");
-            String newPwd = (String) getBodyPara(body, "new_pwd");
+            oldPwd = (String) getBodyPara(body, "old_pwd");
+            newPwd = (String) getBodyPara(body, "new_pwd");
             Cookie cookie = getCookie(request, env.getProperty("cookie.token.name"));
-
             msg = authingUserDao.updatePassword(cookie.getValue(), oldPwd, newPwd);
             if (msg.equals("success")) {
-                return result(HttpStatus.OK, "success", null);
+                resEntity = result(HttpStatus.OK, "success", null);
             }
         } catch (Exception ignored) {
         }
-        return result(HttpStatus.BAD_REQUEST, null, msg, null);
+        SensitiveUtil.stringClear(oldPwd);
+        SensitiveUtil.stringClear(newPwd);
+        return resEntity;
     }
 
     public ResponseEntity resetPwdVerify(HttpServletRequest request) {
@@ -1127,21 +1146,23 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     public ResponseEntity resetPwd(HttpServletRequest request) {
+        ResponseEntity msg = result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
+        String newPwd = "";
         try {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
             String pwdResetToken = (String) getBodyPara(body, "pwd_reset_token");
-            String newPwd = (String) getBodyPara(body, "new_pwd");
-
+            newPwd = (String) getBodyPara(body, "new_pwd");
             newPwd = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(newPwd));
             String resetMsg = authingUserDao.resetPwd(pwdResetToken, newPwd);
             if (resetMsg.equals(Constant.SUCCESS)) {
-                return result(HttpStatus.OK, Constant.SUCCESS, null);
+                msg = result(HttpStatus.OK, Constant.SUCCESS, null);
             } else {
-                return result(HttpStatus.BAD_REQUEST, null, resetMsg, null);
+                msg = result(HttpStatus.BAD_REQUEST, null, resetMsg, null);
             }
         } catch (Exception ignored) {
         }
-        return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
+        SensitiveUtil.stringClear(newPwd);
+        return msg;
     }
 
     // 获取自定义token中的user id
