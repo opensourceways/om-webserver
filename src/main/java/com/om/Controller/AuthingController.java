@@ -23,6 +23,7 @@ import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
 import com.om.Vo.dto.OidcAuth;
 import com.om.Vo.dto.OidcAuthorize;
+import com.om.Vo.dto.OidcToken;
 import com.om.authing.AuthingUserToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -230,6 +231,16 @@ public class AuthingController {
     @RequestMapping(value = "/oidc/auth", method = RequestMethod.GET)
     public ResponseEntity oidcAuth(@CookieValue(value = "_Y_G_", required = false) String token, OidcAuth oidcAuth) {
         return oidcService.oidcAuth(token, oidcAuth);
+    }
+
+    @RequestMapping(value = "/oidc/token", method = RequestMethod.POST)
+    public ResponseEntity oidcToken(OidcToken oidcToken) {
+        return oidcService.oidcToken(oidcToken);
+    }
+
+    @RequestMapping(value = "/oidc/user", method = RequestMethod.GET)
+    public ResponseEntity oidcUser(@RequestHeader(value = "Authorization", required = true) String token) {
+        return oidcService.oidcUser(token);
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {

@@ -80,6 +80,7 @@ public class Constant {
 
     public static final String ONEID_APP_PATH = "/app";
     public static final String ONEID_APP_ID_PATH = "/app/{appId}";
+    public static final String ONEID_APP_VERIFY_PATH = "/app/verify";
 
     public static final String PHOTO_NOT_ALLOWED_CHARS = "\\,/,:,*,?,\",<,>,|";
     public static final String CONSENT_ACCEPT_TERM = "0";
