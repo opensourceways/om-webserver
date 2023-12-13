@@ -3,6 +3,7 @@ package com.om.Dao.oneId;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 public class OneIdEntity {
@@ -36,6 +37,72 @@ public class OneIdEntity {
         private String accessKeyId;
 
         private String accessKeySecret;
+    }
+
+    @Getter
+    @Setter
+    public static class User {
+        private String id;
+
+        private String userPoolId;
+
+        private String address;
+
+        private LocalDate birthdate;
+
+        private String city;
+
+        private String company;
+
+        private String country;
+
+        private String email;
+
+        private boolean emailVerified;
+
+        private String familyName;
+
+        private String formatted;
+
+        private String gender;
+
+        private String givenName;
+
+        private String locale;
+
+        private String middleName;
+
+        private String name;
+
+        private String nickname;
+
+        private String password;
+
+        private String salt;
+
+        private String phone;
+
+        private String phoneCountryCode;
+
+        private boolean phoneVerified;
+
+        private String photo;
+
+        private String postalCode;
+
+        private String province;
+
+        private String region;
+
+        private String streetAddress;
+
+        private String username;
+
+        private String zoneinfo;
+
+        private LocalDateTime createAt;
+
+        private LocalDateTime updateAt;
     }
 
 }
