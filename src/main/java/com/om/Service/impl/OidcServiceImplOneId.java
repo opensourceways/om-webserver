@@ -3,9 +3,7 @@ package com.om.Service.impl;
 import com.alibaba.fastjson.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.om.Dao.OneidDao;
 import com.om.Dao.RedisDao;
 import com.om.Dao.oneId.OneIdAppDao;
 import com.om.Dao.oneId.OneIdEntity;
@@ -73,11 +71,11 @@ public class OidcServiceImplOneId implements OidcServiceInter {
     public ResponseEntity<?> oidcAuthorize(OidcAuthorize oidcAuthorize) {
         try {
             if (!Constant.RESPONSE_TYPE_AVAILABLE.contains(oidcAuthorize.getResponse_type())) {
-                return Result.resultOidc(HttpStatus.NOT_FOUND, "currently response_type only supports code", null);
+                return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00001, null);
             }
 
             if (!verifyRedirectUri(oidcAuthorize.getClient_id(), oidcAuthorize.getRedirect_uri())) {
-                return Result.resultOidc(HttpStatus.NOT_FOUND, "redirect_uri not found in the app", null);
+                return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00002, null);
             }
 
             if (!StringUtils.hasText(oidcAuthorize.getScope())) {
@@ -85,11 +83,11 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             } else {
                 List<String> scopeList = Arrays.asList(oidcAuthorize.getScope().split("\\s+"));
                 if (!scopeList.contains("openid") || !scopeList.contains("profile")) {
-                    return Result.resultOidc(HttpStatus.NOT_FOUND, "scope must contain <openid profile>", null);
+                    return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00003, null);
                 }
                 for (String s : scopeList) {
                     if (!Constant.SCOPE_AVAILABLE.contains(s)) {
-                        return Result.resultOidc(HttpStatus.NOT_FOUND, "  Unsupported scope", null);
+                        return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00004, null);
                     }
                 }
             }
@@ -113,7 +111,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY).header(HttpHeaders.LOCATION, loginPageRedirect).build();
         } catch (Exception e) {
             e.printStackTrace();
-            return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+            return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
         }
     }
 
@@ -121,11 +119,11 @@ public class OidcServiceImplOneId implements OidcServiceInter {
     public ResponseEntity<?> oidcAuth(String token, OidcAuth oidcAuth) {
         try {
             if (!Constant.RESPONSE_TYPE_AVAILABLE.contains(oidcAuth.getResponse_type())) {
-                return Result.resultOidc(HttpStatus.NOT_FOUND, "currently response_type only supports code", null);
+                return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00001, null);
             }
 
             if (!verifyRedirectUri(oidcAuth.getClient_id(), oidcAuth.getRedirect_uri())) {
-                return Result.resultOidc(HttpStatus.NOT_FOUND, "redirect_uri not found in the app", null);
+                return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00002, null);
             }
 
             if (!StringUtils.hasText(oidcAuth.getScope())) {
@@ -133,11 +131,11 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             } else {
                 List<String> scopeList = Arrays.asList(oidcAuth.getScope().split("\\s+"));
                 if (!scopeList.contains("openid") || !scopeList.contains("profile")) {
-                    return Result.resultOidc(HttpStatus.NOT_FOUND, "scope must contain <openid profile>", null);
+                    return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00003, null);
                 }
                 for (String s : scopeList) {
                     if (!Constant.SCOPE_AVAILABLE.contains(s)) {
-                        return Result.resultOidc(HttpStatus.NOT_FOUND, "  Unsupported scope", null);
+                        return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00004, null);
                     }
                 }
             }
@@ -180,9 +178,9 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
 
             String res = String.format("%s?code=%s&state=%s", oidcAuth.getRedirect_uri(), code, oidcAuth.getState());
-            return Result.resultOidc(HttpStatus.OK, "OK", res);
+            return Result.resultOidc(HttpStatus.OK, MessageCodeConfig.OIDC_S00001, res);
         } catch (Exception e) {
-            return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+            return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
         }
     }
 
@@ -208,12 +206,12 @@ public class OidcServiceImplOneId implements OidcServiceInter {
                 String refreshToken = oidcToken.getRefresh_token();
                 return oidcRefreshToken(refreshToken);
             } else {
-                return Result.resultOidc(HttpStatus.BAD_REQUEST, "grant_type must be authorization_code, password or refresh_token", null);
+                return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00006, null);
             }
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             redisDao.remove("code");
-            return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+            return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
         }
     }
 
@@ -221,7 +219,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
     public ResponseEntity<?> oidcUser(String token) {
         try {
             if (!StringUtils.hasText(token)) {
-                return Result.resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
+                return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00007, null);
             }
             String accessToken = token.replace("Bearer ", "");
 
@@ -234,7 +232,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             // token是否被刷新了或者已经过期
             Object refreshedToken = redisDao.get(DigestUtils.md5DigestAsHex(accessToken.getBytes()));
             if (refreshedToken != null || expiresAt.before(new Date())) {
-                return Result.resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
+                return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00007, null);
             }
             JSONObject userObj = oneIdUserDao.getUserInfoToObj(userId, "id");
 
@@ -276,7 +274,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             return new ResponseEntity<>(res, HttpStatus.OK);
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
-            return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+            return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
         }
     }
 
@@ -348,15 +346,15 @@ public class OidcServiceImplOneId implements OidcServiceInter {
     private ResponseEntity<?> getOidcTokenByCode(String appId, String appSecret, String code, String redirectUri) throws Exception {
         // 参数校验
         if (!StringUtils.hasText(appId) || !StringUtils.hasText(appSecret))
-            return Result.resultOidc(HttpStatus.BAD_REQUEST, "not found the app", null);
+            return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00008, null);
         // 用户code获取token必须包含code、redirectUri
         if (!StringUtils.hasText(code) || !StringUtils.hasText(redirectUri))
-            return Result.resultOidc(HttpStatus.BAD_REQUEST, "when grant_type is authorization_code, parameters must contain code and redirect_uri", null);
+            return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00009, null);
 
         // 授权码校验
         String codeMapStr = (String) redisDao.get(code);
         if (!StringUtils.hasText(codeMapStr))
-            return Result.resultOidc(HttpStatus.BAD_REQUEST, "code invalid or expired", null);
+            return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00010, null);
 
         // 授权码信息
         com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(codeMapStr.replace("oidcCode:", ""));
@@ -367,20 +365,20 @@ public class OidcServiceImplOneId implements OidcServiceInter {
         // app校验（授权码对应的app）
         if (!appId.equals(appIdTemp)) {
             redisDao.remove(code);
-            return Result.resultOidc(HttpStatus.BAD_REQUEST, "code invalid or expired", null);
+            return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00010, null);
         }
 
         // app回调地址校验（授权码对应的app的回调地址）
         if (!redirectUri.equals(redirectUriTemp)) {
             redisDao.remove(code);
-            return Result.resultOidc(HttpStatus.BAD_REQUEST, "code invalid or expired", null);
+            return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00010, null);
         }
 
         // app密码校验
         OneIdEntity.App app = oneIdAppDao.verifyAppSecret(appId, appSecret);
         if (app == null) {
             redisDao.remove(code);
-            return Result.resultOidc(HttpStatus.NOT_FOUND, "app invalid or secret error", null);
+            return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00010, null);
         }
 
         long expire = Long.parseLong(environment.getProperty("oidc.access.token.expire", "1800"));
@@ -405,17 +403,17 @@ public class OidcServiceImplOneId implements OidcServiceInter {
     private ResponseEntity<?> getOidcTokenByPassword(String appId, String appSecret, String account, String password, String redirectUri, String scope) throws Exception {
         // 参数校验
         if (!StringUtils.hasText(appId) || !StringUtils.hasText(appSecret))
-            return Result.resultOidc(HttpStatus.BAD_REQUEST, "not found the app", null);
+            return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00008, null);
 
         if (!StringUtils.hasText(password) || !StringUtils.hasText(redirectUri))
-            return Result.resultOidc(HttpStatus.BAD_REQUEST, "when grant_type is password, parameters must contain password、redirectUri", null);
+            return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00011, null);
 
         scope = !StringUtils.hasText(scope) ? "openid profile" : scope;
 
         // app密码校验
         OneIdEntity.App app = oneIdAppDao.verifyAppSecret(appId, appSecret);
         if (app == null) {
-            return Result.resultOidc(HttpStatus.NOT_FOUND, "app invalid or secret error", null);
+            return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00012, null);
         }
 
         // 限制一分钟登录失败次数
@@ -423,7 +421,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
         Object v = redisDao.get(loginErrorCountKey);
         int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
         if (loginErrorCount >= Integer.parseInt(environment.getProperty("login.error.limit.count", "6"))) {
-            return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030.getMsgZh(), null);
+            return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00013, null);
         }
 
         // 用户密码校验
@@ -439,7 +437,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             long codeExpire = Long.parseLong(environment.getProperty("mail.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
             loginErrorCount += 1;
             redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
-            return Result.resultOidc(HttpStatus.BAD_REQUEST, (String) "Password verification failed", null);
+            return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00014, null);
         }
 
         redisDao.remove(loginErrorCountKey);
@@ -487,9 +485,9 @@ public class OidcServiceImplOneId implements OidcServiceInter {
         return accountTypeError;
     }
 
-    private ResponseEntity<?> oidcRefreshToken(String refreshToken) throws Exception{
+    private ResponseEntity<?> oidcRefreshToken(String refreshToken) throws Exception {
         if (!StringUtils.hasText(refreshToken))
-            return Result.resultOidc(HttpStatus.BAD_REQUEST, "when grant_type is authorization_code,parameters must contain refresh_token", null);
+            return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00015, null);
 
         // 解析refresh_token
         String token = rsaDecryptToken(refreshToken);
@@ -501,11 +499,11 @@ public class OidcServiceImplOneId implements OidcServiceInter {
         String refreshTokenKey = DigestUtils.md5DigestAsHex(refreshToken.getBytes());
         String tokenStr = (String) redisDao.get(refreshTokenKey);
         if (!StringUtils.hasText(tokenStr)) {
-            return Result.resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
+            return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00016, null);
         }
         // refresh_token是否过期
         if (expiresAt.before(new Date())) {
-            return Result.resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
+            return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00016, null);
         }
 
         com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(tokenStr.replace("oidcTokens:", ""));
