@@ -228,6 +228,7 @@ public class AuthingController {
         return oidcService.oidcAuthorize(oidcAuthorize);
     }
 
+    @AuthingUserToken
     @RequestMapping(value = "/oidc/auth", method = RequestMethod.GET)
     public ResponseEntity oidcAuth(@CookieValue(value = "_Y_G_", required = false) String token, OidcAuth oidcAuth) {
         return oidcService.oidcAuth(token, oidcAuth);
