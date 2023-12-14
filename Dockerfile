@@ -26,11 +26,10 @@ RUN cd om-webserver \
     && mv ./target/om-webserver-0.0.1-SNAPSHOT.jar ./target/om-webserver.jar
 
 FROM openeuler/openeuler:22.03
-
-RUN yum update -y \
-    && yum install -y shadow
-
-RUN groupadd -g 1001 om-webserver \
+RUN sed -i "s|repo.openeuler.org|mirrors.pku.edu.cn/openeuler|g" /etc/yum.repos.d/openEuler.repo \
+    && yum update -y \
+    && yum install -y shadow \
+    && groupadd -g 1001 om-webserver \
     && useradd -u 1001 -g om-webserver -s /bin/bash -m om-webserver \
     && yum install -y fontconfig glibc-all-langpacks
 
