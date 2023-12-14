@@ -100,11 +100,18 @@ public class Result {
         return responseEntity;
     }
 
-    public static ResponseEntity<?> resultOidc(HttpStatus status, String msg, Object body) {
+    public static ResponseEntity<?> resultOidc(HttpStatus status, MessageCodeConfig msgCode, Object body) {
         HashMap<String, Object> res = new HashMap<>();
         res.put("status", status.value());
-        res.put("error", msg);
-        res.put("message", msg);
+
+        if (status.equals(HttpStatus.OK)) {
+            res.put("error", null);
+            res.put("message", msgCode.getMsgEn());
+        } else {
+            res.put("error", msgCode.getMsgEn());
+            res.put("message", null);
+        }
+
         if (body != null)
             res.put("body", body);
         return new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), status);
