@@ -16,6 +16,7 @@ import java.util.Map;
 
 public enum MessageCodeConfig {
     // success code message
+    OIDC_S00001("S0001", "success", "成功"),
 
     // fail code message
     E0001("E0001", "Code invalid or expired", "验证码无效或已过期"),
@@ -82,7 +83,24 @@ public enum MessageCodeConfig {
     E00062("E00062", "Not agree to accept term", "未同意隐私政策"),
     E00063("E00063", "Unsupported response type", "不支持的response type类型"),
     E00064("E00064", "Invalid redirect url", "无效的回调地址"),
-    E00065("E00065", "Unsupported scope", "不支持的范围")
+    E00065("E00065", "Unsupported scope", "不支持的范围"),
+
+    OIDC_E00001("OIDC_E00001", "currently response_type only supports code", "目前 response_type 仅支持 code"),
+    OIDC_E00002("OIDC_E00002", "redirect_uri not found in the app", "该a应用未配置这个回调路由"),
+    OIDC_E00003("OIDC_E00003", "scope must contain <openid profile>", "scope 属性必须包含 <openid profile>"),
+    OIDC_E00004("OIDC_E00004", "Unsupported scope", "未支持的scope"),
+    OIDC_E00005("OIDC_E00005", "OIDC Internal Server Error", "OIDC内部服务器异常"),
+    OIDC_E00006("OIDC_E00006", "grant_type must be authorization_code, password or refresh_token", "grant_type 必须为 authorization_code、password 或 refresh_token"),
+    OIDC_E00007("OIDC_E00007", "token invalid or expired", "令牌无效或过期"),
+    OIDC_E00008("OIDC_E00008", "not found the app", "未找到这个应用"),
+    OIDC_E00009("OIDC_E00009", "when grant_type is authorization_code, parameters must contain code and redirect_uri", "当 grant_type 为 authorization_code 时，参数必须包含 code 和 redirect_uri"),
+    OIDC_E00010("OIDC_E00010", "code invalid or expired", "code 无效或过期"),
+    OIDC_E00011("OIDC_E00011", "when grant_type is password, parameters must contain password、redirectUri", "当 grant_type 为 password 时，参数必须包含 password 和 redirect_uri"),
+    OIDC_E00012("OIDC_E00012", "app invalid or secret error", "应用程序无效或秘密错误"),
+    OIDC_E00013("OIDC_E00013", "Too many failed login attempts, please try again later.", "登录失败次数过多，请稍后重试"),
+    OIDC_E00014("OIDC_E00014", "Password verification failed", "密码验证失败"),
+    OIDC_E00015("OIDC_E00015", "when grant_type is refresh_token, parameters must contain refresh_token", "当 grant_type 为 refresh_token 时，参数必须包含 contain 和 refresh_token"),
+    OIDC_E00016("OIDC_E00016", "refresh token invalid or expired", "刷新令牌无效或过期"),
     ;
 
     private String code;
