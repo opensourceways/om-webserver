@@ -77,6 +77,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
     @Value("${cookie.token.secures}")
     private String cookieSecures;
 
+    @Value("${oneid.privacy.version}")
+    String oneidPrivacyVersion;
+
     private static HashMap<String, Boolean> domain2secure;
 
     private static final Logger logger =  LoggerFactory.getLogger(AuthingInterceptor.class);
@@ -148,6 +151,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         Date expiresAt;
         String permission;
         String verifyToken;
+        String oneidPrivacyVersionAccept;
         Map<String, Claim> claims;
         try {
             DecodedJWT decode = JWT.decode(token);
@@ -156,10 +160,18 @@ public class AuthingInterceptor implements HandlerInterceptor {
             expiresAt = decode.getExpiresAt();
             claims = decode.getClaims();
             String permissionTemp = claims.get("permission").asString();
+            oneidPrivacyVersionAccept = claims.get("oneidPrivacyVersion").asString();
             permission = new String(Base64.getDecoder().decode(permissionTemp.getBytes()));
             verifyToken = claims.get("verifyToken").asString();
         } catch (JWTDecodeException j) {
             tokenError(httpServletRequest, httpServletResponse, "unauthorized");
+            return false;
+        }
+
+        // 是否接受隐私协议
+        String url = httpServletRequest.getRequestURI();
+        if (!"/oneid/update/baseInfo".equals(url) && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept)) {
+            tokenError(httpServletRequest, httpServletResponse, "Not accept privacy policy and terms of service.");
             return false;
         }
 
