@@ -124,6 +124,9 @@ public class AuthingUserDao {
     @Value("${aigc.privacy.version}")
     String aigcPrivacyVersion;
 
+    @Value("${oneid.privacy.version}")
+    String oneidPrivacyVersion;
+
     // -- temporary (解决gitee多身份源解绑问题) -- TODO
     @Value("${temp.extIdpIds}")
     String extIdpIds;
@@ -206,7 +209,7 @@ public class AuthingUserDao {
     public String registerByEmailCode(String appId, String email, String code, String username) {
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\"}}", email, code, username);
+                "\"profile\":{\"username\":\"%s\", \"streetAddress\":\"%s\"}}", email, code, username, oneidPrivacyVersion);
         return register(appId, body);
     }
 
@@ -217,7 +220,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\"}}", phone, code, phoneCountryCode, username);
+                "\"profile\":{\"username\":\"%s\", \"streetAddress\":\"%s\"}}", phone, code, phoneCountryCode, username, oneidPrivacyVersion);
         return register(appId, body);
     }
 
@@ -225,8 +228,8 @@ public class AuthingUserDao {
     public String registerByEmailPwd(String appId, String email, String password, String username) {
         String body = String.format("{\"connection\": \"PASSWORD\"," +
                 "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\"}," +
-                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", email, password, username);
+                "\"profile\":{\"username\":\"%s\", \"streetAddress\":\"%s\"}," +
+                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", email, password, username, oneidPrivacyVersion);
         return register(appId, body);
     }
 
@@ -234,8 +237,8 @@ public class AuthingUserDao {
     public String registerByPhonePwd(String appId, String phone, String password, String username) {
         String body = String.format("{\"connection\": \"PASSWORD\"," +
                 "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\"}," +
-                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username);
+                "\"profile\":{\"username\":\"%s\", \"streetAddress\":\"%s\"}," +
+                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username, oneidPrivacyVersion);
         return register(appId, body);
     }
 
@@ -966,6 +969,14 @@ public class AuthingUserDao {
                         }
                         if ("revoked".equals(inputValue)) {
                             updateUserInput.withFormatted("revoked");
+                        }
+                        break;
+                    case "oneidprivacyversion":
+                        if (oneidPrivacyVersion.equals(inputValue)) {
+                            updateUserInput.withStreetAddress(oneidPrivacyVersion);
+                        }
+                        if ("revoked".equals(inputValue)) {
+                            updateUserInput.withStreetAddress("revoked");
                         }
                         break;
                     default:
