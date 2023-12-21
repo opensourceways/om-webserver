@@ -97,7 +97,7 @@ public class JwtTokenCreateService {
 
     @SneakyThrows
     public String[] authingUserToken(String appId, String userId, String username,
-                                     String permission, String inputPermission, String idToken) {
+                                     String permission, String inputPermission, String idToken, Object oneidPrivacyVersion) {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -111,6 +111,7 @@ public class JwtTokenCreateService {
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
         Date headTokenExpireAt = Date.from(expireDate.atZone(ZoneId.systemDefault())
                 .toInstant().plusSeconds(expireSeconds));
+        String oneidPrivacyVersionAccept = oneidPrivacyVersion == null ? "nil" : oneidPrivacyVersion.toString();
 
         String headToken = JWT.create()
                 .withAudience(username) //谁接受签名
@@ -139,6 +140,7 @@ public class JwtTokenCreateService {
                 .withClaim("verifyToken", verifyToken)
                 .withClaim("permissionList", perStr)
                 .withClaim("client_id", appId)
+                .withClaim("oneidPrivacyVersion", oneidPrivacyVersionAccept)
                 .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));
         try {
             RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
@@ -156,13 +158,14 @@ public class JwtTokenCreateService {
         String appId = claimMap.get("client_id").asString();
         String inputPermission = claimMap.get("inputPermission").asString();
         String idToken = (String) redisDao.get("idToken_" + headJwtTokenMd5);
+        String oneidPrivacyVersion = claimMap.get("oneidPrivacyVersion").asString();
         String permission = new String(Base64.getDecoder()
                 .decode(claimMap.get("permission").asString().getBytes()));
 
         // 生成新的token和headToken
         List<String> audience = JWT.decode(headerJwtToken).getAudience();
         String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
-        return authingUserToken(appId, userId, username, permission, inputPermission, idToken);
+        return authingUserToken(appId, userId, username, permission, inputPermission, idToken, oneidPrivacyVersion);
     }
 
     public String oidcToken(String userId, String issuer, String scope, long expireSeconds, Date expireAt) {
