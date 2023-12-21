@@ -365,7 +365,7 @@ public class OpenGaussService implements UserCenterServiceInter {
 
         // 生成token
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"),
-                user.getString("username"), "", "", idToken);
+                user.getString("username"), "", "", idToken, null);
         String token = tokens[0];
         String verifyToken = tokens[1];
 
