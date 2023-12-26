@@ -1,7 +1,5 @@
 FROM gplane/pnpm as Builder
 
-ARG BRANCH
-
 MAINTAINER zhongjun <jun.zhongjun2@gmail.com>
 
 WORKDIR /
@@ -19,9 +17,9 @@ ENV PATH=${JAVA_HOME}/bin:$PATH
 ENV MAVEN_HOME=/apache-maven-3.8.1
 ENV PATH=${MAVEN_HOME}/bin:$PATH
 
-RUN git clone -b ${BRANCH} https://gitee.com/opensourceway/om-webserver.git
+COPY . /om-webserver
 
-RUN cd om-webserver \
+RUN cd /om-webserver \
     && mvn clean install package -Dmaven.test.skip \
     && mv ./target/om-webserver-0.0.1-SNAPSHOT.jar ./target/om-webserver.jar
 

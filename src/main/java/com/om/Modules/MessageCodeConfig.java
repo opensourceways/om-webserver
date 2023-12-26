@@ -16,6 +16,8 @@ import java.util.Map;
 
 public enum MessageCodeConfig {
     // success code message
+    S0001("S0001", "success", "成功"),
+
     OIDC_S00001("S0001", "success", "成功"),
 
     // fail code message
