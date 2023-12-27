@@ -20,4 +20,6 @@ public interface OidcServiceInter {
 
     ResponseEntity<?> userLogin(LoginParam loginParam);
 
+    ResponseEntity<?> refreshUser(String clientId, String token);
+
 }

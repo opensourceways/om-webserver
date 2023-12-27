@@ -197,7 +197,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, LoginConfig.OIDC_REFRESH_TOKEN_EXPIRE);
 
             String res = String.format("%s?code=%s&state=%s", oidcAuth.getRedirect_uri(), code, oidcAuth.getState());
-            return Result.resultOidc(HttpStatus.OK, MessageCodeConfig.OIDC_S00001, res);
+            return Result.resultOidc(HttpStatus.OK, MessageCodeConfig.S0001, res);
         } catch (Exception e) {
             e.printStackTrace();
             return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
@@ -303,7 +303,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             if (!verifyRedirectUri(clientId, redirectUri)) {
                 return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00002, null);
             }
-            return Result.resultOidc(HttpStatus.OK, MessageCodeConfig.OIDC_S00001, null);
+            return Result.resultOidc(HttpStatus.OK, MessageCodeConfig.S0001, null);
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
@@ -345,7 +345,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             String codeTemp = (String) redisDao.get(redisKey);
             if (StringUtils.hasText(loginParam.getPassword())) {
                 String password = Base64.encodeBase64String(Hex.decodeHex(loginParam.getPassword()));
-                user = oneIdUserDao.loginByPassword(loginParam.getAccount(), accountType, loginParam.getPassword());
+                user = oneIdUserDao.loginByPassword(loginParam.getAccount(), accountType, password);
             } else {
                 // 验证码校验
                 MessageCodeConfig messageCodeConfig = checkCode(loginParam.getCode(), codeTemp);
@@ -399,6 +399,35 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
         }
 
+    }
+
+    @Override
+    public ResponseEntity<?> refreshUser(String clientId, String token) {
+        try {
+            // app校验
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(clientId);
+            if (null == app) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00047, null,null, null);
+            }
+
+            // 获取用户
+            DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
+            String userId = decode.getAudience().get(0);
+            OneIdEntity.User user = oneIdUserDao.getUserInfo(userId, "id");
+            if (user == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null,null, null);
+            }
+
+            // 返回结果
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("photo", user.getPhoto());
+            userData.put("username", user.getUsername());
+
+            return Result.setResult(HttpStatus.OK, MessageCodeConfig.S0001, null, userData, null);
+        } catch (Exception e){
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null, null, null);
+        }
     }
 
 
