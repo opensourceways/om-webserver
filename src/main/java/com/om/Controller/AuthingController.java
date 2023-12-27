@@ -114,10 +114,8 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/user/refresh", method = RequestMethod.GET)
-    public ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-                                      @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.refreshUser(servletRequest, servletResponse, token);
+    public ResponseEntity refreshUser(@CookieValue(value = "_Y_G_", required = false) String token, @RequestParam(name = "client_id") String clientId) {
+        return oidcService.refreshUser(clientId, token);
     }
 
     @AuthingUserToken

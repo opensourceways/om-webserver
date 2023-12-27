@@ -18,8 +18,6 @@ public enum MessageCodeConfig {
     // success code message
     S0001("S0001", "success", "成功"),
 
-    OIDC_S00001("S0001", "success", "成功"),
-
     // fail code message
     E0001("E0001", "Code invalid or expired", "验证码无效或已过期"),
     E0002("E0002", "Wrong code. Try again.", "验证码不正确"),
