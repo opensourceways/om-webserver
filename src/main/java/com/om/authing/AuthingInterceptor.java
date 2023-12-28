@@ -200,7 +200,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
             // 服务端校验headerToken是否有效
             String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes());
-            if (!redisDao.exists("idToken_" + md5Token)) {
+            if (!redisDao.exists(Constant.ID_TOKEN_PREFIX + md5Token)) {
                 return "token expires";
             }
 
