@@ -21,6 +21,7 @@ import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.OidcServiceInter;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
+import com.om.Vo.dto.LoginParam;
 import com.om.Vo.dto.OidcAuth;
 import com.om.Vo.dto.OidcAuthorize;
 import com.om.Vo.dto.OidcToken;
@@ -93,19 +94,14 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "/login", method = RequestMethod.POST)
-    public ResponseEntity login(HttpServletRequest servletRequest,
-                                HttpServletResponse servletResponse,
-                                @RequestBody Map<String, Object> body) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.login(servletRequest, servletResponse, verifyCaptcha((String) body.get("captchaVerification")));
+    public ResponseEntity userLogin(@RequestBody LoginParam loginParam) {
+        return oidcService.userLogin(loginParam);
     }
 
     @RequestMapping(value = "/app/verify", method = RequestMethod.GET)
-    public ResponseEntity appVerify(HttpServletRequest servletRequest,
-                                    @RequestParam(value = "client_id") String clientId,
+    public ResponseEntity appVerify(@RequestParam(value = "client_id") String clientId,
                                     @RequestParam(value = "redirect_uri") String redirect) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.appVerify(clientId, redirect);
+        return oidcService.appVerify(clientId, redirect);
     }
 
     @AuthingUserToken
@@ -118,10 +114,8 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/user/refresh", method = RequestMethod.GET)
-    public ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-                                      @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.refreshUser(servletRequest, servletResponse, token);
+    public ResponseEntity refreshUser(@CookieValue(value = "_Y_G_", required = false) String token, @RequestParam(name = "client_id") String clientId) {
+        return oidcService.refreshUser(clientId, token);
     }
 
     @AuthingUserToken

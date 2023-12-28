@@ -1,6 +1,9 @@
 package com.om.Service.impl;
 
 import com.alibaba.fastjson.JSON;
+import com.anji.captcha.model.common.ResponseModel;
+import com.anji.captcha.model.vo.CaptchaVO;
+import com.anji.captcha.service.CaptchaService;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,16 +11,23 @@ import com.om.Dao.RedisDao;
 import com.om.Dao.oneId.OneIdAppDao;
 import com.om.Dao.oneId.OneIdEntity;
 import com.om.Dao.oneId.OneIdUserDao;
+import com.om.Modules.LoginFailCounter;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Result.Result;
 import com.om.Service.JwtTokenCreateService;
 import com.om.Service.inter.OidcServiceInter;
 import com.om.Utils.CodeUtil;
+import com.om.Utils.HttpClientUtils;
+import com.om.Utils.LimitUtil;
 import com.om.Utils.RSAUtil;
+import com.om.Vo.dto.LoginParam;
 import com.om.Vo.dto.OidcAuth;
 import com.om.Vo.dto.OidcAuthorize;
 import com.om.Vo.dto.OidcToken;
+import com.om.config.LoginConfig;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.binary.Hex;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +43,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.util.HtmlUtils;
 
 import javax.crypto.NoSuchPaddingException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -50,10 +62,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
 
     private static final Logger logger = LoggerFactory.getLogger(OidcServiceImplOneId.class);
 
-    private static ObjectMapper objectMapper;
-
-    @Autowired
-    private Environment environment;
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     OneIdAppDao oneIdAppDao;
@@ -62,10 +71,23 @@ public class OidcServiceImplOneId implements OidcServiceInter {
     OneIdUserDao oneIdUserDao;
 
     @Autowired
+    LimitUtil limitUtil;
+
+    @Autowired
     JwtTokenCreateService jwtTokenCreateService;
 
     @Autowired
     RedisDao redisDao;
+
+    @Autowired
+    private CaptchaService captchaService;
+
+
+    @Autowired
+    private HttpServletRequest servletRequest;
+
+    @Autowired
+    private HttpServletResponse servletResponse;
 
     @Override
     public ResponseEntity<?> oidcAuthorize(OidcAuthorize oidcAuthorize) {
@@ -97,9 +119,9 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             }
 
             // 重定向到登录页
-            String loginPage = environment.getProperty("oidc.login.page");
+            String loginPage = LoginConfig.OIDC_LOGIN_PAGE;
             if ("register".equals(oidcAuthorize.getEntity())) {
-                loginPage = environment.getProperty("oidc.register.page");
+                loginPage = LoginConfig.OIDC_REGISTER_PAGE;
             }
             String loginPageRedirect = String.format("%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s",
                     loginPage,
@@ -150,12 +172,9 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             String headToken = decode.getClaim("verifyToken").asString();
             String idToken = (String) redisDao.get("idToken_" + headToken);
 
-            long codeExpire = Long.parseLong(environment.getProperty("oidc.code.expire", "60"));
-            long accessTokenExpire = Long.parseLong(environment.getProperty("oidc.access.token.expire", "1800"));
-            long refreshTokenExpire = Long.parseLong(environment.getProperty("oidc.refresh.token.expire", "86400"));
 
-            String accessToken = jwtTokenCreateService.oidcToken(userId, Constant.OIDCISSUER, oidcAuth.getScope(), accessTokenExpire, null);
-            String refreshToken = jwtTokenCreateService.oidcToken(userId, Constant.OIDCISSUER, oidcAuth.getScope(), refreshTokenExpire, null);
+            String accessToken = jwtTokenCreateService.oidcToken(userId, Constant.OIDCISSUER, oidcAuth.getScope(), LoginConfig.OIDC_ACCESS_TOKEN_EXPIRE, null);
+            String refreshToken = jwtTokenCreateService.oidcToken(userId, Constant.OIDCISSUER, oidcAuth.getScope(), LoginConfig.OIDC_REFRESH_TOKEN_EXPIRE, null);
 
             String code = CodeUtil.randomStrBuilder(32);
 
@@ -167,7 +186,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             codeMap.put("redirectUri", oidcAuth.getRedirect_uri());
             codeMap.put("scope", oidcAuth.getScope());
             String codeMapStr = "oidcCode:" + objectMapper.writeValueAsString(codeMap);
-            redisDao.set(code, codeMapStr, codeExpire);
+            redisDao.set(code, codeMapStr, LoginConfig.OIDC_CODE_EXPIRE);
 
             HashMap<String, String> userTokenMap = new HashMap<>();
             userTokenMap.put("access_token", accessToken);
@@ -175,11 +194,12 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             userTokenMap.put("idToken", idToken);
             userTokenMap.put("scope", oidcAuth.getScope());
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
-            redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
+            redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, LoginConfig.OIDC_REFRESH_TOKEN_EXPIRE);
 
             String res = String.format("%s?code=%s&state=%s", oidcAuth.getRedirect_uri(), code, oidcAuth.getState());
-            return Result.resultOidc(HttpStatus.OK, MessageCodeConfig.OIDC_S00001, res);
+            return Result.resultOidc(HttpStatus.OK, MessageCodeConfig.S0001, res);
         } catch (Exception e) {
+            e.printStackTrace();
             return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
         }
     }
@@ -241,8 +261,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             HashMap<String, Object> addressMap = new HashMap<>();
 
             // 1、默认字段
-            String[] profiles = environment.getProperty("oidc.scope.profile", "").split(",");
-            for (String profile : profiles) {
+            for (String profile : LoginConfig.OIDC_SCOPE_PROFILE) {
                 String profileTemp = oidcScopeAuthingMapping().getOrDefault(profile, profile);
                 Object value = jsonObjObjectValue(userObj, profileTemp);
                 if ("updated_at".equals(profile) && value != null) {
@@ -278,10 +297,165 @@ public class OidcServiceImplOneId implements OidcServiceInter {
         }
     }
 
+    @Override
+    public ResponseEntity<?> appVerify(String clientId, String redirectUri) {
+        try {
+            if (!verifyRedirectUri(clientId, redirectUri)) {
+                return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00002, null);
+            }
+            return Result.resultOidc(HttpStatus.OK, MessageCodeConfig.S0001, null);
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
+        }
+    }
+
+    @Override
+    public ResponseEntity<?> userLogin(LoginParam loginParam) {
+        try {
+            LoginFailCounter failCounter = limitUtil.initLoginFailCounter(loginParam.getAccount());
+
+            // 限制一分钟登录失败次数
+            if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
+                return Result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, limitUtil.loginFail(failCounter), null);
+            }
+
+            // 多次失败需要图片验证码
+            boolean isSuccess = verifyCaptcha(loginParam.getCaptchaVerification());
+            if (limitUtil.isNeedCaptcha(failCounter).get(Constant.NEED_CAPTCHA_VERIFICATION)) {
+                if (!isSuccess) {
+                    return Result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, limitUtil.loginFail(failCounter), null);
+                }
+            }
+
+            // app校验
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(loginParam.getClient_id());
+            if (null == app) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00047, null,limitUtil.loginFail(failCounter), null);
+            }
+
+            // 登录
+            String accountType = getAccountType(loginParam.getAccount());
+            OneIdEntity.User user = null;
+            if (!StringUtils.hasText(accountType)) {
+                return Result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null,null, null);
+            }
+
+            String redisKey = loginParam.getAccount() + "_sendCode_" + loginParam.getCommunity();
+            String codeTemp = (String) redisDao.get(redisKey);
+            if (StringUtils.hasText(loginParam.getPassword())) {
+                String password = Base64.encodeBase64String(Hex.decodeHex(loginParam.getPassword()));
+                user = oneIdUserDao.loginByPassword(loginParam.getAccount(), accountType, password);
+            } else {
+                // 验证码校验
+                MessageCodeConfig messageCodeConfig = checkCode(loginParam.getCode(), codeTemp);
+
+                if (messageCodeConfig != MessageCodeConfig.S0001) {
+                    return Result.setResult(HttpStatus.BAD_REQUEST, messageCodeConfig, null,limitUtil.loginFail(failCounter), null);
+                }
+
+                user = oneIdUserDao.getUserInfo(loginParam.getAccount(), accountType);
+            }
+
+            if (user == null) {
+                redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+                return Result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00027, null,limitUtil.loginFail(failCounter), null);
+            }
+
+            String idToken = user.getId();
+
+            // 登录成功解除登录失败次数限制
+            redisDao.remove(loginParam.getAccount() + Constant.LOGIN_COUNT);
+
+            // 生成token
+            String[] tokens = jwtTokenCreateService.authingUserToken(loginParam.getClient_id(), user.getId(), user.getUsername(), "", "", idToken);
+            String token = tokens[0];
+            String verifyToken = tokens[1];
+
+            // 写cookie
+            String maxAgeTemp = LoginConfig.AUTHING_COOKIE_MAX_AGE;
+            int expire = LoginConfig.AUTHING_TOKEN_EXPIRE_SECONDS;
+            int maxAge = expire;
+            if (StringUtils.hasText(maxAgeTemp)) {
+                maxAge = Integer.parseInt(maxAgeTemp);
+            }
+
+            HttpClientUtils.setCookie(servletRequest, servletResponse, LoginConfig.COOKIE_TOKEN_NAME,
+                    token, true, maxAge, "/", LoginConfig.DOMAIN_TO_SECURE);
+            HttpClientUtils.setCookie(servletRequest, servletResponse, LoginConfig.COOKIE_VERIFY_TOKEN_NAME,
+                    verifyToken, false, expire, "/", LoginConfig.DOMAIN_TO_SECURE);
+
+            // 返回结果
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("token", verifyToken);
+            userData.put("photo", user.getPhoto());
+            userData.put("username", user.getUsername());
+            userData.put("email_exist", StringUtils.hasText(user.getEmail()));
+            // 登录成功，验证码失效
+            redisDao.updateValue(redisKey, codeTemp + "_used", 0);
+            return Result.setResult(HttpStatus.OK, MessageCodeConfig.S0001, null, userData, null);
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
+        }
+
+    }
+
+    @Override
+    public ResponseEntity<?> refreshUser(String clientId, String token) {
+        try {
+            // app校验
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(clientId);
+            if (null == app) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00047, null,null, null);
+            }
+
+            // 获取用户
+            DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
+            String userId = decode.getAudience().get(0);
+            OneIdEntity.User user = oneIdUserDao.getUserInfo(userId, "id");
+            if (user == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null,null, null);
+            }
+
+            // 返回结果
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("photo", user.getPhoto());
+            userData.put("username", user.getUsername());
+
+            return Result.setResult(HttpStatus.OK, MessageCodeConfig.S0001, null, userData, null);
+        } catch (Exception e){
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null, null, null);
+        }
+    }
+
+
+    private String getAccountType(String account) {
+        if (!StringUtils.hasText(account)) {
+            return "";
+        }
+        if (account.matches(Constant.EMAILREGEX)) {
+            return "email";
+        }
+        if (account.matches(Constant.PHONEREGEX)) {
+            return "phone";
+        }
+        return "username";
+    }
+
+
+
+    private boolean verifyCaptcha(String captchaVerification) {
+        CaptchaVO captchaVO = new CaptchaVO();
+        captchaVO.setCaptchaVerification(captchaVerification);
+        ResponseModel response = captchaService.verification(captchaVO);
+        return response.isSuccess();
+    }
+
     private HashMap<String, String> oidcScopeAuthingMapping() {
-        String[] mappings = environment.getProperty("oidc.scope.authing.mapping", "").split(",");
         HashMap<String, String> authingMapping = new HashMap<>();
-        for (String mapping : mappings) {
+        for (String mapping : LoginConfig.OIDC_SCOPE_AUTHING_MAPPING) {
             if (!StringUtils.hasText(mapping)) continue;
             String[] split = mapping.split(":");
             authingMapping.put(split[0], split[1]);
@@ -289,7 +463,6 @@ public class OidcServiceImplOneId implements OidcServiceInter {
         return authingMapping;
     }
 
-    // JSONObject获取单个node的值
     private Object jsonObjObjectValue(JSONObject jsonObj, String nodeName) {
         Object res = null;
         try {
@@ -303,9 +476,8 @@ public class OidcServiceImplOneId implements OidcServiceInter {
     }
 
     private HashMap<String, String[]> oidcScopeOthers() {
-        String[] others = environment.getProperty("oidc.scope.other", "").split(";");
         HashMap<String, String[]> otherMap = new HashMap<>();
-        for (String other : others) {
+        for (String other : LoginConfig.OIDC_SCOPE_OTHER) {
             if (!StringUtils.hasText(other)) continue;
             String[] split = other.split("->");
             otherMap.put(split[0], split[1].split(","));
@@ -315,6 +487,9 @@ public class OidcServiceImplOneId implements OidcServiceInter {
 
     public boolean verifyRedirectUri(String clientId, String redirectUri) throws Exception {
         OneIdEntity.App app = oneIdAppDao.getAppInfo(clientId);
+        if (! StringUtils.hasText(app.getRedirectUrls())) {
+            return false;
+        }
         String[] appRedirectUriList = app.getRedirectUrls().replaceAll("\\s", "").split(",");
 
         for (String s : appRedirectUriList) {
@@ -338,8 +513,18 @@ public class OidcServiceImplOneId implements OidcServiceInter {
         return false;
     }
 
+    private MessageCodeConfig checkCode(String code, String codeTemp) {
+        if (code == null || codeTemp == null || codeTemp.endsWith("_used")) {
+            return MessageCodeConfig.E0001;
+        }
+        if (!codeTemp.equals(code)) {
+            return MessageCodeConfig.E0002;
+        }
+        return MessageCodeConfig.S0001;
+    }
+
     private String rsaDecryptToken(String token) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
-        RSAPrivateKey privateKey = RSAUtil.getPrivateKey(environment.getProperty("rsa.authing.privateKey"));
+        RSAPrivateKey privateKey = RSAUtil.getPrivateKey(LoginConfig.RAS_AUTHING_PRIVATE_KEY);
         return RSAUtil.privateDecrypt(token, privateKey);
     }
 
@@ -381,12 +566,10 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00010, null);
         }
 
-        long expire = Long.parseLong(environment.getProperty("oidc.access.token.expire", "1800"));
-
         HashMap<String, Object> tokens = new HashMap<>();
         tokens.put("access_token", jsonNode.get("accessToken").asText());
         tokens.put("scope", scopeTemp);
-        tokens.put("expires_in", expire);
+        tokens.put("expires_in", LoginConfig.OIDC_ACCESS_TOKEN_EXPIRE);
         tokens.put("token_type", "Bearer");
         List<String> scopes = Arrays.asList(scopeTemp.split(" "));
         if (scopes.contains("offline_access")) {
@@ -420,12 +603,12 @@ public class OidcServiceImplOneId implements OidcServiceInter {
         String loginErrorCountKey = account + "loginCount";
         Object v = redisDao.get(loginErrorCountKey);
         int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
-        if (loginErrorCount >= Integer.parseInt(environment.getProperty("login.error.limit.count", "6"))) {
+        if (loginErrorCount >= LoginConfig.LOGIN_ERROR_LIMIT_COUNT) {
             return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00013, null);
         }
 
         // 用户密码校验
-        OneIdEntity.User user = oneIdUserDao.loginByPassword(account, getAccountType(account), password, appId);
+        OneIdEntity.User user = oneIdUserDao.loginByPassword(account, getAccountType(account), password);
 
         // 获取用户信息
         String idToken;
@@ -434,7 +617,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             idToken = user.getId();
             userId = JWT.decode(idToken).getSubject();
         } else {
-            long codeExpire = Long.parseLong(environment.getProperty("mail.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
+            long codeExpire = LoginConfig.MAIL_CODE_EXPIRE;
             loginErrorCount += 1;
             redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
             return Result.resultOidc(HttpStatus.BAD_REQUEST, MessageCodeConfig.OIDC_E00014, null);
@@ -442,13 +625,10 @@ public class OidcServiceImplOneId implements OidcServiceInter {
 
         redisDao.remove(loginErrorCountKey);
 
-        long accessTokenExpire = Long.parseLong(environment.getProperty("oidc.access.token.expire", "1800"));
-        long refreshTokenExpire = Long.parseLong(environment.getProperty("oidc.refresh.token.expire", "86400"));
+        String accessToken = jwtTokenCreateService.oidcToken(userId, Constant.OIDCISSUER, scope, LoginConfig.OIDC_ACCESS_TOKEN_EXPIRE, null);
+        String refreshToken = jwtTokenCreateService.oidcToken(userId, Constant.OIDCISSUER, scope, LoginConfig.OIDC_REFRESH_TOKEN_EXPIRE, null);
 
-        String accessToken = jwtTokenCreateService.oidcToken(userId, Constant.OIDCISSUER, scope, accessTokenExpire, null);
-        String refreshToken = jwtTokenCreateService.oidcToken(userId, Constant.OIDCISSUER, scope, refreshTokenExpire, null);
-
-        long expire = Long.parseLong(environment.getProperty("oidc.access.token.expire", "1800"));
+        long expire = LoginConfig.OIDC_ACCESS_TOKEN_EXPIRE;
 
         HashMap<String, Object> tokens = new HashMap<>();
         tokens.put("access_token", accessToken);
@@ -466,23 +646,9 @@ public class OidcServiceImplOneId implements OidcServiceInter {
 
         // 缓存 oidcRefreshToken
         String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(tokens);
-        redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
+        redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, LoginConfig.OIDC_REFRESH_TOKEN_EXPIRE);
 
         return new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(tokens)), HashMap.class), HttpStatus.OK);
-    }
-
-    private String getAccountType(String account) {
-        String accountTypeError = "请输入正确的手机号或者邮箱";
-        if (!StringUtils.hasText(account)) {
-            return accountTypeError;
-        }
-        if (account.matches(Constant.EMAILREGEX)) {
-            return "email";
-        }
-        if (account.matches(Constant.PHONEREGEX)) {
-            return "phone";
-        }
-        return accountTypeError;
     }
 
     private ResponseEntity<?> oidcRefreshToken(String refreshToken) throws Exception {
@@ -510,13 +676,13 @@ public class OidcServiceImplOneId implements OidcServiceInter {
         String scope = jsonNode.get("scope").asText();
         String accessToken = jsonNode.get("access_token").asText();
         // 生成新的accessToken和refreshToken
-        long accessTokenExpire = Long.parseLong(environment.getProperty("oidc.access.token.expire", "1800"));
-        long refreshTokenExpire = Long.parseLong(environment.getProperty("oidc.refresh.token.expire", "86400"));
+        long accessTokenExpire = LoginConfig.OIDC_ACCESS_TOKEN_EXPIRE;
+        long refreshTokenExpire = LoginConfig.OIDC_REFRESH_TOKEN_EXPIRE;
         String accessTokenNew = jwtTokenCreateService.oidcToken(userId, Constant.OIDCISSUER, scope, accessTokenExpire, null);
         String refreshTokenNew = jwtTokenCreateService.oidcToken(userId, Constant.OIDCISSUER, scope, refreshTokenExpire, expiresAt);
 
         // 缓存新的accessToken和refreshToken
-        long expire = Long.parseLong(environment.getProperty("oidc.access.token.expire", "1800"));
+        long expire = LoginConfig.OIDC_ACCESS_TOKEN_EXPIRE;
         HashMap<String, Object> userTokenMap = new HashMap<>();
         userTokenMap.put("access_token", accessTokenNew);
         userTokenMap.put("refresh_token", refreshTokenNew);
@@ -536,4 +702,6 @@ public class OidcServiceImplOneId implements OidcServiceInter {
 
         return new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(userTokenMap)), HashMap.class), HttpStatus.OK);
     }
+
+
 }
