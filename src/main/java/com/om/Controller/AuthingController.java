@@ -18,6 +18,7 @@ import com.om.Result.Constant;
 import com.om.Service.AuthingService;
 import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
+import com.om.Service.inter.LoginServiceInter;
 import com.om.Service.inter.OidcServiceInter;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
@@ -49,6 +50,9 @@ public class AuthingController {
 
     @Autowired
     OidcServiceInter oidcService;
+
+    @Autowired
+    LoginServiceInter loginService;
 
     @Autowired
     UserCenterServiceContext userCenterServiceContext;
@@ -95,27 +99,25 @@ public class AuthingController {
 
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity userLogin(@RequestBody LoginParam loginParam) {
-        return oidcService.userLogin(loginParam);
+        return loginService.userLogin(loginParam);
     }
 
     @RequestMapping(value = "/app/verify", method = RequestMethod.GET)
     public ResponseEntity appVerify(@RequestParam(value = "client_id") String clientId,
                                     @RequestParam(value = "redirect_uri") String redirect) {
-        return oidcService.appVerify(clientId, redirect);
+        return loginService.appVerify(clientId, redirect);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/logout", method = RequestMethod.GET)
-    public ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-                                 @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.logout(servletRequest, servletResponse, token);
+    public ResponseEntity logout(@CookieValue(value = "_Y_G_", required = false) String token, @RequestParam(name = "client_id") String clientId) {
+        return loginService.userLogout(clientId, token);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/user/refresh", method = RequestMethod.GET)
     public ResponseEntity refreshUser(@CookieValue(value = "_Y_G_", required = false) String token, @RequestParam(name = "client_id") String clientId) {
-        return oidcService.refreshUser(clientId, token);
+        return loginService.refreshUser(clientId, token);
     }
 
     @AuthingUserToken

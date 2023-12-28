@@ -9,6 +9,7 @@ import org.springframework.util.StringUtils;
 
 import javax.annotation.PostConstruct;
 import java.util.HashMap;
+import java.util.Objects;
 
 @Configuration
 public class LoginConfig {
@@ -33,7 +34,7 @@ public class LoginConfig {
 
     public static String COOKIE_VERIFY_TOKEN_NAME;
 
-    public static String AUTHING_COOKIE_MAX_AGE;
+    public static int AUTHING_COOKIE_MAX_AGE;
 
     public static int AUTHING_TOKEN_EXPIRE_SECONDS;
 
@@ -46,6 +47,10 @@ public class LoginConfig {
     public static int LOGIN_ERROR_LIMIT_COUNT;
 
     public static long MAIL_CODE_EXPIRE;
+
+    public static long TOKEN_EXPIRE_SECONDS;
+
+    public static long OLD_TOKEN_EXPIRE_SECONDS;
 
 
     @Autowired
@@ -71,12 +76,14 @@ public class LoginConfig {
         OIDC_SCOPE_PROFILE = environment.getProperty("oidc.scope.profile", "").split(",");
         COOKIE_TOKEN_NAME = environment.getProperty("cookie.token.name");
         COOKIE_VERIFY_TOKEN_NAME = environment.getProperty("cookie.verify.token.name");
-        AUTHING_COOKIE_MAX_AGE = environment.getProperty("authing.cookie.max.age");
+        AUTHING_COOKIE_MAX_AGE = Integer.parseInt(Objects.requireNonNull(environment.getProperty("authing.cookie.max.age")));
         AUTHING_TOKEN_EXPIRE_SECONDS = Integer.parseInt(environment.getProperty("authing.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
         OIDC_SCOPE_AUTHING_MAPPING = environment.getProperty("oidc.scope.authing.mapping", "").split(",");
         OIDC_SCOPE_OTHER = environment.getProperty("oidc.scope.other", "").split(";");
         RAS_AUTHING_PRIVATE_KEY = environment.getProperty("rsa.authing.privateKey");
         LOGIN_ERROR_LIMIT_COUNT = Integer.parseInt(environment.getProperty("login.error.limit.count", "6"));
         MAIL_CODE_EXPIRE = Long.parseLong(environment.getProperty("mail.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
+        TOKEN_EXPIRE_SECONDS = Long.parseLong(Objects.requireNonNull(environment.getProperty("authing.token.expire.seconds")));
+        OLD_TOKEN_EXPIRE_SECONDS = Long.parseLong(environment.getProperty("old.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
     }
 }
