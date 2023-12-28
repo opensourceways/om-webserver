@@ -191,7 +191,7 @@ public class LoginServiceImplOneId implements LoginServiceInter {
             // 从redis删除verifyToken
             String verifyToken = decode.getClaim("verifyToken").asString();
             String oldTokenKey = Constant.ID_TOKEN_PREFIX + verifyToken;
-            if (redisDao.remove("idToken_" + oldTokenKey)) {
+            if (redisDao.remove(Constant.ID_TOKEN_PREFIX + oldTokenKey)) {
                 return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, null, null);
             }
             //删除cookie

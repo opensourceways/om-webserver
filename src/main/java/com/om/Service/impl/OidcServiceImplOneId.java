@@ -145,7 +145,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             String headToken = decode.getClaim("verifyToken").asString();
-            String idToken = (String) redisDao.get("idToken_" + headToken);
+            String idToken = (String) redisDao.get(Constant.ID_TOKEN_PREFIX + headToken);
 
 
             String accessToken = jwtTokenCreateService.oidcToken(userId, Constant.OIDCISSUER, oidcAuth.getScope(), LoginConfig.OIDC_ACCESS_TOKEN_EXPIRE, null);

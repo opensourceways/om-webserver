@@ -382,7 +382,7 @@ public class AuthingService implements UserCenterServiceInter {
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             String headToken = decode.getClaim("verifyToken").asString();
-            String idToken = (String) redisDao.get("idToken_" + headToken);
+            String idToken = (String) redisDao.get(Constant.ID_TOKEN_PREFIX + headToken);
 
             List<String> accessibleApps = authingUserDao.userAccessibleApps(userId);
             if (!accessibleApps.contains(appId)) {
@@ -654,7 +654,7 @@ public class AuthingService implements UserCenterServiceInter {
         try {
             String headerToken = servletRequest.getHeader("token");
             String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes());
-            String idTokenKey = "idToken_" + md5Token;
+            String idTokenKey = Constant.ID_TOKEN_PREFIX + md5Token;
             String idToken = (String) redisDao.get(idTokenKey);
 
             token = rsaDecryptToken(token);
@@ -1267,7 +1267,7 @@ public class AuthingService implements UserCenterServiceInter {
             // 删除cookie，删除idToken
             String headerToken = httpServletRequest.getHeader("token");
             String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes());
-            String idTokenKey = "idToken_" + md5Token;
+            String idTokenKey = Constant.ID_TOKEN_PREFIX + md5Token;
             String cookieTokenName = env.getProperty("cookie.token.name");
             HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
             redisDao.remove(idTokenKey);

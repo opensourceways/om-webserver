@@ -433,7 +433,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
 
             String headerToken = servletRequest.getHeader("token");
-            String idTokenKey = "idToken_" + headerToken;
+            String idTokenKey = Constant.ID_TOKEN_PREFIX + headerToken;
             String idToken = (String) redisDao.get(idTokenKey);
 
             token = rsaDecryptToken(token);
@@ -1050,7 +1050,7 @@ public class OpenGaussService implements UserCenterServiceInter {
 
             // 删除cookie，删除idToken
             String headerToken = httpServletRequest.getHeader("token");
-            String idTokenKey = "idToken_" + headerToken;
+            String idTokenKey = Constant.ID_TOKEN_PREFIX + headerToken;
             String cookieTokenName = env.getProperty("cookie.token.name");
             HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
             redisDao.remove(idTokenKey);
