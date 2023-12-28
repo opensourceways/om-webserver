@@ -68,9 +68,8 @@ public class Constant {
     public static final String ONEID_TOKEN_KEY = "Oneid-Token";
     public static final String ID_TOKEN_PREFIX = "idToken_";
     public static final String TOKEN_EXPIRES = "token expires";
-    public static final int TOKEN_YG = 0;
+
     public static final String TOKEN_Y_G_ = "_Y_G_";
-    public static final int TOKEN_UT = 1;
     public static final String TOKEN_U_T_ = "_U_T_";
  
     public static final String ONEID_USER_C_PATH = "/composite-user";

@@ -16,10 +16,4 @@ public interface OidcServiceInter {
 
     ResponseEntity<?> oidcUser(String token);
 
-    ResponseEntity<?> appVerify(String clientId, String redirectUri);
-
-    ResponseEntity<?> userLogin(LoginParam loginParam);
-
-    ResponseEntity<?> refreshUser(String clientId, String token);
-
 }

@@ -24,6 +24,7 @@ import com.om.Result.Constant;
 import com.om.Service.JwtTokenCreateService;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
+import com.om.config.LoginConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -156,8 +157,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         }
 
         // 校验token
-        String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, userId,
-                issuedAt, expiresAt, permission);
+        String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, userId, issuedAt, expiresAt, permission);
         if (!Constant.SUCCESS.equals(verifyTokenMsg)) {
             tokenError(httpServletRequest, httpServletResponse, verifyDomainMsg);
             return false;
@@ -322,23 +322,19 @@ public class AuthingInterceptor implements HandlerInterceptor {
         }
 
         // headToken刷新token
-        String[] tokens = jwtTokenCreateService.refreshAuthingUserToken(request, response, userId, claimMap);
+        Map<String, String> tokens = jwtTokenCreateService.refreshAuthingUserToken(request, response, userId, claimMap);
 
         // 刷新cookie
-        int tokenExpire = Integer.parseInt(
-                env.getProperty("authing.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
-        String maxAgeTemp = env.getProperty("authing.cookie.max.age");
-        int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : tokenExpire;
-        HttpClientUtils.setCookie(request, response, cookieTokenName, tokens[Constant.TOKEN_YG],
+        int tokenExpire = LoginConfig.AUTHING_TOKEN_EXPIRE_SECONDS;
+        int maxAge = LoginConfig.AUTHING_COOKIE_MAX_AGE;
+        HttpClientUtils.setCookie(request, response, cookieTokenName, tokens.get(Constant.TOKEN_Y_G_),
                 true, maxAge, "/", domain2secure);
-        HttpClientUtils.setCookie(request, response, verifyTokenName, tokens[Constant.TOKEN_UT],
+        HttpClientUtils.setCookie(request, response, verifyTokenName, tokens.get(Constant.TOKEN_U_T_),
                 false, tokenExpire, "/", domain2secure);
-        String newVerifyToken = DigestUtils.md5DigestAsHex(tokens[Constant.TOKEN_UT].getBytes());
-        redisDao.set(Constant.ID_TOKEN_PREFIX + newVerifyToken, idToken, (long) tokenExpire);
+
 
         // 旧token失效,保持一个短时间的有效性
-        long validityPeriod =
-                Long.parseLong(env.getProperty("old.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
+        long validityPeriod = LoginConfig.OLD_TOKEN_EXPIRE_SECONDS;
         if (redisDao.expire(oldTokenKey) > validityPeriod) {
             redisDao.set(oldTokenKey, idToken, validityPeriod);
         }

@@ -364,10 +364,9 @@ public class OpenGaussService implements UserCenterServiceInter {
         redisDao.remove(account + Constant.LOGIN_COUNT);
 
         // 生成token
-        String[] tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"),
-                user.getString("username"), "", "", idToken);
-        String token = tokens[0];
-        String verifyToken = tokens[1];
+        Map<String, String> tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"), user.getString("username"), "", "", idToken);
+        String token = tokens.get(Constant.TOKEN_Y_G_);
+        String verifyToken = tokens.get(Constant.TOKEN_U_T_);
 
         // 写cookie
         String cookieTokenName = env.getProperty("cookie.token.name");
