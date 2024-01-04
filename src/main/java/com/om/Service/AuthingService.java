@@ -361,7 +361,7 @@ public class AuthingService implements UserCenterServiceInter {
         userData.put("photo", user.getPhoto());
         userData.put("username", user.getUsername());
         userData.put("email_exist", StringUtils.isNotBlank(user.getEmail()));
-        userData.put("oneidPrivacyVersion", oneidPrivacyVersionAccept);
+        userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
         return result(HttpStatus.OK, "success", userData);
     }
 
@@ -640,7 +640,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("username", username);
             userData.put("email", email);
             userData.put("aigcPrivacyAccepted", aigcPrivacyAccepted);
-            userData.put("oneidPrivacyVersion", oneidPrivacyVersionAccept);
+            userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
@@ -785,7 +785,7 @@ public class AuthingService implements UserCenterServiceInter {
             String username = (String) user.get("username");
             String email = (String) user.get("email");
             if (StringUtils.isBlank(email)) email = genPredefinedEmail(userId, username);
-            String oneidPrivacyVersionAccept = String.valueOf(user.get("street_address"));
+            String oneidPrivacyVersionAccept = String.valueOf(user.get("streetAddress"));
 
             // 资源权限
             String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
@@ -813,7 +813,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("photo", picture);
             userData.put("username", username);
             userData.put("email_exist", StringUtils.isNotBlank(email));
-            userData.put("oneidPrivacyVersion", oneidPrivacyVersionAccept);
+            userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
             return result(HttpStatus.OK, "success", userData);
 
         } catch (Exception e) {
