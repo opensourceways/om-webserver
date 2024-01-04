@@ -97,7 +97,7 @@ public class JwtTokenCreateService {
 
     @SneakyThrows
     public String[] authingUserToken(String appId, String userId, String username,
-                                     String permission, String inputPermission, String idToken, Object oneidPrivacyVersion) {
+                                     String permission, String inputPermission, String idToken, String oneidPrivacyVersionAccept) {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -111,7 +111,6 @@ public class JwtTokenCreateService {
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
         Date headTokenExpireAt = Date.from(expireDate.atZone(ZoneId.systemDefault())
                 .toInstant().plusSeconds(expireSeconds));
-        String oneidPrivacyVersionAccept = oneidPrivacyVersion == null ? "nil" : oneidPrivacyVersion.toString();
 
         String headToken = JWT.create()
                 .withAudience(username) //谁接受签名
