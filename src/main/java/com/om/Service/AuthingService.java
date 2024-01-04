@@ -346,9 +346,11 @@ public class AuthingService implements UserCenterServiceInter {
         // 资源权限
         String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
+        // 获取是否同意隐私
+        String oneidPrivacyVersionAccept = String.valueOf(user.getStreetAddress());
         // 生成token
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
-                user.getUsername(), permissionInfo, permission, idToken, user.getStreetAddress());
+                user.getUsername(), permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
 
         // 写cookie
         setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
@@ -359,7 +361,7 @@ public class AuthingService implements UserCenterServiceInter {
         userData.put("photo", user.getPhoto());
         userData.put("username", user.getUsername());
         userData.put("email_exist", StringUtils.isNotBlank(user.getEmail()));
-        userData.put("oneidPrivacyVersion", user.getStreetAddress());
+        userData.put("oneidPrivacyVersion", oneidPrivacyVersionAccept);
         return result(HttpStatus.OK, "success", userData);
     }
 
@@ -630,8 +632,7 @@ public class AuthingService implements UserCenterServiceInter {
             String email = user.getEmail();
             String aigcPrivacyAccepted = env.getProperty("aigc.privacy.version").equals(user.getFormatted()) ? 
                                          user.getFormatted() : "";
-            String oneidPrivacyVersion = env.getProperty("oneid.privacy.version").equals(user.getStreetAddress()) ? 
-                                         user.getStreetAddress() : "";
+            String oneidPrivacyVersionAccept = String.valueOf(user.getStreetAddress());
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
@@ -639,7 +640,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("username", username);
             userData.put("email", email);
             userData.put("aigcPrivacyAccepted", aigcPrivacyAccepted);
-            userData.put("oneidPrivacyVersion", oneidPrivacyVersion);
+            userData.put("oneidPrivacyVersion", oneidPrivacyVersionAccept);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
@@ -784,13 +785,14 @@ public class AuthingService implements UserCenterServiceInter {
             String username = (String) user.get("username");
             String email = (String) user.get("email");
             if (StringUtils.isBlank(email)) email = genPredefinedEmail(userId, username);
+            String oneidPrivacyVersionAccept = String.valueOf(user.get("street_address"));
 
             // 资源权限
             String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
             // 生成token
             String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
-                    username, permissionInfo, permission, idToken, user.get("oneidPrivacyVersion"));
+                    username, permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
             String token = tokens[0];
             String verifyToken = tokens[1];
 
@@ -811,7 +813,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("photo", picture);
             userData.put("username", username);
             userData.put("email_exist", StringUtils.isNotBlank(email));
-            userData.put("oneidPrivacyVersion", user.get("street_address"));
+            userData.put("oneidPrivacyVersion", oneidPrivacyVersionAccept);
             return result(HttpStatus.OK, "success", userData);
 
         } catch (Exception e) {
