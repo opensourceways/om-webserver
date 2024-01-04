@@ -785,7 +785,10 @@ public class AuthingService implements UserCenterServiceInter {
             String username = (String) user.get("username");
             String email = (String) user.get("email");
             if (StringUtils.isBlank(email)) email = genPredefinedEmail(userId, username);
-            String oneidPrivacyVersionAccept = String.valueOf(user.get("streetAddress"));
+
+            // 获取隐私同意字段值
+            Map address = (Map) user.get("address");
+            String oneidPrivacyVersionAccept = String.valueOf(address.get("street_address"));
 
             // 资源权限
             String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
