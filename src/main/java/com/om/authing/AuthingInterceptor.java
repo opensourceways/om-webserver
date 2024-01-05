@@ -160,7 +160,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             expiresAt = decode.getExpiresAt();
             claims = decode.getClaims();
             String permissionTemp = claims.get("permission").asString();
-            oneidPrivacyVersionAccept = claims.get("oneidPrivacyVersion").asString();
+            oneidPrivacyVersionAccept = claims.get("oneidPrivacyAccepted").asString();
             permission = new String(Base64.getDecoder().decode(permissionTemp.getBytes()));
             verifyToken = claims.get("verifyToken").asString();
         } catch (JWTDecodeException j) {

@@ -213,7 +213,7 @@ public class AuthingService implements UserCenterServiceInter {
         String code = (String) getBodyPara(body, "code");
         String appId = (String) getBodyPara(body, "client_id");
         String password = (String) getBodyPara(body, "password");
-        String acceptPrivacyVersion = (String) getBodyPara(body, "acceptPrivacyVersion");
+        String acceptPrivacyVersion = (String) getBodyPara(body, "oneidPrivacyAccepted");
 
         // 校验appId
         if (authingUserDao.initAppClient(appId) == null) {
@@ -347,7 +347,8 @@ public class AuthingService implements UserCenterServiceInter {
         String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
         // 获取是否同意隐私
-        String oneidPrivacyVersionAccept = String.valueOf(user.getStreetAddress());
+        String oneidPrivacyVersionAccept = String.valueOf(user.getGivenName());
+
         // 生成token
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
                 user.getUsername(), permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
@@ -632,7 +633,7 @@ public class AuthingService implements UserCenterServiceInter {
             String email = user.getEmail();
             String aigcPrivacyAccepted = env.getProperty("aigc.privacy.version").equals(user.getFormatted()) ? 
                                          user.getFormatted() : "";
-            String oneidPrivacyVersionAccept = String.valueOf(user.getStreetAddress());
+            String oneidPrivacyVersionAccept = String.valueOf(user.getGivenName());
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
@@ -787,8 +788,7 @@ public class AuthingService implements UserCenterServiceInter {
             if (StringUtils.isBlank(email)) email = genPredefinedEmail(userId, username);
 
             // 获取隐私同意字段值
-            Map address = (Map) user.get("address");
-            String oneidPrivacyVersionAccept = String.valueOf(address.get("street_address"));
+            String oneidPrivacyVersionAccept = String.valueOf(user.get("given_name"));
 
             // 资源权限
             String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
