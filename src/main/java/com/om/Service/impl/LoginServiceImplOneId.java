@@ -144,8 +144,6 @@ public class LoginServiceImplOneId implements LoginServiceInter {
 
             int expire = LoginConfig.AUTHING_TOKEN_EXPIRE_SECONDS;
             int maxAge = LoginConfig.AUTHING_COOKIE_MAX_AGE;
-            ;
-
 
             HttpClientUtils.setCookie(servletRequest, servletResponse, LoginConfig.COOKIE_TOKEN_NAME,
                     token, true, maxAge, "/", LoginConfig.DOMAIN_TO_SECURE);
