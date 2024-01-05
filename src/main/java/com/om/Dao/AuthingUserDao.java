@@ -209,7 +209,7 @@ public class AuthingUserDao {
     public String registerByEmailCode(String appId, String email, String code, String username) {
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\", \"streetAddress\":\"%s\"}}", email, code, username, oneidPrivacyVersion);
+                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}", email, code, username, oneidPrivacyVersion);
         return register(appId, body);
     }
 
@@ -220,7 +220,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\", \"streetAddress\":\"%s\"}}", phone, code, phoneCountryCode, username, oneidPrivacyVersion);
+                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}", phone, code, phoneCountryCode, username, oneidPrivacyVersion);
         return register(appId, body);
     }
 
@@ -228,7 +228,7 @@ public class AuthingUserDao {
     public String registerByEmailPwd(String appId, String email, String password, String username) {
         String body = String.format("{\"connection\": \"PASSWORD\"," +
                 "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\", \"streetAddress\":\"%s\"}," +
+                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}," +
                 "\"options\":{\"passwordEncryptType\":\"rsa\"}}", email, password, username, oneidPrivacyVersion);
         return register(appId, body);
     }
@@ -237,7 +237,7 @@ public class AuthingUserDao {
     public String registerByPhonePwd(String appId, String phone, String password, String username) {
         String body = String.format("{\"connection\": \"PASSWORD\"," +
                 "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\", \"streetAddress\":\"%s\"}," +
+                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}," +
                 "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username, oneidPrivacyVersion);
         return register(appId, body);
     }
@@ -971,12 +971,12 @@ public class AuthingUserDao {
                             updateUserInput.withFormatted("revoked");
                         }
                         break;
-                    case "oneidprivacyversion":
+                    case "oneidprivacyaccepted":
                         if (oneidPrivacyVersion.equals(inputValue)) {
-                            updateUserInput.withStreetAddress(oneidPrivacyVersion);
+                            updateUserInput.withGivenName(oneidPrivacyVersion);
                         }
                         if ("revoked".equals(inputValue)) {
-                            updateUserInput.withStreetAddress("revoked");
+                            updateUserInput.withGivenName("revoked");
                         }
                         break;
                     default:

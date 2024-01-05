@@ -139,7 +139,7 @@ public class JwtTokenCreateService {
                 .withClaim("verifyToken", verifyToken)
                 .withClaim("permissionList", perStr)
                 .withClaim("client_id", appId)
-                .withClaim("oneidPrivacyVersion", oneidPrivacyVersionAccept)
+                .withClaim("oneidPrivacyAccepted", oneidPrivacyVersionAccept)
                 .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));
         try {
             RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
@@ -157,7 +157,7 @@ public class JwtTokenCreateService {
         String appId = claimMap.get("client_id").asString();
         String inputPermission = claimMap.get("inputPermission").asString();
         String idToken = (String) redisDao.get("idToken_" + headJwtTokenMd5);
-        String oneidPrivacyVersion = claimMap.get("oneidPrivacyVersion").asString();
+        String oneidPrivacyVersion = claimMap.get("oneidPrivacyAccepted").asString();
         String permission = new String(Base64.getDecoder()
                 .decode(claimMap.get("permission").asString().getBytes()));
 
