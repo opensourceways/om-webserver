@@ -69,6 +69,9 @@ public class JwtTokenCreateService {
     @Value("${token.expire.seconds}")
     private String tokenExpireSeconds;
 
+    @Value("${oneid.privacy.version}")
+    String oneidPrivacyVersion;
+
     private static final Logger logger =  LoggerFactory.getLogger(JwtTokenCreateService.class);
 
     public String getToken(TokenUser user) {
@@ -157,7 +160,6 @@ public class JwtTokenCreateService {
         String appId = claimMap.get("client_id").asString();
         String inputPermission = claimMap.get("inputPermission").asString();
         String idToken = (String) redisDao.get("idToken_" + headJwtTokenMd5);
-        String oneidPrivacyVersion = claimMap.get("oneidPrivacyAccepted").asString();
         String permission = new String(Base64.getDecoder()
                 .decode(claimMap.get("permission").asString().getBytes()));
 
