@@ -1,6 +1,7 @@
 package com.om.Service.impl;
 
-import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONWriter;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -67,7 +68,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
     @Override
     public ResponseEntity<?> oidcAuthorize(OidcAuthorize oidcAuthorize) {
         try {
-            if (!Constant.RESPONSE_TYPE_AVAILABLE.contains(oidcAuthorize.getResponse_type())) {
+            if (!LoginConfig.OIDC_RESPONSE_TYPES_SUPPORTED.contains(oidcAuthorize.getResponse_type())) {
                 return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00001, null);
             }
 
@@ -83,7 +84,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
                     return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00003, null);
                 }
                 for (String s : scopeList) {
-                    if (!Constant.SCOPE_AVAILABLE.contains(s)) {
+                    if (!LoginConfig.OIDC_SCOPES_SUPPORTED.contains(s)) {
                         return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00004, null);
                     }
                 }
@@ -115,7 +116,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
     @Override
     public ResponseEntity<?> oidcAuth(String token, OidcAuth oidcAuth) {
         try {
-            if (!Constant.RESPONSE_TYPE_AVAILABLE.contains(oidcAuth.getResponse_type())) {
+            if (!LoginConfig.OIDC_RESPONSE_TYPES_SUPPORTED.contains(oidcAuth.getResponse_type())) {
                 return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00001, null);
             }
 
@@ -131,7 +132,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
                     return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00003, null);
                 }
                 for (String s : scopeList) {
-                    if (!Constant.SCOPE_AVAILABLE.contains(s)) {
+                    if (!LoginConfig.OIDC_SCOPES_SUPPORTED.contains(s)) {
                         return Result.resultOidc(HttpStatus.NOT_FOUND, MessageCodeConfig.OIDC_E00004, null);
                     }
                 }
@@ -270,6 +271,21 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
         }
+    }
+
+    @Override
+    public ResponseEntity<?> oidcDiscovery() {
+        Map<String, Object> discoveryResult = new HashMap<>();
+
+        discoveryResult.put("issuer", LoginConfig.OIDC_ISSUER);
+        discoveryResult.put("authorization_endpoint", LoginConfig.OIDC_ISSUER + LoginConfig.OIDC_AUTHORIZATION_ENDPOINT);
+        discoveryResult.put("token_endpoint", LoginConfig.OIDC_ISSUER + LoginConfig.OIDC_TOKEN_ENDPOINT);
+        discoveryResult.put("userinfo_endpoint", LoginConfig.OIDC_ISSUER + LoginConfig.OIDC_USERINFO_ENDPOINT);
+
+        discoveryResult.put("response_types_supported", LoginConfig.OIDC_RESPONSE_TYPES_SUPPORTED);
+        discoveryResult.put("scopes_supported", LoginConfig.OIDC_SCOPES_SUPPORTED);
+
+        return new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(discoveryResult)), HashMap.class), HttpStatus.OK);
     }
 
     private HashMap<String, String[]> oidcScopeOthers() {
