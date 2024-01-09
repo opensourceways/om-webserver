@@ -86,8 +86,5 @@ public class Constant {
 
     public static final String OIDCISSUER = "ONEID";
 
-    public final static List<String> RESPONSE_TYPE_AVAILABLE = Collections.singletonList("code");
-
-    public final static List<String> SCOPE_AVAILABLE = Arrays.asList("openid", "profile", "email", "phone", "address", "offline_access");
 }
 

@@ -219,7 +219,7 @@ public class AuthingController {
         return service.resetPwd(request);
     }
 
-    @RequestMapping(value = "/oidc/authorize", method = RequestMethod.GET)
+    @RequestMapping(value = "${oidc.authorization_endpoint}", method = RequestMethod.GET)
     public ResponseEntity<?> oidcAuthorize(OidcAuthorize oidcAuthorize) {
         return oidcService.oidcAuthorize(oidcAuthorize);
     }
@@ -230,14 +230,19 @@ public class AuthingController {
         return oidcService.oidcAuth(token, oidcAuth);
     }
 
-    @RequestMapping(value = "/oidc/token", method = RequestMethod.POST)
+    @RequestMapping(value = "${oidc.token_endpoint}", method = RequestMethod.POST)
     public ResponseEntity oidcToken(OidcToken oidcToken) {
         return oidcService.oidcToken(oidcToken);
     }
 
-    @RequestMapping(value = "/oidc/user", method = RequestMethod.GET)
+    @RequestMapping(value = "${oidc.userinfo_endpoint}", method = RequestMethod.GET)
     public ResponseEntity oidcUser(@RequestHeader(value = "Authorization", required = true) String token) {
         return oidcService.oidcUser(token);
+    }
+
+    @RequestMapping(value = "/.well-known/openid-configuration", method = RequestMethod.GET)
+    public ResponseEntity oidcDiscovery() {
+        return oidcService.oidcDiscovery();
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
