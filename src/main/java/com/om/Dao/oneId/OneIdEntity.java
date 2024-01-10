@@ -3,8 +3,8 @@ package com.om.Dao.oneId;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.sql.Date;
+import java.sql.Timestamp;
 
 public class OneIdEntity {
 
@@ -22,9 +22,9 @@ public class OneIdEntity {
 
         private String appName;
 
-        private LocalDateTime createAt;
+        private Timestamp createAt;
 
-        private LocalDateTime updateAt;
+        private Timestamp updateAt;
 
         private String redirectUrls;
 
@@ -48,7 +48,7 @@ public class OneIdEntity {
 
         private String address;
 
-        private LocalDate birthdate;
+        private Date birthdate;
 
         private String city;
 
@@ -100,9 +100,9 @@ public class OneIdEntity {
 
         private String zoneinfo;
 
-        private LocalDateTime createAt;
+        private Timestamp createAt;
 
-        private LocalDateTime updateAt;
+        private Timestamp updateAt;
     }
 
 }
