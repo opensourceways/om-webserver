@@ -334,15 +334,15 @@ public class AuthingService implements UserCenterServiceInter {
         String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
         // 生成token
-        String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
+        Map<String, String> tokens = jwtTokenCreateService.authingUserToken(appId, userId,
                 user.getUsername(), permissionInfo, permission, idToken);
 
         // 写cookie
-        setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
+        setCookieLogged(servletRequest, servletResponse,tokens.get(Constant.TOKEN_Y_G_), tokens.get(Constant.TOKEN_U_T_));
 
         // 返回结果
         HashMap<String, Object> userData = new HashMap<>();
-        userData.put("token", tokens[1]);
+        userData.put("token", tokens.get(Constant.TOKEN_U_T_));
         userData.put("photo", user.getPhoto());
         userData.put("username", user.getUsername());
         userData.put("email_exist", StringUtils.isNotBlank(user.getEmail()));
@@ -382,7 +382,7 @@ public class AuthingService implements UserCenterServiceInter {
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             String headToken = decode.getClaim("verifyToken").asString();
-            String idToken = (String) redisDao.get("idToken_" + headToken);
+            String idToken = (String) redisDao.get(Constant.ID_TOKEN_PREFIX + headToken);
 
             List<String> accessibleApps = authingUserDao.userAccessibleApps(userId);
             if (!accessibleApps.contains(appId)) {
@@ -654,7 +654,7 @@ public class AuthingService implements UserCenterServiceInter {
         try {
             String headerToken = servletRequest.getHeader("token");
             String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes());
-            String idTokenKey = "idToken_" + md5Token;
+            String idTokenKey = Constant.ID_TOKEN_PREFIX + md5Token;
             String idToken = (String) redisDao.get(idTokenKey);
 
             token = rsaDecryptToken(token);
@@ -748,10 +748,10 @@ public class AuthingService implements UserCenterServiceInter {
             String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
             // 生成token
-            String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
+            Map<String, String> tokens = jwtTokenCreateService.authingUserToken(appId, userId,
                     username, permissionInfo, permission, idToken);
-            String token = tokens[0];
-            String verifyToken = tokens[1];
+            String token = tokens.get(Constant.TOKEN_Y_G_);
+            String verifyToken = tokens.get(Constant.TOKEN_U_T_);
 
             // 写cookie
             String verifyTokenName = env.getProperty("cookie.verify.token.name");
@@ -1267,7 +1267,7 @@ public class AuthingService implements UserCenterServiceInter {
             // 删除cookie，删除idToken
             String headerToken = httpServletRequest.getHeader("token");
             String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes());
-            String idTokenKey = "idToken_" + md5Token;
+            String idTokenKey = Constant.ID_TOKEN_PREFIX + md5Token;
             String cookieTokenName = env.getProperty("cookie.token.name");
             HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
             redisDao.remove(idTokenKey);
@@ -1363,7 +1363,7 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-    private ResponseEntity getOidcTokenByPassword(String appId, String appSecret, String account, 
+    private ResponseEntity getOidcTokenByPassword(String appId, String appSecret, String account,
             String password, String redirectUri, String scope) {
         try {
             // 参数校验
@@ -1374,7 +1374,7 @@ public class AuthingService implements UserCenterServiceInter {
                 return resultOidc(HttpStatus.BAD_REQUEST, "when grant_type is password, parameters must contain password、redirectUri", null);
 
             scope = StringUtils.isBlank(scope) ? "openid profile" : scope;
-            
+
             // app密码校验
             Application app = authingUserDao.getAppById(appId);
             if (app == null || !app.getSecret().equals(appSecret)) {

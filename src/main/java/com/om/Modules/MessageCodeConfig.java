@@ -16,7 +16,7 @@ import java.util.Map;
 
 public enum MessageCodeConfig {
     // success code message
-    S0001("S0001", "success", "成功"),
+    S0001("S0001", "Success", "成功"),
 
     // fail code message
     E0001("E0001", "Code invalid or expired", "验证码无效或已过期"),
@@ -84,6 +84,7 @@ public enum MessageCodeConfig {
     E00063("E00063", "Unsupported response type", "不支持的response type类型"),
     E00064("E00064", "Invalid redirect url", "无效的回调地址"),
     E00065("E00065", "Unsupported scope", "不支持的范围"),
+    E00066("E00066", "Fail to get social identities corresponding to app id", "获取应用外部身份源失败"),
 
     OIDC_E00001("OIDC_E00001", "currently response_type only supports code", "目前 response_type 仅支持 code"),
     OIDC_E00002("OIDC_E00002", "redirect_uri not found in the app", "该a应用未配置这个回调路由"),

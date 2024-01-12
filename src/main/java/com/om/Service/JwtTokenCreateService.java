@@ -21,6 +21,7 @@ import com.om.Result.Constant;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.RSAUtil;
 import com.om.Vo.TokenUser;
+import com.om.config.LoginConfig;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,9 +45,6 @@ public class JwtTokenCreateService {
 
     @Autowired
     AuthingUserDao authingUserDao;
-
-    @Autowired
-    CodeUtil codeUtil;
 
     @Autowired
     private Environment env;
@@ -96,68 +94,66 @@ public class JwtTokenCreateService {
     }
 
     @SneakyThrows
-    public String[] authingUserToken(String appId, String userId, String username,
-                                     String permission, String inputPermission, String idToken) {
+    public Map<String, String> authingUserToken(String appId, String userId, String username, String permission, String inputPermission, String idToken) {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
-        long expireSeconds = 60;
-        try {
-            expireSeconds = Integer.parseInt(authingTokenExpireSeconds);
-        } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
-        }
+        int expireSeconds = LoginConfig.AUTHING_TOKEN_EXPIRE_SECONDS;
+
         LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
-        Date headTokenExpireAt = Date.from(expireDate.atZone(ZoneId.systemDefault())
-                .toInstant().plusSeconds(expireSeconds));
+        Date headTokenExpireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant().plusSeconds(expireSeconds));
 
         String headToken = JWT.create()
                 .withAudience(username) //谁接受签名
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(headTokenExpireAt) //过期时间
-                .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
+                .withJWTId(CodeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .sign(Algorithm.HMAC256(authingTokenBasePassword));
         String verifyToken = DigestUtils.md5DigestAsHex(headToken.getBytes());
-        redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
+        redisDao.set(Constant.ID_TOKEN_PREFIX + verifyToken, idToken, (long)expireSeconds);
 
-        String perStr = "";
+        StringBuilder perStr = new StringBuilder();
         ArrayList<String> pers = authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
         for (String per : pers) {
-            perStr += per + ",";
+            perStr.append(per).append(",");
         }
-        perStr = Base64.getEncoder().encodeToString(perStr.getBytes());
+        perStr = new StringBuilder(Base64.getEncoder().encodeToString(perStr.toString().getBytes()));
         String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes());
 
         String token = JWT.create()
                 .withAudience(userId) //谁接受签名
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(expireAt) //过期时间
-                .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
+                .withJWTId(CodeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .withClaim("permission", permissionStr)
                 .withClaim("inputPermission", inputPermission)
                 .withClaim("verifyToken", verifyToken)
-                .withClaim("permissionList", perStr)
+                .withClaim("permissionList", perStr.toString())
                 .withClaim("client_id", appId)
                 .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));
+
+        HashMap<String, String> result = new HashMap<>();
         try {
             RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
-            return new String[]{RSAUtil.publicEncrypt(token, publicKey), headToken};
+            result.put(Constant.TOKEN_Y_G_, RSAUtil.publicEncrypt(token, publicKey));
+            result.put(Constant.TOKEN_U_T_, headToken);
         } catch (Exception e) {
-            System.out.println("RSA Encrypt error");
-            return new String[]{token, headToken};
+            logger.error("RSA Encrypt error: " + e.getMessage());
+            result.put(Constant.TOKEN_Y_G_, token);
+            result.put(Constant.TOKEN_U_T_, headToken);
         }
+        return result;
     }
 
-    public String[] refreshAuthingUserToken(HttpServletRequest request, HttpServletResponse response,
-                                            String userId, Map<String, Claim> claimMap) {
+    public Map<String, String> refreshAuthingUserToken(HttpServletRequest request, HttpServletResponse response,
+                                                       String userId, Map<String, Claim> claimMap) {
         String headerJwtToken = request.getHeader("token");
         String headJwtTokenMd5 = DigestUtils.md5DigestAsHex(headerJwtToken.getBytes());
         String appId = claimMap.get("client_id").asString();
         String inputPermission = claimMap.get("inputPermission").asString();
-        String idToken = (String) redisDao.get("idToken_" + headJwtTokenMd5);
-        String permission = new String(Base64.getDecoder()
-                .decode(claimMap.get("permission").asString().getBytes()));
+        String idToken = (String) redisDao.get(Constant.ID_TOKEN_PREFIX + headJwtTokenMd5);
+        String permission = new String(Base64.getDecoder().decode(claimMap.get("permission").asString().getBytes()));
 
         // 生成新的token和headToken
         List<String> audience = JWT.decode(headerJwtToken).getAudience();
