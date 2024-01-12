@@ -105,4 +105,28 @@ public class OneIdEntity {
         private Timestamp updateAt;
     }
 
+    @Getter
+    @Setter
+    public static class ThirdPartyClient {
+        
+        private String id;
+
+        private String name;
+
+        private String description;
+
+        private String icon;
+
+        private String authorizeUrl;
+
+        private String tokenUrl;
+
+        private String userUrl;
+
+        private String clientId;
+
+        private String clientSecret;
+
+        private String scopes;
+    }
 }
