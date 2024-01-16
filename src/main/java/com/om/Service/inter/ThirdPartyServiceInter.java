@@ -1,5 +1,8 @@
 package com.om.Service.inter;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.springframework.http.ResponseEntity;
 
 public interface ThirdPartyServiceInter {
@@ -8,7 +11,7 @@ public interface ThirdPartyServiceInter {
     
     ResponseEntity<?> thirdPartyAuthorize(String clientId, String connId);
 
-    ResponseEntity<?> thirdPartyCallback(String connId, String code, String state);
+    ResponseEntity<?> thirdPartyCallback(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String connId, String code, String state, String appId);
 
     // ResponseEntity<?> thirdPartyCreateUser();
 

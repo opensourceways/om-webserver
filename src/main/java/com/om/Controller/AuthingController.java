@@ -263,10 +263,13 @@ public class AuthingController {
 
     @RequestMapping(value = "/third-party/{connId}/callback", method = RequestMethod.GET)
     public ResponseEntity thirdPartyCallback(
+        HttpServletRequest request,
+        HttpServletResponse response,
         @RequestParam(value = "code", required = true) String code,
         @RequestParam(value = "state", required = true) String state,
+        @RequestParam(value = "client_id", required = true) String appId,
         @PathVariable(value = "connId", required = true) String connId) {
-        return thirdPartyService.thirdPartyCallback(connId, code, state);
+        return thirdPartyService.thirdPartyCallback(request, response, connId, code, state, appId);
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {

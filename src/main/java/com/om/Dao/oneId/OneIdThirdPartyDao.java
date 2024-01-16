@@ -57,4 +57,18 @@ public class OneIdThirdPartyDao {
         return null;
     }
 
+    public OneIdEntity.User getUserByIdInProvider(String id, String provider) throws Exception {
+        String url = String.format(OneIdConfig.API_HOST + Constant.ONEID_THIRD_PARTY_USER_GET_PATH, id);
+        HttpResponse<JsonNode> response = Unirest.get(url)
+            .header("Authorization", OneIdConfig.getManagementToken())
+            .queryString("provider", provider)
+            .asJson();
+
+        if (response.getStatus() == 200) {
+            JSONObject jsonObject = response.getBody().getObject().getJSONObject("data");
+            return JSON.parseObject(jsonObject.toString(), OneIdEntity.User.class);
+        }
+        return null;
+    }
+
 }
