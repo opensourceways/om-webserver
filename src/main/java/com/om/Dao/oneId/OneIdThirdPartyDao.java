@@ -34,11 +34,11 @@ public class OneIdThirdPartyDao {
         HttpResponse<JsonNode> response = Unirest.get(url)
             .header("Authorization", OneIdConfig.getManagementToken())
             .queryString("appId", appId)
-            .queryString("socialIdentitySourceId", connId)
+            .queryString("thirdPartyClient", connId)
             .asJson();
 
         if (response.getStatus() == 200) {
-            JSONObject jsonObject = response.getBody().getObject().getJSONArray("data").getJSONObject(0);
+            JSONObject jsonObject = response.getBody().getObject().getJSONObject("data");
             return JSON.parseObject(jsonObject.toString(), OneIdEntity.ThirdPartyClient.class);
         }
         return null;
