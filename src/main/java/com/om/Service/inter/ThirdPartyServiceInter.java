@@ -5,6 +5,9 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.springframework.http.ResponseEntity;
 
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+
 public interface ThirdPartyServiceInter {
 
     ResponseEntity<?> thirdPartyList(String clientId);
@@ -13,7 +16,7 @@ public interface ThirdPartyServiceInter {
 
     ResponseEntity<?> thirdPartyCallback(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String connId, String code, String state, String appId);
 
-    // ResponseEntity<?> thirdPartyCreateUser();
+     ResponseEntity<?> thirdPartyCreateUser(String token) throws NoSuchAlgorithmException, InvalidKeySpecException;
 
     // ResponseEntity<?> thirdPartyLink();
 

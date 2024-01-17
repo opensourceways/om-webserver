@@ -136,7 +136,7 @@ public class OneIdEntity {
 
     @Getter
     @Setter
-    public class ThirdPartyUser {
+    public static class ThirdPartyUser {
 
         private String id;
     
