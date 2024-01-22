@@ -11,9 +11,9 @@
 
 package com.om.Utils;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
+import kong.unirest.HttpResponse;
+import kong.unirest.JsonNode;
+import kong.unirest.Unirest;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import org.apache.commons.lang3.StringUtils;
@@ -28,7 +28,7 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMessage;
 import java.math.BigInteger;
 import java.net.URLEncoder;
 import java.security.DrbgParameters;
