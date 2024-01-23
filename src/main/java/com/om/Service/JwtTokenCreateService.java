@@ -30,8 +30,8 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.security.interfaces.RSAPublicKey;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -69,6 +69,9 @@ public class JwtTokenCreateService {
     @Value("${token.expire.seconds}")
     private String tokenExpireSeconds;
 
+    @Value("${oneid.privacy.version}")
+    String oneidPrivacyVersion;
+
     private static final Logger logger =  LoggerFactory.getLogger(JwtTokenCreateService.class);
 
     public String getToken(TokenUser user) {
@@ -97,7 +100,7 @@ public class JwtTokenCreateService {
 
     @SneakyThrows
     public String[] authingUserToken(String appId, String userId, String username,
-                                     String permission, String inputPermission, String idToken) {
+                                     String permission, String inputPermission, String idToken, String oneidPrivacyVersionAccept) {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -139,6 +142,7 @@ public class JwtTokenCreateService {
                 .withClaim("verifyToken", verifyToken)
                 .withClaim("permissionList", perStr)
                 .withClaim("client_id", appId)
+                .withClaim("oneidPrivacyAccepted", oneidPrivacyVersionAccept)
                 .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));
         try {
             RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
@@ -162,7 +166,7 @@ public class JwtTokenCreateService {
         // 生成新的token和headToken
         List<String> audience = JWT.decode(headerJwtToken).getAudience();
         String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
-        return authingUserToken(appId, userId, username, permission, inputPermission, idToken);
+        return authingUserToken(appId, userId, username, permission, inputPermission, idToken, oneidPrivacyVersion);
     }
 
     public String oidcToken(String userId, String issuer, String scope, long expireSeconds, Date expireAt) {
