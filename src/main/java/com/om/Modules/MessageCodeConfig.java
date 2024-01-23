@@ -58,11 +58,11 @@ public enum MessageCodeConfig {
     E00038("E00038", "Please bind the email first", "请先绑定邮箱"),
     E00039("E00039", "Email must be not empty", "邮箱不能为空"),
     E00040("E00040", "Please enter the correct email", "请输入正确的邮箱"),
-    E00041("E00041", "Contain 3 to 20 characters. include only letters, digits, and underscores (_). It must start with a letter and cannot end with underscore (_)", "请输入3到20个字符。只能由字母、数字或者下划线(_)组成。必须以字母开头，不能以下划线(_)结尾"),
+    E00041("E00041", "Contain 3 to 20 characters. include only letters, digits, underscores (_) and hyphen (-). It must start with a letter and cannot end with underscore (_)", "请输入3到20个字符。只能由字母、数字、下划线(_)或者连字符(-)组成。必须以字母开头，不能以下划线(_)结尾"),
     E00042("E00042", "App not found", "应用未找到"),
     E00043("E00043", "Please enter the correct phone number", "请输入正确的手机号码"),
     E00044("E00044", "Please enter the correct company name", "请输入正确的公司名"),
-    E00045("E00045", "Contain 3 to 20 characters. nickname include only letters, digits, Chinese and underscores (_). Must start with a letter or Chinese. cannot end with underscore (_)", "请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。必须以字母或者汉字开头，不能以下划线(_)结尾"),
+    E00045("E00045", "Contain 3 to 20 characters. nickname include only letters, digits, Chinese, underscores (_) and hyphen (-). Must start with a letter or Chinese. cannot end with underscore (_)", "请输入3到20个字符。昵称只能由字母、数字、汉字、下划线(_)或者连字符(-)组成。必须以字母或者汉字开头，不能以下划线(_)结尾"),
     E00046("E00046", "Contain 2 to 100 characters. company include only letters, digits, Chinese, parentheses, point (.), comma (,) and &. Must start with a letter, digits or Chinese. cannot end with parentheses, comma (,) and &", "请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾"),
     E00047("E00047", "App not found", "应用不存在"),
     E00048("E00048", "Internal Server Error", "服务异常"),
@@ -79,7 +79,9 @@ public enum MessageCodeConfig {
     E00059("E00059", "Password needs to be different from previous one", "新密码不能与原密码相同"),
     E00060("E00060", "Reset password fail", "重置密码失败"),
     E00061("E00061", "Password is not set", "密码未设置"),
-    E00062("E00062", "Not agree to accept term", "未同意隐私政策")
+    E00062("E00062", "Not agree to accept term", "未同意隐私政策"),
+    E00063("E00063", "Page does not exist.", "页面或资源不存在"),
+    E00064("E00064", "Only ID, username, gitee username, and github username are supported for single parameter search of users", "仅支持ID、用户名、gitee用户名、github用户名单一参数查找用户")
     ;
 
     private String code;

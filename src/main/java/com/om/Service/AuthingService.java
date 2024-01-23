@@ -18,8 +18,10 @@ import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
+import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.LoginFailCounter;
 import com.om.Modules.MessageCodeConfig;
@@ -34,8 +36,8 @@ import com.om.Utils.RSAUtil;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import kong.unirest.json.JSONArray;
+import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,11 +50,11 @@ import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.HtmlUtils;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.net.URLEncoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -85,6 +87,9 @@ public class AuthingService implements UserCenterServiceInter {
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
 
+    @Autowired
+    QueryDao queryDao;
+
     private static final Logger logger =  LoggerFactory.getLogger(AuthingService.class);
 
     private static final String OIDCISSUER = "ONEID";
@@ -103,6 +108,8 @@ public class AuthingService implements UserCenterServiceInter {
 
     private static Result result;
 
+    private static String oneidPrivacyVersion;
+
     @PostConstruct
     public void init() {
         codeUtil = new CodeUtil();
@@ -112,6 +119,7 @@ public class AuthingService implements UserCenterServiceInter {
         oidcScopeOthers = getOidcScopesOther();
         oidcScopeAuthingMapping = oidcScopeAuthingMapping();
         result = new Result();
+        oneidPrivacyVersion = env.getProperty("oneid.privacy.version", "");
     }
 
     @Override
@@ -205,6 +213,7 @@ public class AuthingService implements UserCenterServiceInter {
         String code = (String) getBodyPara(body, "code");
         String appId = (String) getBodyPara(body, "client_id");
         String password = (String) getBodyPara(body, "password");
+        String acceptPrivacyVersion = (String) getBodyPara(body, "oneidPrivacyAccepted");
 
         // 校验appId
         if (authingUserDao.initAppClient(appId) == null) {
@@ -227,6 +236,10 @@ public class AuthingService implements UserCenterServiceInter {
             }
         } catch (ServerErrorException e) {
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
+        }
+        // 检查是否同意隐私政策
+        if (!oneidPrivacyVersion.equals(acceptPrivacyVersion)) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, null);
         }
 
         if (StringUtils.isNotBlank(password)) {
@@ -333,9 +346,12 @@ public class AuthingService implements UserCenterServiceInter {
         // 资源权限
         String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
+        // 获取是否同意隐私
+        String oneidPrivacyVersionAccept = String.valueOf(user.getGivenName());
+
         // 生成token
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
-                user.getUsername(), permissionInfo, permission, idToken);
+                user.getUsername(), permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
 
         // 写cookie
         setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
@@ -346,6 +362,7 @@ public class AuthingService implements UserCenterServiceInter {
         userData.put("photo", user.getPhoto());
         userData.put("username", user.getUsername());
         userData.put("email_exist", StringUtils.isNotBlank(user.getEmail()));
+        userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
         return result(HttpStatus.OK, "success", userData);
     }
 
@@ -436,6 +453,7 @@ public class AuthingService implements UserCenterServiceInter {
             String redirectUri = parameterMap.getOrDefault("redirect_uri", new String[]{""})[0];
             String scope = parameterMap.getOrDefault("scope", new String[]{""})[0];
             String state = parameterMap.getOrDefault("state", new String[]{""})[0];
+            String entity = parameterMap.getOrDefault("entity", new String[]{""})[0];
 
             // responseType校验
             if (!responseType.equals("code"))
@@ -454,6 +472,7 @@ public class AuthingService implements UserCenterServiceInter {
 
             // 重定向到登录页
             String loginPage = env.getProperty("oidc.login.page");
+            if ("register".equals(entity)) loginPage = env.getProperty("oidc.register.page");
             String loginPageRedirect = String.format("%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s", loginPage, clientId, scope, redirectUri, state);
             servletResponse.sendRedirect(loginPageRedirect);
 
@@ -545,7 +564,7 @@ public class AuthingService implements UserCenterServiceInter {
             for (String profile : profiles) {
                 String profileTemp = oidcScopeAuthingMapping.getOrDefault(profile, profile);
                 Object value = jsonObjObjectValue(userObj, profileTemp);
-                if (profile.equals("updated_at") && value != null) {
+                if ("updated_at".equals(profile) && value != null) {
                     DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
                     value = LocalDateTime.parse(value.toString(), df).toInstant(ZoneOffset.UTC).toEpochMilli();
                 }
@@ -561,10 +580,28 @@ public class AuthingService implements UserCenterServiceInter {
                     userData.put("identities", identities);
                     continue;
                 }
+                // 用户SIG组信息
+                if (scope.equals("groups")) {
+                    // Gitee Name
+                    String giteeLogin = getGiteeLoginFromAuthing(userId);
+                    String userSigInfo = queryDao.queryUserOwnertype("openeuler", giteeLogin);
+
+                    ArrayList<String> groups = getUserRelatedSigs(userSigInfo);
+                    userData.put("groups", groups);
+                    continue;
+                }
                 String[] claims = oidcScopeOthers.getOrDefault(scope, new String[]{scope});
                 for (String claim : claims) {
                     String profileTemp = oidcScopeAuthingMapping.getOrDefault(claim, claim);
                     Object value = jsonObjObjectValue(userObj, profileTemp);
+                    
+                    // auto generate email if not exist
+                    if ("email".equals(claim) && value == null) {
+                        String prefix = jsonObjStringValue(userObj, "username");
+                        if (StringUtils.isBlank(prefix)) prefix = jsonObjStringValue(userObj, "phone");
+                        value = genPredefinedEmail(userId, prefix);
+                    }
+                    
                     if (scope.equals("address")) addressMap.put(claim, value);
                     else userData.put(claim, value);
                 }
@@ -594,12 +631,17 @@ public class AuthingService implements UserCenterServiceInter {
             String photo = user.getPhoto();
             String username = user.getUsername();
             String email = user.getEmail();
+            String aigcPrivacyAccepted = env.getProperty("aigc.privacy.version").equals(user.getFormatted()) ? 
+                                         user.getFormatted() : "";
+            String oneidPrivacyVersionAccept = String.valueOf(user.getGivenName());
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("photo", photo);
             userData.put("username", username);
             userData.put("email", email);
+            userData.put("aigcPrivacyAccepted", aigcPrivacyAccepted);
+            userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
@@ -743,13 +785,17 @@ public class AuthingService implements UserCenterServiceInter {
             String picture = user.get("picture").toString();
             String username = (String) user.get("username");
             String email = (String) user.get("email");
+            if (StringUtils.isBlank(email)) email = genPredefinedEmail(userId, username);
+
+            // 获取隐私同意字段值
+            String oneidPrivacyVersionAccept = String.valueOf(user.get("given_name"));
 
             // 资源权限
             String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
             // 生成token
             String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
-                    username, permissionInfo, permission, idToken);
+                    username, permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
             String token = tokens[0];
             String verifyToken = tokens[1];
 
@@ -770,6 +816,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("photo", picture);
             userData.put("username", username);
             userData.put("email_exist", StringUtils.isNotBlank(email));
+            userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
             return result(HttpStatus.OK, "success", userData);
 
         } catch (Exception e) {
@@ -830,7 +877,15 @@ public class AuthingService implements UserCenterServiceInter {
             token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String appId = decode.getClaim("client_id").asString();
-            if (accountType.equals("email")) {
+            String userId = decode.getAudience().get(0);
+            User user = authingUserDao.getUser(userId);
+            String emailInDb = user.getEmail();
+
+            if (accountType.equals("email") &&
+                StringUtils.isNotBlank(emailInDb) &&
+                emailInDb.endsWith(Constant.AUTO_GEN_EMAIL_SUFFIX)) {
+                msg = sendSelfDistributedCode(account, accountType, "CodeBindEmail");
+            } else if (accountType.equals("email")) { 
                 msg = authingUserDao.sendEmailCodeV3(appId, account, channel);
             } else if (accountType.equals("phone")) {
                 msg = authingUserDao.sendPhoneCodeV3(appId, account, channel);
@@ -849,17 +904,8 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-    @Override
-    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-                                         boolean isSuccess) {
-        String account = servletRequest.getParameter("account");
-        String accountType = servletRequest.getParameter("account_type");
-
-        // 图片验证码二次校验
-        if (!isSuccess)
-            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
-
-        String redisKey = account.toLowerCase() + "_CodeUnbind";
+    private String sendSelfDistributedCode(String account, String accountType, String channel) {
+        String redisKey = account.toLowerCase() + "_" + channel;
         try {
             // 邮箱or手机号格式校验，并获取验证码过期时间
             long codeExpire;
@@ -869,25 +915,50 @@ public class AuthingService implements UserCenterServiceInter {
             } else if (accountTypeCheck.equals("phone")) {
                 codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
             } else {
-                return result(HttpStatus.BAD_REQUEST, null, accountTypeCheck, null);
+                return accountTypeCheck;
             }
 
             // 限制1分钟只能发送一次 （剩余的过期时间 + 60s > 验证码过期时间，表示一分钟之内发送过验证码）
             long limit = Long.parseLong(env.getProperty("send.code.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
             long remainingExpirationSecond = redisDao.expire(redisKey);
             if (remainingExpirationSecond + limit > codeExpire) {
-                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
+                return MessageCodeConfig.E0009.getMsgZh();
             }
 
             // 发送验证码
             String[] strings = codeUtil.sendCode(accountType, account, mailSender, env, "");
-            if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success"))
-                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
+            if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success")) {
+                return MessageCodeConfig.E0008.getMsgZh();
+            }
 
             redisDao.set(redisKey, strings[0], Long.parseLong(strings[1]));
-            return result(HttpStatus.OK, strings[2], null);
+            return "success";
         } catch (Exception ex) {
-            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
+            return MessageCodeConfig.E0008.getMsgZh();
+        }
+    }
+
+    @Override
+    public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                         boolean isSuccess) {
+        String account = servletRequest.getParameter("account");
+        String accountType = servletRequest.getParameter("account_type");
+
+        // 图片验证码二次校验
+        if (!isSuccess) {
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
+        }
+
+        if ("phone".equals(accountType)) {
+            String phoneCountryCode = authingUserDao.getPhoneCountryCode(account);
+            account = phoneCountryCode + authingUserDao.getPurePhone(account);
+        }
+
+        String res = sendSelfDistributedCode(account, accountType, "CodeUnbind");
+        if (!res.equals("success")) {
+            return result(HttpStatus.BAD_REQUEST, null, res, null);
+        } else {
+            return result(HttpStatus.OK, "success", null);
         }
     }
 
@@ -920,7 +991,22 @@ public class AuthingService implements UserCenterServiceInter {
         if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType))
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
 
-        String redisKey = account + "_CodeUnbind";
+        String redisKeyPrefix = account;
+        if ("phone".equals(accountType)) {
+            String phoneCountryCode =  authingUserDao.getPhoneCountryCode(account);
+            account = authingUserDao.getPurePhone(account);
+            redisKeyPrefix = phoneCountryCode + account;
+            // TODO: currently international phone skip code verify
+            if (!"+86".equals(phoneCountryCode)) {
+                String res = authingUserDao.unbindAccount(token, account, accountType);
+                if (res.equals("unbind success")) {
+                    return result(HttpStatus.OK, res, null);
+                }
+                return result(HttpStatus.BAD_REQUEST, null, res, null);
+            }
+        }
+        
+        String redisKey = redisKeyPrefix + "_CodeUnbind";
         String codeTemp = (String) redisDao.get(redisKey);
         if (codeTemp == null) {
             return result(HttpStatus.BAD_REQUEST, null, "验证码无效或已过期", null);
@@ -1089,12 +1175,13 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     // 解析authing user
-    private HashMap<String, Object> parseAuthingUser(JSONObject userObj) {
+    public HashMap<String, Object> parseAuthingUser(JSONObject userObj) {
         HashMap<String, Object> userData = new HashMap<>();
 
         userData.put("username", jsonObjStringValue(userObj, "username"));
         userData.put("email", jsonObjStringValue(userObj, "email"));
         userData.put("phone", jsonObjStringValue(userObj, "phone"));
+        userData.put("phoneCountryCode", jsonObjStringValue(userObj, "phoneCountryCode"));
         userData.put("signedUp", jsonObjStringValue(userObj, "signedUp"));
         userData.put("nickname", jsonObjStringValue(userObj, "nickname"));
         userData.put("company", jsonObjStringValue(userObj, "company"));
@@ -1215,10 +1302,13 @@ public class AuthingService implements UserCenterServiceInter {
             case "false":
                 return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
             default:
+                if (!res.contains(":")) {
+                    return result(HttpStatus.BAD_REQUEST, null, res, null);
+                }
                 ObjectMapper objectMapper = new ObjectMapper();
                 String message = "faild";
                 try {
-                    res = res.substring(14);
+                    res = res.substring(Constant.AUTHING_RES_PREFIX_LENGTH);
                     Iterator<com.fasterxml.jackson.databind.JsonNode> buckets = objectMapper.readTree(res).iterator();
                     if (buckets.hasNext()) {
                         message = buckets.next().get("message").get("message").asText();
@@ -1607,6 +1697,57 @@ public class AuthingService implements UserCenterServiceInter {
             return "success";
         } catch (Exception e) {
             return MessageCodeConfig.E0008.getMsgZh();
+        }
+    }
+
+    private String getGiteeLoginFromAuthing(String userId) {
+        String giteeLogin = "";
+        if (StringUtils.isBlank(userId)) {
+            return giteeLogin;
+        }
+        try {
+            JSONObject userInfo = authingUserDao.getUserById(userId);
+            JSONArray identities = userInfo.getJSONArray("identities");
+            for (Object identity : identities) {
+                JSONObject identityObj = (JSONObject) identity;
+                String originConnId = identityObj.getJSONArray("originConnIds").get(0).toString();
+                if (!originConnId.equals(env.getProperty("enterprise.connId.gitee"))) continue;
+                giteeLogin = identityObj.getJSONObject("userInfoInIdp").getJSONObject("customData")
+                        .getString("giteeLogin");
+            }
+        } catch (Exception e) {
+            logger.error("Fail to get gitee name. " + e.getMessage());
+        }
+        return giteeLogin;
+    }
+
+    private ArrayList<String> getUserRelatedSigs(String userSigInfo) {
+        ArrayList<String> userRelatedSigs = new ArrayList<>();
+        try {
+            JsonNode body = objectMapper.readTree(userSigInfo);
+            if (body.get("data") != null) {
+                for (JsonNode sigInfo : body.get("data")) {
+                    userRelatedSigs.add(sigInfo.get("sig").asText());
+                }
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
+
+        return userRelatedSigs;
+    }
+
+    private String genPredefinedEmail(String userId, String username) {
+        try {
+            if (StringUtils.isBlank(userId) || StringUtils.isBlank(username)) {
+                return "";
+            }
+            // generate email in predefined formats
+            String email = username + Constant.AUTO_GEN_EMAIL_SUFFIX;
+            return authingUserDao.updateEmailById(userId, email);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return "";
         }
     }
 }

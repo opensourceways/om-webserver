@@ -11,9 +11,9 @@
 
 package com.om.Utils;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
+import kong.unirest.HttpResponse;
+import kong.unirest.JsonNode;
+import kong.unirest.Unirest;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import org.apache.commons.lang3.StringUtils;
@@ -28,12 +28,14 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMessage;
 import java.math.BigInteger;
 import java.net.URLEncoder;
+import java.security.DrbgParameters;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.security.DrbgParameters.Capability;
 import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Date;
@@ -263,7 +265,7 @@ public class CodeUtil {
      */
     public String randomNumBuilder(int codeLength) throws NoSuchAlgorithmException {
         StringBuilder result = new StringBuilder();
-        SecureRandom instance = SecureRandom.getInstanceStrong();
+        SecureRandom instance = SecureRandom.getInstance("DRBG", DrbgParameters.instantiation(256, Capability.RESEED_ONLY, null));
         for (int i = 0; i < codeLength; i++) {
             result.append(instance.nextInt(9));
         }
@@ -277,7 +279,7 @@ public class CodeUtil {
      * @return 随机字符串
      */
     public String randomStrBuilder(int strLength) throws NoSuchAlgorithmException {
-        SecureRandom random = SecureRandom.getInstanceStrong();
+        SecureRandom random = SecureRandom.getInstance("DRBG", DrbgParameters.instantiation(256, Capability.RESEED_ONLY, null));
         return new BigInteger(160, random).toString(strLength);
     }
 
