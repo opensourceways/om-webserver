@@ -31,7 +31,7 @@ import com.om.Utils.RSAUtil;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
-import org.json.JSONObject;
+import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,11 +42,11 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.net.URL;
 import java.net.URLDecoder;
@@ -365,7 +365,7 @@ public class OpenGaussService implements UserCenterServiceInter {
 
         // 生成token
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"),
-                user.getString("username"), "", "", idToken);
+                user.getString("username"), "", "", idToken, null);
         String token = tokens[0];
         String verifyToken = tokens[1];
 
@@ -942,7 +942,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         String[] group = property.split(";");
         String urls = null;
         for (String appUrl : group) {
-            String[] pair = appUrl.split(":");
+            String[] pair = appUrl.split(":", 2);
             if (pair.length >= 2 && appId.equals(pair[0])) {
                 urls = pair[1];
             }
@@ -953,7 +953,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         for (String uri : uris) {
             if (uri.endsWith("*") && redirect.startsWith(uri.substring(0, uri.length() - 1)))
                 return result(HttpStatus.OK, null, "success", null);
-            else if (redirect.equals(uri) || getHostFromUrl(redirect).endsWith(uri))
+            else if (redirect.equals(uri))
                 return result(HttpStatus.OK, null, "success", null);
         }
         return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);

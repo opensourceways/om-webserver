@@ -25,10 +25,10 @@ public class Constant {
     public static final String organization="organization";
     public static final String allIssueCveStr="allIssueCveStr";
     public static final String allIssueResult="allIssueResult";
-    public static final String PHONEREGEX = "^1[0-9]{10}$";
+    public static final String PHONEREGEX = "^(\\+)?[0-9]+$";
     public static final String EMAILREGEX = "^[A-Za-z0-9-._\\u4e00-\\u9fa5]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$";
-    public static final String USERNAMEREGEX = "^[a-zA-Z][0-9a-zA-Z_]{1,18}[0-9a-zA-Z]$";
-    public static final String NICKNAMEREGEX = "^[a-zA-Z\\u4e00-\\u9fa5][0-9a-zA-Z_\\u4e00-\\u9fa5]{1,18}[0-9a-zA-Z\\u4e00-\\u9fa5]$";
+    public static final String USERNAMEREGEX = "^[a-zA-Z][0-9a-zA-Z_-]{1,18}[0-9a-zA-Z]$";
+    public static final String NICKNAMEREGEX = "^[a-zA-Z\\u4e00-\\u9fa5][0-9a-zA-Z_-\\u4e00-\\u9fa5]{1,18}[0-9a-zA-Z\\u4e00-\\u9fa5]$";
     public static final String COMPANYNAMEREGEX = "^[0-9a-zA-Z\\u4e00-\\u9fa5][0-9a-zA-Z,\\.&\\(\\)（）\\s\\u4e00-\\u9fa5]{0,98}[0-9a-zA-Z\\.\\u4e00-\\u9fa5]$";
 
     public static final String FULL_SENSITIVE_REG = "^.*(password|secret|token|code).*$";
@@ -76,5 +76,9 @@ public class Constant {
 
     public static final String PHOTO_NOT_ALLOWED_CHARS = "\\,/,:,*,?,\",<,>,|";
     public static final String CONSENT_ACCEPT_TERM = "0";
+
+    public static final String AUTO_GEN_EMAIL_SUFFIX = "@user.noreply.osinfra.cn";
+
+    public static final int AUTHING_RES_PREFIX_LENGTH = 14;
 }
 

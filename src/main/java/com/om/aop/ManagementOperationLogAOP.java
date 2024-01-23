@@ -8,8 +8,8 @@ import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Aspect
 @Component
@@ -28,7 +28,7 @@ public class ManagementOperationLogAOP {
 
     @AfterReturning(pointcut = "pointcut()", returning = "returnObject")
     public void afterReturning(JoinPoint joinPoint, Object returnObject) {
-        LogUtil.managementOperate(joinPoint, response.getStatus(), "", request, response);
+        LogUtil.managementOperate(joinPoint, request, response, returnObject);
     }
 
 }

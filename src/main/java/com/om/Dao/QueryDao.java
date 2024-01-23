@@ -11,10 +11,10 @@
 
 package com.om.Dao;
 
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
+import kong.unirest.HttpResponse;
+import kong.unirest.JsonNode;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import com.om.Modules.MessageCodeConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

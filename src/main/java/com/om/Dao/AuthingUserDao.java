@@ -16,10 +16,10 @@ import cn.authing.core.mgmt.ManagementClient;
 import cn.authing.core.types.*;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
+import kong.unirest.HttpResponse;
+import kong.unirest.JsonNode;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
@@ -28,15 +28,17 @@ import com.om.Result.Constant;
 import com.om.Utils.CommonUtil;
 import com.om.Utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import kong.unirest.json.JSONArray;
+import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -119,6 +121,12 @@ public class AuthingUserDao {
     @Value("${authing.api.hostv3}")
     String authingApiHostV3;
 
+    @Value("${aigc.privacy.version}")
+    String aigcPrivacyVersion;
+
+    @Value("${oneid.privacy.version}")
+    String oneidPrivacyVersion;
+
     // -- temporary (解决gitee多身份源解绑问题) -- TODO
     @Value("${temp.extIdpIds}")
     String extIdpIds;
@@ -138,6 +146,12 @@ public class AuthingUserDao {
 
     private List<String> photoSuffixes;
 
+    @Autowired
+    private RedisDao redisDao;
+
+    @Autowired
+    private Environment env;
+
     @PostConstruct
     public void init() {
         appClientMap = new HashMap<>();
@@ -150,7 +164,9 @@ public class AuthingUserDao {
     public String sendPhoneCodeV3(String appId, String account, String channel) {
         String msg = "success";
         try {
-            String body = String.format("{\"phoneNumber\": \"%s\",\"channel\": \"%s\"}", account, channel.toUpperCase());
+            String phoneCountryCode = getPhoneCountryCode(account);
+            account = getPurePhone(account);
+            String body = String.format("{\"phoneNumber\": \"%s\",\"channel\": \"%s\",\"phoneCountryCode\": \"%s\"}", account, channel.toUpperCase(), phoneCountryCode);
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/send-sms")
                     .header("x-authing-app-id", appId)
                     .header("Content-Type", "application/json")
@@ -193,15 +209,18 @@ public class AuthingUserDao {
     public String registerByEmailCode(String appId, String email, String code, String username) {
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\"}}", email, code, username);
+                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}", email, code, username, oneidPrivacyVersion);
         return register(appId, body);
     }
 
     // 手机验证码注册
     public String registerByPhoneCode(String appId, String phone, String code, String username) {
+        String phoneCountryCode = getPhoneCountryCode(phone);
+        phone = getPurePhone(phone);
+
         String body = String.format("{\"connection\": \"PASSCODE\"," +
-                "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\"}}", phone, code, username);
+                "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}," +
+                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}", phone, code, phoneCountryCode, username, oneidPrivacyVersion);
         return register(appId, body);
     }
 
@@ -209,8 +228,8 @@ public class AuthingUserDao {
     public String registerByEmailPwd(String appId, String email, String password, String username) {
         String body = String.format("{\"connection\": \"PASSWORD\"," +
                 "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\"}," +
-                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", email, password, username);
+                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}," +
+                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", email, password, username, oneidPrivacyVersion);
         return register(appId, body);
     }
 
@@ -218,8 +237,8 @@ public class AuthingUserDao {
     public String registerByPhonePwd(String appId, String phone, String password, String username) {
         String body = String.format("{\"connection\": \"PASSWORD\"," +
                 "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\"}," +
-                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username);
+                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}," +
+                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username, oneidPrivacyVersion);
         return register(appId, body);
     }
 
@@ -252,10 +271,13 @@ public class AuthingUserDao {
     }
 
     public Object loginByPhoneCode(Application app, String phone, String code) throws ServerErrorException {
+        String phoneCountryCode = getPhoneCountryCode(phone);
+        phone = getPurePhone(phone);
+
         String body = String.format("{\"connection\": \"PASSCODE\"," +
-                "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\"}," +
+                "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}," +
                 "\"options\": {\"autoRegister\": false}," +
-                "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, app.getId(), app.getSecret());
+                "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, phoneCountryCode, app.getId(), app.getSecret());
         return login(app.getId(), body);
     }
 
@@ -273,6 +295,8 @@ public class AuthingUserDao {
     }
 
     public Object loginByPhonePwd(Application app, String phone, String password) throws ServerErrorException {
+        phone = getPurePhone(phone);
+
         if (!isUserExists(app.getId(), phone, "phone")) {
             return MessageCodeConfig.E00052.getMsgZh();
         }
@@ -369,6 +393,24 @@ public class AuthingUserDao {
         }
     }
 
+    // 使用v3管理员接口获取用户信息
+    public JSONObject getUserV3(String userId, String userIdType) {
+        try {
+            String token = getManagementToken();
+            HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/get-user")
+                    .header("Authorization", token)
+                    .header("x-authing-userpool-id", userPoolId)
+                    .queryString("userId", userId)
+                    .queryString("userIdType", userIdType)
+                    .queryString("withIdentities", true)
+                    .asJson();
+            return response.getBody().getObject().getJSONObject("data");
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return null;
+        }
+    }
+
     public JSONObject getUserByName(String username) {
         try {
             User user = managementClient.users().find(new FindUserParam().withUsername(username)).execute();
@@ -402,6 +444,17 @@ public class AuthingUserDao {
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
+        }
+    }
+    
+    // 更新用户邮箱
+    public String updateEmailById(String userId, String email) {
+        try {
+            User res = managementClient.users().update(userId, new UpdateUserInput().withEmail(email)).execute();
+            return res.getEmail();
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return "";
         }
     }
 
@@ -537,10 +590,13 @@ public class AuthingUserDao {
     }
 
     public Object resetPwdVerifyPhone(String appId, String phone, String code) {
+        String phoneCountryCode = getPhoneCountryCode(phone);
+        phone = getPurePhone(phone);
+
         String body = String.format("{\"verifyMethod\": \"PHONE_PASSCODE\"," +
                         "\"phonePassCodePayload\": " +
-                        "{\"phoneNumber\": \"%s\",\"passCode\": \"%s\"}}",
-                phone, code);
+                        "{\"phoneNumber\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}}",
+                phone, code, phoneCountryCode);
         return resetPwdVerify(appId, body);
     }
 
@@ -572,7 +628,7 @@ public class AuthingUserDao {
                     authentication.updateEmail(account, code, oldAccount, oldCode).execute();
                     break;
                 case "phone":
-                    authentication.updatePhone(account, code, oldAccount, oldCode).execute();
+                    updatePhoneWithAuthingCode(oldAccount, oldCode, account, code, appId, us.getToken());
                     break;
                 default:
                     return "false";
@@ -652,10 +708,16 @@ public class AuthingUserDao {
             authentication.setCurrentUser(user);
             switch (type.toLowerCase()) {
                 case "email":
-                    authentication.bindEmail(account, code).execute();
+                    String emailInDb = user.getEmail();
+                    // situation: email is auto-generated
+                    if (StringUtils.isNotBlank(emailInDb) && emailInDb.endsWith(Constant.AUTO_GEN_EMAIL_SUFFIX)) {
+                        bindEmailWithSelfDistributedCode(authentication, user.getId(), account, code);
+                    } else {
+                        authentication.bindEmail(account, code).execute();
+                    }
                     break;
                 case "phone":
-                    authentication.bindPhone(account, code).execute();
+                    bindPhoneWithAuthingCode(account, code, appId, user.getToken());
                     break;
                 default:
                     return "false";
@@ -665,6 +727,87 @@ public class AuthingUserDao {
             return e.getMessage();
         }
         return "true";
+    }
+
+    private void bindEmailWithSelfDistributedCode(
+            AuthenticationClient authentication, String userId, String account, String code) throws Exception {
+        String redisKey = account.toLowerCase() + "_CodeBindEmail";
+        String codeTemp = (String) redisDao.get(redisKey);
+        if (codeTemp == null) {
+            throw new Exception("验证码无效或已过期");
+        }
+        if (!codeTemp.equals(code)) {
+            throw new Exception("验证码不正确");
+        }
+
+        // check if email is bind to other account
+        if (authentication.isUserExists(null, account, null, null).execute()) {
+            throw new Exception("该邮箱已被其它账户绑定");
+        }
+
+        String res = updateEmailById(userId, account);
+
+        if (res.equals(account)) {
+            redisDao.remove(redisKey);
+        } else {
+            throw new Exception("服务异常");
+        }
+    }
+
+    private void bindPhoneWithAuthingCode(String phone, String code, String appId, String token) throws Exception{
+        String phoneCountryCode = getPhoneCountryCode(phone);
+        phone = getPurePhone(phone);
+
+        String body = String.format("{\"phoneNumber\": \"%s\"," +
+            "\"passCode\": \"%s\"," +
+            "\"phoneCountryCode\": \"%s\"}", 
+            phone, code, phoneCountryCode);
+        
+        HttpResponse<JsonNode> response = authPost("/bind-phone", appId, token, body);
+        JSONObject resObj = response.getBody().getObject();
+        if (resObj.getInt("statusCode") != 200) {
+            throw new Exception(resObj.getString("message"));
+        }
+    }
+
+    private void updatePhoneWithAuthingCode(String oldPhone, String oldCode, String newPhone, String newCode,
+            String appId, String token) throws Exception {
+        String oldPhoneCountryCode = getPhoneCountryCode(oldPhone);
+        oldPhone = getPurePhone(oldPhone);
+        String newPhoneCountryCode = getPhoneCountryCode(newPhone);
+        newPhone = getPurePhone(newPhone);
+
+        String body = String.format("{\"verifyMethod\": \"PHONE_PASSCODE\"," +
+            "\"phonePassCodePayload\": {" +
+            "\"oldPhoneNumber\": \"%s\",\"oldPhonePassCode\": \"%s\",\"oldPhoneCountryCode\": \"%s\"," +
+            "\"newPhoneNumber\": \"%s\",\"newPhonePassCode\": \"%s\",\"newPhoneCountryCode\": \"%s\"}}", 
+            oldPhone, oldCode, oldPhoneCountryCode, newPhone, newCode, newPhoneCountryCode);
+        
+        HttpResponse<JsonNode> response = authPost("/verify-update-phone-request", appId, token, body);
+        JSONObject resObj = response.getBody().getObject();
+        if (resObj.getInt("statusCode") != 200) {
+            throw new Exception(resObj.getString("message"));
+        }
+
+        Object reqObj = resObj.get("data");
+        String reqToken = "";
+        if (reqObj instanceof JSONObject) {
+            JSONObject req = (JSONObject) reqObj;
+            reqToken = req.getString("updatePhoneToken");
+        } else {
+            throw new Exception("服务异常");
+        }
+        applyUpdatePhoneToken(appId, token, reqToken);
+    }
+
+    private void applyUpdatePhoneToken(String appId, String userToken, String updatePhoneToken) throws Exception {
+        String body = String.format("{\"updatePhoneToken\": \"%s\"}", updatePhoneToken);
+
+        HttpResponse<JsonNode> response = authPost("/update-phone", appId, userToken, body);
+        JSONObject resObj = response.getBody().getObject();
+        if (resObj.getInt("statusCode") != 200) {
+            throw new Exception(resObj.getString("message"));
+        }
     }
 
     public List<Map<String, String>> linkConnList(String token) {
@@ -754,7 +897,7 @@ public class AuthingUserDao {
             } // -- temporary -- TODO
 
             String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", identifier, extIdpId);
-            Unirest.setTimeouts(0, 0);
+            Unirest.config().socketTimeout(0).connectTimeout(0);
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV2 + "/users/identity/unlinkByUser")
                     .header("Authorization", us.getToken())
                     .header("x-authing-userpool-id", userPoolId)
@@ -777,7 +920,7 @@ public class AuthingUserDao {
         for (int i = 0; i < split.length; i++) {
             try {
                 String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", split[i], split1[i]);
-                Unirest.setTimeouts(0, 0);
+                Unirest.config().socketTimeout(0).connectTimeout(0);
                 HttpResponse<JsonNode> response = Unirest.post(authingApiHostV2 + "/users/identity/unlinkByUser")
                         .header("Authorization", us.getToken())
                         .header("x-authing-userpool-id", userPoolId)
@@ -819,6 +962,22 @@ public class AuthingUserDao {
                         if (StringUtils.isNotBlank(user.getUsername()) && !user.getUsername().startsWith("oauth2_"))
                             return "用户名唯一，不可修改";
                         updateUserInput.withUsername(inputValue);
+                        break;
+                    case "aigcprivacyaccepted":
+                        if (aigcPrivacyVersion.equals(inputValue)) {
+                            updateUserInput.withFormatted(aigcPrivacyVersion);
+                        }
+                        if ("revoked".equals(inputValue)) {
+                            updateUserInput.withFormatted("revoked");
+                        }
+                        break;
+                    case "oneidprivacyaccepted":
+                        if (oneidPrivacyVersion.equals(inputValue)) {
+                            updateUserInput.withGivenName(oneidPrivacyVersion);
+                        }
+                        if ("revoked".equals(inputValue)) {
+                            updateUserInput.withGivenName("revoked");
+                        }
                         break;
                     default:
                         break;
@@ -1013,5 +1172,22 @@ public class AuthingUserDao {
                 .header("Content-Type", "application/json")
                 .body(body)
                 .asJson();
+    }
+
+    public String getPhoneCountryCode(String phone) {
+        String phoneCountryCode = "+86";
+        String[] countryCodes = env.getProperty("sms.international.countrys.code", "").split(",");
+        for (String countryCode : countryCodes) {
+            if (phone.startsWith(countryCode)) phoneCountryCode = countryCode;
+        }
+        return phoneCountryCode;
+    }
+
+    public String getPurePhone(String phone) {
+        String[] countryCodes = env.getProperty("sms.international.countrys.code", "").split(",");
+        for (String countryCode : countryCodes) {
+            if (phone.startsWith(countryCode)) return phone.replace(countryCode, "");
+        }
+        return phone;
     }
 }
