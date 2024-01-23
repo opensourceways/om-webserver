@@ -24,6 +24,8 @@ import com.om.Result.Constant;
 import com.om.Service.JwtTokenCreateService;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
+import com.om.token.ManageToken;
+
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,10 +37,10 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
-import javax.annotation.PostConstruct;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.security.interfaces.RSAPrivateKey;
@@ -75,6 +77,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
     @Value("${cookie.token.secures}")
     private String cookieSecures;
 
+    @Value("${oneid.privacy.version}")
+    String oneidPrivacyVersion;
+
     private static HashMap<String, Boolean> domain2secure;
 
     private static final Logger logger =  LoggerFactory.getLogger(AuthingInterceptor.class);
@@ -102,8 +107,14 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return true;
         }
 
+        // get if manageToken present
+        ManageToken manageToken = method.getAnnotation(ManageToken.class);
+
         // 校验header中的token
         String headerJwtToken = httpServletRequest.getHeader("token");
+        if (manageToken != null && manageToken.required()) {
+            headerJwtToken = httpServletRequest.getHeader("user-token");
+        }
         String headJwtTokenMd5 = verifyHeaderToken(headerJwtToken);
         if (headJwtTokenMd5.equals("unauthorized") || headJwtTokenMd5.equals("token expires")) {
             tokenError(httpServletRequest, httpServletResponse, headJwtTokenMd5);
@@ -140,6 +151,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         Date expiresAt;
         String permission;
         String verifyToken;
+        String oneidPrivacyVersionAccept;
         Map<String, Claim> claims;
         try {
             DecodedJWT decode = JWT.decode(token);
@@ -148,6 +160,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             expiresAt = decode.getExpiresAt();
             claims = decode.getClaims();
             String permissionTemp = claims.get("permission").asString();
+            oneidPrivacyVersionAccept = claims.get("oneidPrivacyAccepted").asString();
             permission = new String(Base64.getDecoder().decode(permissionTemp.getBytes()));
             verifyToken = claims.get("verifyToken").asString();
         } catch (JWTDecodeException j) {
@@ -155,18 +168,30 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return false;
         }
 
+        // 是否接受隐私协议
+        String url = httpServletRequest.getRequestURI();
+        if (!"/oneid/update/baseInfo".equals(url) && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept)) {
+            tokenError(httpServletRequest, httpServletResponse, "Not accept privacy policy and terms of service.");
+            return false;
+        }
+
         // 校验token
         String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, userId,
                 issuedAt, expiresAt, permission);
         if (!Constant.SUCCESS.equals(verifyTokenMsg)) {
-            tokenError(httpServletRequest, httpServletResponse, verifyDomainMsg);
+            tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
             return false;
+        }
+
+        // skip refresh if manageToken present
+        if (manageToken != null && manageToken.required()) {
+            return true;
         }
 
         // 每次交互刷新token
         String refreshMsg = refreshToken(httpServletRequest, httpServletResponse, verifyToken, userId, claims);
         if (!Constant.SUCCESS.equals(refreshMsg)) {
-            tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
+            tokenError(httpServletRequest, httpServletResponse, refreshMsg);
             return false;
         }
 
