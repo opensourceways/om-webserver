@@ -315,6 +315,9 @@ public class AuthingController {
         CaptchaVO captchaVO = new CaptchaVO();
         captchaVO.setCaptchaVerification(captchaVerification);
         ResponseModel response = captchaService.verification(captchaVO);
-        return response.isSuccess();
+        if (response != null) {
+            return response.isSuccess();
+        }
+        return false;
     }
 }

@@ -11,15 +11,21 @@
 
 package com.om.Controller;
 
+import com.anji.captcha.model.common.ResponseModel;
+import com.anji.captcha.model.vo.CaptchaVO;
+import com.anji.captcha.service.CaptchaService;
 import com.om.Service.AuthingService;
 import com.om.Service.OneIdManageService;
 import com.om.authing.AuthingUserToken;
 import com.om.token.ManageToken;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -33,15 +39,34 @@ import jakarta.servlet.http.HttpServletResponse;
 @RequestMapping(value = "/oneid/manager")
 @RestController
 public class ManagerController {
-    @Autowired
-    OneIdManageService oneIdManageService;
+    private static final Logger logger =  LoggerFactory.getLogger(ManagerController.class);
 
     @Autowired
-    AuthingService authingService;
+    private CaptchaService captchaService;
+
+    @Autowired
+    private OneIdManageService oneIdManageService;
+
+    @Autowired
+    private AuthingService authingService;
 
     @RequestMapping(value = "/token", method = RequestMethod.POST)
     public ResponseEntity tokenApply(@RequestBody Map<String, String> body) {
         return oneIdManageService.tokenApply(body);
+    }
+
+    @ManageToken
+    @RequestMapping(value = "/sendcode", method = RequestMethod.POST)
+    public ResponseEntity sendCode(@RequestBody Map<String, String> body,
+                                   @RequestHeader(value = "token") String token) {
+        return oneIdManageService.sendCode(body, token, verifyCaptcha((String) body.get("captchaVerification")));
+    }
+
+    @ManageToken
+    @RequestMapping(value = "/bind/account", method = RequestMethod.POST)
+    public ResponseEntity bindAccount(@RequestBody Map<String, String> body,
+                                      @RequestHeader(value = "token") String token) {
+        return oneIdManageService.bindAccount(body, token);
     }
 
     @ManageToken
@@ -80,5 +105,17 @@ public class ManagerController {
         HttpServletResponse servletResponse,
         @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.personalCenterUserInfo(servletRequest, servletResponse, token);
+    }
+
+    private boolean verifyCaptcha(String captchaVerification) {
+        CaptchaVO captchaVO = new CaptchaVO();
+        captchaVO.setCaptchaVerification(captchaVerification);
+        ResponseModel response = captchaService.verification(captchaVO);
+        if (response != null) {
+            logger.info("captcha response msg: " + response.getRepMsg() + "  " +
+                        "captcha response status: " + response.isSuccess());
+            return response.isSuccess();
+        }
+        return false;
     }
 }
