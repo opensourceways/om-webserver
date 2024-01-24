@@ -297,7 +297,7 @@ public class AuthingService implements UserCenterServiceInter {
         String permission = (String) getBodyPara(body, "permission");
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
-        String password = null;
+        String password = (String) getBodyPara(body, "password");
         LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
 
         // 限制一分钟登录失败次数
