@@ -364,10 +364,9 @@ public class OpenGaussService implements UserCenterServiceInter {
         redisDao.remove(account + Constant.LOGIN_COUNT);
 
         // 生成token
-        String[] tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"),
-                user.getString("username"), "", "", idToken);
-        String token = tokens[0];
-        String verifyToken = tokens[1];
+        Map<String, String> tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"), user.getString("username"), "", "", idToken);
+        String token = tokens.get(Constant.TOKEN_Y_G_);
+        String verifyToken = tokens.get(Constant.TOKEN_U_T_);
 
         // 写cookie
         String cookieTokenName = env.getProperty("cookie.token.name");
@@ -434,7 +433,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
 
             String headerToken = servletRequest.getHeader("token");
-            String idTokenKey = "idToken_" + headerToken;
+            String idTokenKey = Constant.ID_TOKEN_PREFIX + headerToken;
             String idToken = (String) redisDao.get(idTokenKey);
 
             token = rsaDecryptToken(token);
@@ -1051,7 +1050,7 @@ public class OpenGaussService implements UserCenterServiceInter {
 
             // 删除cookie，删除idToken
             String headerToken = httpServletRequest.getHeader("token");
-            String idTokenKey = "idToken_" + headerToken;
+            String idTokenKey = Constant.ID_TOKEN_PREFIX + headerToken;
             String cookieTokenName = env.getProperty("cookie.token.name");
             HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
             redisDao.remove(idTokenKey);

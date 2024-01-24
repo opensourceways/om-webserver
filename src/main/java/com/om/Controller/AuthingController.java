@@ -18,7 +18,9 @@ import com.om.Result.Constant;
 import com.om.Service.AuthingService;
 import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
+import com.om.Service.inter.LoginServiceInter;
 import com.om.Service.inter.OidcServiceInter;
+import com.om.Service.inter.ThirdPartyServiceInter;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
 import com.om.Vo.dto.LoginParam;
@@ -49,6 +51,12 @@ public class AuthingController {
 
     @Autowired
     OidcServiceInter oidcService;
+
+    @Autowired
+    LoginServiceInter loginService;
+
+    @Autowired
+    ThirdPartyServiceInter thirdPartyService;
 
     @Autowired
     UserCenterServiceContext userCenterServiceContext;
@@ -95,27 +103,25 @@ public class AuthingController {
 
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity userLogin(@RequestBody LoginParam loginParam) {
-        return oidcService.userLogin(loginParam);
+        return loginService.userLogin(loginParam);
     }
 
     @RequestMapping(value = "/app/verify", method = RequestMethod.GET)
     public ResponseEntity appVerify(@RequestParam(value = "client_id") String clientId,
                                     @RequestParam(value = "redirect_uri") String redirect) {
-        return oidcService.appVerify(clientId, redirect);
+        return loginService.appVerify(clientId, redirect);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/logout", method = RequestMethod.GET)
-    public ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-                                 @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.logout(servletRequest, servletResponse, token);
+    public ResponseEntity logout(@CookieValue(value = "_Y_G_", required = false) String token, @RequestParam(name = "client_id") String clientId) {
+        return loginService.userLogout(clientId, token);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/user/refresh", method = RequestMethod.GET)
     public ResponseEntity refreshUser(@CookieValue(value = "_Y_G_", required = false) String token, @RequestParam(name = "client_id") String clientId) {
-        return oidcService.refreshUser(clientId, token);
+        return loginService.refreshUser(clientId, token);
     }
 
     @AuthingUserToken
@@ -217,7 +223,7 @@ public class AuthingController {
         return service.resetPwd(request);
     }
 
-    @RequestMapping(value = "/oidc/authorize", method = RequestMethod.GET)
+    @RequestMapping(value = "${oidc.authorization_endpoint}", method = RequestMethod.GET)
     public ResponseEntity<?> oidcAuthorize(OidcAuthorize oidcAuthorize) {
         return oidcService.oidcAuthorize(oidcAuthorize);
     }
@@ -228,14 +234,39 @@ public class AuthingController {
         return oidcService.oidcAuth(token, oidcAuth);
     }
 
-    @RequestMapping(value = "/oidc/token", method = RequestMethod.POST)
+    @RequestMapping(value = "${oidc.token_endpoint}", method = RequestMethod.POST)
     public ResponseEntity oidcToken(OidcToken oidcToken) {
         return oidcService.oidcToken(oidcToken);
     }
 
-    @RequestMapping(value = "/oidc/user", method = RequestMethod.GET)
+    @RequestMapping(value = "${oidc.userinfo_endpoint}", method = RequestMethod.GET)
     public ResponseEntity oidcUser(@RequestHeader(value = "Authorization", required = true) String token) {
         return oidcService.oidcUser(token);
+    }
+
+    @RequestMapping(value = "/.well-known/openid-configuration", method = RequestMethod.GET)
+    public ResponseEntity oidcDiscovery() {
+        return oidcService.oidcDiscovery();
+    }
+
+    @RequestMapping(value = "/third-party/list", method = RequestMethod.GET)
+    public ResponseEntity thirdPartyList(@RequestParam(value = "client_id", required = true) String clientId) {
+        return thirdPartyService.thirdPartyList(clientId);
+    }
+
+    @RequestMapping(value = "/third-party/authorize", method = RequestMethod.GET)
+    public ResponseEntity thirdPartyAuthorize(
+        @RequestParam(value = "client_id", required = true) String clientId,
+        @RequestParam(value = "connection_id", required = true) String connId) {
+        return thirdPartyService.thirdPartyAuthorize(clientId, connId);
+    }
+
+    @RequestMapping(value = "/third-party/{connId}/callback", method = RequestMethod.GET)
+    public ResponseEntity thirdPartyCallback(
+        @RequestParam(value = "code", required = true) String code,
+        @RequestParam(value = "state", required = true) String state,
+        @PathVariable(value = "connId", required = true) String connId) {
+        return thirdPartyService.thirdPartyCallback(connId, code, state);
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {

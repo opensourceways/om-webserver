@@ -1,6 +1,5 @@
 package com.om.Service.inter;
 
-import com.om.Vo.dto.LoginParam;
 import com.om.Vo.dto.OidcAuth;
 import com.om.Vo.dto.OidcAuthorize;
 import com.om.Vo.dto.OidcToken;
@@ -16,10 +15,6 @@ public interface OidcServiceInter {
 
     ResponseEntity<?> oidcUser(String token);
 
-    ResponseEntity<?> appVerify(String clientId, String redirectUri);
-
-    ResponseEntity<?> userLogin(LoginParam loginParam);
-
-    ResponseEntity<?> refreshUser(String clientId, String token);
+    ResponseEntity<?> oidcDiscovery();
 
 }
