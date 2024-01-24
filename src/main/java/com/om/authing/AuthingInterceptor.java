@@ -170,7 +170,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
         // 是否接受隐私协议
         String url = httpServletRequest.getRequestURI();
-        if (!"/oneid/update/baseInfo".equals(url) && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept)) {
+        if (!"unused".equals(oneidPrivacyVersion) && !"/oneid/update/baseInfo".equals(url) && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept)) {
             tokenError(httpServletRequest, httpServletResponse, "Not accept privacy policy and terms of service.");
             return false;
         }
