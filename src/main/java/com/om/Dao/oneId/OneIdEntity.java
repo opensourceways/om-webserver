@@ -5,6 +5,8 @@ import lombok.Setter;
 
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 public class OneIdEntity {
 
@@ -103,6 +105,8 @@ public class OneIdEntity {
         private Timestamp createAt;
 
         private Timestamp updateAt;
+
+        private List<ThirdPartyUser> identities = new ArrayList<>();
     }
 
     @Getter
@@ -128,5 +132,74 @@ public class OneIdEntity {
         private String clientSecret;
 
         private String scopes;
+    }
+
+    @Getter
+    @Setter
+    public static class ThirdPartyUser {
+
+        private String id;
+    
+        private String provider;
+    
+        private String username;
+    
+        private String nickname;
+    
+        private String familyName;
+    
+        private String middleName;
+    
+        private String name;
+    
+        private String gender;
+    
+        private String profile;
+    
+        private String photo;
+    
+        private String city;
+    
+        private String company;
+    
+        private String email;
+    
+        private boolean emailVerified;
+    
+        private String phone;
+    
+        private boolean phoneVerified;
+    
+        private boolean isSocial;
+    
+        private String userPoolId;
+    
+        private String extIdpId;
+    
+        private String userId;
+    
+        private String userIdInIdp;
+    
+        private String openid;
+    
+        private String syncIdentityProviderId;
+    
+        private String type;
+    
+        private String blog;
+    
+        private String weibo;
+    
+        private String wechat;
+    
+        private String qq;
+    
+        private String accessToken;
+    
+        private String refreshToken;
+    
+        private Timestamp createdAt;
+    
+        private Timestamp updatedAt;
     }
 }
