@@ -238,7 +238,7 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
         }
         // 检查是否同意隐私政策
-        if (!oneidPrivacyVersion.equals(acceptPrivacyVersion)) {
+        if (!"unused".equals(oneidPrivacyVersion) && !oneidPrivacyVersion.equals(acceptPrivacyVersion)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, null);
         }
 
@@ -347,7 +347,7 @@ public class AuthingService implements UserCenterServiceInter {
         String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
         // 获取是否同意隐私
-        String oneidPrivacyVersionAccept = String.valueOf(user.getGivenName());
+        String oneidPrivacyVersionAccept = user.getGivenName() == null ? "" : user.getGivenName().toString();
 
         // 生成token
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
@@ -454,6 +454,7 @@ public class AuthingService implements UserCenterServiceInter {
             String scope = parameterMap.getOrDefault("scope", new String[]{""})[0];
             String state = parameterMap.getOrDefault("state", new String[]{""})[0];
             String entity = parameterMap.getOrDefault("entity", new String[]{""})[0];
+            String complementation = parameterMap.getOrDefault("complementation", new String[]{""})[0];
 
             // responseType校验
             if (!responseType.equals("code"))
@@ -473,7 +474,8 @@ public class AuthingService implements UserCenterServiceInter {
             // 重定向到登录页
             String loginPage = env.getProperty("oidc.login.page");
             if ("register".equals(entity)) loginPage = env.getProperty("oidc.register.page");
-            String loginPageRedirect = String.format("%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s", loginPage, clientId, scope, redirectUri, state);
+            String loginPageRedirect = String.format("%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s&complementation=%s", 
+                loginPage, clientId, scope, redirectUri, state, complementation);
             servletResponse.sendRedirect(loginPageRedirect);
 
             return resultOidc(HttpStatus.OK, "OK", loginPageRedirect);
@@ -633,7 +635,7 @@ public class AuthingService implements UserCenterServiceInter {
             String email = user.getEmail();
             String aigcPrivacyAccepted = env.getProperty("aigc.privacy.version").equals(user.getFormatted()) ? 
                                          user.getFormatted() : "";
-            String oneidPrivacyVersionAccept = String.valueOf(user.getGivenName());
+            String oneidPrivacyVersionAccept = user.getGivenName() == null ? "" : user.getGivenName().toString();
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
@@ -788,7 +790,7 @@ public class AuthingService implements UserCenterServiceInter {
             if (StringUtils.isBlank(email)) email = genPredefinedEmail(userId, username);
 
             // 获取隐私同意字段值
-            String oneidPrivacyVersionAccept = String.valueOf(user.get("given_name"));
+            String oneidPrivacyVersionAccept = user.get("given_name") == null ? "" : user.get("given_name").toString();
 
             // 资源权限
             String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
