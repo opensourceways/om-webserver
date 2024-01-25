@@ -16,10 +16,10 @@ import cn.authing.core.mgmt.ManagementClient;
 import cn.authing.core.types.*;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
-import com.mashape.unirest.http.exceptions.UnirestException;
+import kong.unirest.HttpResponse;
+import kong.unirest.JsonNode;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import com.obs.services.ObsClient;
 import com.obs.services.model.PutObjectResult;
 import com.om.Modules.MessageCodeConfig;
@@ -28,15 +28,15 @@ import com.om.Result.Constant;
 import com.om.Utils.CommonUtil;
 import com.om.Utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import kong.unirest.json.JSONArray;
+import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -754,7 +754,7 @@ public class AuthingUserDao {
             } // -- temporary -- TODO
 
             String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", identifier, extIdpId);
-            Unirest.setTimeouts(0, 0);
+            Unirest.config().socketTimeout(0).connectTimeout(0);
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV2 + "/users/identity/unlinkByUser")
                     .header("Authorization", us.getToken())
                     .header("x-authing-userpool-id", userPoolId)
@@ -777,7 +777,7 @@ public class AuthingUserDao {
         for (int i = 0; i < split.length; i++) {
             try {
                 String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", split[i], split1[i]);
-                Unirest.setTimeouts(0, 0);
+                Unirest.config().socketTimeout(0).connectTimeout(0);
                 HttpResponse<JsonNode> response = Unirest.post(authingApiHostV2 + "/users/identity/unlinkByUser")
                         .header("Authorization", us.getToken())
                         .header("x-authing-userpool-id", userPoolId)
