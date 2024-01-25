@@ -23,10 +23,7 @@ import com.om.Service.inter.OidcServiceInter;
 import com.om.Service.inter.ThirdPartyServiceInter;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
-import com.om.Vo.dto.LoginParam;
-import com.om.Vo.dto.OidcAuth;
-import com.om.Vo.dto.OidcAuthorize;
-import com.om.Vo.dto.OidcToken;
+import com.om.Vo.dto.*;
 import com.om.authing.AuthingUserToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -256,17 +253,23 @@ public class AuthingController {
 
     @RequestMapping(value = "/third-party/authorize", method = RequestMethod.GET)
     public ResponseEntity thirdPartyAuthorize(
-        @RequestParam(value = "client_id", required = true) String clientId,
-        @RequestParam(value = "connection_id", required = true) String connId) {
+            @RequestParam(value = "client_id", required = true) String clientId,
+            @RequestParam(value = "connection_id", required = true) String connId) {
         return thirdPartyService.thirdPartyAuthorize(clientId, connId);
     }
 
     @RequestMapping(value = "/third-party/{connId}/callback", method = RequestMethod.GET)
     public ResponseEntity thirdPartyCallback(
-        @RequestParam(value = "code", required = true) String code,
-        @RequestParam(value = "state", required = true) String state,
-        @PathVariable(value = "connId", required = true) String connId) {
-        return thirdPartyService.thirdPartyCallback(connId, code, state);
+            @RequestParam(value = "code", required = true) String code,
+            @RequestParam(value = "state", required = true) String state,
+            @RequestParam(value = "client_id", required = true) String appId,
+            @PathVariable(value = "connId", required = true) String connId) {
+        return thirdPartyService.thirdPartyCallback(connId, code, state, appId);
+    }
+
+    @RequestMapping(value = "/third-party/register", method = RequestMethod.POST)
+    public ResponseEntity thirdPartyRegister(@RequestBody ThirdPartyRegisterParam thirdPartyRegisterParam) {
+        return thirdPartyService.thirdPartyCreateUser(thirdPartyRegisterParam.getRegister_token(), thirdPartyRegisterParam.getApp_id(), thirdPartyRegisterParam.getState());
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
