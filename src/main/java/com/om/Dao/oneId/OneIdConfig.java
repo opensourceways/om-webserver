@@ -1,9 +1,9 @@
 package com.om.Dao.oneId;
 
 import com.alibaba.fastjson2.JSON;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
+import kong.unirest.HttpResponse;
+import kong.unirest.JsonNode;
+import kong.unirest.Unirest;
 import com.om.Dao.RedisDao;
 import com.om.Result.Constant;
 import org.apache.commons.lang3.StringUtils;
@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 
 @Configuration
 public class OneIdConfig {

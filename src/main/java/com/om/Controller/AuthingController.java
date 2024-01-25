@@ -30,11 +30,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
 
-import static com.anji.captcha.controller.CaptchaController.getRemoteId;
+import static com.anji.captcha.Controller.CaptchaController.getRemoteId;
 
 
 @RequestMapping(value = "/oneid")
