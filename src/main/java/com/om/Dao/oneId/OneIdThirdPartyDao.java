@@ -34,11 +34,11 @@ public class OneIdThirdPartyDao {
         HttpResponse<JsonNode> response = Unirest.get(url)
             .header("Authorization", OneIdConfig.getManagementToken())
             .queryString("appId", appId)
-            .queryString("socialIdentitySourceId", connId)
+            .queryString("thirdPartyClient", connId)
             .asJson();
 
         if (response.getStatus() == 200) {
-            JSONObject jsonObject = response.getBody().getObject().getJSONArray("data").getJSONObject(0);
+            JSONObject jsonObject = response.getBody().getObject().getJSONObject("data");
             return JSON.parseObject(jsonObject.toString(), OneIdEntity.ThirdPartyClient.class);
         }
         return null;
@@ -53,6 +53,20 @@ public class OneIdThirdPartyDao {
         if (response.getStatus() == 200) {
             JSONObject jsonObject = response.getBody().getObject().getJSONObject("data");
             return JSON.parseObject(jsonObject.toString(), OneIdEntity.ThirdPartyClient.class);
+        }
+        return null;
+    }
+
+    public OneIdEntity.User getUserByIdInProvider(String id, String provider) throws Exception {
+        String url = String.format(OneIdConfig.API_HOST + Constant.ONEID_THIRD_PARTY_USER_GET_PATH, id);
+        HttpResponse<JsonNode> response = Unirest.get(url)
+            .header("Authorization", OneIdConfig.getManagementToken())
+            .queryString("provider", provider)
+            .asJson();
+
+        if (response.getStatus() == 200) {
+            JSONObject jsonObject = response.getBody().getObject().getJSONObject("data");
+            return JSON.parseObject(jsonObject.toString(), OneIdEntity.User.class);
         }
         return null;
     }

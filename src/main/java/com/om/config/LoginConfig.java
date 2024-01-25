@@ -50,8 +50,6 @@ public class LoginConfig {
 
     public static long MAIL_CODE_EXPIRE;
 
-    public static long TOKEN_EXPIRE_SECONDS;
-
     public static long OLD_TOKEN_EXPIRE_SECONDS;
 
 
@@ -67,6 +65,8 @@ public class LoginConfig {
     public static List<String> OIDC_RESPONSE_TYPES_SUPPORTED;
 
     public static List<String> OIDC_SCOPES_SUPPORTED;
+
+    public static String EXTERNAL_CALLBACK_URL;
 
 
 
@@ -100,7 +100,6 @@ public class LoginConfig {
         RAS_AUTHING_PRIVATE_KEY = environment.getProperty("rsa.authing.privateKey");
         LOGIN_ERROR_LIMIT_COUNT = Integer.parseInt(environment.getProperty("login.error.limit.count", "6"));
         MAIL_CODE_EXPIRE = Long.parseLong(environment.getProperty("mail.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
-        TOKEN_EXPIRE_SECONDS = Long.parseLong(Objects.requireNonNull(environment.getProperty("authing.token.expire.seconds")));
         OLD_TOKEN_EXPIRE_SECONDS = Long.parseLong(environment.getProperty("old.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
 
         OIDC_ISSUER = environment.getProperty("oidc.issuer");
@@ -109,6 +108,8 @@ public class LoginConfig {
         OIDC_USERINFO_ENDPOINT = environment.getProperty("oidc.userinfo_endpoint");
         OIDC_RESPONSE_TYPES_SUPPORTED = Arrays.asList(environment.getProperty("oidc.response_types_supported", "code").split(","));
         OIDC_SCOPES_SUPPORTED = Arrays.asList(environment.getProperty("oidc.scopes_supported", "code").split(","));
+
+        EXTERNAL_CALLBACK_URL = environment.getProperty("external.callback.url");
 
     }
 }
