@@ -14,9 +14,9 @@ public interface ThirdPartyServiceInter {
     
     ResponseEntity<?> thirdPartyAuthorize(String clientId, String connId);
 
-    ResponseEntity<?> thirdPartyCallback(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String connId, String code, String state, String appId);
+    ResponseEntity<?> thirdPartyCallback(String connId, String code, String state, String appId);
 
-     ResponseEntity<?> thirdPartyCreateUser(String token) throws NoSuchAlgorithmException, InvalidKeySpecException;
+     ResponseEntity<?> thirdPartyCreateUser(String registerToken, String appId, String state);
 
     // ResponseEntity<?> thirdPartyLink();
 

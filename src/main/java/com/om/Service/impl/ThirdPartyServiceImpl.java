@@ -14,10 +14,9 @@ import com.om.Dao.oneId.OneIdThirdPartyUserDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Result.Result;
-import com.om.Service.JwtTokenCreateService;
+import com.om.Service.OneIdService;
 import com.om.Service.inter.ThirdPartyServiceInter;
 import com.om.Utils.CodeUtil;
-import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
 import com.om.config.LoginConfig;
 import org.json.JSONObject;
@@ -25,15 +24,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.security.interfaces.RSAPublicKey;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -54,12 +49,6 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
     private String rsaAuthingPrivateKey;
 
     @Autowired
-    private Environment env;
-
-    @Autowired
-    private JwtTokenCreateService jwtTokenCreateService;
-
-    @Autowired
     private OneIdThirdPartyDao oneIdThirdPartyDao;
 
     @Autowired
@@ -69,19 +58,7 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
     private RedisDao redisDao;
 
     @Autowired
-    private HttpServletRequest servletRequest;
-
-    @Autowired
-    private HttpServletResponse servletResponse;
-
-    private static HashMap<String, Boolean> domain2secure;
-
-
-
-    @PostConstruct
-    public void init() {
-        domain2secure = HttpClientUtils.getConfigCookieInfo(Objects.requireNonNull(env.getProperty("cookie.token.domains")), Objects.requireNonNull(env.getProperty("cookie.token.secures")));
-    }
+    OneIdService oneIdService;
 
     @Override
     public ResponseEntity<?> thirdPartyList(String clientId) {
@@ -116,7 +93,7 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             String thirdPartyLoginPage = String.format("%s?client_id=%s&redirect_uri=%s&response_type=code&scope=%s&state=%s",
                     source.getAuthorizeUrl(),
                     source.getClientId(),
-                    String.format(env.getProperty("external.callback.url"), source.getId()),
+                    String.format(LoginConfig.EXTERNAL_CALLBACK_URL, source.getId()),
                     source.getScopes(),
                     generateState());
 
@@ -128,8 +105,7 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
     }
 
     @Override
-    public ResponseEntity<?> thirdPartyCallback(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-                                                String connId, String code, String state, String appId) {
+    public ResponseEntity<?> thirdPartyCallback(String connId, String code, String state, String appId) {
         try {
             // check state
             if (redisDao.get(state) == null) {
@@ -146,7 +122,7 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             String body = String.format("{\"client_id\": \"%s\", \"client_secret\": \"%s\", " +
                             "\"code\": \"%s\", \"redirect_uri\": \"%s\", \"grant_type\": \"authorization_code\"}",
                     source.getClientId(), source.getClientSecret(), code,
-                    String.format(env.getProperty("external.callback.url"), source.getId()));
+                    String.format(LoginConfig.EXTERNAL_CALLBACK_URL, source.getId()));
             HttpResponse<JsonNode> response = Unirest.post(source.getTokenUrl())
                     .header("Accept", "application/json")
                     .header("Content-Type", "application/json")
@@ -180,9 +156,9 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             OneIdEntity.User userInDb = oneIdThirdPartyDao.getUserByIdInProvider(userIdInPd, source.getName());
             if (userInDb == null) {
                 // store userinfo
-                Long expire = Long.parseLong(env.getProperty("authing.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
+                int expire = LoginConfig.AUTHING_TOKEN_EXPIRE_SECONDS;
                 user.put("code", 200);
-                redisDao.set(source.getName() + userIdInPd, user.toString(), expire);
+                redisDao.set(source.getName() + userIdInPd + state, user.toString(), (long) expire);
 
                 // create jwt token
                 LocalDateTime nowDate = LocalDateTime.now();
@@ -204,7 +180,8 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
 
                 return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, token, null);
             } else {
-                return login(servletRequest, servletResponse, userInDb, appId);
+                String idToken = userInDb.getId();
+                return oneIdService.loginSuccessSetToken(userInDb, idToken, appId);
             }
         } catch (Exception e) {
             logger.error(e.getMessage());
@@ -213,7 +190,7 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
     }
 
     @Override
-    public ResponseEntity<?> thirdPartyCreateUser(String token) {
+    public ResponseEntity<?> thirdPartyCreateUser(String token, String appId, String state) {
         try {
             token = RSAUtil.privateDecrypt(token, RSAUtil.getPrivateKey(rsaAuthingPrivateKey));
 
@@ -225,8 +202,9 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(userIdInPd + authingTokenBasePassword)).build();
             DecodedJWT decodedJWT = jwtVerifier.verify(token);
 
-            String redisKey = provider + userIdInPd;
+            String redisKey = provider + userIdInPd + state;
             String thirdPartyUserJson = (String) redisDao.get(redisKey);
+
             JSONObject thirdPartyUserObject = new JSONObject(thirdPartyUserJson);
 
             OneIdEntity.ThirdPartyUser thirdPartyUser = toThirdPartyUser(provider, thirdPartyUserObject);
@@ -240,16 +218,19 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
 
             OneIdEntity.User user = new OneIdEntity.User();
             user.setIdentities(new ArrayList<>(Collections.singletonList(thirdPartyUser)));
-            user.setUsername(thirdPartyUser.getUsername());
-            int r = oneIdThirdPartyUserDao.createCompositeUser(user);
-            if (r <= 0) {
+            user.setUsername(provider + "_" + thirdPartyUser.getUsername());
+            OneIdEntity.User u = oneIdThirdPartyUserDao.createCompositeUser(user);
+            if (u == null) {
                 return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00068, null, null, null);
             }
 
-            String idToken = user.getId();
+            redisDao.remove(redisKey);
 
-            return login(servletRequest, servletResponse, user, idToken);
+            user.setId(u.getId());
+            String idToken = user.getId();
+            return oneIdService.loginSuccessSetToken(user, idToken, appId);
         } catch (Exception e) {
+            e.printStackTrace();
             logger.error(e.getMessage());
             return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null, null);
         }
@@ -259,22 +240,36 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
 
     public OneIdEntity.ThirdPartyUser toThirdPartyUser(String provider, JSONObject thirdPartyUserObject) {
         OneIdEntity.ThirdPartyUser thirdPartyUser = new OneIdEntity.ThirdPartyUser();
+        thirdPartyUser.setProvider(provider);
         switch (provider) {
             case "github":
-                thirdPartyUser.setProvider(provider);
-                thirdPartyUser.setUsername(provider + "_" + thirdPartyUserObject.getString("login"));
-                thirdPartyUser.setEmail(thirdPartyUserObject.getString("email"));
-                thirdPartyUser.setNickname(thirdPartyUserObject.getString("login"));
-                thirdPartyUser.setName(thirdPartyUserObject.getString("name"));
-                thirdPartyUser.setUserIdInIdp("id");
+                if (! thirdPartyUserObject.isNull("login")) {
+                    thirdPartyUser.setUsername(thirdPartyUserObject.getString("login"));
+                }
+                if (! thirdPartyUserObject.isNull("email")) {
+                    thirdPartyUser.setEmail(thirdPartyUserObject.getString("email"));
+                }
+                if (! thirdPartyUserObject.isNull("name")) {
+                    thirdPartyUser.setName(thirdPartyUserObject.getString("name"));
+                }
+                if (! thirdPartyUserObject.isNull("id")) {
+                    thirdPartyUser.setUserIdInIdp(Integer.toString(thirdPartyUserObject.getInt("id")));
+                }
+
                 break;
             case "gitee":
-                thirdPartyUser.setProvider(provider);
-                thirdPartyUser.setUsername(provider + "_" + thirdPartyUserObject.getString("login"));
-                thirdPartyUser.setEmail(thirdPartyUserObject.getString("email"));
-                thirdPartyUser.setNickname(thirdPartyUserObject.getString("login"));
-                thirdPartyUser.setName(thirdPartyUserObject.getString("name"));
-                thirdPartyUser.setUserIdInIdp("id");
+                if (! thirdPartyUserObject.isNull("login")) {
+                    thirdPartyUser.setUsername(thirdPartyUserObject.getString("login"));
+                }
+                if (! thirdPartyUserObject.isNull("email")) {
+                    thirdPartyUser.setEmail(thirdPartyUserObject.getString("email"));
+                }
+                if (! thirdPartyUserObject.isNull("name")) {
+                    thirdPartyUser.setName(thirdPartyUserObject.getString("name"));
+                }
+                if (! thirdPartyUserObject.isNull("id")) {
+                    thirdPartyUser.setUserIdInIdp(Integer.toString(thirdPartyUserObject.getInt("id")));
+                }
                 break;
             default:
                 thirdPartyUser = null;
@@ -290,28 +285,4 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
         return state;
     }
 
-    private ResponseEntity<?> login(HttpServletRequest servletRequest, HttpServletResponse servletResponse, OneIdEntity.User user, String appId) {
-        Map<String, String> tokens = jwtTokenCreateService.authingUserToken(appId, user.getId(), user.getUsername(), "", "", user.getId());
-        String token = tokens.get(Constant.TOKEN_Y_G_);
-        String verifyToken = tokens.get(Constant.TOKEN_U_T_);
-
-        // 写cookie
-        String cookieTokenName = LoginConfig.COOKIE_TOKEN_NAME;
-        String verifyTokenName = LoginConfig.COOKIE_VERIFY_TOKEN_NAME;
-
-        int expire = LoginConfig.AUTHING_TOKEN_EXPIRE_SECONDS;
-        int maxAge = LoginConfig.AUTHING_COOKIE_MAX_AGE;
-        HttpClientUtils.setCookie(servletRequest, servletResponse, cookieTokenName,
-                token, true, maxAge, "/", domain2secure);
-        HttpClientUtils.setCookie(servletRequest, servletResponse, verifyTokenName,
-                verifyToken, false, expire, "/", domain2secure);
-
-        HashMap<String, String> userInfo = new HashMap<>();
-        userInfo.put("username", user.getUsername());
-        userInfo.put("email", user.getEmail());
-        userInfo.put("phone", user.getPhone());
-        userInfo.put("token", verifyToken);
-
-        return Result.setResult(HttpStatus.OK, MessageCodeConfig.S0001, null, userInfo, null);
-    }
 }
