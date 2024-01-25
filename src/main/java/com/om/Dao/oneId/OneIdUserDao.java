@@ -1,11 +1,11 @@
 package com.om.Dao.oneId;
 
 import com.alibaba.fastjson2.JSON;
-import com.mashape.unirest.http.HttpResponse;
-import com.mashape.unirest.http.JsonNode;
-import com.mashape.unirest.http.Unirest;
+import kong.unirest.HttpResponse;
+import kong.unirest.JsonNode;
+import kong.unirest.Unirest;
 import com.om.Result.Constant;
-import org.json.JSONObject;
+import kong.unirest.json.JSONObject;
 import org.springframework.stereotype.Repository;
 
 @Repository

@@ -21,7 +21,7 @@ import com.om.Vo.dto.OidcAuth;
 import com.om.Vo.dto.OidcAuthorize;
 import com.om.Vo.dto.OidcToken;
 import com.om.config.LoginConfig;
-import org.json.JSONObject;
+import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
