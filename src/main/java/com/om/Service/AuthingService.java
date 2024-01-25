@@ -362,6 +362,7 @@ public class AuthingService implements UserCenterServiceInter {
         userData.put("photo", user.getPhoto());
         userData.put("username", user.getUsername());
         userData.put("email_exist", StringUtils.isNotBlank(user.getEmail()));
+        userData.put("phone_exist", StringUtils.isNotBlank(user.getPhone()));
         userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
         return result(HttpStatus.OK, "success", userData);
     }
@@ -633,6 +634,7 @@ public class AuthingService implements UserCenterServiceInter {
             String photo = user.getPhoto();
             String username = user.getUsername();
             String email = user.getEmail();
+            String phone = user.getPhone();
             String aigcPrivacyAccepted = env.getProperty("aigc.privacy.version").equals(user.getFormatted()) ? 
                                          user.getFormatted() : "";
             String oneidPrivacyVersionAccept = user.getGivenName() == null ? "" : user.getGivenName().toString();
@@ -642,6 +644,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("photo", photo);
             userData.put("username", username);
             userData.put("email", email);
+            userData.put("phone", phone);
             userData.put("aigcPrivacyAccepted", aigcPrivacyAccepted);
             userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
             return result(HttpStatus.OK, "success", userData);
@@ -786,6 +789,7 @@ public class AuthingService implements UserCenterServiceInter {
             String idToken = user.get("id_token").toString();
             String picture = user.get("picture").toString();
             String username = (String) user.get("username");
+            String phone = (String) user.get("phone");
             String email = (String) user.get("email");
             if (StringUtils.isBlank(email)) email = genPredefinedEmail(userId, username);
 
@@ -818,6 +822,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("photo", picture);
             userData.put("username", username);
             userData.put("email_exist", StringUtils.isNotBlank(email));
+            userData.put("phone_exist", StringUtils.isNotBlank(phone));
             userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
             return result(HttpStatus.OK, "success", userData);
 
