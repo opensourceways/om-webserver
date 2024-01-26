@@ -222,8 +222,14 @@ public class OneIdManageService {
      * @return app是否正确
      */
     private boolean isAppCorrect(String appId, String appSecret) {
-        Application app = authingUserDao.getAppById(appId);
-        return app != null && appSecret.equals(app.getSecret());
+        try {
+            Application app = authingUserDao.getAppById(appId);
+            return app != null && appSecret.equals(app.getSecret());
+        } catch (Exception e) {
+            logger.error(String.format("Can't find app with id %s", appId));
+            logger.error(e.getMessage());
+            return false;
+        }
     }
 
     /**
