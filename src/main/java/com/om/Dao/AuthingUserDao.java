@@ -345,6 +345,7 @@ public class AuthingUserDao {
         try {
             return managementClient.application().findById(appId).execute();
         } catch (Exception e) {
+            logger.error(String.format("Can't find app with id %s", appId));
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
