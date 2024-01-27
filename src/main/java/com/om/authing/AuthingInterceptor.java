@@ -163,6 +163,10 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return false;
         }
 
+        if (httpServletRequest.getRequestURI().equals("/oneid/logout")) {
+            return true;
+        }
+
         // 每次交互刷新token
         String refreshMsg = refreshToken(httpServletRequest, httpServletResponse, verifyToken, userId, claims);
         if (!Constant.SUCCESS.equals(refreshMsg)) {

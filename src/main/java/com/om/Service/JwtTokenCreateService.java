@@ -111,6 +111,7 @@ public class JwtTokenCreateService {
                 .withJWTId(CodeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .sign(Algorithm.HMAC256(authingTokenBasePassword));
         String verifyToken = DigestUtils.md5DigestAsHex(headToken.getBytes());
+
         redisDao.set(Constant.ID_TOKEN_PREFIX + verifyToken, idToken, (long)expireSeconds);
 
         StringBuilder perStr = new StringBuilder();
