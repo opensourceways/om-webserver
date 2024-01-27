@@ -11,4 +11,6 @@ public interface LoginServiceInter {
     ResponseEntity<?> userLogout(String clientId, String token);
 
     ResponseEntity<?> refreshUser(String clientId, String token);
+
+    ResponseEntity<?> personalCenterUserInfo(String clientId, String token);
 }
