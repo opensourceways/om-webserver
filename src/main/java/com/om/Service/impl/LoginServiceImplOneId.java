@@ -210,4 +210,36 @@ public class LoginServiceImplOneId implements LoginServiceInter {
             return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null, null, null);
         }
     }
+
+    @Override
+    public ResponseEntity<?> personalCenterUserInfo(String clientId, String token) {
+        try {
+            if (!StringUtils.hasText(clientId) || !StringUtils.hasText(token)) {
+                return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00012, null, null, null);
+            }
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(clientId);
+            if (app == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null, null);
+            }
+
+            DecodedJWT decode = JWT.decode(oneIdService.rsaDecryptToken(token));
+            String userId = decode.getAudience().get(0);
+            OneIdEntity.User user = oneIdUserDao.getUserInfo(userId, "id");
+
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("username", user.getUsername());
+            userData.put("email", user.getEmail());
+            userData.put("phone", user.getPhone());
+            userData.put("signedUp", user.getCreateAt());
+            userData.put("nickname", user.getNickname());
+            userData.put("company", user.getCompany());
+            userData.put("photo", user.getPhoto());
+
+            // 返回结果
+            return Result.setResult(HttpStatus.OK, MessageCodeConfig.S0001, null, userData, null);
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00012, null, null, null);
+        }
+    }
 }
