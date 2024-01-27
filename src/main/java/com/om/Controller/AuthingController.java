@@ -123,11 +123,9 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/personal/center/user", method = RequestMethod.GET)
-    public ResponseEntity userInfo(HttpServletRequest servletRequest,
-                                   HttpServletResponse servletResponse,
+    public ResponseEntity userInfo(@RequestParam(name = "client_id") String clientId,
                                    @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.personalCenterUserInfo(servletRequest, servletResponse, token);
+        return loginService.personalCenterUserInfo(clientId, token);
     }
 
     @AuthingUserToken
