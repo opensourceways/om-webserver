@@ -110,6 +110,8 @@ public class AuthingService implements UserCenterServiceInter {
 
     private static String oneidPrivacyVersion;
 
+    private static String instanceCommunity;
+
     @PostConstruct
     public void init() {
         codeUtil = new CodeUtil();
@@ -120,6 +122,7 @@ public class AuthingService implements UserCenterServiceInter {
         oidcScopeAuthingMapping = oidcScopeAuthingMapping();
         result = new Result();
         oneidPrivacyVersion = env.getProperty("oneid.privacy.version", "");
+        instanceCommunity = env.getProperty("community", "");
     }
 
     @Override
@@ -475,8 +478,9 @@ public class AuthingService implements UserCenterServiceInter {
             // 重定向到登录页
             String loginPage = env.getProperty("oidc.login.page");
             if ("register".equals(entity)) loginPage = env.getProperty("oidc.register.page");
-            String loginPageRedirect = String.format("%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s&complementation=%s", 
-                loginPage, clientId, scope, redirectUri, state, complementation);
+            String complParam = StringUtils.isBlank(complementation) ? "" : String.format("&complementation=%s", complementation);
+            String loginPageRedirect = String.format("%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s%s", 
+                loginPage, clientId, scope, redirectUri, state, complParam);
             servletResponse.sendRedirect(loginPageRedirect);
 
             return resultOidc(HttpStatus.OK, "OK", loginPageRedirect);
@@ -599,7 +603,8 @@ public class AuthingService implements UserCenterServiceInter {
                     Object value = jsonObjObjectValue(userObj, profileTemp);
                     
                     // auto generate email if not exist
-                    if ("email".equals(claim) && value == null) {
+                    if ("openeuler".equals(instanceCommunity) &&
+                        "email".equals(claim) && value == null) {
                         String prefix = jsonObjStringValue(userObj, "username");
                         if (StringUtils.isBlank(prefix)) prefix = jsonObjStringValue(userObj, "phone");
                         value = genPredefinedEmail(userId, prefix);
@@ -791,7 +796,7 @@ public class AuthingService implements UserCenterServiceInter {
             String username = (String) user.get("username");
             String phone = (String) user.get("phone");
             String email = (String) user.get("email");
-            if (StringUtils.isBlank(email)) email = genPredefinedEmail(userId, username);
+            if ("openeuler".equals(instanceCommunity) && StringUtils.isBlank(email)) email = genPredefinedEmail(userId, username);
 
             // 获取隐私同意字段值
             String oneidPrivacyVersionAccept = user.get("given_name") == null ? "" : user.get("given_name").toString();
