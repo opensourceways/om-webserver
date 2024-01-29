@@ -172,7 +172,8 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
                         .withExpiresAt(expireAt) //过期时间
                         .withJWTId(CodeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                         .withClaim("provider", source.getName())
-                        .withClaim("userinfo", userIdInPd)
+                        .withClaim("userIdInPd", userIdInPd)
+                        .withClaim("appId", appId)
                         .sign(Algorithm.HMAC256(userIdInPd + authingTokenBasePassword));
 
                 RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
@@ -190,14 +191,15 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
     }
 
     @Override
-    public ResponseEntity<?> thirdPartyCreateUser(String token, String appId, String state) {
+    public ResponseEntity<?> thirdPartyCreateUser(String token, String state) {
         try {
             token = RSAUtil.privateDecrypt(token, RSAUtil.getPrivateKey(rsaAuthingPrivateKey));
 
             DecodedJWT decode = JWT.decode(token);
 
             String provider = decode.getClaims().get("provider").asString();
-            String userIdInPd = decode.getClaims().get("userinfo").asString();
+            String userIdInPd = decode.getClaims().get("userIdInPd").asString();
+            String appId = decode.getClaims().get("appId").asString();
 
             JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(userIdInPd + authingTokenBasePassword)).build();
             DecodedJWT decodedJWT = jwtVerifier.verify(token);
@@ -230,13 +232,57 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             String idToken = user.getId();
             return oneIdService.loginSuccessSetToken(user, idToken, appId);
         } catch (Exception e) {
-            e.printStackTrace();
             logger.error(e.getMessage());
             return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null, null);
         }
 
     }
 
+    @Override
+    public ResponseEntity<?> thirdPartyBindUser(String bindToken, String userToken, String state) {
+        try {
+            // get third party user
+            String token = RSAUtil.privateDecrypt(bindToken, RSAUtil.getPrivateKey(rsaAuthingPrivateKey));
+
+            DecodedJWT decode = JWT.decode(token);
+
+            String provider = decode.getClaims().get("provider").asString();
+            String userIdInPd = decode.getClaims().get("userIdInPd").asString();
+            String appId = decode.getClaims().get("appId").asString();
+
+            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(userIdInPd + authingTokenBasePassword)).build();
+            DecodedJWT decodedJWT = jwtVerifier.verify(token);
+
+            String redisKey = provider + userIdInPd + state;
+            String thirdPartyUserJson = (String) redisDao.get(redisKey);
+
+            JSONObject thirdPartyUserObject = new JSONObject(thirdPartyUserJson);
+            OneIdEntity.ThirdPartyUser thirdPartyUser = toThirdPartyUser(provider, thirdPartyUserObject);
+            if (thirdPartyUser == null) {
+                return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null, null);
+            }
+
+            if (oneIdThirdPartyUserDao.getThirdPartyUserByProvider(provider, userIdInPd) != null) {
+                return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00067, null, null, null);
+            }
+
+            // get user id
+            decode = JWT.decode(userToken);
+            String userId = decode.getAudience().get(0);
+
+            OneIdEntity.User user = oneIdThirdPartyUserDao.createThirdPartyUser(thirdPartyUser, userId);
+            if (user == null) {
+                return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00068, null, null, null);
+            }
+
+            redisDao.remove(redisKey);
+            String idToken = user.getId();
+            return oneIdService.loginSuccessSetToken(user, idToken, appId);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null, null);
+        }
+    }
 
     public OneIdEntity.ThirdPartyUser toThirdPartyUser(String provider, JSONObject thirdPartyUserObject) {
         OneIdEntity.ThirdPartyUser thirdPartyUser = new OneIdEntity.ThirdPartyUser();
