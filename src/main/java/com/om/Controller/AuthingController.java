@@ -267,7 +267,15 @@ public class AuthingController {
 
     @RequestMapping(value = "/third-party/register", method = RequestMethod.POST)
     public ResponseEntity thirdPartyRegister(@RequestBody ThirdPartyRegisterParam thirdPartyRegisterParam) {
-        return thirdPartyService.thirdPartyCreateUser(thirdPartyRegisterParam.getRegister_token(), thirdPartyRegisterParam.getApp_id(), thirdPartyRegisterParam.getState());
+        return thirdPartyService.thirdPartyCreateUser(thirdPartyRegisterParam.getRegister_token(), thirdPartyRegisterParam.getState());
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/third-party/bind", method = RequestMethod.POST)
+    public ResponseEntity thirdPartyBind(
+            @RequestBody ThirdPartyBindParam thirdPartyBindParam,
+            @RequestHeader(value = "token", required = true) String token) {
+        return thirdPartyService.thirdPartyBindUser(thirdPartyBindParam.getBind_token(), token, thirdPartyBindParam.getState());
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
