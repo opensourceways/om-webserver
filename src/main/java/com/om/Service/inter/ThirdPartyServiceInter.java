@@ -16,6 +16,8 @@ public interface ThirdPartyServiceInter {
 
     ResponseEntity<?> thirdPartyCallback(String connId, String code, String state, String appId);
 
-    ResponseEntity<?> thirdPartyCreateUser(String registerToken, String appId, String state);
+    ResponseEntity<?> thirdPartyCreateUser(String registerToken, String state);
+
+    ResponseEntity<?> thirdPartyBindUser(String bindToken, String token, String state);
 
 }

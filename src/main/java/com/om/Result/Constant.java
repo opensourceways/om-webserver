@@ -85,6 +85,7 @@ public class Constant {
     public static final String ONEID_THIRD_PARTY_CLIENT_GET_PATH = "/third-party-client/%s";
     public static final String ONEID_THIRD_PARTY_USER_GET_PATH = "/composite-user/external/%s";
     public static final String ONEID_THIRD_PARTY_USER_GET_PROVIDER_PATH = "/external-user/get";
+    public static final String ONEID_THIRD_PARTY_USER_CREATE_PATH = "/external-user/%s";
 
     public static final String PHOTO_NOT_ALLOWED_CHARS = "\\,/,:,*,?,\",<,>,|";
     public static final String CONSENT_ACCEPT_TERM = "0";
