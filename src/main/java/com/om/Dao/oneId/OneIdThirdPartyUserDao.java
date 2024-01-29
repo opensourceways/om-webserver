@@ -54,4 +54,17 @@ public class OneIdThirdPartyUserDao {
         }
         return null;
     }
+
+    public boolean deleteThirdPartyUser(String userId, String provider) throws Exception {
+        String url = String.format(OneIdConfig.API_HOST + Constant.ONEID_THIRD_PARTY_USER_DELETE_PATH, userId);
+        HttpResponse<JsonNode> response = Unirest.delete(url)
+                .header("Content-Type", "application/json")
+                .header("Authorization",  OneIdConfig.getManagementToken())
+                .queryString("provider", provider)
+                .asJson();
+        if (response.getStatus() == 200) {
+            return true;
+        }
+        return false;
+    }
 }

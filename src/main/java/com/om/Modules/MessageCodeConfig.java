@@ -86,7 +86,8 @@ public enum MessageCodeConfig {
     E00065("E00065", "Unsupported scope", "不支持的范围"),
     E00066("E00066", "Fail to get social identities corresponding to app id", "获取应用外部身份源失败"),
     E00067("E00067", "The third-party user information already exists and cannot be created", "已有该三方用户信息，无法新建"),
-    E00068("E00068", "The third-party user creation failed", "三方用户信息创建未成功 "),
+    E00068("E00068", "The third-party user creation failed", "三方账号创建失败"),
+    E00069("E00069", "The third-party user deletion failed", "三方账号解绑失败"),
 
     OIDC_E00001("OIDC_E00001", "currently response_type only supports code", "目前 response_type 仅支持 code"),
     OIDC_E00002("OIDC_E00002", "redirect_uri not found in the app", "该a应用未配置这个回调路由"),

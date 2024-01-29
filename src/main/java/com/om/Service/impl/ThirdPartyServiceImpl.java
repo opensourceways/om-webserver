@@ -293,6 +293,27 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
         }
     }
 
+    @Override
+    public ResponseEntity<?> thirdPartyUnbindUser(String token, String provider) {
+        try {
+            DecodedJWT decode = JWT.decode(token);
+            String username = decode.getAudience().get(0);
+            OneIdEntity.User user = oneIdUserDao.getUserInfo(username, "username");
+            if (user == null) {
+                return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00034, null, null, null);
+            }
+
+            boolean isSuccess = oneIdThirdPartyUserDao.deleteThirdPartyUser(user.getId(), provider);
+            if (isSuccess) {
+                return Result.setResult(HttpStatus.OK, MessageCodeConfig.S0001, null, null, null);
+            }
+            return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00069, null, null, null);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null, null);
+        }
+    }
+
     public OneIdEntity.ThirdPartyUser toThirdPartyUser(String provider, JSONObject thirdPartyUserObject) {
         OneIdEntity.ThirdPartyUser thirdPartyUser = new OneIdEntity.ThirdPartyUser();
         thirdPartyUser.setProvider(provider);

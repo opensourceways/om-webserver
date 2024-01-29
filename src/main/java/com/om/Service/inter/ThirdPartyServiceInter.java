@@ -20,4 +20,5 @@ public interface ThirdPartyServiceInter {
 
     ResponseEntity<?> thirdPartyBindUser(String bindToken, String token, String state);
 
+    ResponseEntity<?> thirdPartyUnbindUser(String token, String provider);
 }
