@@ -278,6 +278,14 @@ public class AuthingController {
         return thirdPartyService.thirdPartyBindUser(thirdPartyBindParam.getBind_token(), token, thirdPartyBindParam.getState());
     }
 
+    @AuthingUserToken
+    @RequestMapping(value = "/third-party/unbind", method = RequestMethod.GET)
+    public ResponseEntity thirdPartyUnbind(
+            @RequestHeader(value = "Token", required = true) String token,
+            @RequestParam(value = "provider", required = true) String provider) {
+        return thirdPartyService.thirdPartyUnbindUser(token, provider);
+    }
+
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
         String community = servletRequest.getParameter("community");
         if (community == null) {
