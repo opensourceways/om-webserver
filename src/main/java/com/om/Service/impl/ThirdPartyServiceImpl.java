@@ -11,6 +11,7 @@ import com.om.Dao.RedisDao;
 import com.om.Dao.oneId.OneIdEntity;
 import com.om.Dao.oneId.OneIdThirdPartyDao;
 import com.om.Dao.oneId.OneIdThirdPartyUserDao;
+import com.om.Dao.oneId.OneIdUserDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Result.Result;
@@ -56,6 +57,9 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
 
     @Autowired
     private RedisDao redisDao;
+
+    @Autowired
+    private OneIdUserDao oneIdUserDao;
 
     @Autowired
     OneIdService oneIdService;
@@ -268,9 +272,14 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
 
             // get user id
             decode = JWT.decode(userToken);
-            String userId = decode.getAudience().get(0);
+            String username = decode.getAudience().get(0);
 
-            OneIdEntity.User user = oneIdThirdPartyUserDao.createThirdPartyUser(thirdPartyUser, userId);
+            OneIdEntity.User user = oneIdUserDao.getUserInfo(username, "username");
+            if (user == null) {
+                return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00034, null, null, null);
+            }
+
+            user = oneIdThirdPartyUserDao.createThirdPartyUser(thirdPartyUser, user.getId());
             if (user == null) {
                 return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00068, null, null, null);
             }
