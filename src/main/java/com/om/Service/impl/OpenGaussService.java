@@ -17,6 +17,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.OneidDao;
 import com.om.Dao.RedisDao;
+import com.om.Dao.oneId.OneIdAppDao;
+import com.om.Dao.oneId.OneIdEntity;
 import com.om.Modules.LoginFailCounter;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
@@ -72,6 +74,9 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Autowired
     OneidDao oneidDao;
+
+    @Autowired
+    OneIdAppDao oneIdAppDao;
 
     @Autowired
     JavaMailSender mailSender;
@@ -267,8 +272,15 @@ public class OpenGaussService implements UserCenterServiceInter {
         String account = null;
 
         // app校验
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        try {
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+            if (app == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null, null);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00048, null, null, null);
+        }
 
         if (StringUtils.isNotBlank(userName)) {
             boolean username = oneidDao.isUserExists(poolId, poolSecret, userName, "username");
@@ -397,8 +409,15 @@ public class OpenGaussService implements UserCenterServiceInter {
         String appId = servletRequest.getParameter("client_id");
 
         // app校验
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        try {
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+            if (app == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null, null);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00048, null, null, null);
+        }
 
         JSONObject userObj = null;
         try {
@@ -493,8 +512,15 @@ public class OpenGaussService implements UserCenterServiceInter {
         String appId = servletRequest.getParameter("client_id");
 
         // app校验
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        try {
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+            if (app == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null, null);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00048, null, null, null);
+        }
 
         try {
             token = rsaDecryptToken(token);
@@ -523,8 +549,15 @@ public class OpenGaussService implements UserCenterServiceInter {
         String appId = servletRequest.getParameter("client_id");
 
         // app校验
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        try {
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+            if (app == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null, null);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00048, null, null, null);
+        }
 
         try {
             DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
@@ -564,8 +597,15 @@ public class OpenGaussService implements UserCenterServiceInter {
         String appId = servletRequest.getParameter("client_id");
 
         // app校验
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        try {
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+            if (app == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null, null);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00048, null, null, null);
+        }
 
         try {
             DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
@@ -599,8 +639,15 @@ public class OpenGaussService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, null);
 
         // app校验
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, MessageCodeConfig.E00042.getMsgZh(), null);
+        try {
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+            if (app == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null, null);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00048, null, null, null);
+        }
 
         try {
             String redisKey = account.toLowerCase() + "_sendCode_" + community;
@@ -650,8 +697,15 @@ public class OpenGaussService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
 
         // app校验
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        try {
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+            if (app == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null, null);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00048, null, null, null);
+        }
 
         if (accountType.toLowerCase().equals("email") && oldAccount.equals(account))
             return result(HttpStatus.BAD_REQUEST, null, "新邮箱与已绑定邮箱相同", null);
@@ -708,8 +762,15 @@ public class OpenGaussService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
 
         // app校验
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        try {
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+            if (app == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null, null);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00048, null, null, null);
+        }
 
         try {
             // 验证码校验
@@ -750,8 +811,15 @@ public class OpenGaussService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
 
         // app校验
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        try {
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+            if (app == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null, null);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00048, null, null, null);
+        }
 
         try {
             // 验证码校验
@@ -801,8 +869,14 @@ public class OpenGaussService implements UserCenterServiceInter {
         String newPassword = (String) getBodyPara(body, "new_pwd");
 
         // app校验
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null) {
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        try {
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+            if (app == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null, null);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00048, null, null, null);
         }
 
         // verify password
@@ -837,8 +911,15 @@ public class OpenGaussService implements UserCenterServiceInter {
         String code = (String) getBodyPara(body, "code");
 
         // app verification
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        try {
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+            if (app == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null, null);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00048, null, null, null);
+        }
 
         // restrict failure count in one minute
         String resetErrorCountKey = account + "resetPwdCount";
@@ -890,8 +971,15 @@ public class OpenGaussService implements UserCenterServiceInter {
         String password = (String) getBodyPara(body, "new_pwd");
 
         // app verification
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+        try {
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+            if (app == null) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null, null);
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00048, null, null, null);
+        }
 
         try {
             // token verification
