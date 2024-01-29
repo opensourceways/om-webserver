@@ -26,7 +26,6 @@ public class OneIdThirdPartyUserDao {
         return null;
     }
 
-
     public OneIdEntity.User createCompositeUser(OneIdEntity.User user) throws Exception {
         String url = OneIdConfig.API_HOST + Constant.ONEID_USER_C_PATH;
         HttpResponse<JsonNode> response = Unirest.post(url)
@@ -41,4 +40,18 @@ public class OneIdThirdPartyUserDao {
         return null;
     }
 
+
+    public OneIdEntity.User createThirdPartyUser(OneIdEntity.ThirdPartyUser user, String userId) throws Exception {
+        String url = String.format(OneIdConfig.API_HOST + Constant.ONEID_THIRD_PARTY_USER_CREATE_PATH, userId);
+        HttpResponse<JsonNode> response = Unirest.post(url)
+                .header("Content-Type", "application/json")
+                .header("Authorization",  OneIdConfig.getManagementToken())
+                .body(JSON.toJSONString(user))
+                .asJson();
+        if (response.getStatus() == 200) {
+            JSONObject jsonObject = response.getBody().getObject().getJSONObject("data");
+            return JSON.parseObject(jsonObject.toString(), OneIdEntity.User.class);
+        }
+        return null;
+    }
 }
