@@ -274,7 +274,7 @@ public class AuthingController {
     @RequestMapping(value = "/third-party/bind", method = RequestMethod.POST)
     public ResponseEntity thirdPartyBind(
             @RequestBody ThirdPartyBindParam thirdPartyBindParam,
-            @RequestHeader(value = "token", required = true) String token) {
+            @RequestHeader(value = "Token", required = true) String token) {
         return thirdPartyService.thirdPartyBindUser(thirdPartyBindParam.getBind_token(), token, thirdPartyBindParam.getState());
     }
 
