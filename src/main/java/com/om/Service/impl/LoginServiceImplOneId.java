@@ -234,6 +234,7 @@ public class LoginServiceImplOneId implements LoginServiceInter {
             userData.put("nickname", user.getNickname());
             userData.put("company", user.getCompany());
             userData.put("photo", user.getPhoto());
+            userData.put("identities", user.getIdentities());
 
             // 返回结果
             return Result.setResult(HttpStatus.OK, MessageCodeConfig.S0001, null, userData, null);
