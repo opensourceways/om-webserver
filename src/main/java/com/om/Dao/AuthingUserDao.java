@@ -159,6 +159,8 @@ public class AuthingUserDao {
         obsClient = new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint);
         reservedUsernames = getUsernameReserved();
         photoSuffixes = Arrays.asList(photoSuffix.split(";"));
+        Unirest.config().reset();
+        Unirest.config().socketTimeout(0).connectTimeout(0);
     }
 
     public String sendPhoneCodeV3(String appId, String account, String channel) {
@@ -898,7 +900,6 @@ public class AuthingUserDao {
             } // -- temporary -- TODO
 
             String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", identifier, extIdpId);
-            Unirest.config().socketTimeout(0).connectTimeout(0);
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV2 + "/users/identity/unlinkByUser")
                     .header("Authorization", us.getToken())
                     .header("x-authing-userpool-id", userPoolId)
@@ -921,7 +922,6 @@ public class AuthingUserDao {
         for (int i = 0; i < split.length; i++) {
             try {
                 String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", split[i], split1[i]);
-                Unirest.config().socketTimeout(0).connectTimeout(0);
                 HttpResponse<JsonNode> response = Unirest.post(authingApiHostV2 + "/users/identity/unlinkByUser")
                         .header("Authorization", us.getToken())
                         .header("x-authing-userpool-id", userPoolId)
