@@ -794,7 +794,7 @@ public class AuthingService implements UserCenterServiceInter {
             String idToken = user.get("id_token").toString();
             String picture = user.get("picture").toString();
             String username = (String) user.get("username");
-            String phone = (String) user.get("phone");
+            String phone = (String) user.get("phone_number");
             String email = (String) user.get("email");
             if ("openeuler".equals(instanceCommunity) && StringUtils.isBlank(email)) email = genPredefinedEmail(userId, username);
 
