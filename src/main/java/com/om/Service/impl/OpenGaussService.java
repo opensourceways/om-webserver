@@ -145,8 +145,15 @@ public class OpenGaussService implements UserCenterServiceInter {
             userInfo.put("company", company);
 
             // app校验
-            if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-                return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
+            try {
+                OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+                if (app == null) {
+                    return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00042, null, null, null);
+                }
+            } catch (Exception e) {
+                logger.error(e.getMessage());
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00048, null, null, null);
+            }
 
             // 用户名校验
             if (StringUtils.isBlank(userName))
