@@ -50,7 +50,7 @@ public class ManagerController {
     @Autowired
     private AuthingService authingService;
 
-    @RequestMapping(value = "/tokens", method = RequestMethod.POST)
+    @RequestMapping(value = "/token", method = RequestMethod.POST)
     public ResponseEntity tokenApply(@RequestBody Map<String, String> body) {
         return oneIdManageService.tokenApply(body);
     }
