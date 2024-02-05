@@ -16,6 +16,7 @@ import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.om.Service.AuthingService;
 import com.om.Service.OneIdManageService;
+import com.om.Vo.User;
 import com.om.authing.AuthingUserToken;
 import com.om.token.ManageToken;
 
@@ -108,10 +109,9 @@ public class ManagerController {
     }
 
     @ManageToken
-    @RequestMapping(value = "/privacy/revoke", method = RequestMethod.GET)
-    public ResponseEntity revokePrivacy(
-        @RequestParam(value = "userId", required = true) String userId) {
-        return oneIdManageService.revokePrivacy(userId);
+    @RequestMapping(value = "/privacy/revoke", method = RequestMethod.POST)
+    public ResponseEntity revokePrivacy(@RequestBody User body) {
+        return oneIdManageService.revokePrivacy(body.getUserId());
     }
 
     private boolean verifyCaptcha(String captchaVerification) {
