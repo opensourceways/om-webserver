@@ -350,7 +350,7 @@ public class AuthingService implements UserCenterServiceInter {
         String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
 
         // 获取是否同意隐私
-        String oneidPrivacyVersionAccept = user.getGivenName() == null ? "" : user.getGivenName().toString();
+        String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(user.getGivenName(), instanceCommunity);
 
         // 生成token
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId,
@@ -642,7 +642,7 @@ public class AuthingService implements UserCenterServiceInter {
             String phone = user.getPhone();
             String aigcPrivacyAccepted = env.getProperty("aigc.privacy.version").equals(user.getFormatted()) ? 
                                          user.getFormatted() : "";
-            String oneidPrivacyVersionAccept = user.getGivenName() == null ? "" : user.getGivenName().toString();
+            String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(user.getGivenName(), instanceCommunity);
 
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
@@ -799,7 +799,8 @@ public class AuthingService implements UserCenterServiceInter {
             if ("openeuler".equals(instanceCommunity) && StringUtils.isBlank(email)) email = genPredefinedEmail(userId, username);
 
             // 获取隐私同意字段值
-            String oneidPrivacyVersionAccept = user.get("given_name") == null ? "" : user.get("given_name").toString();
+            String givenName = user.get("given_name") == null ? "" : user.get("given_name").toString();
+            String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(givenName, instanceCommunity);
 
             // 资源权限
             String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
