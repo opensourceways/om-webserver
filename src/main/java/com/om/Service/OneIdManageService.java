@@ -214,6 +214,19 @@ public class OneIdManageService {
         }
     }
 
+    public ResponseEntity revokePrivacy(String userId) {
+        try {
+            if (authingUserDao.revokePrivacy(userId)) {
+                return authingService.result(HttpStatus.OK, MessageCodeConfig.S0001, null, null);
+            }
+
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+    }
+
     /**
      * APP是否存在，且密码是否正确
      *

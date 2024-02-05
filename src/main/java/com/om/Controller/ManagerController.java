@@ -107,6 +107,13 @@ public class ManagerController {
         return authingService.personalCenterUserInfo(servletRequest, servletResponse, token);
     }
 
+    @ManageToken
+    @RequestMapping(value = "/privacy/revoke", method = RequestMethod.GET)
+    public ResponseEntity revokePrivacy(
+        @RequestParam(value = "userId", required = true) String userId) {
+        return oneIdManageService.revokePrivacy(userId);
+    }
+
     private boolean verifyCaptcha(String captchaVerification) {
         CaptchaVO captchaVO = new CaptchaVO();
         captchaVO.setCaptchaVerification(captchaVerification);

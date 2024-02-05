@@ -16,6 +16,7 @@ import java.util.Map;
 
 public enum MessageCodeConfig {
     // success code message
+    S0001("S0001", "Success", "成功"),
 
     // fail code message
     E0001("E0001", "Code invalid or expired", "验证码无效或已过期"),
