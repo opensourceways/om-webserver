@@ -14,6 +14,8 @@ package com.om.Dao;
 import cn.authing.core.auth.AuthenticationClient;
 import cn.authing.core.mgmt.ManagementClient;
 import cn.authing.core.types.*;
+
+import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import kong.unirest.HttpResponse;
@@ -127,6 +129,9 @@ public class AuthingUserDao {
     @Value("${oneid.privacy.version}")
     String oneidPrivacyVersion;
 
+    @Value("${community}")
+    String community;
+
     // -- temporary (解决gitee多身份源解绑问题) -- TODO
     @Value("${temp.extIdpIds}")
     String extIdpIds;
@@ -146,6 +151,8 @@ public class AuthingUserDao {
 
     private List<String> photoSuffixes;
 
+    private List<String> allowedCommunity;
+
     @Autowired
     private RedisDao redisDao;
 
@@ -161,6 +168,7 @@ public class AuthingUserDao {
         photoSuffixes = Arrays.asList(photoSuffix.split(";"));
         Unirest.config().reset();
         Unirest.config().socketTimeout(0).connectTimeout(0);
+        allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry");
     }
 
     public String sendPhoneCodeV3(String appId, String account, String channel) {
@@ -211,7 +219,7 @@ public class AuthingUserDao {
     public String registerByEmailCode(String appId, String email, String code, String username) {
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}", email, code, username, oneidPrivacyVersion);
+                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}", email, code, username, createPrivacyVersions(oneidPrivacyVersion));
         return register(appId, body);
     }
 
@@ -222,7 +230,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}", phone, code, phoneCountryCode, username, oneidPrivacyVersion);
+                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}", phone, code, phoneCountryCode, username, createPrivacyVersions(oneidPrivacyVersion));
         return register(appId, body);
     }
 
@@ -231,7 +239,7 @@ public class AuthingUserDao {
         String body = String.format("{\"connection\": \"PASSWORD\"," +
                 "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
                 "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}," +
-                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", email, password, username, oneidPrivacyVersion);
+                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", email, password, username, createPrivacyVersions(oneidPrivacyVersion));
         return register(appId, body);
     }
 
@@ -240,7 +248,7 @@ public class AuthingUserDao {
         String body = String.format("{\"connection\": \"PASSWORD\"," +
                 "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"}," +
                 "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}," +
-                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username, oneidPrivacyVersion);
+                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username, createPrivacyVersions(oneidPrivacyVersion));
         return register(appId, body);
     }
 
@@ -974,10 +982,10 @@ public class AuthingUserDao {
                         break;
                     case "oneidprivacyaccepted":
                         if (oneidPrivacyVersion.equals(inputValue)) {
-                            updateUserInput.withGivenName(oneidPrivacyVersion);
+                            updateUserInput.withGivenName(updatePrivacyVersions(user.getGivenName(), oneidPrivacyVersion));
                         }
                         if ("revoked".equals(inputValue)) {
-                            updateUserInput.withGivenName("revoked");
+                            updateUserInput.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
                         }
                         break;
                     default:
@@ -992,6 +1000,21 @@ public class AuthingUserDao {
         } catch (Exception ex) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), ex);
             return MessageCodeConfig.E0007.getMsgZh();
+        }
+    }
+
+    public boolean revokePrivacy(String userId) {
+        try {
+            // get user
+            User user = managementClient.users().detail(userId, false, false).execute();
+            UpdateUserInput input = new UpdateUserInput();
+            input.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
+            User updateUser = managementClient.users().update(userId, input).execute();
+            if (updateUser == null) return false;
+            return true;
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return false;
         }
     }
 
@@ -1190,5 +1213,53 @@ public class AuthingUserDao {
             if (phone.startsWith(countryCode)) return phone.replace(countryCode, "");
         }
         return phone;
+    }
+
+    public String createPrivacyVersions(String version) {
+        if (!allowedCommunity.contains(community)) {
+            return "";
+        }
+
+        HashMap<String, String> privacys = new HashMap<>();
+        privacys.put(community, version);
+        return JSON.toJSONString(privacys);
+    }
+
+    public String updatePrivacyVersions(String previous, String version) {
+        if (!allowedCommunity.contains(community)) {
+            return "";
+        }
+
+        if (StringUtils.isBlank(previous)) {
+            return createPrivacyVersions(version);
+        }
+
+        if (!previous.contains(":")) {
+            if ("unused".equals(previous)) {
+                return createPrivacyVersions(version);
+            } else {
+                HashMap<String, String> privacys = new HashMap<>();
+                privacys.put("openeuler", previous);
+                privacys.put(community, version);
+                return JSON.toJSONString(privacys);
+            }
+        } else {
+            HashMap<String, String> privacys = JSON.parseObject(previous, HashMap.class);
+            privacys.put(community, version);
+            return JSON.toJSONString(privacys);
+        }
+    }
+
+    public String getPrivacyVersionWithCommunity(String privacyVersions, String com) {
+        if (privacyVersions == null || !privacyVersions.contains(":")) return "";
+        if (com == null) com = community;
+
+        HashMap<String, String> privacys = JSON.parseObject(privacyVersions, HashMap.class);
+        String privacyAccept = privacys.get(community);
+        if (privacyAccept == null) {
+            return "";
+        } else {
+            return privacyAccept;
+        }
     }
 }
