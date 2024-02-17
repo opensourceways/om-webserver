@@ -1222,7 +1222,7 @@ public class AuthingUserDao {
 
         HashMap<String, String> privacys = new HashMap<>();
         privacys.put(community, version);
-        return JSON.toJSONString(privacys);
+        return JSON.toJSONString(privacys).replaceAll("\"", "\\\\\"");
     }
 
     public String updatePrivacyVersions(String previous, String version) {
