@@ -219,7 +219,7 @@ public class AuthingUserDao {
     public String registerByEmailCode(String appId, String email, String code, String username) {
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}", email, code, username, createPrivacyVersions(oneidPrivacyVersion));
+                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}", email, code, username, createPrivacyVersions(oneidPrivacyVersion, true));
         return register(appId, body);
     }
 
@@ -230,7 +230,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}", phone, code, phoneCountryCode, username, createPrivacyVersions(oneidPrivacyVersion));
+                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}", phone, code, phoneCountryCode, username, createPrivacyVersions(oneidPrivacyVersion, true));
         return register(appId, body);
     }
 
@@ -239,7 +239,7 @@ public class AuthingUserDao {
         String body = String.format("{\"connection\": \"PASSWORD\"," +
                 "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
                 "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}," +
-                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", email, password, username, createPrivacyVersions(oneidPrivacyVersion));
+                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", email, password, username, createPrivacyVersions(oneidPrivacyVersion, true));
         return register(appId, body);
     }
 
@@ -248,7 +248,7 @@ public class AuthingUserDao {
         String body = String.format("{\"connection\": \"PASSWORD\"," +
                 "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"}," +
                 "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}," +
-                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username, createPrivacyVersions(oneidPrivacyVersion));
+                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username, createPrivacyVersions(oneidPrivacyVersion, true));
         return register(appId, body);
     }
 
@@ -1215,14 +1215,18 @@ public class AuthingUserDao {
         return phone;
     }
 
-    public String createPrivacyVersions(String version) {
+    public String createPrivacyVersions(String version, Boolean needSlash) {
         if (!allowedCommunity.contains(community)) {
             return "";
         }
 
         HashMap<String, String> privacys = new HashMap<>();
         privacys.put(community, version);
-        return JSON.toJSONString(privacys).replaceAll("\"", "\\\\\"");
+        if (needSlash) {
+            return JSON.toJSONString(privacys).replaceAll("\"", "\\\\\"");
+        } else {
+            return JSON.toJSONString(privacys);
+        }
     }
 
     public String updatePrivacyVersions(String previous, String version) {
@@ -1231,12 +1235,12 @@ public class AuthingUserDao {
         }
 
         if (StringUtils.isBlank(previous)) {
-            return createPrivacyVersions(version);
+            return createPrivacyVersions(version, false);
         }
 
         if (!previous.contains(":")) {
             if ("unused".equals(previous)) {
-                return createPrivacyVersions(version);
+                return createPrivacyVersions(version, false);
             } else {
                 HashMap<String, String> privacys = new HashMap<>();
                 privacys.put("openeuler", previous);
