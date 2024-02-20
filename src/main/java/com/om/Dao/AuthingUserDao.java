@@ -1248,9 +1248,14 @@ public class AuthingUserDao {
                 return JSON.toJSONString(privacys);
             }
         } else {
-            HashMap<String, String> privacys = JSON.parseObject(previous, HashMap.class);
-            privacys.put(community, version);
-            return JSON.toJSONString(privacys);
+            try {
+                HashMap<String, String> privacys = JSON.parseObject(previous, HashMap.class);
+                privacys.put(community, version);
+                return JSON.toJSONString(privacys);
+            } catch (Exception e) {
+                logger.error(e.getMessage());
+                return createPrivacyVersions(version, false);
+            }
         }
     }
 
@@ -1258,12 +1263,17 @@ public class AuthingUserDao {
         if (privacyVersions == null || !privacyVersions.contains(":")) return "";
         if (com == null) com = community;
 
-        HashMap<String, String> privacys = JSON.parseObject(privacyVersions, HashMap.class);
-        String privacyAccept = privacys.get(community);
-        if (privacyAccept == null) {
+        try {
+            HashMap<String, String> privacys = JSON.parseObject(privacyVersions, HashMap.class);
+            String privacyAccept = privacys.get(community);
+            if (privacyAccept == null) {
+                return "";
+            } else {
+                return privacyAccept;
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
             return "";
-        } else {
-            return privacyAccept;
         }
     }
 }
