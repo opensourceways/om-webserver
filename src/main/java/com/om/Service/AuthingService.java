@@ -1417,8 +1417,8 @@ public class AuthingService implements UserCenterServiceInter {
             // 授权码校验
             String codeMapStr = (String) redisDao.get(code);
             if (StringUtils.isBlank(codeMapStr))
-                logger.info("The code invalid xxx:%s", code);
-                logger.info("The codeMapStr invalid xxx:%s", codeMapStr);
+                logger.info(code);
+                logger.info(codeMapStr);
                 return resultOidc(HttpStatus.BAD_REQUEST, " The code invalid or expired", null);
                 //return resultOidc(HttpStatus.BAD_REQUEST, "The code invalid or expired", null);
 
