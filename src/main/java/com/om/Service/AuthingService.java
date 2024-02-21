@@ -1417,7 +1417,10 @@ public class AuthingService implements UserCenterServiceInter {
             // 授权码校验
             String codeMapStr = (String) redisDao.get(code);
             if (StringUtils.isBlank(codeMapStr))
-                return resultOidc(HttpStatus.BAD_REQUEST, "The code invalid or expired", null);
+                String errmsg = "The code invalid or expired";
+                String terrmsg = code + errmsg;
+                return resultOidc(HttpStatus.BAD_REQUEST, terrmsg, null);
+                //return resultOidc(HttpStatus.BAD_REQUEST, "The code invalid or expired", null);
 
             // 授权码信息
             com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(codeMapStr.replace("oidcCode:", ""));
