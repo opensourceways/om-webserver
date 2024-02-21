@@ -1414,12 +1414,12 @@ public class AuthingService implements UserCenterServiceInter {
             if (StringUtils.isBlank(code) || StringUtils.isBlank(redirectUri))
                 return resultOidc(HttpStatus.BAD_REQUEST, "when grant_type is authorization_code,parameters must contain code、redirectUri", null);
 
-            String terrmsg = code + " The code invalid or expired";
             // 授权码校验
             String codeMapStr = (String) redisDao.get(code);
             if (StringUtils.isBlank(codeMapStr))
-                logger.info("The code invalid xxx:{}", codeMapStr);
-                return resultOidc(HttpStatus.BAD_REQUEST, terrmsg, null);
+                logger.info("The code invalid xxx:%s", code);
+                logger.info("The codeMapStr invalid xxx:%s", codeMapStr);
+                return resultOidc(HttpStatus.BAD_REQUEST, " The code invalid or expired", null);
                 //return resultOidc(HttpStatus.BAD_REQUEST, "The code invalid or expired", null);
 
             // 授权码信息
