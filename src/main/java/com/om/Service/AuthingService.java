@@ -1417,9 +1417,7 @@ public class AuthingService implements UserCenterServiceInter {
             // 授权码校验
             String codeMapStr = (String) redisDao.get(code);
             if (StringUtils.isBlank(codeMapStr)) {
-                logger.info("The code invalid code:{}", code);
-                logger.info("The code invalid codeMapStr:{}", codeMapStr);
-                return resultOidc(HttpStatus.BAD_REQUEST, "The code invalid or expired", null);
+                return resultOidc(HttpStatus.BAD_REQUEST, "code invalid or expired", null);
             }
 
             // 授权码信息
@@ -1431,12 +1429,12 @@ public class AuthingService implements UserCenterServiceInter {
             // app校验（授权码对应的app）
             if (!appId.equals(appIdTemp)) {
                 redisDao.remove(code);
-                return resultOidc(HttpStatus.BAD_REQUEST, "The App code invalid or expired", null);
+                return resultOidc(HttpStatus.BAD_REQUEST, "code invalid or expired", null);
             }
             // app回调地址校验（授权码对应的app的回调地址）
             if (!redirectUri.equals(redirectUriTemp)) {
                 redisDao.remove(code);
-                return resultOidc(HttpStatus.BAD_REQUEST, "The redirect code invalid or expired", null);
+                return resultOidc(HttpStatus.BAD_REQUEST, "code invalid or expired", null);
             }
             // app密码校验
             Application app = authingUserDao.getAppById(appId);
