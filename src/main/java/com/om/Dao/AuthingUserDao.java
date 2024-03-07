@@ -950,8 +950,6 @@ public class AuthingUserDao {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User user = (User) appUserInfo[1];
-            AuthenticationClient authentication = appClientMap.get(appId);
-            authentication.setCurrentUser(user);
 
             UpdateUserInput updateUserInput = new UpdateUserInput();
 
@@ -983,16 +981,18 @@ public class AuthingUserDao {
                     case "oneidprivacyaccepted":
                         if (oneidPrivacyVersion.equals(inputValue)) {
                             updateUserInput.withGivenName(updatePrivacyVersions(user.getGivenName(), oneidPrivacyVersion));
+                            logger.info(String.format("User %s accept privacy version %s", user.getUsername(), inputValue));
                         }
                         if ("revoked".equals(inputValue)) {
                             updateUserInput.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
+                            logger.info(String.format("User %s cancel privacy consent", user.getUsername()));
                         }
                         break;
                     default:
                         break;
                 }
             }
-            authentication.updateProfile(updateUserInput).execute();
+            managementClient.users().update(user.getId(), updateUserInput).execute();
             return msg;
         } catch (ServerErrorException e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
@@ -1011,6 +1011,7 @@ public class AuthingUserDao {
             input.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
             User updateUser = managementClient.users().update(userId, input).execute();
             if (updateUser == null) return false;
+            logger.info(String.format("User %s cancel privacy consent", user.getUsername()));
             return true;
         } catch (Exception e) {
             logger.error(e.getMessage());
