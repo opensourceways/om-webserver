@@ -129,6 +129,9 @@ public class AuthingUserDao {
     @Value("${oneid.privacy.version}")
     String oneidPrivacyVersion;
 
+    @Value("${app.version:}")
+    String appVersion;
+
     @Value("${community}")
     String community;
 
@@ -981,7 +984,7 @@ public class AuthingUserDao {
                     case "oneidprivacyaccepted":
                         if (oneidPrivacyVersion.equals(inputValue)) {
                             updateUserInput.withGivenName(updatePrivacyVersions(user.getGivenName(), oneidPrivacyVersion));
-                            logger.info(String.format("User %s accept privacy version %s", user.getUsername(), inputValue));
+                            logger.info(String.format("User %s accept privacy version %s for app version %s", user.getId(), inputValue, appVersion));
                         }
                         if ("revoked".equals(inputValue)) {
                             updateUserInput.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
