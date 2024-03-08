@@ -129,7 +129,7 @@ public class AuthingUserDao {
     @Value("${oneid.privacy.version}")
     String oneidPrivacyVersion;
 
-    @Value("${app.version:}")
+    @Value("${app.version:1.0}")
     String appVersion;
 
     @Value("${community}")
@@ -988,7 +988,7 @@ public class AuthingUserDao {
                         }
                         if ("revoked".equals(inputValue)) {
                             updateUserInput.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
-                            logger.info(String.format("User %s cancel privacy consent", user.getUsername()));
+                            logger.info(String.format("User %s cancel privacy consent version %s for app version %s", user.getId(), inputValue, appVersion));
                         }
                         break;
                     default:
@@ -1014,7 +1014,7 @@ public class AuthingUserDao {
             input.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
             User updateUser = managementClient.users().update(userId, input).execute();
             if (updateUser == null) return false;
-            logger.info(String.format("User %s cancel privacy consent", user.getUsername()));
+            logger.info(String.format("User %s cancel privacy consent version %s for app version %s", user.getId(), oneidPrivacyVersion, appVersion));
             return true;
         } catch (Exception e) {
             logger.error(e.getMessage());
