@@ -305,7 +305,6 @@ public class AuthingService implements UserCenterServiceInter {
 
         // 限制一分钟登录失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
-            logger.info(String.format("Account %s locked", account));
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null,
                     limitUtil.loginFail(failCounter));
         }
@@ -313,7 +312,6 @@ public class AuthingService implements UserCenterServiceInter {
         // 多次失败需要图片验证码
         if (limitUtil.isNeedCaptcha(failCounter).get(Constant.NEED_CAPTCHA_VERIFICATION)) {
             if (!isSuccess) {
-                logger.info(String.format("Account %s locked", account));
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null,
                         limitUtil.loginFail(failCounter));
             }
@@ -341,7 +339,6 @@ public class AuthingService implements UserCenterServiceInter {
             userId = JWT.decode(idToken).getSubject();
             user = authingUserDao.getUser(userId);
         } else {
-            logger.info(String.format("Account %s locked", account));
             return result(HttpStatus.BAD_REQUEST, null, (String) loginRes,
                     limitUtil.loginFail(failCounter));
         }
