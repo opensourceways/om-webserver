@@ -14,6 +14,9 @@ package com.om.Utils;
 import com.om.Dao.RedisDao;
 import com.om.Modules.LoginFailCounter;
 import com.om.Result.Constant;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
@@ -28,6 +31,8 @@ public class LimitUtil {
 
     @Autowired
     Environment env;
+
+    private static final Logger logger = LoggerFactory.getLogger(LimitUtil.class);
 
     public LoginFailCounter initLoginFailCounter(String account) {
         String loginFailAccountCountKey = account + Constant.LOGIN_COUNT;
@@ -56,6 +61,10 @@ public class LimitUtil {
         failCounter.setAccountCount(failCounter.getAccountCount() + 1);
         redisDao.set(failCounter.getAccountKey(), String.valueOf(failCounter.getAccountCount()),
                 failCounter.getLimitSeconds());
+
+        if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
+            logger.info(String.format("Account %s is locked until %s seconds later", failCounter.getAccount(), failCounter.getLimitSeconds()));
+        }
 
         return isNeedCaptcha(failCounter);
     }
