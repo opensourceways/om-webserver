@@ -1220,7 +1220,7 @@ public class AuthingUserDao {
     }
 
     public String createPrivacyVersions(String version, Boolean needSlash) {
-        if (!allowedCommunity.contains(community)) {
+        if (!isValidCommunity(community)) {
             return "";
         }
 
@@ -1234,7 +1234,7 @@ public class AuthingUserDao {
     }
 
     public String updatePrivacyVersions(String previous, String version) {
-        if (!allowedCommunity.contains(community)) {
+        if (!isValidCommunity(community)) {
             return "";
         }
 
@@ -1279,5 +1279,14 @@ public class AuthingUserDao {
             logger.error(e.getMessage());
             return "";
         }
+    }
+
+    private boolean isValidCommunity(String communityIns) {
+        for (String com : allowedCommunity) {
+            if (communityIns.startsWith(com)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
