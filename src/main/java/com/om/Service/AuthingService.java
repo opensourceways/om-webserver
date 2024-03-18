@@ -382,6 +382,17 @@ public class AuthingService implements UserCenterServiceInter {
         return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
     }
 
+    public ResponseEntity logoutRedirectUrisMatch(String appId, String redirect) {
+        List<String> uris = authingUserDao.getAppLogoutRedirectUris(appId);
+        for (String uri : uris) {
+            if (uri.endsWith("*") && redirect.startsWith(uri.substring(0, uri.length() - 1)))
+                return result(HttpStatus.OK, "success", null);
+            else if (redirect.equals(uri))
+                return result(HttpStatus.OK, "success", null);
+        }
+        return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
+    }
+
     public ResponseEntity oidcAuth(String token, String appId, String redirectUri, String responseType, String state, String scope) {
         try {
             // responseType校验
@@ -704,10 +715,10 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
         try {
+            String redirectUri = servletRequest.getHeader("Referer");
             String headerToken = servletRequest.getHeader("token");
             String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes());
             String idTokenKey = "idToken_" + md5Token;
-            String idToken = (String) redisDao.get(idTokenKey);
 
             token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
@@ -715,24 +726,30 @@ public class AuthingService implements UserCenterServiceInter {
             Date issuedAt = decode.getIssuedAt();
             String appId = decode.getClaim("client_id").asString();
 
+            // 验证回调是否匹配
+            ResponseEntity responseEntity = logoutRedirectUrisMatch(appId, redirectUri);
+            if (responseEntity.getStatusCode().value() != 200)
+                return resultOidc(HttpStatus.NOT_FOUND, "redirect_uri not found in the app", null);
+
             // 退出登录，该token失效
             String redisKey = userId + issuedAt.toString();
             redisDao.set(redisKey, token, Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
 
             // 退出登录，删除cookie，删除idToken
             String cookieTokenName = env.getProperty("cookie.token.name");
+            String verifyTokenName = env.getProperty("cookie.verify.token.name");
+            HttpClientUtils.setCookie(servletRequest, servletResponse, verifyTokenName,
+                    null, false, 0, "/", domain2secure);
             HttpClientUtils.setCookie(servletRequest, servletResponse, cookieTokenName, null, true, 0, "/", domain2secure);
             redisDao.remove(idTokenKey);
 
-            Application app = authingUserDao.getAppById(appId);
-            if (app == null) {
-                return result(HttpStatus.BAD_REQUEST, null, "退出登录失败", null);
-            }
+            // 下线用户
+            Boolean isLogout = authingUserDao.kickUser(userId);
 
             HashMap<String, Object> userData = new HashMap<>();
-            userData.put("id_token", idToken);
+            userData.put("is_logout", isLogout);
             userData.put("client_id", appId);
-            userData.put("client_identifier", app.getIdentifier());
+            userData.put("redirect_uri", redirectUri);
 
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
