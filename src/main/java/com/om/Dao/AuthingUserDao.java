@@ -354,6 +354,14 @@ public class AuthingUserDao {
         return redirectUris;
     }
 
+    public List<String> getAppLogoutRedirectUris(String appId) {
+        List<String> redirectUris = new ArrayList<>();
+        Application execute = getAppById(appId);
+        if (execute != null)
+            redirectUris = execute.getLogoutRedirectUris();
+        return redirectUris;
+    }
+
     public Application getAppById(String appId) {
         try {
             return managementClient.application().findById(appId).execute();
@@ -1288,5 +1296,16 @@ public class AuthingUserDao {
             }
         }
         return false;
+    }
+
+    public boolean kickUser(String userId) {
+        try {
+            List<String> userIds = new ArrayList<>();
+            userIds.add(userId);
+            return managementClient.users().kick(userIds).execute();
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return false;
+        }
     }
 }
