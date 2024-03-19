@@ -238,20 +238,25 @@ public class AuthingUserDao {
     }
 
     // 邮箱验密码注册
-    public String registerByEmailPwd(String appId, String email, String password, String username) {
+    public String registerByEmailPwd(String appId, String email, String password, String username, String code) {
         String body = String.format("{\"connection\": \"PASSWORD\"," +
-                "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}," +
-                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", email, password, username, createPrivacyVersions(oneidPrivacyVersion, true));
+                "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"}," +
+                "\"profile\":{\"email\":\"%s\", \"givenName\":\"%s\"}," +
+                "\"options\":{\"passwordEncryptType\":\"rsa\", \"emailPassCodeForInformationCompletion\":\"%s\"}}", 
+                username, password, email, createPrivacyVersions(oneidPrivacyVersion, true), code);
         return register(appId, body);
     }
 
     // 手机密码注册
-    public String registerByPhonePwd(String appId, String phone, String password, String username) {
+    public String registerByPhonePwd(String appId, String phone, String password, String username, String code) {
+        String phoneCountryCode = getPhoneCountryCode(phone);
+        phone = getPurePhone(phone);
+
         String body = String.format("{\"connection\": \"PASSWORD\"," +
-                "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}," +
-                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username, createPrivacyVersions(oneidPrivacyVersion, true));
+                "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"}," +
+                "\"profile\":{\"phone\":\"%s\", \"phoneCountryCode\":\"%s\", \"givenName\":\"%s\"}," +
+                "\"options\":{\"passwordEncryptType\":\"rsa\", \"phonePassCodeForInformationCompletion\":\"%s\"}}", 
+                username, password, phone, phoneCountryCode, createPrivacyVersions(oneidPrivacyVersion, true), code);
         return register(appId, body);
     }
 
