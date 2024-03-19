@@ -192,11 +192,11 @@ public class AuthingService implements UserCenterServiceInter {
         String msg = "";
         if (accountType.equals(Constant.EMAIL_TYPE)) {
             msg = channel.equalsIgnoreCase(Constant.CHANNEL_REGISTER_BY_PASSWORD)
-                    ? sendCodeForRegisterByPwd(account, accountType, community, channel)
+                    ? authingUserDao.sendEmailCodeV3(appId, account, "CHANNEL_COMPLETE_EMAIL")
                     : authingUserDao.sendEmailCodeV3(appId, account, channel);
         } else if (accountType.equals(Constant.PHONE_TYPE)) {
             msg = channel.equalsIgnoreCase(Constant.CHANNEL_REGISTER_BY_PASSWORD)
-                    ? sendCodeForRegisterByPwd(account, accountType, community, channel)
+                    ? authingUserDao.sendPhoneCodeV3(appId, account, "CHANNEL_COMPLETE_PHONE")
                     : authingUserDao.sendPhoneCodeV3(appId, account, channel);
         } else {
             return result(HttpStatus.BAD_REQUEST, null, accountType, null);
@@ -246,15 +246,6 @@ public class AuthingService implements UserCenterServiceInter {
         }
 
         if (StringUtils.isNotBlank(password)) {
-            // 密码登录 验证码校验
-            String redisKey = account.toLowerCase() + community.toLowerCase() + Constant.CHANNEL_REGISTER_BY_PASSWORD;
-            String codeTemp = (String) redisDao.get(redisKey);
-            if (codeTemp == null) {
-                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0001, null, null);
-            }
-            if(!code.equals(codeTemp)) {
-                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, null);
-            }
             // 密码登录
             try {
                 password = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(password));
@@ -264,9 +255,9 @@ public class AuthingService implements UserCenterServiceInter {
             }
 
             if (accountType.equals(Constant.EMAIL_TYPE)) {
-                msg = authingUserDao.registerByEmailPwd(appId, account, password, username);
+                msg = authingUserDao.registerByEmailPwd(appId, account, password, username, code);
             } else {
-                msg = authingUserDao.registerByPhonePwd(appId, account, password, username);
+                msg = authingUserDao.registerByPhonePwd(appId, account, password, username, code);
             }
         } else if (StringUtils.isNotBlank(code)) {
             // 验证码登录
