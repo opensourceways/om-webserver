@@ -238,20 +238,25 @@ public class AuthingUserDao {
     }
 
     // 邮箱验密码注册
-    public String registerByEmailPwd(String appId, String email, String password, String username) {
+    public String registerByEmailPwd(String appId, String email, String password, String username, String code) {
         String body = String.format("{\"connection\": \"PASSWORD\"," +
-                "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}," +
-                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", email, password, username, createPrivacyVersions(oneidPrivacyVersion, true));
+                "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"}," +
+                "\"profile\":{\"email\":\"%s\", \"givenName\":\"%s\"}," +
+                "\"options\":{\"passwordEncryptType\":\"rsa\", \"emailPassCodeForInformationCompletion\":\"%s\"}}", 
+                username, password, email, createPrivacyVersions(oneidPrivacyVersion, true), code);
         return register(appId, body);
     }
 
     // 手机密码注册
-    public String registerByPhonePwd(String appId, String phone, String password, String username) {
+    public String registerByPhonePwd(String appId, String phone, String password, String username, String code) {
+        String phoneCountryCode = getPhoneCountryCode(phone);
+        phone = getPurePhone(phone);
+
         String body = String.format("{\"connection\": \"PASSWORD\"," +
-                "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"}," +
-                "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}," +
-                "\"options\":{\"passwordEncryptType\":\"rsa\"}}", phone, password, username, createPrivacyVersions(oneidPrivacyVersion, true));
+                "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"}," +
+                "\"profile\":{\"phone\":\"%s\", \"phoneCountryCode\":\"%s\", \"givenName\":\"%s\"}," +
+                "\"options\":{\"passwordEncryptType\":\"rsa\", \"phonePassCodeForInformationCompletion\":\"%s\"}}", 
+                username, password, phone, phoneCountryCode, createPrivacyVersions(oneidPrivacyVersion, true), code);
         return register(appId, body);
     }
 
@@ -351,6 +356,14 @@ public class AuthingUserDao {
         Application execute = getAppById(appId);
         if (execute != null)
             redirectUris = execute.getRedirectUris();
+        return redirectUris;
+    }
+
+    public List<String> getAppLogoutRedirectUris(String appId) {
+        List<String> redirectUris = new ArrayList<>();
+        Application execute = getAppById(appId);
+        if (execute != null)
+            redirectUris = execute.getLogoutRedirectUris();
         return redirectUris;
     }
 
@@ -1288,5 +1301,16 @@ public class AuthingUserDao {
             }
         }
         return false;
+    }
+
+    public boolean kickUser(String userId) {
+        try {
+            List<String> userIds = new ArrayList<>();
+            userIds.add(userId);
+            return managementClient.users().kick(userIds).execute();
+        } catch (Exception e) {
+            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return false;
+        }
     }
 }
