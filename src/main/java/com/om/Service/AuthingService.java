@@ -55,6 +55,8 @@ import javax.crypto.NoSuchPaddingException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -363,6 +365,8 @@ public class AuthingService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity appVerify(String appId, String redirect) {
+        logger.info(String.format("appVerify params: {appId: %s, redirect: %s}", appId, redirect));
+        redirect = URLDecoder.decode(redirect);
         List<String> uris = authingUserDao.getAppRedirectUris(appId);
         for (String uri : uris) {
             if (uri.endsWith("*") && redirect.startsWith(uri.substring(0, uri.length() - 1)))
