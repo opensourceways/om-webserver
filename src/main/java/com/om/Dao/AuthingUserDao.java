@@ -283,7 +283,7 @@ public class AuthingUserDao {
     public Object loginByEmailCode(Application app, String email, String code) throws ServerErrorException {
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"}," +
-                "\"options\": {\"autoRegister\": false}," +
+                "\"options\": {\"autoRegister\": true}," +
                 "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", email, code, app.getId(), app.getSecret());
         return login(app.getId(), body);
     }
@@ -294,7 +294,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSCODE\"," +
                 "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}," +
-                "\"options\": {\"autoRegister\": false}," +
+                "\"options\": {\"autoRegister\": true}," +
                 "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, phoneCountryCode, app.getId(), app.getSecret());
         return login(app.getId(), body);
     }
