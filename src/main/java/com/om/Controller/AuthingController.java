@@ -230,7 +230,7 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "${oidc.token_endpoint}", method = RequestMethod.POST)
-    public ResponseEntity oidcToken(OidcToken oidcToken) {
+    public ResponseEntity oidcToken(@RequestBody OidcToken oidcToken) {
         return oidcService.oidcToken(oidcToken);
     }
 
