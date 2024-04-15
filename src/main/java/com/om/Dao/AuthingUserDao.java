@@ -285,7 +285,7 @@ public class AuthingUserDao {
                 "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"}," +
                 "\"options\": {\"autoRegister\": true}," +
                 "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", email, code, app.getId(), app.getSecret());
-        return login(app.getId(), body);
+        return login(app.getId(), body, false);
     }
 
     public Object loginByPhoneCode(Application app, String phone, String code) throws ServerErrorException {
@@ -296,7 +296,7 @@ public class AuthingUserDao {
                 "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"}," +
                 "\"options\": {\"autoRegister\": true}," +
                 "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", phone, code, phoneCountryCode, app.getId(), app.getSecret());
-        return login(app.getId(), body);
+        return login(app.getId(), body, false);
     }
 
     public Object loginByEmailPwd(Application app, String email, String password) throws ServerErrorException {
@@ -309,7 +309,7 @@ public class AuthingUserDao {
                         "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
                         "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 email, password, app.getId(), app.getSecret());
-        return login(app.getId(), body);
+        return login(app.getId(), body, true);
     }
 
     public Object loginByPhonePwd(Application app, String phone, String password) throws ServerErrorException {
@@ -324,7 +324,7 @@ public class AuthingUserDao {
                         "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
                         "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 phone, password, app.getId(), app.getSecret());
-        return login(app.getId(), body);
+        return login(app.getId(), body, true);
     }
 
     public Object loginByUsernamePwd(Application app, String username, String password) throws ServerErrorException {
@@ -337,7 +337,7 @@ public class AuthingUserDao {
                         "\"options\": {\"passwordEncryptType\": \"rsa\"}," +
                         "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 username, password, app.getId(), app.getSecret());
-        return login(app.getId(), body);
+        return login(app.getId(), body, true);
     }
 
     public Application initAppClient(String appId) {
@@ -372,7 +372,6 @@ public class AuthingUserDao {
             return managementClient.application().findById(appId).execute();
         } catch (Exception e) {
             logger.error(String.format("Can't find app with id %s", appId));
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
     }
@@ -1171,28 +1170,40 @@ public class AuthingUserDao {
         }
     }
 
-    private Object login(String appId, String body) {
+    private Object login(String appId, String body, boolean isPwdLogin) {
         Object msg = MessageCodeConfig.E00027.getMsgZh();
-        return authPostResData("/signin", appId, body, msg);
+        JSONObject resultData = authPostResData("/signin", appId, body);
+        if (isPwdLogin && resultData != null && resultData.getInt("statusCode") == 403) {
+            return MessageCodeConfig.E00052.getMsgZh();
+        }
+        if (resultData != null) {
+            msg = (resultData.getInt("statusCode") == 200)
+                ? resultData.get("data")
+                : resultData.getString("message");
+        }
+        return msg;
     }
 
     private Object resetPwdVerify(String appId, String body) {
         Object msg = MessageCodeConfig.E00012.getMsgZh();
-        return authPostResData("/verify-reset-password-request", appId, body, msg);
+        JSONObject resultData = authPostResData("/verify-reset-password-request", appId, body);
+        if (resultData != null) {
+            msg = (resultData.getInt("statusCode") == 200)
+                ? resultData.get("data")
+                : resultData.getString("message");
+        }
+        return msg;
     }
 
-    private Object authPostResData(String uriPath, String appId, String body, Object defaultMsg) {
-        Object msg = defaultMsg;
+    private JSONObject authPostResData(String uriPath, String appId, String body) {
+        JSONObject resObj = null;
         try {
             HttpResponse<JsonNode> response = authPost(uriPath, appId, body);
-            JSONObject resObj = response.getBody().getObject();
-            msg = (resObj.getInt("statusCode") == 200)
-                    ? resObj.get("data")
-                    : resObj.getString("message");
+            resObj = response.getBody().getObject();
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
-        return msg;
+        return resObj;
     }
 
 
