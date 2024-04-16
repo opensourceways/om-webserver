@@ -1170,7 +1170,6 @@ public class AuthingUserDao {
         }
     }
 
-
     private Object login(String appId, String body) {
         Object msg = MessageCodeConfig.E00027.getMsgZh();
         return authPostResData("/signin", appId, body, msg);
