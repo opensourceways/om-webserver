@@ -145,14 +145,14 @@ public class AuthingController {
 
     @AuthingUserToken
     @RequestMapping(value = "/user/permission", method = RequestMethod.GET)
-    public ResponseEntity getUser(@RequestParam(value = "community") String community,
+    public ResponseEntity getUser(@RequestParam(value = "community", required = false) String community,
                                   @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.authingUserPermission(community, token);
     }
 
     @AuthingUserToken
     @RequestMapping(value = "/user/permissions", method = RequestMethod.GET)
-    public ResponseEntity userPermissions(@RequestParam(value = "community") String community,
+    public ResponseEntity userPermissions(@RequestParam(value = "community", required = false) String community,
                                           @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.userPermissions(community, token);
     }
@@ -160,7 +160,7 @@ public class AuthingController {
     @RequestMapping(value = "/token/apply", method = RequestMethod.GET)
     public ResponseEntity tokenApply(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
-                                     @RequestParam(value = "community") String community,
+                                     @RequestParam(value = "community", required = false) String community,
                                      @RequestParam(value = "code") String code,
                                      @RequestParam(value = "permission") String permission,
                                      @RequestParam(value = "redirect") String redirect) {
