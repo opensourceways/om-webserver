@@ -372,7 +372,6 @@ public class AuthingUserDao {
             return managementClient.application().findById(appId).execute();
         } catch (Exception e) {
             logger.error(String.format("Can't find app with id %s", appId));
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
     }
@@ -1186,9 +1185,14 @@ public class AuthingUserDao {
         try {
             HttpResponse<JsonNode> response = authPost(uriPath, appId, body);
             JSONObject resObj = response.getBody().getObject();
-            msg = (resObj.getInt("statusCode") == 200)
+            if (resObj.getInt("statusCode") == 403 && resObj.has("apiCode") && resObj.getInt("apiCode") == 2006) {
+                // 防止直接提示密码错误
+                msg = MessageCodeConfig.E00052.getMsgZh();
+            } else {
+                msg = (resObj.getInt("statusCode") == 200)
                     ? resObj.get("data")
-                    : resObj.getString("message");
+                    : resObj.getString("message");  
+            }
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
