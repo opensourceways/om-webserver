@@ -74,7 +74,7 @@ public class ManagerController {
     @AuthingUserToken
     @RequestMapping(value = "/authenticate", method = RequestMethod.GET)
     public ResponseEntity authenticate(
-        @RequestParam("community") String community,
+        @RequestParam(value = "community", required = false) String community,
         @CookieValue(value = "_Y_G_", required = false) String userCookie) {
         return oneIdManageService.authenticate(community, userCookie);
     }
@@ -93,7 +93,7 @@ public class ManagerController {
     @AuthingUserToken
     @RequestMapping(value = "/u/permissions", method = RequestMethod.GET)
     public ResponseEntity getUserPermissions(
-        @RequestParam("community") String community,
+        @RequestParam(value = "community", required = false) String community,
         @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.userPermissions(community, token);
     }
