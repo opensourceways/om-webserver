@@ -48,6 +48,7 @@ RUN dnf install -y wget \
     && tar -zxvf jre-18.0.2.tar.gz
 ENV JAVA_HOME=${WORKSPACE}/jdk-18.0.2.1+1-jre
 ENV PATH=${JAVA_HOME}/bin:$PATH
+ENV MALLOC_ARENA_MAX=4
 
 EXPOSE 8080
 
