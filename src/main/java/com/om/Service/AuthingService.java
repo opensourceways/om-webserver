@@ -465,6 +465,7 @@ public class AuthingService implements UserCenterServiceInter {
             String state = parameterMap.getOrDefault("state", new String[]{""})[0];
             String entity = parameterMap.getOrDefault("entity", new String[]{""})[0];
             String complementation = parameterMap.getOrDefault("complementation", new String[]{""})[0];
+            String lang = parameterMap.getOrDefault("lang", new String[]{""})[0];
 
             // responseType校验
             if (!responseType.equals("code"))
@@ -485,8 +486,9 @@ public class AuthingService implements UserCenterServiceInter {
             String loginPage = env.getProperty("oidc.login.page");
             if ("register".equals(entity)) loginPage = env.getProperty("oidc.register.page");
             String complParam = StringUtils.isBlank(complementation) ? "" : String.format("&complementation=%s", complementation);
-            String loginPageRedirect = String.format("%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s%s", 
-                loginPage, clientId, scope, redirectUri, state, complParam);
+            String langParam = StringUtils.isBlank(lang) ? "" : String.format("&lang=%s", lang);
+            String loginPageRedirect = String.format("%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s%s%s",
+                    loginPage, clientId, scope, redirectUri, state, complParam, langParam);
             servletResponse.sendRedirect(loginPageRedirect);
 
             return resultOidc(HttpStatus.OK, "OK", loginPageRedirect);
