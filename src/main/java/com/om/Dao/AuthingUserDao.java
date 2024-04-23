@@ -18,6 +18,7 @@ import cn.authing.core.types.*;
 import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.om.Modules.authing.AuthingAppSync;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
@@ -161,6 +162,9 @@ public class AuthingUserDao {
 
     @Autowired
     private Environment env;
+
+    @Autowired
+    private AuthingAppSync authingAppSync;
 
     @PostConstruct
     public void init() {
@@ -351,14 +355,6 @@ public class AuthingUserDao {
         return app;
     }
 
-    public List<String> getAppRedirectUris(String appId) {
-        List<String> redirectUris = new ArrayList<>();
-        Application execute = getAppById(appId);
-        if (execute != null)
-            redirectUris = execute.getRedirectUris();
-        return redirectUris;
-    }
-
     public List<String> getAppLogoutRedirectUris(String appId) {
         List<String> redirectUris = new ArrayList<>();
         Application execute = getAppById(appId);
@@ -368,12 +364,7 @@ public class AuthingUserDao {
     }
 
     public Application getAppById(String appId) {
-        try {
-            return managementClient.application().findById(appId).execute();
-        } catch (Exception e) {
-            logger.error(String.format("Can't find app with id %s", appId));
-            return null;
-        }
+        return authingAppSync.getAppById(appId);
     }
 
     public Map getUserInfoByAccessToken(String appId, String code, String redirectUrl) {

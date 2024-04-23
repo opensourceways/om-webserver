@@ -26,6 +26,7 @@ import com.om.Dao.RedisDao;
 import com.om.Modules.LoginFailCounter;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Modules.ServerErrorException;
+import com.om.Modules.authing.AuthingAppSync;
 import com.om.Result.Constant;
 import com.om.Result.Result;
 import com.om.Service.inter.UserCenterServiceInter;
@@ -91,6 +92,9 @@ public class AuthingService implements UserCenterServiceInter {
 
     @Autowired
     QueryDao queryDao;
+
+    @Autowired
+    private AuthingAppSync authingAppSync;
 
     private static final Logger logger =  LoggerFactory.getLogger(AuthingService.class);
 
@@ -367,7 +371,7 @@ public class AuthingService implements UserCenterServiceInter {
     public ResponseEntity appVerify(String appId, String redirect) {
         logger.info(String.format("appVerify params: {appId: %s, redirect: %s}", appId, redirect));
         redirect = URLDecoder.decode(redirect);
-        List<String> uris = authingUserDao.getAppRedirectUris(appId);
+        List<String> uris = authingAppSync.getAppRedirectUris(appId);
         for (String uri : uris) {
             if (uri.endsWith("*") && redirect.startsWith(uri.substring(0, uri.length() - 1)))
                 return result(HttpStatus.OK, "success", null);
