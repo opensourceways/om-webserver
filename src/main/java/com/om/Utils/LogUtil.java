@@ -19,11 +19,23 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Collections;
+import java.util.ArrayList;
 
 public class LogUtil {
     private static final Logger logger = LoggerFactory.getLogger(LogUtil.class);
 
+    public static final List<String> URL_NO_LOG_WHITE_LIST = Collections.unmodifiableList(new ArrayList<>(){
+        {
+            add("/oneid/checkOmService");
+        }
+    });
+
     public static void managementOperate(JoinPoint joinPoint, HttpServletRequest request, HttpServletResponse response, Object returnObject) {
+        if (URL_NO_LOG_WHITE_LIST.contains(request.getRequestURI())) {
+            return;
+        }
         ManagementLog log = new ManagementLog();
         log.setType("OmOperate");
 
