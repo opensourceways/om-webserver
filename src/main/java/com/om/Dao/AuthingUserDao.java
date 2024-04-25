@@ -364,7 +364,11 @@ public class AuthingUserDao {
     }
 
     public Application getAppById(String appId) {
-        return authingAppSync.getAppById(appId);
+        Application app = authingAppSync.getAppById(appId);
+        if (app == null) {
+            logger.error(String.format("Can't find app with id %s", appId));
+        }
+        return app;
     }
 
     public Map getUserInfoByAccessToken(String appId, String code, String redirectUrl) {
