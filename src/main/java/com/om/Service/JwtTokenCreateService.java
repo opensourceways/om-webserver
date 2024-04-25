@@ -48,9 +48,6 @@ public class JwtTokenCreateService {
     @Autowired
     CodeUtil codeUtil;
 
-    @Autowired
-    private Environment env;
-
     @Value("${authing.token.expire.seconds}")
     private String authingTokenExpireSeconds;
 
@@ -123,13 +120,6 @@ public class JwtTokenCreateService {
                 .sign(Algorithm.HMAC256(authingTokenBasePassword));
         String verifyToken = DigestUtils.md5DigestAsHex(headToken.getBytes());
         redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
-
-        String perStr = "";
-        ArrayList<String> pers = authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
-        for (String per : pers) {
-            perStr += per + ",";
-        }
-        perStr = Base64.getEncoder().encodeToString(perStr.getBytes());
         String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes());
 
         String token = JWT.create()
@@ -140,7 +130,6 @@ public class JwtTokenCreateService {
                 .withClaim("permission", permissionStr)
                 .withClaim("inputPermission", inputPermission)
                 .withClaim("verifyToken", verifyToken)
-                .withClaim("permissionList", perStr)
                 .withClaim("client_id", appId)
                 .withClaim("oneidPrivacyAccepted", oneidPrivacyVersionAccept)
                 .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));
