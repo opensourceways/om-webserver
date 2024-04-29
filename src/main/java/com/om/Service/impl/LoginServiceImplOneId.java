@@ -1,7 +1,11 @@
 package com.om.Service.impl;
 
+import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.Dao.OneidDao;
 import com.om.Dao.RedisDao;
 import com.om.Dao.oneId.OneIdAppDao;
 import com.om.Dao.oneId.OneIdEntity;
@@ -10,18 +14,19 @@ import com.om.Modules.LoginFailCounter;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Result.Result;
-import com.om.Service.JwtTokenCreateService;
 import com.om.Service.OneIdService;
 import com.om.Service.inter.LoginServiceInter;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.LimitUtil;
 import com.om.Vo.dto.LoginParam;
 import com.om.config.LoginConfig;
+import kong.unirest.json.JSONObject;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,13 +37,20 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Map;
 
 @Service
 @ConditionalOnProperty(value = "service.oidc", havingValue = "oidcServiceImplOneId")
 public class LoginServiceImplOneId implements LoginServiceInter {
 
     private static final Logger logger = LoggerFactory.getLogger(LoginServiceImplOneId.class);
+
+    private static ObjectMapper objectMapper = new ObjectMapper();
+
+    @Value("${opengauss.pool.key}")
+    private String poolId;
+
+    @Value("${opengauss.pool.secret}")
+    private String poolSecret;
 
     @Autowired
     OneIdService oneIdService;
@@ -62,8 +74,7 @@ public class LoginServiceImplOneId implements LoginServiceInter {
     private HttpServletResponse servletResponse;
 
     @Autowired
-    JwtTokenCreateService jwtTokenCreateService;
-
+    private OneidDao oneidDao;
 
     @Override
     public ResponseEntity<?> appVerify(String clientId, String redirectUri) {
@@ -123,6 +134,10 @@ public class LoginServiceImplOneId implements LoginServiceInter {
                 }
 
                 user = oneIdUserDao.getUserInfo(loginParam.getAccount(), accountType);
+                if (user == null) {
+                    // 验证码登录，自动创建用户
+                    user = autoCreatUser(accountType, loginParam.getAccount());
+                }
             }
 
             if (user == null) {
@@ -143,6 +158,20 @@ public class LoginServiceImplOneId implements LoginServiceInter {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
         }
+    }
+
+    private OneIdEntity.User autoCreatUser(String accountType, String account) throws JsonProcessingException {
+        OneIdEntity.User user = null;
+        HashMap<String, Object> userInfo = new HashMap<>();
+        userInfo.put(accountType, account);
+        String userJsonStr = objectMapper.writeValueAsString(userInfo);
+        JSONObject userObj = oneidDao.createUser(poolId, poolSecret, userJsonStr);
+        if(userObj == null) {
+            return user;
+        }
+        user = JSON.parseObject(userObj.toString(), OneIdEntity.User.class);
+
+        return user;
     }
 
     @Override
