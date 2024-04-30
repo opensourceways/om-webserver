@@ -105,6 +105,14 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     private static String poolSecret;
 
+    private static final List<String> UPDATE_USER_ELEMENTS = Collections.unmodifiableList(new ArrayList<>() {
+        {
+            add("nickname");
+            add("company");
+            add("username");
+        }
+    });
+
     @PostConstruct
     public void init() {
         codeUtil = new CodeUtil();
@@ -571,7 +579,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             String userId = decode.getAudience().get(0);
 
             // 只允许修改 nickname 和 company
-            map.entrySet().removeIf(entry -> !(entry.getKey().equals("nickname") || entry.getKey().equals("company")));
+            map.entrySet().removeIf(entry -> !UPDATE_USER_ELEMENTS.contains(entry.getKey()));
             String nickname = (String) map.getOrDefault("nickname", null);
             if (nickname != null && !nickname.equals("") && !nickname.matches(Constant.NICKNAMEREGEX)) {
                 String msg = "请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。" +
@@ -584,6 +592,19 @@ public class OpenGaussService implements UserCenterServiceInter {
                 String msg = "请输入2到100个字符。公司只能由字母、数字、汉字、括号或者点(.)、逗号(,)、&组成。" +
                         "必须以字母、数字或者汉字开头，不能以括号、逗号(,)和&结尾";
                 return result(HttpStatus.BAD_REQUEST, null, msg, null);
+            }
+
+            if (map.containsKey("username")) {
+                String userName = (String) map.get("username");
+                if (StringUtils.isBlank(userName)) {
+                    return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00018, null, null);
+                }
+                if (!userName.matches(Constant.USERNAMEREGEX)) {
+                    return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00041, null, null);
+                }
+                if (oneidDao.isUserExists(poolId, poolSecret, userName, "username")) {
+                    return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00019, null, null);
+                }
             }
 
             String userJsonStr = objectMapper.writeValueAsString(map);
