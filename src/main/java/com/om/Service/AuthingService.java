@@ -138,7 +138,7 @@ public class AuthingService implements UserCenterServiceInter {
         String appId = servletRequest.getParameter("client_id");
 
         // 校验appId
-        if (authingUserDao.initAppClient(appId) == null) {
+        if (authingUserDao.getAppById(appId) == null) {
             return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
         }
 
@@ -186,7 +186,7 @@ public class AuthingService implements UserCenterServiceInter {
         }
 
         // 校验appId
-        if (authingUserDao.initAppClient(appId) == null) {
+        if (authingUserDao.getAppById(appId) == null) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00047, null, null);
         }
 
@@ -225,7 +225,7 @@ public class AuthingService implements UserCenterServiceInter {
         String acceptPrivacyVersion = (String) getBodyPara(body, "oneidPrivacyAccepted");
 
         // 校验appId
-        if (authingUserDao.initAppClient(appId) == null) {
+        if (authingUserDao.getAppById(appId) == null) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00047, null, null);
         }
 
@@ -788,7 +788,7 @@ public class AuthingService implements UserCenterServiceInter {
             String appId = httpServletRequest.getParameter("client_id");
 
             // 校验appId
-            if (authingUserDao.initAppClient(appId) == null) {
+            if (authingUserDao.getAppById(appId) == null) {
                 return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
             }
 
@@ -1149,7 +1149,7 @@ public class AuthingService implements UserCenterServiceInter {
             String appId = (String) getBodyPara(body, "client_id");
 
             // 校验appId
-            Application app = authingUserDao.initAppClient(appId);
+            Application app = authingUserDao.getAppById(appId);
             if (app == null) {
                 return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E00047.getMsgZh(), null);
             }
@@ -1640,7 +1640,7 @@ public class AuthingService implements UserCenterServiceInter {
         }
 
         // 校验appId
-        Application app = authingUserDao.initAppClient(appId);
+        Application app = authingUserDao.getAppById(appId);
         if (app == null) {
             return MessageCodeConfig.E00047.getMsgZh();
         }
