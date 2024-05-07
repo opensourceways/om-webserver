@@ -151,8 +151,6 @@ public class AuthingUserDao {
 
     private static List<String> reservedUsernames;
 
-    public Map<String, AuthenticationClient> appClientMap;
-
     private List<String> photoSuffixes;
 
     private List<String> allowedCommunity;
@@ -168,7 +166,6 @@ public class AuthingUserDao {
 
     @PostConstruct
     public void init() {
-        appClientMap = new HashMap<>();
         managementClient = new ManagementClient(userPoolId, secret);
         obsClient = new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint);
         reservedUsernames = getUsernameReserved();
@@ -267,7 +264,7 @@ public class AuthingUserDao {
     // 校验用户是否存在（用户名 or 邮箱 or 手机号）
     public boolean isUserExists(String appId, String account, String accountType) throws ServerErrorException {
         try {
-            AuthenticationClient authentication = appClientMap.get(appId);
+            AuthenticationClient authentication = authingAppSync.getAppClientById(appId);
             switch (accountType.toLowerCase()) {
                 case "username":
                     return authentication.isUserExists(account, null, null, null).execute();
@@ -344,17 +341,6 @@ public class AuthingUserDao {
         return login(app.getId(), body);
     }
 
-    public Application initAppClient(String appId) {
-        Application app = getAppById(appId);
-        if (app != null && !appClientMap.containsKey(appId)) {
-            String appHost = "https://" + app.getIdentifier() + ".authing.cn";
-            AuthenticationClient appClient = new AuthenticationClient(appId, appHost);
-            appClient.setSecret(app.getSecret());
-            appClientMap.put(appId, appClient);
-        }
-        return app;
-    }
-
     public List<String> getAppLogoutRedirectUris(String appId) {
         List<String> redirectUris = new ArrayList<>();
         Application execute = getAppById(appId);
@@ -373,7 +359,7 @@ public class AuthingUserDao {
 
     public Map getUserInfoByAccessToken(String appId, String code, String redirectUrl) {
         try {
-            AuthenticationClient authentication = appClientMap.get(appId);
+            AuthenticationClient authentication = authingAppSync.getAppClientById(appId);
 
             // code换access_token
             authentication.setRedirectUri(redirectUrl);
@@ -543,7 +529,7 @@ public class AuthingUserDao {
         try {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
-            AuthenticationClient authentication = appClientMap.get(appId);
+            AuthenticationClient authentication = authingAppSync.getAppClientById(appId);
 
             switch (type.toLowerCase()) {
                 case "email":
@@ -642,8 +628,7 @@ public class AuthingUserDao {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User us = (User) appUserInfo[1];
-            AuthenticationClient authentication = appClientMap.get(appId);
-            authentication.setCurrentUser(us);
+            AuthenticationClient authentication = initUserAuthentication(appId, us);
             switch (type.toLowerCase()) {
                 case "email":
                     authentication.updateEmail(account, code, oldAccount, oldCode).execute();
@@ -667,12 +652,9 @@ public class AuthingUserDao {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User us = (User) appUserInfo[1];
-            AuthenticationClient authentication = appClientMap.get(appId);
-            authentication.setCurrentUser(us);
+            AuthenticationClient authentication = initUserAuthentication(appId, us);
 
             if (StringUtils.isBlank(us.getEmail())) return "请先绑定邮箱";
-
-            authentication.setCurrentUser(us);
             switch (type.toLowerCase()) {
                 // TODO 目前不允许解绑邮箱
                 /*case "email":
@@ -696,10 +678,18 @@ public class AuthingUserDao {
     }
 
     public AuthenticationClient initUserAuthentication(String appId, User user) {
-        initAppClient(appId);
-        AuthenticationClient authentication = appClientMap.get(appId);
-        authentication.setCurrentUser(user);
-        return authentication;
+        // 此处需要指定用户名，不能使用缓存的client，否则有并发问题
+        AuthenticationClient appClient = null;
+        Application app = getAppById(appId);
+        if (app != null) {
+            String appHost = "https://" + app.getIdentifier() + ".authing.cn";
+            appClient = new AuthenticationClient(appId, appHost);
+            appClient.setSecret(app.getSecret());
+        } else {
+            return appClient;
+        }
+        appClient.setCurrentUser(user);
+        return appClient;
     }
 
     public String bindAccount(AuthenticationClient authentication, String account, String code, String type) {
@@ -725,8 +715,7 @@ public class AuthingUserDao {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User user = (User) appUserInfo[1];
-            AuthenticationClient authentication = appClientMap.get(appId);
-            authentication.setCurrentUser(user);
+            AuthenticationClient authentication = initUserAuthentication(appId, user);
             switch (type.toLowerCase()) {
                 case "email":
                     String emailInDb = user.getEmail();
@@ -836,8 +825,6 @@ public class AuthingUserDao {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User user = (User) appUserInfo[1];
-            AuthenticationClient authentication = appClientMap.get(appId);
-            authentication.setCurrentUser(user);
 
             String userToken = user.getToken();
             List<Map<String, String>> list = new ArrayList<>();
@@ -872,8 +859,7 @@ public class AuthingUserDao {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User us = (User) appUserInfo[1];
-            AuthenticationClient authentication = appClientMap.get(appId);
-            authentication.setCurrentUser(us);
+            AuthenticationClient authentication = initUserAuthentication(appId, us);
 
             authentication.linkAccount(token, secondToken).execute();
         } catch (Exception e) {
@@ -1037,8 +1023,7 @@ public class AuthingUserDao {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User user = (User) appUserInfo[1];
-            AuthenticationClient authentication = appClientMap.get(appId);
-            authentication.setCurrentUser(user);
+            AuthenticationClient authentication = initUserAuthentication(appId, user);
 
             String photo = user.getPhoto();
 
