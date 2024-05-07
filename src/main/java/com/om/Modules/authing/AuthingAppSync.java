@@ -11,6 +11,7 @@
 
 package com.om.Modules.authing;
 
+import cn.authing.core.auth.AuthenticationClient;
 import cn.authing.core.mgmt.ApplicationManagementClient;
 import cn.authing.core.mgmt.ManagementClient;
 import cn.authing.core.types.Application;
@@ -49,6 +50,8 @@ public class AuthingAppSync {
 
     private static ConcurrentHashMap<String, Application> appDetailsMap = new ConcurrentHashMap<>();
 
+    private static Map<String, AuthenticationClient> appClientMap = new ConcurrentHashMap<>();
+
     @PostConstruct
     private void init() {
         appManagementClient = new ManagementClient(userPoolId, secret).application();
@@ -60,9 +63,16 @@ public class AuthingAppSync {
         if (!CollectionUtils.isEmpty(applications)) {
             List<String> appIds = new ArrayList<>();
             applications.forEach(app -> {
-                if (StringUtils.isNotBlank(app.getId())) {
-                    appIds.add(app.getId());
-                    appDetailsMap.put(app.getId(), app);
+                String appId = app.getId();
+                if (StringUtils.isNotBlank(appId)) {
+                    appIds.add(appId);
+                    appDetailsMap.put(appId, app);
+                }
+                if (!appClientMap.containsKey(appId)) {
+                    String appHost = "https://" + app.getIdentifier() + ".authing.cn";
+                    AuthenticationClient appClient = new AuthenticationClient(appId, appHost);
+                    appClient.setSecret(app.getSecret());
+                    appClientMap.put(appId, appClient);
                 }
             });
             Iterator<Map.Entry<String, Application>> iterator = appDetailsMap.entrySet().iterator();
@@ -106,6 +116,13 @@ public class AuthingAppSync {
             appDetailsSync();
         }
         return appDetailsMap.get(id);
+    }
+
+    public AuthenticationClient getAppClientById(String id) {
+        if (appClientMap.isEmpty()) {
+            appDetailsSync();
+        }
+        return appClientMap.get(id);
     }
 
     public List<String> getAppRedirectUris(String appId) {
