@@ -45,53 +45,115 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
+/**
+ * 拦截器类，用于进行身份验证拦截.
+ */
 public class AuthingInterceptor implements HandlerInterceptor {
-    @Autowired
-    AuthingUserDao authingUserDao;
 
-    @Autowired
-    RedisDao redisDao;
 
+    /**
+     * 用于与 Authing 用户信息进行交互的 DAO.
+     */
     @Autowired
-    JwtTokenCreateService jwtTokenCreateService;
+    private AuthingUserDao authingUserDao;
 
+    /**
+     * 用于与 Redis 数据库进行交互的 DAO.
+     */
+    @Autowired
+    private RedisDao redisDao;
+
+    /**
+     * JWT Token 的创建服务.
+     */
+    @Autowired
+    private JwtTokenCreateService jwtTokenCreateService;
+
+    /**
+     * 应用程序的环境配置.
+     */
     @Autowired
     private Environment env;
 
+    /**
+     * Authing Token 的基础密码.
+     */
     @Value("${authing.token.base.password}")
     private String authingTokenBasePassword;
 
+    /**
+     * RSA 加密算法使用的 Authing 私钥.
+     */
     @Value("${rsa.authing.privateKey}")
     private String rsaAuthingPrivateKey;
 
+    /**
+     * 用于存储用户 Token 的 Cookie 名称.
+     */
     @Value("${cookie.token.name}")
     private String cookieTokenName;
 
+    /**
+     * 用于存储验证 Token 的 Cookie 名称.
+     */
     @Value("${cookie.verify.token.name}")
     private String verifyTokenName;
 
+    /**
+     * 可访问该应用程序的域名列表.
+     */
     @Value("${cookie.token.domains}")
     private String allowDomains;
 
+    /**
+     * Cookie 安全性级别设置.
+     */
     @Value("${cookie.token.secures}")
     private String cookieSecures;
 
+    /**
+     * OneID 隐私政策版本号.
+     */
     @Value("${oneid.privacy.version}")
-    String oneidPrivacyVersion;
+    private String oneidPrivacyVersion;
 
+    /**
+     * 存储域名与安全性标志之间的映射关系.
+     */
     private static HashMap<String, Boolean> domain2secure;
 
-    private static final Logger logger = LoggerFactory.getLogger(AuthingInterceptor.class);
+    /**
+     * 日志记录器，用于记录身份验证拦截器的日志信息.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(AuthingInterceptor.class);
 
+    /**
+     * 初始化方法，在对象创建后调用，用于初始化域名与安全性标志的映射关系.
+     */
     @PostConstruct
     public void init() {
         domain2secure = HttpClientUtils.getConfigCookieInfo(allowDomains, cookieSecures);
     }
 
+    /**
+     * 预处理方法，在请求处理之前调用，用于进行预处理操作.
+     *
+     * @param httpServletRequest  HTTP 请求对象
+     * @param httpServletResponse HTTP 响应对象
+     * @param object              处理器
+     * @return 返回布尔值表示是否继续处理请求
+     * @throws Exception 可能抛出的异常
+     */
     @Override
-    public boolean preHandle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object object) throws Exception {
+    public boolean preHandle(HttpServletRequest httpServletRequest,
+                             HttpServletResponse httpServletResponse, Object object) throws Exception {
         // 如果不是映射到方法直接通过
         if (!(object instanceof HandlerMethod)) {
             return true;
@@ -171,7 +233,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
         // 是否接受隐私协议
         String url = httpServletRequest.getRequestURI();
-        if (!"unused".equals(oneidPrivacyVersion) && !"/oneid/update/baseInfo".equals(url) && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept)) {
+        if (!"unused".equals(oneidPrivacyVersion) && !"/oneid/update/baseInfo".equals(url)
+                && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept)) {
             tokenError(httpServletRequest, httpServletResponse, "Not accept privacy policy and terms of service.");
             return false;
         }
@@ -213,7 +276,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * 校验header中的token
+     * 校验header中的token.
      *
      * @param headerToken header中的token
      * @return 校验正确返回token的MD5值
@@ -236,13 +299,13 @@ public class AuthingInterceptor implements HandlerInterceptor {
             jwtVerifier.verify(headerToken);
             return md5Token;
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return "unauthorized";
         }
     }
 
     /**
-     * 校验token
+     * 校验token.
      *
      * @param headerToken header中带的token
      * @param token       cookie中解密的token
@@ -284,7 +347,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
     }
 
     /**
-     * 获取包含存token的cookie
+     * 获取包含存token的cookie.
      *
      * @param httpServletRequest request
      * @return cookie
@@ -294,14 +357,17 @@ public class AuthingInterceptor implements HandlerInterceptor {
         Cookie cookie = null;
         if (cookies != null) {
             // 获取cookie中的token
-            Optional<Cookie> first = Arrays.stream(cookies).filter(c -> cookieTokenName.equals(c.getName())).findFirst();
-            if (first.isPresent()) cookie = first.get();
+            Optional<Cookie> first = Arrays.stream(cookies)
+                    .filter(c -> cookieTokenName.equals(c.getName())).findFirst();
+            if (first.isPresent()) {
+                cookie = first.get();
+            }
         }
         return cookie;
     }
 
     /**
-     * 校验domain
+     * 校验domain.
      *
      * @param httpServletRequest request
      * @return 是否可访问
@@ -321,7 +387,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
     }
 
     private boolean checkDomain(String[] domains, String input) {
-        if (StringUtils.isBlank(input)) return true;
+        if (StringUtils.isBlank(input)) {
+            return true;
+        }
         int fromIndex;
         int endIndex;
         if (input.startsWith("http://")) {
@@ -334,7 +402,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
         }
         String substring = input.substring(0, endIndex);
         for (String domain : domains) {
-            if (substring.endsWith(domain)) return true;
+            if (substring.endsWith(domain)) {
+                return true;
+            }
         }
         return false;
     }
