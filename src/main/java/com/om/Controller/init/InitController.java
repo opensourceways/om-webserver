@@ -20,23 +20,34 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.om.Utils.CommonUtil;
 
-
+/**
+ * 实现了 ApplicationRunner 接口的 InitController 类，用于初始化控制器.
+ */
 @RestController
-public class InitController implements ApplicationRunner{
+public class InitController implements ApplicationRunner {
 
-    private static final Logger log =  LoggerFactory.getLogger(InitController.class);
+    /**
+     * 日志记录器实例，用于记录初始化控制器类的日志信息.
+     */
+    private static final Logger LOG = LoggerFactory.getLogger(InitController.class);
 
+    /**
+     * 运行应用程序的方法.
+     *
+     * @param args 应用程序参数
+     * @throws Exception 可能抛出的异常
+     */
     @Override
     public void run(ApplicationArguments args) throws Exception {
         String applicationPath = System.getenv("APPLICATION_PATH");
         if (StringUtils.isBlank(applicationPath)) {
-            log.info("Delete application fail, file not found");
+            LOG.info("Delete application fail, file not found");
             return;
         }
         if (CommonUtil.deleteFile(applicationPath)) {
-            log.info("Delete application success");
+            LOG.info("Delete application success");
         } else {
-            log.info("Delete application fail");
+            LOG.info("Delete application fail");
         }
     }
 
