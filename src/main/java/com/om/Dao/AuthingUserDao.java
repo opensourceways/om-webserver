@@ -13,8 +13,14 @@ package com.om.Dao;
 
 import cn.authing.core.auth.AuthenticationClient;
 import cn.authing.core.mgmt.ManagementClient;
-import cn.authing.core.types.*;
 
+import cn.authing.core.types.Application;
+import cn.authing.core.types.AuthorizedResource;
+import cn.authing.core.types.EmailScene;
+import cn.authing.core.types.FindUserParam;
+import cn.authing.core.types.PaginatedAuthorizedResources;
+import cn.authing.core.types.UpdateUserInput;
+import cn.authing.core.types.User;
 import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -49,7 +55,12 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
