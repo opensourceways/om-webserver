@@ -75,8 +75,8 @@ public class LogUtil {
             Collection<String> cookies = response.getHeaders("Set-Cookie");
             if (cookies != null) {
                 for (String cookie : cookies) {
-                    if (cookie.contains(Constant.TOKEN_U_T_)) {
-                        token = cookie.split(";")[0].replace(Constant.TOKEN_U_T_ + "=", "");
+                    if (cookie.contains(Constant.TOKEN_U_T)) {
+                        token = cookie.split(";")[0].replace(Constant.TOKEN_U_T + "=", "");
                     }
                 }
             }
