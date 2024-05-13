@@ -15,22 +15,31 @@ import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
-import java.io.*;
+
+
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.Charset;
 import java.util.Map;
 
 /**
- * 包装HttpServletRequest，目的是让其输入流可重复读
+ * 包装HttpServletRequest，目的是让其输入流可重复读.
  * <p>
  * 1、将输入流里面的数据存储到body。
  * 2、重写getInputStream方法，每次都从body读数据
  */
 public class RequestWrapper extends HttpServletRequestWrapper {
-    // 存储请求body数据
+
+    /**
+     * 存储请求body数据.
+     */
     private final byte[] body;
 
     /**
-     * 将输入流里面的数据存储到body
+     * 将输入流里面的数据存储到body.
      *
      * @param request request
      */
@@ -72,7 +81,7 @@ public class RequestWrapper extends HttpServletRequestWrapper {
     }
 
     /**
-     * 每次getInputStream()都根据body创建新的输入流
+     * 每次getInputStream()都根据body创建新的输入流.
      *
      * @return ServletInputStream
      */
@@ -101,7 +110,7 @@ public class RequestWrapper extends HttpServletRequestWrapper {
     }
 
     /**
-     * 每次getReader()都根据body创建新的输入流
+     * 每次getReader()都根据body创建新的输入流.
      *
      * @return BufferedReader
      */
