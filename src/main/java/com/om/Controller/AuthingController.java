@@ -23,49 +23,100 @@ import com.om.Utils.HttpClientUtils;
 import com.om.authing.AuthingUserToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.Map;
 
 import static com.anji.captcha.Controller.CaptchaController.getRemoteId;;
 
-
+/**
+ * 控制器类，用于处理与 Authing 相关的请求和逻辑.
+ */
 @RequestMapping(value = "/oneid")
 @RestController
 public class AuthingController {
-    @Autowired
-    AuthingService authingService;
 
+    /**
+     * 用于处理 Authing 相关逻辑的服务.
+     */
     @Autowired
-    QueryService queryService;
+    private AuthingService authingService;
 
+    /**
+     * 用于执行查询服务的服务.
+     */
     @Autowired
-    UserCenterServiceContext userCenterServiceContext;
+    private QueryService queryService;
 
+    /**
+     * 用户中心服务上下文信息.
+     */
+    @Autowired
+    private UserCenterServiceContext userCenterServiceContext;
+
+    /**
+     * 验证码服务.
+     */
     @Autowired
     private CaptchaService captchaService;
 
+
+    /**
+     * 处理获取验证码请求的方法.
+     *
+     * @param data    包含验证码信息的 CaptchaVO 对象
+     * @param request HTTP 请求对象
+     * @return 返回响应模型 ResponseModel
+     */
     @RequestMapping(value = "/captcha/get", method = RequestMethod.POST)
     public ResponseModel captchaGet(@RequestBody CaptchaVO data, HttpServletRequest request) {
         data.setBrowserInfo(getRemoteId(request));
         return captchaService.get(data);
     }
 
+    /**
+     * 处理验证码检查请求的方法.
+     *
+     * @param data    包含验证码信息的 CaptchaVO 对象
+     * @param request HTTP 请求对象
+     * @return 返回响应模型 ResponseModel
+     */
     @RequestMapping(value = "/captcha/check", method = RequestMethod.POST)
     public ResponseModel captchaCheck(@RequestBody CaptchaVO data, HttpServletRequest request) {
         data.setBrowserInfo(getRemoteId(request));
         return captchaService.check(data);
     }
 
+    /**
+     * 检查账户是否存在的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @return 返回 ResponseEntity 对象
+     */
     @RequestMapping(value = "/account/exists", method = RequestMethod.GET)
     public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.accountExists(servletRequest, servletResponse);
     }
 
+    /**
+     * 发送验证码版本3的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param captchaVerification 验证码验证信息
+     * @return 返回 ResponseEntity 对象
+     */
     @RequestMapping(value = {"/captcha/sendCode", "/v3/sendCode"}, method = RequestMethod.GET)
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
@@ -73,18 +124,39 @@ public class AuthingController {
         return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
+    /**
+     * 处理验证码登录请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @return 返回 ResponseEntity 对象
+     */
     @RequestMapping(value = "/captcha/checkLogin", method = RequestMethod.GET)
     public ResponseEntity captchaLogin(HttpServletRequest servletRequest) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.captchaLogin(servletRequest);
     }
 
+    /**
+     * 处理注册请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @return 返回 ResponseEntity 对象
+     */
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.register(servletRequest, servletResponse);
     }
 
+    /**
+     * 处理登录请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param body 包含登录信息的 Map 对象
+     * @return 返回 ResponseEntity 对象
+     */
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity login(HttpServletRequest servletRequest,
                                 HttpServletResponse servletResponse,
@@ -93,6 +165,14 @@ public class AuthingController {
         return service.login(servletRequest, servletResponse, verifyCaptcha((String) body.get("captchaVerification")));
     }
 
+    /**
+     * 处理应用程序验证请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param clientId 客户端ID
+     * @param redirect 重定向URI
+     * @return 返回 ResponseEntity 对象
+     */
     @RequestMapping(value = "/app/verify", method = RequestMethod.GET)
     public ResponseEntity appVerify(HttpServletRequest servletRequest,
                                     @RequestParam(value = "client_id") String clientId,
@@ -101,6 +181,17 @@ public class AuthingController {
         return service.appVerify(clientId, redirect);
     }
 
+    /**
+     * 处理 OIDC认证请求的方法.
+     *
+     * @param token 请求中包含的令牌
+     * @param clientId 客户端ID
+     * @param redirectUri 重定向URI
+     * @param responseType 响应类型
+     * @param state 状态信息（可选）
+     * @param scope 范围
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/oidc/auth", method = RequestMethod.GET)
     public ResponseEntity oidcAuth(@CookieValue(value = "_Y_G_", required = false) String token,
@@ -112,21 +203,48 @@ public class AuthingController {
         return authingService.oidcAuth(token, clientId, redirectUri, responseType, state, scope);
     }
 
+    /**
+     * 处理 OIDC授权请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @return 返回 ResponseEntity 对象
+     */
     @RequestMapping(value = "/oidc/authorize", method = RequestMethod.GET)
     public ResponseEntity oidcAuthorize(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         return authingService.oidcAuthorize(servletRequest, servletResponse);
     }
 
+    /**
+     * 处理 OIDC令牌请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @return 返回 ResponseEntity 对象
+     */
     @RequestMapping(value = "/oidc/token", method = RequestMethod.POST)
     public ResponseEntity oidcToken(HttpServletRequest servletRequest) {
         return authingService.oidcToken(servletRequest);
     }
 
+    /**
+     * 处理 OIDC用户信息请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @return 返回 ResponseEntity 对象
+     */
     @RequestMapping(value = "/oidc/user", method = RequestMethod.GET)
     public ResponseEntity oidcUser(HttpServletRequest servletRequest) {
         return authingService.userByAccessToken(servletRequest);
     }
 
+    /**
+     * 处理注销请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/logout", method = RequestMethod.GET)
     public ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
@@ -135,6 +253,14 @@ public class AuthingController {
         return service.logout(servletRequest, servletResponse, token);
     }
 
+    /**
+     * 处理刷新用户请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/user/refresh", method = RequestMethod.GET)
     public ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
@@ -143,6 +269,13 @@ public class AuthingController {
         return service.refreshUser(servletRequest, servletResponse, token);
     }
 
+    /**
+     * 获取用户信息的方法.
+     *
+     * @param community 社区名称（可选）
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/user/permission", method = RequestMethod.GET)
     public ResponseEntity getUser(@RequestParam(value = "community", required = false) String community,
@@ -150,6 +283,13 @@ public class AuthingController {
         return authingService.authingUserPermission(community, token);
     }
 
+    /**
+     * 获取用户权限的方法.
+     *
+     * @param community 社区名称（可选）
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/user/permissions", method = RequestMethod.GET)
     public ResponseEntity userPermissions(@RequestParam(value = "community", required = false) String community,
@@ -157,6 +297,17 @@ public class AuthingController {
         return authingService.userPermissions(community, token);
     }
 
+    /**
+     * 处理令牌申请请求的方法.
+     *
+     * @param httpServletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param community 社区名称（可选）
+     * @param code 代码
+     * @param permission 权限
+     * @param redirect 重定向URI
+     * @return 返回 ResponseEntity 对象
+     */
     @RequestMapping(value = "/token/apply", method = RequestMethod.GET)
     public ResponseEntity tokenApply(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
@@ -167,6 +318,14 @@ public class AuthingController {
         return authingService.tokenApply(httpServletRequest, servletResponse, community, code, permission, redirect);
     }
 
+    /**
+     * 处理用户信息请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/personal/center/user", method = RequestMethod.GET)
     public ResponseEntity userInfo(HttpServletRequest servletRequest,
@@ -176,6 +335,14 @@ public class AuthingController {
         return service.personalCenterUserInfo(servletRequest, servletResponse, token);
     }
 
+    /**
+     * 处理删除用户请求的方法.
+     *
+     * @param httpServletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/delete/user", method = RequestMethod.GET)
     public ResponseEntity deleteUser(HttpServletRequest httpServletRequest,
@@ -185,6 +352,15 @@ public class AuthingController {
         return service.deleteUser(httpServletRequest, servletResponse, token);
     }
 
+    /**
+     * 发送验证码的方法.
+     *
+     * @param account 账号信息
+     * @param channel 通道信息
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @param captchaVerification 验证码验证信息
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/sendcode", method = RequestMethod.GET)
     public ResponseEntity sendCode(@RequestParam(value = "account") String account,
@@ -194,6 +370,13 @@ public class AuthingController {
         return authingService.sendCode(token, account, channel, verifyCaptcha(captchaVerification));
     }
 
+    /**
+     * 发送解绑验证码的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/sendcode/unbind", method = RequestMethod.GET)
     public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest,
@@ -203,6 +386,14 @@ public class AuthingController {
         return service.sendCodeUnbind(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
+    /**
+     * 处理更新账号信息请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/update/account", method = RequestMethod.GET)
     public ResponseEntity updateAccount(HttpServletRequest servletRequest,
@@ -212,6 +403,14 @@ public class AuthingController {
         return service.updateAccount(servletRequest, servletResponse, token);
     }
 
+    /**
+     * 处理解绑账号请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/unbind/account", method = RequestMethod.GET)
     public ResponseEntity unbindAccount(HttpServletRequest servletRequest,
@@ -221,6 +420,14 @@ public class AuthingController {
         return service.unbindAccount(servletRequest, servletResponse, token);
     }
 
+    /**
+     * 处理绑定账号请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/bind/account", method = RequestMethod.GET)
     public ResponseEntity bindAccount(HttpServletRequest servletRequest,
@@ -231,12 +438,25 @@ public class AuthingController {
     }
 
 
+    /**
+     * 获取连接列表的方法.
+     *
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/conn/list", method = RequestMethod.GET)
     public ResponseEntity linkConnList(@CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.linkConnList(token);
     }
 
+    /**
+     * 链接账号的方法.
+     *
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @param secondtoken 第二个令牌值
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/link/account", method = RequestMethod.GET)
     public ResponseEntity linkAccount(@CookieValue(value = "_Y_G_", required = false) String token,
@@ -244,6 +464,13 @@ public class AuthingController {
         return authingService.linkAccount(token, secondtoken);
     }
 
+    /**
+     * 解除账号链接的方法.
+     *
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @param platform 平台信息
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/unlink/account", method = RequestMethod.GET)
     public ResponseEntity unLinkAccount(@CookieValue(value = "_Y_G_", required = false) String token,
@@ -251,6 +478,15 @@ public class AuthingController {
         return authingService.unLinkAccount(token, platform);
     }
 
+    /**
+     * 更新用户基本信息的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @param map 包含更新数据的 Map 对象
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/update/baseInfo", method = RequestMethod.POST)
     public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest,
@@ -261,6 +497,15 @@ public class AuthingController {
         return service.updateUserBaseInfo(servletRequest, servletResponse, token, map);
     }
 
+    /**
+     * 上传用户照片的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @param file 要上传的文件
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/update/photo", method = RequestMethod.POST)
     public ResponseEntity upload(HttpServletRequest servletRequest,
@@ -271,12 +516,24 @@ public class AuthingController {
         return service.updatePhoto(servletRequest, servletResponse, token, file);
     }
 
+    /**
+     * 获取公钥的方法.
+     *
+     * @param request HTTP 请求对象
+     * @return 返回 ResponseEntity 对象
+     */
     @RequestMapping(value = "/public/key", method = RequestMethod.GET)
     public ResponseEntity getPublicKey(HttpServletRequest request) {
         UserCenterServiceInter service = getServiceImpl(request);
         return service.getPublicKey();
     }
 
+    /**
+     * 更新密码的方法.
+     *
+     * @param request HTTP 请求对象
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
     @RequestMapping(value = "/update/password", method = RequestMethod.POST)
     public ResponseEntity updatePassword(HttpServletRequest request) {
@@ -284,12 +541,24 @@ public class AuthingController {
         return service.updatePassword(request);
     }
 
+    /**
+     * 重置密码验证的方法.
+     *
+     * @param request HTTP 请求对象
+     * @return 返回 ResponseEntity 对象
+     */
     @RequestMapping(value = "/reset/password/verify", method = RequestMethod.POST)
     public ResponseEntity resetPwdVerify(HttpServletRequest request) {
         UserCenterServiceInter service = getServiceImpl(request);
         return service.resetPwdVerify(request);
     }
 
+    /**
+     * 重置密码的方法.
+     *
+     * @param request HTTP 请求对象
+     * @return 返回 ResponseEntity 对象
+     */
     @RequestMapping(value = "/reset/password", method = RequestMethod.POST)
     public ResponseEntity resetPwd(HttpServletRequest request) {
         UserCenterServiceInter service = getServiceImpl(request);
