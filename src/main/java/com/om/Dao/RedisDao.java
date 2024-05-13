@@ -38,25 +38,41 @@ import org.springframework.stereotype.Repository;
 
 
 /**
- * @author zhxia
- * @date 2020/11/16 14:37
+ * Redis 数据访问对象类.
  */
 @Repository
 public class RedisDao {
+
+    /**
+     * RedisTemplate 字符串类型.
+     */
     @Autowired
-    protected StringRedisTemplate redisTemplate;
+    private StringRedisTemplate redisTemplate;
 
-    static ObjectMapper objectMapper = new ObjectMapper();
+    /**
+     * ObjectMapper 实例，用于JSON序列化和反序列化.
+     */
+    private static ObjectMapper objectMapper = new ObjectMapper();
 
-    private static final Logger logger =  LoggerFactory.getLogger(RedisDao.class);
+    /**
+     * 日志记录器，用于记录 RedisDao 类的日志信息.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(RedisDao.class);
 
+
+    /**
+     * 获取登录错误计数.
+     *
+     * @param loginErrorKey 登录错误键
+     * @return 登录错误计数
+     */
     public int getLoginErrorCount(String loginErrorKey) {
         Object loginErrorCount = this.get(loginErrorKey);
         return loginErrorCount == null ? 0 : Integer.parseInt(loginErrorCount.toString());
     }
-    
+
     /**
-     * 获取过期时间
+     * 获取过期时间.
      * 没有设置过期时间，返回-1
      * 没有找到该key，返回-2
      *
@@ -68,7 +84,7 @@ public class RedisDao {
     }
 
     /**
-     * 通过设置偏移量来修改value，不会更改过期时间
+     * 通过设置偏移量来修改value，不会更改过期时间.
      * offset = 0 表示不偏移
      * 注意：这种情况要修改的值，长度不能比原值长度小
      *
@@ -87,42 +103,39 @@ public class RedisDao {
     }
 
     /**
-     * 功能描述: <br>
-     * 〈设置key的有效期〉
+     * 设置键值对，并设置过期时间.
      *
-     * @param key:    key
-     * @param value:  value
-     * @param expire: 过期时间
-     * @return: boolean
-     * @Author: xiazhonghai
-     * @Date: 2020/11/16 16:00
+     * @param key    键
+     * @param value  值
+     * @param expire 过期时间
+     * @return 是否成功设置的布尔值
      */
     public boolean set(final String key, String value, Long expire) {
         boolean result = false;
         try {
-            if (!checkValue(value)) return false;
+            if (!checkValue(value)) {
+                return false;
+            }
             redisTemplate.setValueSerializer(new GzipSerializer(getJsonserializer()));
             ValueOperations operations = redisTemplate.opsForValue();
             operations.set(key, value);
-            if (expire < 1)
+            if (expire < 1) {
                 redisTemplate.persist(key);
-            else
+            } else {
                 redisTemplate.expire(key, expire, TimeUnit.SECONDS);
+            }
             result = true;
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return result;
     }
 
     /**
-     * 功能描述: <br>
-     * 〈获取key对应的value〉
+     * 获取key对应的value.
      *
-     * @param key: key
-     * @return: java.lang.Object
-     * @Author: xiazhonghai
-     * @Date: 2020/11/16 16:06
+     * @param key 键
+     * @return 对应的值对象
      */
     public Object get(final String key) {
         Object result = null;
@@ -131,30 +144,44 @@ public class RedisDao {
             ValueOperations operations = redisTemplate.opsForValue();
             result = operations.get(key);
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return result;
     }
 
     /**
-     * redis hash
+     * 设置哈希表中字段的值，并设置过期时间.
+     *
+     * @param key    哈希表键
+     * @param field  字段名
+     * @param value  字段值
+     * @param expire 过期时间
+     * @return 是否成功设置的布尔值
      */
     public boolean set(final String key, String field, String value, Long expire) {
         boolean result = false;
         try {
-            if (!checkValue(value))
+            if (!checkValue(value)) {
                 return false;
+            }
             redisTemplate.setValueSerializer(new GzipSerializer(getJsonserializer()));
             HashOperations<String, String, String> map = redisTemplate.opsForHash();
             map.put(key, field, value);
             redisTemplate.expire(key, expire, TimeUnit.SECONDS);
             result = true;
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return result;
     }
 
+    /**
+     * 获取哈希表中字段的值.
+     *
+     * @param key   哈希表键
+     * @param field 字段名
+     * @return 字段值对象
+     */
     public Object get(final String key, String field) {
         Object result = null;
         redisTemplate.setValueSerializer(new GzipSerializer(getJsonserializer()));
@@ -162,38 +189,32 @@ public class RedisDao {
             HashOperations<String, String, String> hashOperations = redisTemplate.opsForHash();
             result = hashOperations.get(key, field);
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return result;
     }
 
     /**
-     * 功能描述: <br>
-     * 〈判断key是否存在〉
+     * 检查键是否存在.
      *
-     * @param key:
-     * @return: boolean
-     * @Author: xiazhonghai
-     * @Date: 2020/11/16 16:05
+     * @param key 键
+     * @return 键是否存在的布尔值
      */
     public boolean exists(final String key) {
         boolean result = false;
         try {
             result = redisTemplate.hasKey(key);
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return result;
     }
 
     /**
-     * 功能描述: <br>
-     * 〈移除对应的key-value〉
+     * 删除指定键及其对应的值.
      *
-     * @param key: key
-     * @return: boolean
-     * @Author: xiazhonghai
-     * @Date: 2020/11/16 16:08
+     * @param key 键
+     * @return 删除操作是否成功的布尔值
      */
     public boolean remove(final String key) {
         boolean result = false;
@@ -203,18 +224,23 @@ public class RedisDao {
             }
             result = true;
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return result;
     }
 
     class GzipSerializer implements RedisSerializer<Object> {
 
+        /**
+         * 缓冲区大小常量.
+         */
         public static final int BUFFER_SIZE = 4096;
-        // 这里组合方式，使用到了一个序列化器
+        /**
+         * 这里组合方式，使用到了一个序列化器.
+         */
         private RedisSerializer<Object> innerSerializer;
 
-        public GzipSerializer(RedisSerializer<Object> innerSerializer) {
+        GzipSerializer(RedisSerializer<Object> innerSerializer) {
             this.innerSerializer = innerSerializer;
         }
 
@@ -236,7 +262,7 @@ public class RedisDao {
                 byte[] result = bos.toByteArray();
                 return result;
             } catch (Exception e) {
-                logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+                LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
                 throw new SerializationException("Gzip Serialization Error", e);
             } finally {
                 IOUtils.closeQuietly(bos);
@@ -268,7 +294,7 @@ public class RedisDao {
                 Object result = innerSerializer.deserialize(bos.toByteArray());
                 return result;
             } catch (Exception e) {
-                logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+                LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
                 throw new SerializationException("Gzip deserizelie error", e);
             } finally {
                 IOUtils.closeQuietly(bos);
@@ -291,12 +317,14 @@ public class RedisDao {
     private boolean checkValue(String value) {
         JsonNode dataNode;
         try {
-            if (!value.startsWith("{")) return true;
+            if (!value.startsWith("{")) {
+                return true;
+            }
             dataNode = objectMapper.readTree(value);
             int code = dataNode.get("code").intValue();
             return code == 200;
         } catch (JsonProcessingException e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return false;
         }
     }
