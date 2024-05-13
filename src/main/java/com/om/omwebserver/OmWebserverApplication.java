@@ -33,20 +33,35 @@ import com.om.Modules.TtlRedisCacheManager;
 @EnableCaching
 public class OmWebserverApplication {
 
+    /**
+     * Spring缓存的TTL值.
+     */
     @Value("${spring.cache.ttl}")
-    String springCacheTtl;
+    private String springCacheTtl;
 
+
+    /**
+     * 应用程序的入口点，启动 Spring Boot 应用.
+     *
+     * @param args 命令行参数
+     */
     public static void main(String[] args) {
         SpringApplication.run(OmWebserverApplication.class, args);
     }
 
+    /**
+     * 配置 TTL 缓存管理器 Bean.
+     *
+     * @param redisConnectionFactory Redis 连接工厂
+     * @return TTL 缓存管理器实例
+     */
     @Bean
     public RedisCacheManager ttlCacheManager(RedisConnectionFactory redisConnectionFactory) {
         RedisCacheConfiguration defaultCacheConfig = RedisCacheConfiguration.defaultCacheConfig()
-            .entryTtl(Duration.ofDays(Long.parseLong(springCacheTtl)));
+                .entryTtl(Duration.ofDays(Long.parseLong(springCacheTtl)));
 
         return new TtlRedisCacheManager(RedisCacheWriter.lockingRedisCacheWriter(redisConnectionFactory),
-            defaultCacheConfig);
+                defaultCacheConfig);
     }
 
 }
