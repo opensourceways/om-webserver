@@ -14,15 +14,50 @@ package com.om.Modules;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+/**
+ * 登录失败计数器类.
+ */
 @Data
 @Accessors(chain = true)
 public class LoginFailCounter {
-    String account;
-    String ip;
-    String accountKey;
-    String ipKey;
-    int accountCount;
-    int ipCount;
-    int limitCount;
-    long limitSeconds;
+    /**
+     * 账号信息.
+     */
+    private String account;
+
+    /**
+     * IP地址.
+     */
+    private String ip;
+
+    /**
+     * 账号键.
+     */
+    private String accountKey;
+
+    /**
+     * IP键.
+     */
+    private String ipKey;
+
+    /**
+     * 账号计数.
+     */
+    private int accountCount;
+
+    /**
+     * IP计数.
+     */
+    private int ipCount;
+
+    /**
+     * 限制计数.
+     */
+    private int limitCount;
+
+    /**
+     * 限制秒数.
+     */
+    private long limitSeconds;
+
 }
