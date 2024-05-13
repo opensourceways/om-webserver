@@ -41,6 +41,7 @@ import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.security.interfaces.RSAPrivateKey;
@@ -82,7 +83,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
     private static HashMap<String, Boolean> domain2secure;
 
-    private static final Logger logger =  LoggerFactory.getLogger(AuthingInterceptor.class);
+    private static final Logger logger = LoggerFactory.getLogger(AuthingInterceptor.class);
 
     @PostConstruct
     public void init() {
