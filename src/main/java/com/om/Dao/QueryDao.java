@@ -22,17 +22,29 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
 /**
- * @author zhxia
- * @date 2020/10/22 12:00
+ * 数据查询对象类.
  */
-
 @Repository
 public class QueryDao {
+
+    /**
+     * 持有者类型 API 格式.
+     */
     @Value("${owner.type.api}")
-    String apiFormat;
+    private String apiFormat;
 
-    private static final Logger logger =  LoggerFactory.getLogger(QueryDao.class);
+    /**
+     * 日志记录器，用于记录 QueryDao 类的日志信息.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(QueryDao.class);
 
+    /**
+     * 查询用户持有者类型.
+     *
+     * @param community 社区
+     * @param user      用户
+     * @return 用户持有者类型信息
+     */
     public String queryUserOwnertype(String community, String user) {
         String urlFormat = String.format(apiFormat, user);
         try {
@@ -41,7 +53,7 @@ public class QueryDao {
             String res = response.getBody().toString();
             return res;
         } catch (UnirestException e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return "{\"msg\":\"error\",\"code\":404,\"data\":null}";
         }
     }
