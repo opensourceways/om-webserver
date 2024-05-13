@@ -24,25 +24,47 @@ import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 import com.om.Modules.MessageCodeConfig;
 
-
-
+/**
+ * 用于与Git存储库交互的数据访问对象.
+ */
 @Repository
 public class GitDao {
 
-    private static final Logger logger =  LoggerFactory.getLogger(GitDao.class);
-    
+    /**
+     * 日志记录器，用于记录 GitDao 类的日志信息.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(GitDao.class);
+
+    /**
+     * 存储 Gitee API token，用于访问 Gitee 的 API 接口.
+     */
     @Value("${gitee.api.token}")
-    String giteeToken;
+    private String giteeToken;
 
+    /**
+     * Gitee API 的主机地址.
+     */
     @Value("${gitee.api.host}")
-    String giteeHost;
+    private String giteeHost;
 
+    /**
+     * 存储 GitHub API token，用于访问 GitHub 的 API 接口.
+     */
     @Value("${github.api.token}")
-    String githubToken;
+    private String githubToken;
 
+    /**
+     * GitHub API 的主机地址.
+     */
     @Value("${github.api.host}")
-    String githubHost;
+    private String githubHost;
 
+    /**
+     * 根据 Gitee 登录名获取 Gitee 用户ID，方法结果会被缓存.
+     *
+     * @param giteeLogin Gitee 登录名
+     * @return 对应的 Gitee 用户ID
+     */
     @Cacheable("giteeLogin")
     public String getGiteeUserIdByLogin(String giteeLogin) {
         JSONArray users = null;
@@ -56,7 +78,7 @@ public class GitDao {
                 users = response.getBody().getArray();
             }
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
 
@@ -66,16 +88,24 @@ public class GitDao {
 
         JSONObject targetUser = null;
         for (Object user : users) {
-            if (user instanceof JSONObject &&
-                giteeLogin.equals(((JSONObject) user).getString("login"))) {
+            if (user instanceof JSONObject
+                    && giteeLogin.equals(((JSONObject) user).getString("login"))) {
                 targetUser = (JSONObject) user;
             }
         }
 
-        if (targetUser == null) return null;
+        if (targetUser == null) {
+            return null;
+        }
         return Integer.toString(targetUser.getInt("id"));
     }
 
+    /**
+     * 根据 Github 登录名获取 Github 用户ID，方法结果会被缓存.
+     *
+     * @param githubLogin Github 登录名
+     * @return 对应的 Github 用户ID
+     */
     @Cacheable("githubLogin")
     public String getGithubUserIdByLogin(String githubLogin) {
         JSONArray users = null;
@@ -91,7 +121,7 @@ public class GitDao {
                 users = response.getBody().getObject().getJSONArray("items");
             }
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
         }
 
@@ -101,13 +131,15 @@ public class GitDao {
 
         JSONObject targetUser = null;
         for (Object user : users) {
-            if (user instanceof JSONObject &&
-                githubLogin.equals(((JSONObject) user).getString("login"))) {
+            if (user instanceof JSONObject
+                    && githubLogin.equals(((JSONObject) user).getString("login"))) {
                 targetUser = (JSONObject) user;
             }
         }
 
-        if (targetUser == null) return null;
+        if (targetUser == null) {
+            return null;
+        }
         return Integer.toString(targetUser.getInt("id"));
     }
 }
