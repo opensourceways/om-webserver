@@ -5,21 +5,29 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 
+/**
+ * Redis 消息监听器类实现消息监听接口.
+ */
 public class RedisMessageListener implements MessageListener {
 
-    private static final Logger logger = LoggerFactory.getLogger(RedisMessageListener.class);
 
     /**
-     * Redis 事件监听回调
-     * @param message
-     * @param pattern
+     * 静态日志记录器，用于记录 RedisMessageListener 类的日志信息.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(RedisMessageListener.class);
+
+    /**
+     * 处理接收到的消息.
+     *
+     * @param message 接收到的消息
+     * @param pattern 匹配模式
      */
     @Override
     public void onMessage(Message message, byte[] pattern) {
         byte[] body = message.getBody();
         String expiredKey = new String(body);
         if (expiredKey.contains("loginCount")) {
-            logger.info(String.format("Account %s is unlocked", expiredKey.replace("loginCount", "")));
+            LOGGER.info(String.format("Account %s is unlocked", expiredKey.replace("loginCount", "")));
         }
     }
 }
