@@ -22,59 +22,122 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * @author xiazhonghai
- * @date 2021/2/1 17:40
- * @description:
+ * Result: 表示操作结果的类.
  */
 public class Result {
+
+    /**
+     * 获取数据列表.
+     *
+     * @return data集合
+     */
     public List getData() {
         return data;
     }
 
+    /**
+     * 设置数据并返回结果对象.
+     *
+     * @param data 要设置的数据列表
+     * @return Result 对象本身
+     */
     public Result setData(List data) {
         this.data = data;
         return this;
     }
 
-    /**返回数据**/
-    List data;
-    /**状态码**/
-    int code;
-    /**返回信息描述**/
-    String message;
-    /**data总条数**/
-    int total;
+
+    /**
+     * 返回数据.
+     **/
+    private List data;
+    /**
+     * 状态码.
+     **/
+    private int code;
+    /**
+     * 返回信息描述.
+     **/
+    private String message;
+    /**
+     * data总条数.
+     **/
+    private int total;
 
 
-
+    /**
+     * 获取结果代码.
+     *
+     * @return 结果代码
+     */
     public int getCode() {
         return code;
     }
 
+    /**
+     * 设置结果代码并返回结果对象.
+     *
+     * @param code 结果代码
+     * @return Result 对象本身
+     */
     public Result setCode(int code) {
         this.code = code;
         return this;
     }
 
+    /**
+     * 获取消息内容.
+     *
+     * @return 消息内容
+     */
     public String getMessage() {
         return message;
     }
 
+    /**
+     * 设置消息内容并返回结果对象.
+     *
+     * @param message 消息内容
+     * @return Result 对象本身
+     */
     public Result setMessage(String message) {
         this.message = message;
         return this;
     }
 
+    /**
+     * 获取总数.
+     *
+     * @return 总数
+     */
     public int getTotal() {
         return total;
     }
 
+    /**
+     * 设置总数并返回结果对象.
+     *
+     * @param total 总数
+     * @return Result 对象本身
+     */
     public Result setTotal(int total) {
         this.total = total;
         return this;
     }
 
-    public ResponseEntity setResult(HttpStatus status, MessageCodeConfig msgCode, String msg, Object data, Map<String, MessageCodeConfig> error2code) {
+
+    /**
+     * 设置响应实体，包括HTTP状态、消息代码配置、消息内容、数据和错误码映射.
+     *
+     * @param status     HTTP状态
+     * @param msgCode    消息代码配置
+     * @param msg        消息内容
+     * @param data       数据
+     * @param error2code 错误码映射
+     * @return ResponseEntity 响应实体
+     */
+    public ResponseEntity setResult(HttpStatus status, MessageCodeConfig msgCode, String msg, Object data,
+                                    Map<String, MessageCodeConfig> error2code) {
         HashMap<String, Object> res = new HashMap<>();
         res.put("code", status.value());
         res.put("data", data);
@@ -96,7 +159,9 @@ public class Result {
             msgMap.put("message_zh", msgCode.getMsgZh());
             res.put("msg", msgMap);
         }
-        ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), status);
+        ResponseEntity<HashMap<String, Object>> responseEntity =
+                new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(res)),
+                        HashMap.class), status);
         return responseEntity;
     }
 }
