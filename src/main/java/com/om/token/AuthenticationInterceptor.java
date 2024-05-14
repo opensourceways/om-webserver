@@ -20,9 +20,11 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Service.TokenUserService;
 import com.om.Vo.TokenUser;
+
 import java.lang.reflect.Method;
 import java.util.Date;
 import java.util.HashMap;
+
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -34,20 +36,40 @@ import org.springframework.web.servlet.ModelAndView;
 
 
 public class AuthenticationInterceptor implements HandlerInterceptor {
-    static ObjectMapper objectMapper = new ObjectMapper();
+    /**
+     * 静态 ObjectMapper 对象.
+     */
+    private static ObjectMapper objectMapper = new ObjectMapper();
 
+    /**
+     * 自动注入 TokenUserService 服务.
+     */
     @Autowired
-    TokenUserService userService;
-    
+    private TokenUserService userService;
+
+    /**
+     * 令牌用户密码.
+     */
     @Value("${token.user.password}")
     private String tokenUserPassword;
 
+
+    /**
+     * 在请求处理之前调用，用于拦截请求.
+     *
+     * @param httpServletRequest  HTTP请求对象
+     * @param httpServletResponse HTTP响应对象
+     * @param object 对象
+     * @return 是否继续处理请求的布尔值
+     * @throws Exception 异常
+     */
     @Override
-    public boolean preHandle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object object) throws Exception {
+    public boolean preHandle(HttpServletRequest httpServletRequest,
+                             HttpServletResponse httpServletResponse, Object object) throws Exception {
         ServletOutputStream sos = httpServletResponse.getOutputStream();
 
         String community = httpServletRequest.getParameter("community");
-        if (community == null){
+        if (community == null) {
             return true;
         }
 

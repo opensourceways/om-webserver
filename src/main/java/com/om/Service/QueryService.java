@@ -11,17 +11,10 @@
 
 package com.om.Service;
 
-// import com.auth0.jwt.JWT;
-// import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
-// import com.fasterxml.jackson.core.type.TypeReference;
-// import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
-import java.util.*;
 
 import com.om.Modules.MessageCodeConfig;
 import org.apache.commons.lang3.StringUtils;
@@ -33,27 +26,50 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
 
-/**
- * @author zhxia
- * @date 2020/10/22 11:40
- */
+
 @Service
 public class QueryService {
+    /**
+     * 自动注入 QueryDao 对象.
+     */
     @Autowired
-    QueryDao queryDao;
+    private QueryDao queryDao;
 
+    /**
+     * 自动注入 RedisDao 对象.
+     */
     @Autowired
-    RedisDao redisDao;
+    private RedisDao redisDao;
 
+    /**
+     * 自动注入环境变量.
+     */
     @Autowired
     private Environment env;
 
+    /**
+     * 自动注入 AuthingUserDao 对象.
+     */
     @Autowired
-    AuthingUserDao authingUserDao;
+    private AuthingUserDao authingUserDao;
 
-    private static final Logger logger =  LoggerFactory.getLogger(QueryService.class);
+    /**
+     * 日志记录器，用于记录 QueryService 类的日志信息.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(QueryService.class);
 
+
+    /**
+     * 查询用户所有者类型.
+     *
+     * @param community 社区
+     * @param user      用户
+     * @param username  用户名
+     * @return 用户所有者类型的字符串
+     * @throws JsonProcessingException JSON处理异常
+     */
     public String queryUserOwnertype(String community, String user, String username)
             throws JsonProcessingException {
         String key = community.toLowerCase() + user + "ownertype";
@@ -63,7 +79,7 @@ public class QueryService {
             try {
                 result = queryDao.queryUserOwnertype(community, user);
             } catch (Exception e) {
-                logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+                LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             }
             boolean set = redisDao.set(key, result,
                     Long.valueOf(Objects.requireNonNull(env.getProperty("spring.redis.key.expire"))));
@@ -88,7 +104,9 @@ public class QueryService {
             for (Object identity : identities) {
                 JSONObject identityObj = (JSONObject) identity;
                 String originConnId = identityObj.getJSONArray("originConnIds").get(0).toString();
-                if (!originConnId.equals(env.getProperty("enterprise.connId.gitee"))) continue;
+                if (!originConnId.equals(env.getProperty("enterprise.connId.gitee"))) {
+                    continue;
+                }
                 giteeLogin = identityObj.getJSONObject("userInfoInIdp").getJSONObject("customData")
                         .getString("giteeLogin");
             }
