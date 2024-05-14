@@ -18,14 +18,25 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class ManageInterceptorConfig implements WebMvcConfigurer {
+    /**
+     * 配置拦截器，添加 OneIdManageInterceptor 拦截器并指定路径模式.
+     *
+     * @param registry 拦截器注册表
+     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(oneIdManageInterceptor())
                 .addPathPatterns("/query/**", "/oneid/**");
     }
 
+    /**
+     * 创建 OneIdManageInterceptor 拦截器 Bean.
+     *
+     * @return OneIdManageInterceptor 对象
+     */
     @Bean
     public OneIdManageInterceptor oneIdManageInterceptor() {
         return new OneIdManageInterceptor();
     }
+
 }

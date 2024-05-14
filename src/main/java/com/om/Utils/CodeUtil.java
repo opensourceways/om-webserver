@@ -29,6 +29,7 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import jakarta.mail.internet.MimeMessage;
+
 import java.math.BigInteger;
 import java.net.URLEncoder;
 import java.security.DrbgParameters;
@@ -40,19 +41,38 @@ import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.UUID;
 
 @Component
 public class CodeUtil {
-    private static final Logger logger =  LoggerFactory.getLogger(CodeUtil.class);
+    /**
+     * 日志记录器，用于记录 CodeUtil 类的日志信息.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(CodeUtil.class);
 
-    // 华为云MSGSMS，用于格式化鉴权头域，给"Authorization"参数赋值
+    /**
+     * 华为云MSGSMS，用于格式化鉴权头域，给"Authorization"参数赋值.
+     */
     public static final String AUTH_HEADER_VALUE = "WSSE realm=\"SDP\",profile=\"UsernameToken\",type=\"Appkey\"";
 
-    // 华为云MSGSMS，用于格式化鉴权头域，给"X-WSSE"参数赋值
-    private static final String WSSE_HEADER_FORMAT = "UsernameToken Username=\"%s\",PasswordDigest=\"%s\",Nonce=\"%s\",Created=\"%s\"";
+    /**
+     * 华为云MSGSMS，用于格式化鉴权头域，给"X-WSSE"参数赋值.
+     */
+    private static final String WSSE_HEADER_FORMAT =
+            "UsernameToken Username=\"%s\",PasswordDigest=\"%s\",Nonce=\"%s\",Created=\"%s\"";
 
-    public String[] sendCode(String accountType, String account, JavaMailSender mailSender, Environment env, String community) {
+
+    /**
+     * 发送验证码并返回字符串数组.
+     *
+     * @param accountType 账户类型
+     * @param account     账户信息
+     * @param mailSender  JavaMailSender 对象
+     * @param env         环境对象
+     * @param community   社区信息
+     * @return 字符串数组
+     */
+    public String[] sendCode(String accountType, String account,
+                             JavaMailSender mailSender, Environment env, String community) {
         String resMsg = "fail";
         long codeExpire = 60L;
         String code = null;
@@ -75,45 +95,48 @@ public class CodeUtil {
                     codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
                     // 短信发送服务器
                     String communityTemp = StringUtils.isBlank(community) ? "" : community + ".";
-                    String msgsms_app_key = env.getProperty(communityTemp + "msgsms.app_key");
-                    String msgsms_app_secret = env.getProperty(communityTemp + "msgsms.app_secret");
-                    String msgsms_url = env.getProperty(communityTemp + "msgsms.url");
-                    String msgsms_signature = env.getProperty(communityTemp + "msgsms.signature");
-                    String msgsms_sender = env.getProperty(communityTemp + "msgsms.sender");
-                    String msgsms_template_id = env.getProperty(communityTemp + "msgsms.template.id");
+                    String msgsmsAppKey = env.getProperty(communityTemp + "msgsms.app_key");
+                    String msgsmsAppSecret = env.getProperty(communityTemp + "msgsms.app_secret");
+                    String msgsmsUrl = env.getProperty(communityTemp + "msgsms.url");
+                    String msgsmsSignature = env.getProperty(communityTemp + "msgsms.signature");
+                    String msgsmsSender = env.getProperty(communityTemp + "msgsms.sender");
+                    String msgsmsTemplateId = env.getProperty(communityTemp + "msgsms.template.id");
                     // 短信发送模板赋值
                     String templateParas = (community.equalsIgnoreCase("opengauss"))
                             ? String.format("[\"%s\",\"%s\"]", code, env.getProperty("msgsms.template.expire.minutes"))
                             : String.format("[\"%s\"]", code);
-                    String wsseHeader = buildWsseHeader(msgsms_app_key, msgsms_app_secret);
-                    String body = buildSmsBody(msgsms_sender, account, msgsms_template_id,
-                            templateParas, "", msgsms_signature);
+                    String wsseHeader = buildWsseHeader(msgsmsAppKey, msgsmsAppSecret);
+                    String body = buildSmsBody(msgsmsSender, account, msgsmsTemplateId,
+                            templateParas, "", msgsmsSignature);
                     // 发送验证码
-                    HttpResponse<JsonNode> response = Unirest.post(msgsms_url)
+                    HttpResponse<JsonNode> response = Unirest.post(msgsmsUrl)
                             .header("Content-Type", "application/x-www-form-urlencoded")
                             .header("Authorization", CodeUtil.AUTH_HEADER_VALUE)
                             .header("X-WSSE", wsseHeader)
                             .body(body)
                             .asJson();
-                    if (response.getStatus() == 200) resMsg = "send code success";
+                    if (response.getStatus() == 200) {
+                        resMsg = "send code success";
+                    }
                     break;
                 default:
                     break;
             }
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return new String[]{code, String.valueOf(codeExpire), resMsg};
     }
 
     /**
-     * 发送简单的邮件
+     * 发送简单的邮件.
      *
      * @param mailSender 邮箱服务
      * @param from       发件邮箱
      * @param to         收件邮箱
      * @param title      标题
      * @param content    内容
+     * @return 发送邮件结果
      */
     public String sendSimpleMail(JavaMailSender mailSender, String from, String to, String title, String content) {
         SimpleMailMessage message = new SimpleMailMessage();
@@ -126,13 +149,14 @@ public class CodeUtil {
     }
 
     /**
-     * 发送html邮件
+     * 发送html邮件.
      *
      * @param mailSender 邮箱服务
      * @param from       发件邮箱
      * @param to         收件邮箱
      * @param title      标题
      * @param content    html格式的内容
+     * @return 发送邮件结果
      */
     public String sendHtmlMail(JavaMailSender mailSender, String from, String to, String title, String content) {
         try {
@@ -151,10 +175,11 @@ public class CodeUtil {
     }
 
     /**
-     * 解除绑定邮箱，邮件信息
+     * 解除绑定邮箱，邮件信息.
      *
-     * @param email 邮箱
-     * @param code  验证码
+     * @param email         邮箱
+     * @param code          验证码
+     * @param expireMinutes 过期分钟数
      * @return 邮件模板 {标题， 内容}
      */
     public String[] buildEmailCodeInfo(String email, String code, String expireMinutes) {
@@ -178,7 +203,7 @@ public class CodeUtil {
     }
 
     /**
-     * 短信发送请求body
+     * 短信发送请求body.
      *
      * @param sender         签名通道号(发送方)
      * @param receiver       接受号码，号码格式(包含国家码),示例:+8615123456789,多个号码之间用英文逗号分隔
@@ -186,7 +211,7 @@ public class CodeUtil {
      * @param templateParas  模板内容
      * @param statusCallBack 选填,短信状态报告接收地址,推荐使用域名,为空或者不填表示不接收状态报告
      * @param signature      签名名称
-     * @return
+     * @return 构建的短信内容字符串
      */
     public String buildSmsBody(String sender, String receiver, String templateId, String templateParas,
                                String statusCallBack, String signature) {
@@ -217,7 +242,7 @@ public class CodeUtil {
             try {
                 temp = URLEncoder.encode(map.get(s), "UTF-8");
             } catch (Exception e) {
-                logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+                LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             }
             sb.append(s).append("=").append(temp).append("&");
         }
@@ -226,15 +251,15 @@ public class CodeUtil {
     }
 
     /**
-     * 短信发送请求header
+     * 短信发送请求header.
      *
      * @param appKey    APP_Key
      * @param appSecret APP_Secret
-     * @return
+     * @return 短信发送请求header
      */
     public String buildWsseHeader(String appKey, String appSecret) throws NoSuchAlgorithmException {
         if (null == appKey || null == appSecret || appKey.isEmpty() || appSecret.isEmpty()) {
-            logger.error("buildWsseHeader(): appKey or appSecret is null.");
+            LOGGER.error("buildWsseHeader(): appKey or appSecret is null.");
             return null;
         }
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
@@ -249,7 +274,7 @@ public class CodeUtil {
             md.update((nonce + time + appSecret).getBytes());
             passwordDigest = md.digest();
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
 
         // PasswordDigest
@@ -259,13 +284,16 @@ public class CodeUtil {
     }
 
     /**
-     * 随机生成验证码
+     * 随机生成验证码.
      *
-     * @return 验证码
+     * @param codeLength 随机数长度
+     * @return 生成的随机数字字符串
+     * @throws NoSuchAlgorithmException 当算法不存在时抛出异常
      */
     public String randomNumBuilder(int codeLength) throws NoSuchAlgorithmException {
         StringBuilder result = new StringBuilder();
-        SecureRandom instance = SecureRandom.getInstance("DRBG", DrbgParameters.instantiation(256, Capability.RESEED_ONLY, null));
+        SecureRandom instance = SecureRandom.getInstance("DRBG",
+                DrbgParameters.instantiation(256, Capability.RESEED_ONLY, null));
         for (int i = 0; i < codeLength; i++) {
             result.append(instance.nextInt(9));
         }
@@ -273,19 +301,28 @@ public class CodeUtil {
     }
 
     /**
-     * 随机生成字符串
+     * 随机生成字符串.
      *
      * @param strLength 字符串长度
      * @return 随机字符串
+     * @throws NoSuchAlgorithmException 当算法不存在时抛出异常
      */
     public String randomStrBuilder(int strLength) throws NoSuchAlgorithmException {
-        SecureRandom random = SecureRandom.getInstance("DRBG", DrbgParameters.instantiation(256, Capability.RESEED_ONLY, null));
+        SecureRandom random = SecureRandom.getInstance("DRBG",
+                DrbgParameters.instantiation(256, Capability.RESEED_ONLY, null));
         return new BigInteger(160, random).toString(strLength);
     }
 
+    /**
+     * 拦截器方法，根据渠道和用户是否存在执行相应操作.
+     *
+     * @param channel     渠道信息
+     * @param isUserExist 用户是否存在的标志
+     * @return 操作结果的字符串
+     */
     public String interceptor(String channel, boolean isUserExist) {
         if ((Constant.CHANNEL_REGISTER.equals(channel) || Constant.CHANNEL_REGISTER_BY_PASSWORD.equals(channel))
-        && isUserExist) {
+                && isUserExist) {
             return MessageCodeConfig.E00057.getMsgZh();
         }
 
