@@ -18,6 +18,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class InterceptorConfig implements WebMvcConfigurer {
+    /**
+     * 配置拦截器，添加身份验证拦截器并指定路径模式.
+     *
+     * @param registry 拦截器注册表
+     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(authenticationInterceptor())
@@ -25,8 +30,14 @@ public class InterceptorConfig implements WebMvcConfigurer {
                 .addPathPatterns("/add/**");
     }
 
+    /**
+     * 创建身份验证拦截器 Bean.
+     *
+     * @return AuthenticationInterceptor 对象
+     */
     @Bean
     public AuthenticationInterceptor authenticationInterceptor() {
         return new AuthenticationInterceptor();
     }
+
 }

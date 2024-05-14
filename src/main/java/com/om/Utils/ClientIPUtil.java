@@ -4,13 +4,29 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.servlet.http.HttpServletRequest;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-public class ClientIPUtil {
-    private static final Logger logger = LoggerFactory.getLogger(ClientIPUtil.class);
+public final class ClientIPUtil {
 
 
+    private ClientIPUtil() {
+        throw new AssertionError("Utility class. Not intended for instantiation.");
+    }
+
+    /**
+     * 日志记录器，用于记录 ClientIPUtil 类的日志信息.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(ClientIPUtil.class);
+
+
+    /**
+     * 获取客户端IP地址.
+     *
+     * @param request HTTP请求对象
+     * @return 客户端IP地址字符串
+     */
     public static String getClientIpAddress(HttpServletRequest request) {
         // 获取请求主机IP地址,如果通过代理进来，则透过防火墙获取真实IP地址
         String headerName = "x-forwarded-for";
@@ -51,13 +67,14 @@ public class ClientIPUtil {
                 try {
                     inet = InetAddress.getLocalHost();
                 } catch (UnknownHostException e) {
-                    logger.error("get local host error: " + e.getMessage());
+                    LOGGER.error("get local host error: " + e.getMessage());
                 }
                 ip = inet.getHostAddress();
             }
         }
         return ip;
     }
+
     private static boolean checkIp(String ip) {
         if (null == ip || ip.length() == 0 || "unknown".equalsIgnoreCase(ip)) {
             return true;
