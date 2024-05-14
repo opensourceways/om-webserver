@@ -23,16 +23,36 @@ import java.util.List;
 import java.util.Collections;
 import java.util.ArrayList;
 
-public class LogUtil {
-    private static final Logger logger = LoggerFactory.getLogger(LogUtil.class);
+public final class LogUtil {
 
-    public static final List<String> URL_NO_LOG_WHITE_LIST = Collections.unmodifiableList(new ArrayList<>(){
+    private LogUtil() {
+        throw new AssertionError("Utility class. Not intended for instantiation.");
+    }
+
+    /**
+     * 日志记录器，用于记录 LogUtil 类的日志信息.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(LogUtil.class);
+
+    /**
+     * 不记录日志的 URL 白名单列表.
+     */
+    public static final List<String> URL_NO_LOG_WHITE_LIST = Collections.unmodifiableList(new ArrayList<>() {
         {
             add("/oneid/checkOmService");
         }
     });
 
-    public static void managementOperate(JoinPoint joinPoint, HttpServletRequest request, HttpServletResponse response, Object returnObject) {
+    /**
+     * 管理操作，处理连接点、请求、响应和返回对象.
+     *
+     * @param joinPoint    切入点
+     * @param request      HTTP请求对象
+     * @param response     HTTP响应对象
+     * @param returnObject 返回对象
+     */
+    public static void managementOperate(JoinPoint joinPoint, HttpServletRequest request,
+                                         HttpServletResponse response, Object returnObject) {
         if (URL_NO_LOG_WHITE_LIST.contains(request.getRequestURI())) {
             return;
         }
@@ -43,7 +63,8 @@ public class LogUtil {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         log.setTime(dateTime.format(formatter));
 
-        log.setFunc(String.format("%s.%s", joinPoint.getSignature().getDeclaringTypeName(), joinPoint.getSignature().getName()));
+        log.setFunc(String.format("%s.%s",
+                joinPoint.getSignature().getDeclaringTypeName(), joinPoint.getSignature().getName()));
 
         log.setRequestUrl(request.getRequestURI());
         log.setMethod(request.getMethod());
@@ -55,19 +76,26 @@ public class LogUtil {
             log.setStatus(responseEntity.getStatusCodeValue());
             if (responseEntity.getBody() instanceof HashMap) {
                 HashMap<String, Object> body = (HashMap) responseEntity.getBody();
-                Object msg = (body.get("msg") == null)?
-                              body.get("message") : 
-                              body.get("msg");
-                log.setMessage((msg == null)? "" : msg.toString());
+                Object msg = (body.get("msg") == null)
+                        ? body.get("message")
+                        : body.get("msg");
+                log.setMessage((msg == null) ? "" : msg.toString());
             }
         }
 
         log.setOperator(getUserId(request, response));
 
         String jsonLog = JSON.toJSONString(log);
-        logger.info("operationLog:{}", jsonLog);
+        LOGGER.info("operationLog:{}", jsonLog);
     }
 
+    /**
+     * 获取用户ID.
+     *
+     * @param request  HTTP请求对象
+     * @param response HTTP响应对象
+     * @return 用户ID字符串
+     */
     public static String getUserId(HttpServletRequest request, HttpServletResponse response) {
         // 从token中获取
         String token = request.getHeader("token");
@@ -88,21 +116,25 @@ public class LogUtil {
                 String userId = decode.getAudience().get(0);
                 return userId;
             } catch (Exception e) {
-                logger.info("Log using token fail");
+                LOGGER.info("Log using token fail");
             }
         }
 
         // 从param中获取
         String[] idKey = {"username"};
-        for (String key: idKey) {
+        for (String key : idKey) {
             String userId = request.getParameter(key);
-            if (StringUtils.isNotBlank(userId)) return userId;
+            if (StringUtils.isNotBlank(userId)) {
+                return userId;
+            }
         }
 
         // 从body中获取
         for (String key : idKey) {
             Object userId = request.getAttribute(key);
-            if (userId != null) return userId.toString();
+            if (userId != null) {
+                return userId.toString();
+            }
         }
         return "";
     }
