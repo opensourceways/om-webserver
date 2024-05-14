@@ -48,41 +48,88 @@ import java.util.Map;
 
 @Service
 public class OneIdManageService {
+    /**
+     * 自动注入环境变量.
+     */
     @Autowired
-    Environment env;
+    private Environment env;
 
+    /**
+     * 自动注入 AuthingService 服务.
+     */
     @Autowired
-    AuthingService authingService;
+    private AuthingService authingService;
 
+    /**
+     * 自动注入 JwtTokenCreateService 服务.
+     */
     @Autowired
-    JwtTokenCreateService jwtTokenCreateService;
+    private JwtTokenCreateService jwtTokenCreateService;
 
+    /**
+     * 自动注入 AuthingUserDao 数据访问对象.
+     */
     @Autowired
-    AuthingUserDao authingUserDao;
+    private AuthingUserDao authingUserDao;
 
+
+    /**
+     * 自动注入 RedisDao 对象.
+     */
     @Autowired
-    RedisDao redisDao;
+    private RedisDao redisDao;
 
+    /**
+     * 自动注入 GitDao 对象.
+     */
     @Autowired
-    GitDao gitDao;
+    private GitDao gitDao;
 
+    /**
+     * 自动注入 ObjectMapper 对象.
+     */
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
+    /**
+     * 从配置中获取企业Gitee提供者ID.
+     */
     @Value("${enterprise.extIdpId.gitee}")
-    String giteeProviderId;
+    private String giteeProviderId;
 
+    /**
+     * 从配置中获取社交GitHub提供者ID.
+     */
     @Value("${social.extIdpId.github}")
-    String githubProviderId;
+    private String githubProviderId;
 
-    private static final Logger logger =  LoggerFactory.getLogger(OneIdManageService.class);
+    /**
+     * 静态日志记录器，用于记录 OneIdManageService 类的日志信息.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(OneIdManageService.class);
 
-    static final String[] PARAMETER_DEFAULT_VALUE = new String[]{""};
+    /**
+     * 参数默认值数组.
+     */
+    private static final String[] PARAMETER_DEFAULT_VALUE = new String[]{""};
 
-    static final String MSG_DEFAULT = "Internal Server Error";
+    /**
+     * 默认消息内容.
+     */
+    private static final String MSG_DEFAULT = "Internal Server Error";
 
-    static final String TOKEN_REGEX = "token_info:";
+    /**
+     * 令牌正则表达式前缀.
+     */
+    private static final String TOKEN_REGEX = "token_info:";
 
+
+    /**
+     * 处理令牌申请请求.
+     *
+     * @param body 请求体参数映射
+     * @return ResponseEntity 对象
+     */
     public ResponseEntity tokenApply(Map<String, String> body) {
         try {
             String grantType = body.get("grant_type");
@@ -108,26 +155,36 @@ public class OneIdManageService {
                         "grant_type must be token or refresh_token", null);
             }
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
 
     }
 
+    /**
+     * 发送验证码并返回 ResponseEntity.
+     *
+     * @param body      请求体参数映射
+     * @param token     令牌
+     * @param isSuccess 发送是否成功的标志
+     * @return ResponseEntity 对象
+     */
     public ResponseEntity sendCode(Map<String, String> body, String token, boolean isSuccess) {
         String account = body.get("account");
         String channel = body.get("channel");
 
         // 图片验证码二次校验
         if (!isSuccess) {
-            return authingService.result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
+            return authingService.result(HttpStatus.BAD_REQUEST,
+                    null, MessageCodeConfig.E0002.getMsgZh(), null);
         }
 
         // 限制1分钟只能发送一次
         String redisKey = account.toLowerCase() + "_sendcode";
         String codeOld = (String) redisDao.get(redisKey);
         if (codeOld != null) {
-            return authingService.result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
+            return authingService.result(HttpStatus.BAD_REQUEST,
+                    null, MessageCodeConfig.E0009.getMsgZh(), null);
         }
 
         String msg;
@@ -155,6 +212,13 @@ public class OneIdManageService {
         }
     }
 
+    /**
+     * 绑定账号的方法.
+     *
+     * @param body  包含请求体信息的 Map 对象
+     * @param token 包含在请求头中的令牌字符串
+     * @return 返回 ResponseEntity 对象
+     */
     public ResponseEntity bindAccount(Map<String, String> body, String token) {
         String account = body.get("account");
         String code = body.get("code");
@@ -178,34 +242,66 @@ public class OneIdManageService {
         }
     }
 
+    /**
+     * 身份验证的方法.
+     *
+     * @param community  社区参数
+     * @param userCookie 用户 Cookie 值
+     * @return 返回 ResponseEntity 对象
+     */
     public ResponseEntity authenticate(String community, String userCookie) {
         return authingService.authingUserPermission(community, userCookie);
     }
 
+    /**
+     * 获取用户信息的方法.
+     *
+     * @param username    用户名
+     * @param userId      用户ID
+     * @param giteeLogin  Gitee 登录名
+     * @param githubLogin GitHub 登录名
+     * @return 返回 ResponseEntity 对象
+     */
     public ResponseEntity getUserInfo(String username, String userId, String giteeLogin, String githubLogin) {
         try {
             // only single param allowed
             List<String> params = Arrays.asList(username, userId, giteeLogin, githubLogin);
             int count = 0;
             for (String param : params) {
-                if (StringUtils.isNotBlank(param)) count += 1;
+                if (StringUtils.isNotBlank(param)) {
+                    count += 1;
+                }
             }
-            if (count != 1) return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00064, null, null);
+            if (count != 1) {
+                return authingService.result(
+                        HttpStatus.BAD_REQUEST, MessageCodeConfig.E00064, null, null);
+            }
 
             JSONObject userInfo = null;
-            if (StringUtils.isNotBlank(userId)) userInfo = authingUserDao.getUserById(userId);
-            if (StringUtils.isNotBlank(username)) userInfo = authingUserDao.getUserByName(username);
+            if (StringUtils.isNotBlank(userId)) {
+                userInfo = authingUserDao.getUserById(userId);
+            }
+            if (StringUtils.isNotBlank(username)) {
+                userInfo = authingUserDao.getUserByName(username);
+            }
             if (StringUtils.isNotBlank(giteeLogin)) {
                 String giteeId = gitDao.getGiteeUserIdByLogin(giteeLogin);
-                if (StringUtils.isNotBlank(giteeId)) userInfo = authingUserDao.getUserV3(giteeProviderId.concat(":").concat(giteeId), "identity");
+                if (StringUtils.isNotBlank(giteeId)) {
+                    userInfo = authingUserDao.getUserV3(
+                            giteeProviderId.concat(":").concat(giteeId), "identity");
+                }
             }
             if (StringUtils.isNotBlank(githubLogin)) {
                 String githubId = gitDao.getGithubUserIdByLogin(githubLogin);
-                if (StringUtils.isNotBlank(githubId)) userInfo = authingUserDao.getUserV3(githubProviderId.concat(":").concat(githubId), "identity");
+                if (StringUtils.isNotBlank(githubId)) {
+                    userInfo = authingUserDao.getUserV3(
+                            githubProviderId.concat(":").concat(githubId), "identity");
+                }
             }
 
             if (userInfo != null) {
-                return authingService.result(HttpStatus.OK, null, "success", authingService.parseAuthingUser(userInfo));
+                return authingService.result(HttpStatus.OK, null,
+                        "success", authingService.parseAuthingUser(userInfo));
             } else {
                 return authingService.result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, null);
             }
@@ -214,6 +310,12 @@ public class OneIdManageService {
         }
     }
 
+    /**
+     * 撤销隐私设置的方法.
+     *
+     * @param userId 用户id
+     * @return 返回 ResponseEntity 对象
+     */
     public ResponseEntity revokePrivacy(String userId) {
         try {
             if (authingUserDao.revokePrivacy(userId)) {
@@ -222,13 +324,13 @@ public class OneIdManageService {
 
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         } catch (Exception e) {
-            logger.error(e.getMessage());
+            LOGGER.error(e.getMessage());
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
     }
 
     /**
-     * APP是否存在，且密码是否正确
+     * APP是否存在，且密码是否正确.
      *
      * @param appId     appId
      * @param appSecret appSecret
@@ -239,14 +341,14 @@ public class OneIdManageService {
             Application app = authingUserDao.getAppById(appId);
             return app != null && appSecret.equals(app.getSecret());
         } catch (Exception e) {
-            logger.error(String.format("Can't find app with id %s", appId));
-            logger.error(e.getMessage());
+            LOGGER.error(String.format("Can't find app with id %s", appId));
+            LOGGER.error(e.getMessage());
             return false;
         }
     }
 
     /**
-     * 生成token和refresh_token
+     * 生成token和refresh_token.
      *
      * @param appId     appId
      * @param appSecret appSecret
@@ -288,7 +390,7 @@ public class OneIdManageService {
     }
 
     /**
-     * 申请app管理员的token和refresh_token
+     * 申请app管理员的token和refresh_token.
      *
      * @param appId     appId
      * @param appSecret appSecret
@@ -304,13 +406,13 @@ public class OneIdManageService {
             Map<String, Object> tokens = createTokens(appId, appSecret);
             return result(HttpStatus.OK, "OK", tokens);
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
     }
 
     /**
-     * 使用旧token和refresh_token生成新的token和refresh_token
+     * 使用旧token和refresh_token生成新的token和refresh_token.
      *
      * @param oldToken    旧token
      * @param oldRefToken 旧refresh_token
@@ -333,13 +435,13 @@ public class OneIdManageService {
 
             return result(HttpStatus.OK, "OK", newTokens);
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
     }
 
     /**
-     * 校验token和refresh_token
+     * 校验token和refresh_token.
      *
      * @param token        token
      * @param refreshToken refresh_token
@@ -373,7 +475,7 @@ public class OneIdManageService {
 
             return jsonNode;
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return "token error or expire";
         }
     }
@@ -395,6 +497,7 @@ public class OneIdManageService {
         if (claim != null) {
             res.putAll(claim);
         }
-        return new ResponseEntity<>(JSON.parseObject(HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), status);
+        return new ResponseEntity<>(JSON.parseObject(
+                HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), status);
     }
 }
