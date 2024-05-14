@@ -26,19 +26,39 @@ import org.springframework.web.servlet.ModelAndView;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.io.IOException;
 import java.lang.reflect.Method;
 
 public class OneIdManageInterceptor implements HandlerInterceptor {
+    /**
+     * 自动注入环境变量.
+     */
     @Autowired
-    Environment env;
+    private Environment env;
 
+    /**
+     * 自动注入 Redis 数据访问对象.
+     */
     @Autowired
-    RedisDao redisDao;
+    private RedisDao redisDao;
 
+    /**
+     * 自动注入对象映射器 ObjectMapper.
+     */
     @Autowired
-    ObjectMapper objectMapper;
+    private ObjectMapper objectMapper;
 
+
+    /**
+     * 在请求处理之前调用，用于拦截请求.
+     *
+     * @param request  HTTP请求对象
+     * @param response HTTP响应对象
+     * @param handler  处理器对象
+     * @return 是否继续处理请求的布尔值
+     * @throws Exception 异常
+     */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
                              Object handler) throws Exception {

@@ -19,5 +19,10 @@ import java.lang.annotation.Target;
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface UserLoginToken {
+    /**
+     * 指示是否为必需属性，默认为true.
+     *
+     * @return boolean
+     */
     boolean required() default true;
 }
