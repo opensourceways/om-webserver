@@ -17,6 +17,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -35,22 +36,55 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-public class HttpClientUtils implements Serializable {
-    private static final Logger logger =  LoggerFactory.getLogger(HttpClientUtils.class);
+public final class HttpClientUtils implements Serializable {
 
-    static PoolingHttpClientConnectionManager connectionManager;
-    static ConnectionKeepAliveStrategy myStrategy;
-    static CredentialsProvider credentialsProvider;
-    static CloseableHttpClient client;
 
-    static {
-        credentialsProvider = new BasicCredentialsProvider();
+    private HttpClientUtils() {
+        throw new AssertionError("Utility class. Not intended for instantiation.");
     }
 
+    /**
+     * 日志记录器实例，用于记录 HttpClientUtils 类的日志信息.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientUtils.class);
+
+    /**
+     * 静态连接池管理器.
+     */
+    private static PoolingHttpClientConnectionManager connectionManager;
+
+    /**
+     * 自定义连接保持策略.
+     */
+    private static ConnectionKeepAliveStrategy myStrategy;
+
+    /**
+     * 凭据提供者.
+     */
+    private static CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
+
+    /**
+     * 可关闭的 HTTP 客户端.
+     */
+    private static CloseableHttpClient client;
+
+
+    /**
+     * 获取可关闭的 HTTP 客户端实例.
+     *
+     * @return CloseableHttpClient 对象
+     */
     public static CloseableHttpClient getClient() {
         return HttpClients.custom().setConnectionManager(connectionManager).build();
     }
 
+    /**
+     * 获取配置的 Cookie 信息并存储在HashMap中.
+     *
+     * @param domainsStr 域名字符串
+     * @param securesStr 安全性字符串
+     * @return 包含配置的 Cookie 信息的 HashMap
+     */
     public static HashMap<String, Boolean> getConfigCookieInfo(String domainsStr, String securesStr) {
         HashMap<String, Boolean> res = new HashMap<>();
         String[] domains = domainsStr.split(";");
@@ -62,14 +96,27 @@ public class HttpClientUtils implements Serializable {
             try {
                 secure = secures[i];
             } catch (Exception e) {
-                logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+                LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             }
             res.put(domain, Boolean.valueOf(secure));
         }
         return res;
     }
 
-    public static void setCookie(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse, String name, String value,
+    /**
+     * 设置 Cookie 到 HttpServletResponse.
+     *
+     * @param httpServletRequest HTTP请求对象
+     * @param servletResponse    HTTP响应对象
+     * @param name               Cookie名称
+     * @param value              Cookie值
+     * @param isHttpOnly         是否是 HttpOnly
+     * @param maxAge             最大年龄
+     * @param path               路径
+     * @param domain2Secure      域名到安全性的映射
+     */
+    public static void setCookie(HttpServletRequest httpServletRequest,
+                                 HttpServletResponse servletResponse, String name, String value,
                                  boolean isHttpOnly, int maxAge, String path, HashMap<String, Boolean> domain2Secure) {
         String serverName = httpServletRequest.getServerName();
         String referer = httpServletRequest.getHeader("referer");
@@ -97,8 +144,12 @@ public class HttpClientUtils implements Serializable {
                 break;
             }
         }
-        if (domain == null) return;
-        if (StringUtils.isBlank(path)) path = "/";
+        if (domain == null) {
+            return;
+        }
+        if (StringUtils.isBlank(path)) {
+            path = "/";
+        }
 
         Cookie cookie = new Cookie(name, value);
         cookie.setDomain(domain);
@@ -109,9 +160,19 @@ public class HttpClientUtils implements Serializable {
         servletResponse.addCookie(cookie);
     }
 
+    /**
+     * 删除指定域名和路径下的 Cookie.
+     *
+     * @param servletResponse HTTP响应对象
+     * @param domainStr       域名字符串
+     * @param name            Cookie名称
+     * @param path            路径
+     */
     public static void deleteCookie(HttpServletResponse servletResponse, String domainStr, String name, String path) {
         String[] domains = domainStr == null ? new String[]{} : domainStr.split(";");
-        if (StringUtils.isBlank(path)) path = "/";
+        if (StringUtils.isBlank(path)) {
+            path = "/";
+        }
 
         for (String domain : domains) {
             Cookie cookie = new Cookie(name, "");
@@ -122,6 +183,12 @@ public class HttpClientUtils implements Serializable {
         }
     }
 
+    /**
+     * 从HttpServletRequest中获取请求体内容并转为Map对象.
+     *
+     * @param request HTTP请求对象
+     * @return 包含请求体内容的 Map 对象
+     */
     public static Map<String, Object> getBodyFromRequest(HttpServletRequest request) {
         ObjectMapper objectMapper = new ObjectMapper();
         Map<String, Object> body = new HashMap<>();
@@ -139,7 +206,7 @@ public class HttpClientUtils implements Serializable {
                 saveUserIdToAttr(request, body);
             }
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return body;
     }
