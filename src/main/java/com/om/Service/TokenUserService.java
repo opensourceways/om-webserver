@@ -17,12 +17,26 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class TokenUserService {
+    /**
+     * 令牌用户名称.
+     */
     @Value("${token.user.name}")
     private String tokenUserName;
 
+    /**
+     * 令牌用户密码.
+     */
     @Value("${token.user.password}")
     private String tokenUserPassword;
 
+
+    /**
+     * 根据社区和用户名查找 TokenUser 对象.
+     *
+     * @param community 社区
+     * @param name 用户名
+     * @return TokenUser 对象
+     */
     public TokenUser findByUsername(String community, String name) {
         if (!community.equalsIgnoreCase("openeuler")
                 && !community.equalsIgnoreCase("opengauss")
@@ -31,7 +45,9 @@ public class TokenUserService {
             return null;
         }
 
-        if (name == null) return null;
+        if (name == null) {
+            return null;
+        }
 
         String userName = tokenUserName;
         if (name.equals(userName)) {

@@ -26,51 +26,97 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+
 import java.security.interfaces.RSAPublicKey;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.Base64;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
 
 @Service
 public class JwtTokenCreateService {
-    @Autowired
-    RedisDao redisDao;
 
+    /**
+     * 注入 RedisDao 依赖.
+     */
     @Autowired
-    AuthingUserDao authingUserDao;
+    private RedisDao redisDao;
 
+    /**
+     * 注入 AuthingUserDao 依赖.
+     */
     @Autowired
-    CodeUtil codeUtil;
+    private AuthingUserDao authingUserDao;
 
+    /**
+     * 注入 CodeUtil 依赖.
+     */
+    @Autowired
+    private CodeUtil codeUtil;
+
+
+    /**
+     * 过期时间（秒）：Authing Token.
+     */
     @Value("${authing.token.expire.seconds}")
     private String authingTokenExpireSeconds;
 
+    /**
+     * 基础密码：Authing Token.
+     */
     @Value("${authing.token.base.password}")
     private String authingTokenBasePassword;
 
+    /**
+     * 基础密码：OIDC Token.
+     */
     @Value("${oidc.token.base.password}")
     private String oidcTokenBasePassword;
 
+    /**
+     * RSA公钥：Authing.
+     */
     @Value("${rsa.authing.publicKey}")
     private String rsaAuthingPublicKey;
 
+    /**
+     * 基础密码：Token.
+     */
     @Value("${token.base.password}")
     private String tokenBasePassword;
 
+    /**
+     * 过期时间（秒）：Token.
+     */
     @Value("${token.expire.seconds}")
     private String tokenExpireSeconds;
 
+    /**
+     * OneID隐私版本.
+     */
     @Value("${oneid.privacy.version}")
-    String oneidPrivacyVersion;
+    private String oneidPrivacyVersion;
 
-    private static final Logger logger =  LoggerFactory.getLogger(JwtTokenCreateService.class);
 
+    /**
+     * 静态日志记录器，用于记录 JwtTokenCreateService 类的日志信息.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenCreateService.class);
+
+    /**
+     * 生成用户的令牌.
+     *
+     * @param user TokenUser 对象
+     * @return 生成的令牌字符串
+     */
     public String getToken(TokenUser user) {
         if (!user.getCommunity().equalsIgnoreCase("openeuler")
                 && !user.getCommunity().equalsIgnoreCase("opengauss")
@@ -95,9 +141,22 @@ public class JwtTokenCreateService {
                 .sign(Algorithm.HMAC256(user.getPassword() + basePassword));
     }
 
+    /**
+     * 为 Authing 用户生成令牌.
+     *
+     * @param appId                     应用ID
+     * @param userId                    用户ID
+     * @param username                  用户名
+     * @param permission                权限
+     * @param inputPermission           输入的权限
+     * @param idToken                   ID令牌
+     * @param oneidPrivacyVersionAccept OneID隐私版本接受标志
+     * @return 包含生成的令牌的字符串数组
+     */
     @SneakyThrows
     public String[] authingUserToken(String appId, String userId, String username,
-                                     String permission, String inputPermission, String idToken, String oneidPrivacyVersionAccept) {
+                                     String permission, String inputPermission,
+                                     String idToken, String oneidPrivacyVersionAccept) {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -105,7 +164,7 @@ public class JwtTokenCreateService {
         try {
             expireSeconds = Integer.parseInt(authingTokenExpireSeconds);
         } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -142,6 +201,15 @@ public class JwtTokenCreateService {
         }
     }
 
+    /**
+     * 刷新 Authing 用户令牌.
+     *
+     * @param request  HTTP请求对象
+     * @param response HTTP响应对象
+     * @param userId   用户ID
+     * @param claimMap 包含声明的映射
+     * @return 包含生成的令牌的字符串数组
+     */
     public String[] refreshAuthingUserToken(HttpServletRequest request, HttpServletResponse response,
                                             String userId, Map<String, Claim> claimMap) {
         String headerJwtToken = request.getHeader("token");
@@ -158,6 +226,16 @@ public class JwtTokenCreateService {
         return authingUserToken(appId, userId, username, permission, inputPermission, idToken, oneidPrivacyVersion);
     }
 
+    /**
+     * 生成 OIDC 令牌.
+     *
+     * @param userId        用户ID
+     * @param issuer        颁发者
+     * @param scope         范围
+     * @param expireSeconds 过期时间（秒）
+     * @param expireAt      过期时间点
+     * @return OIDC 令牌字符串
+     */
     public String oidcToken(String userId, String issuer, String scope, long expireSeconds, Date expireAt) {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
@@ -182,6 +260,14 @@ public class JwtTokenCreateService {
         }
     }
 
+    /**
+     * 获取应用管理员令牌.
+     *
+     * @param appId       应用ID
+     * @param appSecret   应用密钥
+     * @param tokenExpire 令牌过期时间
+     * @return 应用管理员令牌字符串
+     */
     public String getAppManagerToken(String appId, String appSecret,
                                      long tokenExpire) {
         LocalDateTime nowDate = LocalDateTime.now();
@@ -198,6 +284,13 @@ public class JwtTokenCreateService {
                 .sign(Algorithm.HMAC256(appSecret + authingTokenBasePassword));
     }
 
+    /**
+     * 生成重置密码令牌.
+     *
+     * @param account       账号信息
+     * @param expireSeconds 过期时间（秒）
+     * @return 重置密码令牌字符串
+     */
     public String resetPasswordToken(String account, long expireSeconds) {
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -205,10 +298,10 @@ public class JwtTokenCreateService {
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
 
         String token = JWT.create()
-                          .withAudience(account)
-                          .withIssuedAt(issuedAt)
-                          .withExpiresAt(expireAt)
-                          .sign(Algorithm.HMAC256(account + tokenBasePassword));
+                .withAudience(account)
+                .withIssuedAt(issuedAt)
+                .withExpiresAt(expireAt)
+                .sign(Algorithm.HMAC256(account + tokenBasePassword));
 
         try {
             RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
