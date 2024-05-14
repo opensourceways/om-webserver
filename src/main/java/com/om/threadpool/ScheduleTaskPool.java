@@ -18,8 +18,16 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class ScheduleTaskPool {
+    /**
+     * 线程池任务调度器.
+     */
     private ThreadPoolTaskScheduler threadPoolTaskScheduler;
 
+    /**
+     * Bean定义：SR-Task-SchedulePool，用于获取任务调度器.
+     *
+     * @return ThreadPoolTaskScheduler 对象
+     */
     @Bean("SR-Task-SchedulePool")
     public ThreadPoolTaskScheduler getScheduleTask() {
         ThreadPoolTaskScheduler executor = new ThreadPoolTaskScheduler();
