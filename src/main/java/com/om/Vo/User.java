@@ -6,5 +6,9 @@ import lombok.Setter;
 @Setter
 @Getter
 public class User {
-    String userId;
+    /**
+     * 用户id.
+     */
+    private String userId;
 }
+

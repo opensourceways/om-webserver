@@ -1,22 +1,17 @@
 package com.om.Vo;
 
+import lombok.Data;
+
+@Data
 public class OauthTokenVo {
-    private String app_id;
-    private String app_secret;
+    /**
+     * 应用ID.
+     */
+    private String appId;
 
-    public String getApp_id() {
-        return app_id;
-    }
+    /**
+     * 应用密钥.
+     */
+    private String appSecret;
 
-    public void setApp_id(String app_id) {
-        this.app_id = app_id;
-    }
-
-    public String getApp_secret() {
-        return app_secret;
-    }
-
-    public void setApp_secret(String app_secret) {
-        this.app_secret = app_secret;
-    }
 }
