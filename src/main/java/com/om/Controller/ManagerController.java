@@ -47,7 +47,7 @@ public class ManagerController {
     /**
      * 日志记录器实例，用于记录 ManagerController 类的日志信息.
      */
-    private static final Logger LOGGER =  LoggerFactory.getLogger(ManagerController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ManagerController.class);
 
     /**
      * 用于注入验证码服务的对象.
@@ -82,7 +82,7 @@ public class ManagerController {
     /**
      * 发送验证码的方法.
      *
-     * @param body 包含请求体信息的 Map 对象
+     * @param body  包含请求体信息的 Map 对象
      * @param token 包含在请求头中的令牌字符串
      * @return 返回 ResponseEntity 对象
      */
@@ -96,7 +96,7 @@ public class ManagerController {
     /**
      * 绑定账号的方法.
      *
-     * @param body 包含请求体信息的 Map 对象
+     * @param body  包含请求体信息的 Map 对象
      * @param token 包含在请求头中的令牌字符串
      * @return 返回 ResponseEntity 对象
      */
@@ -110,7 +110,7 @@ public class ManagerController {
     /**
      * 身份验证的方法.
      *
-     * @param community 社区参数（可选）
+     * @param community  社区参数（可选）
      * @param userCookie 用户 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
@@ -118,27 +118,27 @@ public class ManagerController {
     @AuthingUserToken
     @RequestMapping(value = "/authenticate", method = RequestMethod.GET)
     public ResponseEntity authenticate(
-        @RequestParam(value = "community", required = false) String community,
-        @CookieValue(value = "_Y_G_", required = false) String userCookie) {
+            @RequestParam(value = "community", required = false) String community,
+            @CookieValue(value = "_Y_G_", required = false) String userCookie) {
         return oneIdManageService.authenticate(community, userCookie);
     }
 
     /**
      * 获取用户信息的方法.
      *
-     * @param username 用户名（可选）
-     * @param userId 用户ID（可选）
-     * @param giteeLogin Gitee 登录名（可选）
+     * @param username    用户名（可选）
+     * @param userId      用户ID（可选）
+     * @param giteeLogin  Gitee 登录名（可选）
      * @param githubLogin GitHub 登录名（可选）
      * @return 返回 ResponseEntity 对象
      */
     @ManageToken
     @RequestMapping(value = "/getuserinfo", method = RequestMethod.GET)
     public ResponseEntity getUser(
-        @RequestParam(value = "username", required = false) String username,
-        @RequestParam(value = "userId", required = false) String userId,
-        @RequestParam(value = "giteeLogin", required = false) String giteeLogin,
-        @RequestParam(value = "githubLogin", required = false) String githubLogin) {
+            @RequestParam(value = "username", required = false) String username,
+            @RequestParam(value = "userId", required = false) String userId,
+            @RequestParam(value = "giteeLogin", required = false) String giteeLogin,
+            @RequestParam(value = "githubLogin", required = false) String githubLogin) {
         return oneIdManageService.getUserInfo(username, userId, giteeLogin, githubLogin);
     }
 
@@ -146,33 +146,33 @@ public class ManagerController {
      * 获取用户权限信息的方法.
      *
      * @param community 社区参数（可选）
-     * @param token 用户凭证 Cookie 值（可选）
+     * @param token     用户凭证 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
     @ManageToken
     @AuthingUserToken
     @RequestMapping(value = "/u/permissions", method = RequestMethod.GET)
     public ResponseEntity getUserPermissions(
-        @RequestParam(value = "community", required = false) String community,
-        @CookieValue(value = "_Y_G_", required = false) String token) {
+            @RequestParam(value = "community", required = false) String community,
+            @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.userPermissions(community, token);
     }
 
     /**
      * 获取用户中心信息的方法.
      *
-     * @param servletRequest HTTP Servlet 请求对象
+     * @param servletRequest  HTTP Servlet 请求对象
      * @param servletResponse HTTP Servlet 响应对象
-     * @param token 用户凭证 Cookie 值（可选）
+     * @param token           用户凭证 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
     @ManageToken
     @AuthingUserToken
     @RequestMapping(value = "/personal/center/user", method = RequestMethod.GET)
     public ResponseEntity getUserCenterInfo(
-        HttpServletRequest servletRequest,
-        HttpServletResponse servletResponse,
-        @CookieValue(value = "_Y_G_", required = false) String token) {
+            HttpServletRequest servletRequest,
+            HttpServletResponse servletResponse,
+            @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.personalCenterUserInfo(servletRequest, servletResponse, token);
     }
 
