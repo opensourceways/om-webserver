@@ -19,7 +19,7 @@
         <java.version>17</java.version>
     </properties>
 
-    <dependencies>
+    <dependencies> 
         <!-- spring -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
