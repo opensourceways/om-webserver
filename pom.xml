@@ -75,7 +75,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
-            <scope>compile</scope>
+            <scope>compile</scope> 
             <exclusions>
                 <exclusion>
                     <artifactId>spring-core</artifactId>
