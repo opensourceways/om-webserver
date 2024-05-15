@@ -32,7 +32,7 @@ RUN sed -i "s|repo.openeuler.org|mirrors.pku.edu.cn/openeuler|g" /etc/yum.repos.
     && yum install -y shadow \
     && groupadd -g 1001 om-webserver \
     && useradd -u 1001 -g om-webserver -s /bin/bash -m om-webserver \
-    && yum install -y fontconfig glibc-all-langpacks
+    && yum install -y fontconfig glibc-all-langpacks java-1.8.0-openjdk-devel.x86_64
 
 ENV LANG=zh_CN.UTF-8
 ENV WORKSPACE=/home/om-webserver
@@ -51,8 +51,6 @@ ENV PATH=${JAVA_HOME}/bin:$PATH
 ENV MALLOC_ARENA_MAX=4
 
 EXPOSE 8080
-
-USER om-webserver
 
 CMD java --add-opens java.base/java.util=ALL-UNNAMED \
          --add-opens java.base/java.lang=ALL-UNNAMED \
