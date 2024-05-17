@@ -232,6 +232,7 @@ public class LoginServiceImplOneId implements LoginServiceInter {
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("photo", user.getPhoto());
             userData.put("username", user.getUsername());
+            userData.put("company", user.getCompany());
 
             return Result.setResult(HttpStatus.OK, MessageCodeConfig.S0001, null, userData, null);
         } catch (Exception e) {
