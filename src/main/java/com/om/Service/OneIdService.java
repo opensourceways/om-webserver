@@ -158,6 +158,7 @@ public class OneIdService {
         userData.put("token", verifyToken);
         userData.put("photo", user.getPhoto());
         userData.put("username", user.getUsername());
+        userData.put("company", user.getCompany());
         userData.put("email_exist", StringUtils.hasText(user.getEmail()));
 
         return Result.setResult(HttpStatus.OK, MessageCodeConfig.S0001, null, userData, null);
