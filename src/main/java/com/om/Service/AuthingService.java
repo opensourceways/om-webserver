@@ -26,6 +26,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
+import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -518,7 +519,10 @@ public class AuthingService implements UserCenterServiceInter {
             userTokenMap.put("scope", scope);
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
             redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
-            String res = String.format("%s?code=%s&state=%s", redirectUri, code, state);
+            URIBuilder uriBuilder = new URIBuilder(redirectUri);
+            uriBuilder.setParameter("code", code);
+            uriBuilder.setParameter("state", state);
+            String res = uriBuilder.build().toString();
             return resultOidc(HttpStatus.OK, "OK", res);
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
