@@ -54,10 +54,10 @@ public class RequestWrapper extends HttpServletRequestWrapper {
 
         StringBuilder sb = new StringBuilder();
         BufferedReader reader = null;
-
+        InputStream inputStream = null;
         // 将inputStream里的数据读取出来
         try {
-            InputStream inputStream = request.getInputStream();
+            inputStream = request.getInputStream();
             reader = new BufferedReader(
                     new InputStreamReader(inputStream, Charset.defaultCharset()));
             String line;
@@ -67,6 +67,13 @@ public class RequestWrapper extends HttpServletRequestWrapper {
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException ignored) {
+
+                }
+            }
             if (reader != null) {
                 try {
                     reader.close();

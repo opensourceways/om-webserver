@@ -58,10 +58,9 @@ public final class CommonUtil {
      * @throws IOException 当发生输入输出异常时抛出
      */
     public static InputStream rewriteImage(MultipartFile file) throws IOException {
-        try {
-            byte[] fileContent = check(file.getBytes());
-            ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(fileContent);
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        byte[] fileContent = check(file.getBytes());
+        try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(fileContent);
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             ImageIO.write(ImageIO.read(byteArrayInputStream), "png", outputStream);
             return new ByteArrayInputStream(outputStream.toByteArray());
         } catch (Exception e) {
