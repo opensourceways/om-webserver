@@ -94,29 +94,26 @@ public class RequestWrapper extends HttpServletRequestWrapper {
      */
     @Override
     public ServletInputStream getInputStream() throws IOException {
-        try (final ByteArrayInputStream inputStream = new ByteArrayInputStream(body)) {
-            return new ServletInputStream() {
-                @Override
-                public boolean isFinished() {
-                    return false;
-                }
+        final ByteArrayInputStream inputStream = new ByteArrayInputStream(body);
+        return new ServletInputStream() {
+            @Override
+            public boolean isFinished() {
+                return false;
+            }
 
-                @Override
-                public boolean isReady() {
-                    return false;
-                }
+            @Override
+            public boolean isReady() {
+                return false;
+            }
 
-                @Override
-                public void setReadListener(ReadListener readListener) {
-                }
+            @Override
+            public void setReadListener(ReadListener readListener) {
+            }
 
-                public int read() throws IOException {
-                    return inputStream.read();
-                }
-            };
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+            public int read() throws IOException {
+                return inputStream.read();
+            }
+        };
     }
 
     /**
