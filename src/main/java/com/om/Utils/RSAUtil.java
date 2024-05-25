@@ -236,10 +236,10 @@ public class RSAUtil implements Serializable {
                 i++;
                 offSet = i * maxBlock;
             }
+            dataResult = out.toByteArray();
         } catch (Exception e) {
             throw new RuntimeException("Cipher Mode: " + opmode + " Error", e);
         } finally {
-            dataResult = out.toByteArray();
             IOUtils.closeQuietly(out);
         }
         return dataResult;
