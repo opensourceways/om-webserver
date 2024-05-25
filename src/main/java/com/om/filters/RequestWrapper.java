@@ -68,11 +68,7 @@ public class RequestWrapper extends HttpServletRequestWrapper {
             throw new RuntimeException(e);
         } finally {
             if (inputStream != null) {
-                try {
-                    inputStream.close();
-                } catch (IOException ignored) {
-
-                }
+                inputStream.close();
             }
             if (reader != null) {
                 try {
