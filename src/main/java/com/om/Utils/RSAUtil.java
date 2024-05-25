@@ -224,6 +224,7 @@ public class RSAUtil implements Serializable {
         int offSet = 0;
         byte[] buff;
         int i = 0;
+        byte[] dataResult = null;
         try {
             while (datas.length > offSet) {
                 if (datas.length - offSet > maxBlock) {
@@ -235,11 +236,12 @@ public class RSAUtil implements Serializable {
                 i++;
                 offSet = i * maxBlock;
             }
+            dataResult = out.toByteArray();
         } catch (Exception e) {
             throw new RuntimeException("Cipher Mode: " + opmode + " Error", e);
+        } finally {
+            IOUtils.closeQuietly(out);
         }
-        byte[] dataResult = out.toByteArray();
-        IOUtils.closeQuietly(out);
         return dataResult;
     }
 }
