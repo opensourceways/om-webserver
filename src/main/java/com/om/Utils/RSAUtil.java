@@ -221,6 +221,7 @@ public class RSAUtil implements Serializable {
         }
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] dataResult = null;
         int offSet = 0;
         byte[] buff;
         int i = 0;
@@ -237,9 +238,10 @@ public class RSAUtil implements Serializable {
             }
         } catch (Exception e) {
             throw new RuntimeException("Cipher Mode: " + opmode + " Error", e);
+        } finally {
+            dataResult = out.toByteArray();
+            IOUtils.closeQuietly(out);
         }
-        byte[] dataResult = out.toByteArray();
-        IOUtils.closeQuietly(out);
         return dataResult;
     }
 }
