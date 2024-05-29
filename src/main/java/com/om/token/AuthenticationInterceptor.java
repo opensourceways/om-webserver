@@ -125,9 +125,8 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
                     sos.write(errorToken(401, "token error")); // token 签名接受者有误
                     return false;
                 }
-                String password = user.getPassword() + tokenUserPassword;
                 //验证token
-                JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(password)).build();
+                JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(user.getPassword() + tokenUserPassword)).build();
                 try {
                     jwtVerifier.verify(token);
                 } catch (JWTVerificationException e) {

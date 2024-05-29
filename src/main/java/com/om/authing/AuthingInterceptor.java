@@ -294,8 +294,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             }
 
             // token 签名密码验证
-            String password = authingTokenBasePassword;
-            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(password)).build();
+            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(authingTokenBasePassword)).build();
             jwtVerifier.verify(headerToken);
             return md5Token;
         } catch (Exception e) {
@@ -330,8 +329,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             }
 
             // token 签名密码验证
-            String password = permission + authingTokenBasePassword;
-            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(password)).build();
+            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(permission + authingTokenBasePassword)).build();
             jwtVerifier.verify(token);
 
             // 退出登录后token失效
