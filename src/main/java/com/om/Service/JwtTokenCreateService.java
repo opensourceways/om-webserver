@@ -132,13 +132,12 @@ public class JwtTokenCreateService {
         LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
 
-        String basePassword = tokenBasePassword;
 
         return JWT.create()
                 .withAudience(user.getUsername()) //谁接受签名
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(expireAt) //过期时间
-                .sign(Algorithm.HMAC256(user.getPassword() + basePassword));
+                .sign(Algorithm.HMAC256(user.getPassword() + tokenBasePassword));
     }
 
     /**

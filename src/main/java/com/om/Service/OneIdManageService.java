@@ -469,8 +469,8 @@ public class OneIdManageService {
 
             // 校验refresh_token是否正确或过期
             String appSecret = jsonNode.get("app_secret").asText();
-            String password = appSecret + env.getProperty("authing.token.base.password");
-            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(password)).build();
+            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(appSecret
+                    + env.getProperty("authing.token.base.password"))).build();
             jwtVerifier.verify(refTokenJwt);
 
             return jsonNode;
