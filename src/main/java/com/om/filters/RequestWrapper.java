@@ -106,11 +106,6 @@ public class RequestWrapper extends HttpServletRequestWrapper {
             public void setReadListener(ReadListener readListener) {
             }
 
-            @Override
-            public void close() throws IOException{
-                inputStream.close();
-            }
-
             public int read() throws IOException {
                 return inputStream.read();
             }
