@@ -32,7 +32,6 @@ import java.util.Map;
  * 2、重写getInputStream方法，每次都从body读数据
  */
 public class RequestWrapper extends HttpServletRequestWrapper {
-
     /**
      * 存储请求body数据.
      */

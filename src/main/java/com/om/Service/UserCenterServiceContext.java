@@ -34,5 +34,4 @@ public class UserCenterServiceContext {
     public UserCenterServiceInter getUserCenterService(String type) {
         return userCenterServiceMap.get(type);
     }
-
 }

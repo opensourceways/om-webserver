@@ -13,8 +13,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
 
 public final class CommonUtil {
-
-
     private CommonUtil() {
         throw new AssertionError("Utility class. Not intended for instantiation.");
     }
@@ -89,5 +87,4 @@ public final class CommonUtil {
         }
         return null;
     }
-
 }

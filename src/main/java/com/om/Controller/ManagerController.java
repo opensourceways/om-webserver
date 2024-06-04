@@ -43,7 +43,6 @@ import jakarta.servlet.http.HttpServletResponse;
 @RequestMapping(value = "/oneid/manager")
 @RestController
 public class ManagerController {
-
     /**
      * 日志记录器实例，用于记录 ManagerController 类的日志信息.
      */
@@ -66,7 +65,6 @@ public class ManagerController {
      */
     @Autowired
     private AuthingService authingService;
-
 
     /**
      * 处理令牌申请的方法.

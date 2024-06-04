@@ -16,7 +16,6 @@ import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.om.Result.Constant;
 import com.om.Service.AuthingService;
-import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
@@ -44,18 +43,11 @@ import static com.anji.captcha.Controller.CaptchaController.getRemoteId;;
 @RequestMapping(value = "/oneid")
 @RestController
 public class AuthingController {
-
     /**
      * 用于处理 Authing 相关逻辑的服务.
      */
     @Autowired
     private AuthingService authingService;
-
-    /**
-     * 用于执行查询服务的服务.
-     */
-    @Autowired
-    private QueryService queryService;
 
     /**
      * 用户中心服务上下文信息.
@@ -68,7 +60,6 @@ public class AuthingController {
      */
     @Autowired
     private CaptchaService captchaService;
-
 
     /**
      * 处理获取验证码请求的方法.
@@ -436,7 +427,6 @@ public class AuthingController {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.bindAccount(servletRequest, servletResponse, token);
     }
-
 
     /**
      * 获取连接列表的方法.

@@ -72,7 +72,6 @@ public class OneIdManageService {
     @Autowired
     private AuthingUserDao authingUserDao;
 
-
     /**
      * 自动注入 RedisDao 对象.
      */
@@ -122,7 +121,6 @@ public class OneIdManageService {
      * 令牌正则表达式前缀.
      */
     private static final String TOKEN_REGEX = "token_info:";
-
 
     /**
      * 处理令牌申请请求.
@@ -478,10 +476,6 @@ public class OneIdManageService {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return "token error or expire";
         }
-    }
-
-    private String getPara(Map<String, String[]> parameterMap, String paraName) {
-        return parameterMap.getOrDefault(paraName, PARAMETER_DEFAULT_VALUE)[0];
     }
 
     private JsonNode getTokenInfo(String token) throws JsonProcessingException {

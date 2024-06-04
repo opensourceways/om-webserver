@@ -24,7 +24,6 @@ import jakarta.servlet.http.HttpServletRequest;
 @RestController("updatedCaptchaController")
 @RequestMapping("/captcha")
 public class CaptchaController {
-
     /**
      * 用于生成和验证验证码的服务对象.
      */
@@ -59,18 +58,6 @@ public class CaptchaController {
     }
 
     /**
-     * 处理验证码验证逻辑，验证传入的验证码信息.
-     *
-     * @param data    请求体中的 CaptchaVO 对象，包含待验证的验证码信息
-     * @param request HTTP 请求对象
-     * @return 返回 ResponseModel 包含验证码验证结果信息
-     */
-    //@PostMapping("/verify")
-    public ResponseModel verify(@RequestBody CaptchaVO data, HttpServletRequest request) {
-        return captchaService.verification(data);
-    }
-
-    /**
      * 从 HttpServletRequest 中获取远程主机的 IP 地址或者主机名.
      *
      * @param request HTTP 请求对象
@@ -99,5 +86,4 @@ public class CaptchaController {
         }
         return null;
     }
-
 }

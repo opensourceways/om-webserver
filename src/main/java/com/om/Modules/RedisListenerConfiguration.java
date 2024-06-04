@@ -13,7 +13,6 @@ import org.springframework.data.redis.listener.Topic;
  */
 @Configuration
 public class RedisListenerConfiguration {
-
     /**
      * 用于监听的 Redis 模式，默认为 "__keyevent@0__:expired".
      */
