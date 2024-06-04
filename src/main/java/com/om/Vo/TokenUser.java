@@ -33,5 +33,4 @@ public class TokenUser {
      * 密码.
      */
     private String password;
-
 }

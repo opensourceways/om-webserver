@@ -25,7 +25,6 @@ import com.om.Utils.CommonUtil;
  */
 @RestController
 public class InitController implements ApplicationRunner {
-
     /**
      * 日志记录器实例，用于记录初始化控制器类的日志信息.
      */
@@ -50,5 +49,4 @@ public class InitController implements ApplicationRunner {
             LOG.info("Delete application fail");
         }
     }
-
 }

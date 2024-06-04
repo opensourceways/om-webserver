@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class RemoveRegistryBeanFactoryPostProcessor implements BeanDefinitionRegistryPostProcessor {
-
     /**
      * 在 BeanDefinitionRegistry 中后置处理 Bean 定义.
      *

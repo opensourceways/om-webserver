@@ -9,8 +9,6 @@ import org.springframework.data.redis.connection.MessageListener;
  * Redis 消息监听器类实现消息监听接口.
  */
 public class RedisMessageListener implements MessageListener {
-
-
     /**
      * 静态日志记录器，用于记录 RedisMessageListener 类的日志信息.
      */

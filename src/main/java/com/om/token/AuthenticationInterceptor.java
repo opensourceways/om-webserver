@@ -34,7 +34,6 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
-
 public class AuthenticationInterceptor implements HandlerInterceptor {
     /**
      * 静态 ObjectMapper 对象.
@@ -52,7 +51,6 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
      */
     @Value("${token.user.password}")
     private String tokenUserPassword;
-
 
     /**
      * 在请求处理之前调用，用于拦截请求.

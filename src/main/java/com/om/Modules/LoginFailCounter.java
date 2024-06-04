@@ -59,5 +59,4 @@ public class LoginFailCounter {
      * 限制秒数.
      */
     private long limitSeconds;
-
 }

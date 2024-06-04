@@ -23,7 +23,6 @@ import org.springframework.util.StringUtils;
  * TTL Redis 缓存管理器类扩展自 RedisCacheManager.
  */
 public class TtlRedisCacheManager extends RedisCacheManager {
-
     /**
      * 构造一个新的 TtlRedisCacheManager 实例.
      *

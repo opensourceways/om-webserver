@@ -13,5 +13,4 @@ public class OauthTokenVo {
      * 应用密钥.
      */
     private String appSecret;
-
 }

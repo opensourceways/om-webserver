@@ -29,7 +29,6 @@ import com.om.Modules.MessageCodeConfig;
  */
 @Repository
 public class GitDao {
-
     /**
      * 日志记录器，用于记录 GitDao 类的日志信息.
      */

@@ -9,7 +9,6 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class CaptchaCacheServiceRedisImpl implements CaptchaCacheService {
-
     /**
      * 注入 StringRedisTemplate 依赖.
      */
