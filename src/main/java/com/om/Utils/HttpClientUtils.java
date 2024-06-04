@@ -37,8 +37,6 @@ import org.slf4j.LoggerFactory;
 
 
 public final class HttpClientUtils implements Serializable {
-
-
     private HttpClientUtils() {
         throw new AssertionError("Utility class. Not intended for instantiation.");
     }
@@ -67,7 +65,6 @@ public final class HttpClientUtils implements Serializable {
      * 可关闭的 HTTP 客户端.
      */
     private static CloseableHttpClient client;
-
 
     /**
      * 获取可关闭的 HTTP 客户端实例.

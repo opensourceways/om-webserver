@@ -17,7 +17,6 @@ import jakarta.servlet.http.HttpServletResponse;
 @Aspect
 @Component
 public class ManagementOperationLogAOP {
-
     /**
      * HTTP 请求对象，用于接收客户端请求信息.
      */
@@ -29,7 +28,6 @@ public class ManagementOperationLogAOP {
      */
     @Autowired
     private HttpServletResponse response;
-
 
     /**
      * 定义切点，匹配 com.om.Controller 包下所有类的所有方法.
@@ -48,5 +46,4 @@ public class ManagementOperationLogAOP {
     public void afterReturning(JoinPoint joinPoint, Object returnObject) {
         LogUtil.managementOperate(joinPoint, request, response, returnObject);
     }
-
 }

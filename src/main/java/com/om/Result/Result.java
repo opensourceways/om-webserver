@@ -25,7 +25,6 @@ import java.util.Map;
  * Result: 表示操作结果的类.
  */
 public class Result {
-
     /**
      * 获取数据列表.
      *
@@ -46,7 +45,6 @@ public class Result {
         return this;
     }
 
-
     /**
      * 返回数据.
      **/
@@ -63,7 +61,6 @@ public class Result {
      * data总条数.
      **/
     private int total;
-
 
     /**
      * 获取结果代码.
@@ -124,7 +121,6 @@ public class Result {
         this.total = total;
         return this;
     }
-
 
     /**
      * 设置响应实体，包括HTTP状态、消息代码配置、消息内容、数据和错误码映射.

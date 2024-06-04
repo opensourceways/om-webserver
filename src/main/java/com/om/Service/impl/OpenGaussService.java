@@ -64,10 +64,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-
 @Service("opengauss")
 public class OpenGaussService implements UserCenterServiceInter {
-
     /**
      * 日志记录器，用于记录 OpenGaussService 类的日志信息.
      */
@@ -115,7 +113,6 @@ public class OpenGaussService implements UserCenterServiceInter {
     @Autowired
     private JwtTokenCreateService jwtTokenCreateService;
 
-
     /**
      * 域名到安全状态的映射.
      */
@@ -160,7 +157,6 @@ public class OpenGaussService implements UserCenterServiceInter {
      * 池密钥.
      */
     private static String poolSecret;
-
 
     /**
      * 初始化方法.
@@ -362,7 +358,6 @@ public class OpenGaussService implements UserCenterServiceInter {
      */
     @Override
     public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        String community = servletRequest.getParameter("community");
         String appId = servletRequest.getParameter("client_id");
         String userName = servletRequest.getParameter("username");
         String account = null;
@@ -522,7 +517,6 @@ public class OpenGaussService implements UserCenterServiceInter {
     @Override
     public ResponseEntity personalCenterUserInfo(HttpServletRequest servletRequest,
                                                  HttpServletResponse servletResponse, String token) {
-        String community = servletRequest.getParameter("community");
         String appId = servletRequest.getParameter("client_id");
 
         // app校验
@@ -563,7 +557,6 @@ public class OpenGaussService implements UserCenterServiceInter {
     @Override
     public ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
         try {
-            String community = servletRequest.getParameter("community");
             String appId = servletRequest.getParameter("client_id");
 
             // app校验
@@ -616,7 +609,6 @@ public class OpenGaussService implements UserCenterServiceInter {
     public ResponseEntity refreshUser(HttpServletRequest servletRequest,
                                       HttpServletResponse servletResponse, String token) {
         try {
-            String community = servletRequest.getParameter("community");
             String appId = servletRequest.getParameter("client_id");
 
             // app校验
@@ -651,7 +643,6 @@ public class OpenGaussService implements UserCenterServiceInter {
     @Override
     public ResponseEntity deleteUser(HttpServletRequest servletRequest,
                                      HttpServletResponse servletResponse, String token) {
-        String community = servletRequest.getParameter("community");
         String appId = servletRequest.getParameter("client_id");
 
         // app校验
@@ -693,7 +684,6 @@ public class OpenGaussService implements UserCenterServiceInter {
     public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest,
                                              HttpServletResponse servletResponse,
                                              String token, Map<String, Object> map) {
-        String community = servletRequest.getParameter("community");
         String appId = servletRequest.getParameter("client_id");
 
         // app校验
@@ -745,7 +735,6 @@ public class OpenGaussService implements UserCenterServiceInter {
     @Override
     public ResponseEntity updatePhoto(HttpServletRequest servletRequest,
                                       HttpServletResponse servletResponse, String token, MultipartFile file) {
-        String community = servletRequest.getParameter("community");
         String appId = servletRequest.getParameter("client_id");
 
         // app校验
@@ -916,46 +905,6 @@ public class OpenGaussService implements UserCenterServiceInter {
                                         HttpServletResponse servletResponse, String token) {
         // TODO 暂不支持解绑
         return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
-
-        /*String community = servletRequest.getParameter("community");
-        String appId = servletRequest.getParameter("client_id");
-        String account = servletRequest.getParameter("account");
-        String code = servletRequest.getParameter("code");
-        String accountType = servletRequest.getParameter("account_type");
-
-        // todo 暂不支持解绑手机
-        if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType) ||
-                (!accountType.toLowerCase().equals("email")*//* && !accountType.toLowerCase().equals("phone")*//*))
-            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
-
-        // app校验
-        if (StringUtils.isBlank(appId) || appId2Secret.getOrDefault(appId, null) == null)
-            return result(HttpStatus.NOT_FOUND, null, "应用未找到", null);
-
-        try {
-            // 验证码校验
-            String redisKey = account + "_sendCode_" + community;
-            String codeTemp = (String) redisDao.get(redisKey);
-            String codeCheck = checkCode(code, codeTemp);
-            if (!codeCheck.equals("success"))
-                return result(HttpStatus.BAD_REQUEST, null, codeCheck, null);
-
-            // 解绑
-            DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
-            String userId = decode.getAudience().get(0);
-            Object user = oneidDao.updateAccount(poolId, poolSecret, userId, account, "", accountType);
-            if (user == null)
-                return result(HttpStatus.BAD_REQUEST, null, "用户不存在", null);
-            if (user instanceof JSONObject) {
-                redisDao.updateValue(redisKey, codeTemp + "_used", 0);
-                return result(HttpStatus.OK, null, "unbind success", null);
-            } else {
-                return result(HttpStatus.BAD_REQUEST, null, user.toString(), null);
-            }
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-        }
-        return result(HttpStatus.BAD_REQUEST, null, "更新失败", null);*/
     }
 
     /**
@@ -1228,18 +1177,6 @@ public class OpenGaussService implements UserCenterServiceInter {
         return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
     }
 
-    private String getHostFromUrl(String link) {
-        URL url;
-        String host = "";
-        try {
-            url = new URL(URLDecoder.decode(link, "UTF-8"));
-            host = url.getHost();
-        } catch (Exception e) {
-            LOGGER.error(e.getMessage());
-        }
-        return host;
-    }
-
     private String getAccountType(String account) {
         String accountTypeError = "请输入正确的手机号或者邮箱";
         if (StringUtils.isBlank(account)) {
@@ -1375,5 +1312,4 @@ public class OpenGaussService implements UserCenterServiceInter {
         }
         return cookie;
     }
-
 }

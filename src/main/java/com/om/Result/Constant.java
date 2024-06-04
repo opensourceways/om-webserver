@@ -15,7 +15,6 @@ package com.om.Result;
  * 常量类.
  */
 public final class Constant {
-
     private Constant() {
         throw new AssertionError("Utility class. Not intended for instantiation.");
     }
@@ -287,6 +286,5 @@ public final class Constant {
      * 认证资源前缀长度为14.
      */
     public static final int AUTHING_RES_PREFIX_LENGTH = 14;
-
 }
 

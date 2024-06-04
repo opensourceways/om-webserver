@@ -70,7 +70,6 @@ import java.util.stream.Stream;
  */
 @Repository
 public class AuthingUserDao {
-
     /**
      * 日志记录器实例，用于记录 AuthingUserDao 类的日志信息.
      */
@@ -279,7 +278,6 @@ public class AuthingUserDao {
      */
     private List<String> allowedCommunity;
 
-
     /**
      * Redis 数据访问对象.
      */
@@ -297,7 +295,6 @@ public class AuthingUserDao {
      */
     @Autowired
     private AuthingAppSync authingAppSync;
-
 
     /**
      * 在类实例化后立即执行的初始化方法.
@@ -441,8 +438,6 @@ public class AuthingUserDao {
         return register(appId, body);
     }
 
-    // 手机密码注册
-
     /**
      * 使用手机号码和密码注册用户.
      *
@@ -466,8 +461,6 @@ public class AuthingUserDao {
                 createPrivacyVersions(oneidPrivacyVersion, true), code);
         return register(appId, body);
     }
-
-    // 校验用户是否存在（用户名 or 邮箱 or 手机号）
 
     /**
      * 检查用户是否存在.
@@ -813,41 +806,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 检查用户资源和操作权限.
-     *
-     * @param userId         用户 ID
-     * @param groupCode      用户组代码
-     * @param resourceCode   资源代码
-     * @param resourceAction 资源操作
-     * @return 如果用户权限符合要求则返回 true，否则返回 false
-     */
-    public boolean checkUserPermission(String userId, String groupCode, String resourceCode, String resourceAction) {
-        try {
-            PaginatedAuthorizedResources pars = managementClient
-                    .users()
-                    .listAuthorizedResources(userId, groupCode)
-                    .execute();
-            if (pars.getTotalCount() <= 0) {
-                return false;
-            }
-
-            List<AuthorizedResource> ars = pars.getList();
-            for (AuthorizedResource ar : ars) {
-                String code = ar.getCode();
-                if (code.equalsIgnoreCase(resourceCode)) {
-                    List<String> actions = ar.getActions();
-                    return actions != null && actions.size() != 0 && actions.contains(resourceAction);
-                }
-            }
-
-            return false;
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
-            return false;
-        }
-    }
-
-    /**
      * 获取用户资源和操作权限.
      *
      * @param userId    用户 ID
@@ -871,48 +829,8 @@ public class AuthingUserDao {
             }
             return pers;
         } catch (Exception e) {
-//            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return pers;
         }
-    }
-
-    /**
-     * 发送验证码到指定账户.
-     *
-     * @param token 访问令牌
-     * @param account 目标账户
-     * @param type 验证码类型
-     * @param field 验证码字段
-     * @return 如果成功发送验证码则返回 true，否则返回 false
-     */
-    public boolean sendCode(String token, String account, String type, String field) {
-        try {
-            Object[] appUserInfo = getAppUserInfo(token);
-            String appId = appUserInfo[0].toString();
-            AuthenticationClient authentication = authingAppSync.getAppClientById(appId);
-
-            switch (type.toLowerCase()) {
-                case "email":
-                    String label = "";
-                    if (field.equals("verify")) {
-                        label = "VERIFY_EMAIL";
-                    }
-                    if (field.equals("change")) {
-                        label = "CHANGE_EMAIL";
-                    }
-                    authentication.sendEmail(account, EmailScene.valueOfLabel(label)).execute();
-                    break;
-                case "phone":
-                    authentication.sendSmsCode(account).execute();
-                    break;
-                default:
-                    return false;
-            }
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
-            return false;
-        }
-        return true;
     }
 
     /**
@@ -1074,12 +992,7 @@ public class AuthingUserDao {
                 return "请先绑定邮箱";
             }
             switch (type.toLowerCase()) {
-                // TODO 目前不允许解绑邮箱
-                /*case "email":
-                    String email = us.getEmail();
-                    if (!account.equals(email)) return resFail;
-                    authentication.unbindEmail().execute();
-                    break;*/
+                // 目前不允许解绑邮箱
                 case "phone":
                     String phone = us.getPhone();
                     if (!account.equals(phone)) {
@@ -1389,7 +1302,6 @@ public class AuthingUserDao {
         return msg;
     }
 
-    // -- temporary (解决gitee多身份源解绑问题) -- TODO
     /**
      * 临时解除用户与外部标识提供者之间的关联.
      *
@@ -1716,7 +1628,6 @@ public class AuthingUserDao {
         }
         return msg;
     }
-
 
     private HttpResponse<JsonNode> authPost(String uriPath, String appId, String body)
             throws UnirestException {

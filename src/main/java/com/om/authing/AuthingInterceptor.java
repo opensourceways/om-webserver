@@ -17,7 +17,6 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
@@ -56,14 +55,6 @@ import java.util.Optional;
  * 拦截器类，用于进行身份验证拦截.
  */
 public class AuthingInterceptor implements HandlerInterceptor {
-
-
-    /**
-     * 用于与 Authing 用户信息进行交互的 DAO.
-     */
-    @Autowired
-    private AuthingUserDao authingUserDao;
-
     /**
      * 用于与 Redis 数据库进行交互的 DAO.
      */
