@@ -21,7 +21,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  */
 @Configuration
 public class AuthingInterceptorConfig implements WebMvcConfigurer {
-
     /**
      * 添加拦截器到拦截器注册表中.
      *

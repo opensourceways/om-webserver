@@ -32,7 +32,6 @@ import com.om.Modules.TtlRedisCacheManager;
 @EnableAsync
 @EnableCaching
 public class OmWebserverApplication {
-
     /**
      * Spring缓存的TTL值.
      */
@@ -63,5 +62,4 @@ public class OmWebserverApplication {
         return new TtlRedisCacheManager(RedisCacheWriter.lockingRedisCacheWriter(redisConnectionFactory),
                 defaultCacheConfig);
     }
-
 }

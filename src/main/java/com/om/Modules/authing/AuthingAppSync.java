@@ -36,7 +36,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class AuthingAppSync {
-
     /**
      * 认证应用同步类的日志记录器.
      */
@@ -46,7 +45,6 @@ public class AuthingAppSync {
      * 应用列表每页最大数量常量.
      */
     private static final int APP_LIST_PAGE_MAX = 100;
-
 
     /**
      * Authing 用户池ID.
@@ -67,7 +65,6 @@ public class AuthingAppSync {
     @Qualifier("SR-Task-SchedulePool")
     private ThreadPoolTaskScheduler taskPool;
 
-
     /**
      * 应用管理客户端.
      */
@@ -82,7 +79,6 @@ public class AuthingAppSync {
      * 应用客户端映射.
      */
     private static Map<String, AuthenticationClient> appClientMap = new ConcurrentHashMap<>();
-
 
     @PostConstruct
     private void init() {

@@ -38,5 +38,4 @@ public class ManageInterceptorConfig implements WebMvcConfigurer {
     public OneIdManageInterceptor oneIdManageInterceptor() {
         return new OneIdManageInterceptor();
     }
-
 }
