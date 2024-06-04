@@ -43,7 +43,6 @@ import java.util.UUID;
  */
 @Repository
 public class OneidDao {
-
     /**
      * 日志记录器，用于记录 OneidDao 类的日志信息.
      */
@@ -85,7 +84,6 @@ public class OneidDao {
     @Value("${datastat.img.photo.suffix}")
     private String photoSuffix;
 
-
     /**
      * Redis 数据访问对象.
      */
@@ -101,7 +99,6 @@ public class OneidDao {
      * ObjectMapper 实例，用于JSON序列化和反序列化.
      */
     private static ObjectMapper objectMapper;
-
 
     /**
      * 初始化方法，在对象构造之后，初始化之前执行.
@@ -301,8 +298,6 @@ public class OneidDao {
             return e.getMessage();
         }
     }
-
-    // 校验用户是否存在（用户名 or 邮箱 or 手机号）
 
     /**
      * 检查用户是否存在.

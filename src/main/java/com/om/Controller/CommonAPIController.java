@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(value = "/oneid")
 @RestController
 public class CommonAPIController {
-
     /**
      * 表示服务正常状态的常量.
      */

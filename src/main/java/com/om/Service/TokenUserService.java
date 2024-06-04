@@ -29,7 +29,6 @@ public class TokenUserService {
     @Value("${token.user.password}")
     private String tokenUserPassword;
 
-
     /**
      * 根据社区和用户名查找 TokenUser 对象.
      *

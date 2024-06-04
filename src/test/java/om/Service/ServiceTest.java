@@ -13,7 +13,6 @@ package om.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.om.Service.QueryService;
 import com.om.omwebserver.OmWebserverApplication;
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
@@ -25,10 +24,6 @@ import org.springframework.test.context.junit4.SpringRunner;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = OmWebserverApplication.class)
 public class ServiceTest {
-
-    @Autowired
-    private QueryService queryService;
-
     @Autowired
     private com.om.Service.AuthingService AuthingService;
 

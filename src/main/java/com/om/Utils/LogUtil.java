@@ -24,7 +24,6 @@ import java.util.Collections;
 import java.util.ArrayList;
 
 public final class LogUtil {
-
     private LogUtil() {
         throw new AssertionError("Utility class. Not intended for instantiation.");
     }

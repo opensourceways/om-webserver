@@ -221,7 +221,6 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest,
                                      HttpServletResponse servletResponse, boolean isSuccess) {
-        String community = servletRequest.getParameter("community");
         String account = servletRequest.getParameter("account");
         String channel = servletRequest.getParameter("channel");
         String appId = servletRequest.getParameter("client_id");
@@ -277,7 +276,6 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
-        String community = (String) getBodyPara(body, "community");
         String username = (String) getBodyPara(body, "username");
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
@@ -1919,30 +1917,6 @@ public class AuthingService implements UserCenterServiceInter {
         } catch (Exception ignored) {
         }
         return cookie;
-    }
-
-    private String sendCodeForRegisterByPwd(String account, String accountType, String community, String channel) {
-        try {
-            long codeExpire = accountType.equals(Constant.EMAIL_TYPE)
-                    ? Long.parseLong(env.getProperty("mail.code.expire", Constant.DEFAULT_EXPIRE_SECOND))
-                    : Long.parseLong(env.getProperty("msgsms.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
-            // 限制1分钟只能发送一次 （剩余的过期时间 + 60s > 验证码过期时间，表示一分钟之内发送过验证码）
-            long limit = Long.parseLong(env.getProperty("send.code.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND));
-            String redisKey = account.toLowerCase() + community.toLowerCase() + channel.toLowerCase();
-            long remainingExpirationSecond = redisDao.expire(redisKey);
-            if (remainingExpirationSecond + limit > codeExpire) {
-                return MessageCodeConfig.E0009.getMsgZh();
-            }
-            // 发送验证码
-            String[] strings = codeUtil.sendCode(accountType, account, mailSender, env, "");
-            if (StringUtils.isBlank(strings[0]) || !strings[2].equals("send code success")) {
-                return MessageCodeConfig.E0008.getMsgZh();
-            }
-            redisDao.set(redisKey, strings[0], codeExpire);
-            return "success";
-        } catch (Exception e) {
-            return MessageCodeConfig.E0008.getMsgZh();
-        }
     }
 
     private String getGiteeLoginFromAuthing(String userId) {

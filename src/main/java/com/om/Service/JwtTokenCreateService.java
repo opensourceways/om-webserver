@@ -40,10 +40,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
-
 @Service
 public class JwtTokenCreateService {
-
     /**
      * 注入 RedisDao 依赖.
      */
@@ -51,17 +49,10 @@ public class JwtTokenCreateService {
     private RedisDao redisDao;
 
     /**
-     * 注入 AuthingUserDao 依赖.
-     */
-    @Autowired
-    private AuthingUserDao authingUserDao;
-
-    /**
      * 注入 CodeUtil 依赖.
      */
     @Autowired
     private CodeUtil codeUtil;
-
 
     /**
      * 过期时间（秒）：Authing Token.
@@ -110,36 +101,6 @@ public class JwtTokenCreateService {
      * 静态日志记录器，用于记录 JwtTokenCreateService 类的日志信息.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenCreateService.class);
-
-    /**
-     * 生成用户的令牌.
-     *
-     * @param user TokenUser 对象
-     * @return 生成的令牌字符串
-     */
-    public String getToken(TokenUser user) {
-        if (!user.getCommunity().equalsIgnoreCase("openeuler")
-                && !user.getCommunity().equalsIgnoreCase("opengauss")
-                && !user.getCommunity().equalsIgnoreCase("mindspore")
-                && !user.getCommunity().equalsIgnoreCase("openlookeng")) {
-            return null;
-        }
-
-        // 过期时间
-        LocalDateTime nowDate = LocalDateTime.now();
-        Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
-        int expireSeconds = Integer.parseInt(tokenExpireSeconds);
-        LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
-        Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
-
-        String basePassword = tokenBasePassword;
-
-        return JWT.create()
-                .withAudience(user.getUsername()) //谁接受签名
-                .withIssuedAt(issuedAt) //生成签名的时间
-                .withExpiresAt(expireAt) //过期时间
-                .sign(Algorithm.HMAC256(user.getPassword() + basePassword));
-    }
 
     /**
      * 为 Authing 用户生成令牌.
@@ -311,5 +272,4 @@ public class JwtTokenCreateService {
             return token;
         }
     }
-
 }

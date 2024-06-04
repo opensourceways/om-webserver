@@ -9,7 +9,6 @@ import java.io.Serializable;
 @Getter
 @Setter
 public class ManagementLog implements Serializable {
-
     /**
      * 序列化版本UID.
      */
@@ -70,6 +69,4 @@ public class ManagementLog implements Serializable {
      * 操作人.
      */
     private String operator;
-
-
 }

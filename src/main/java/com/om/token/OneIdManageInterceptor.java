@@ -49,7 +49,6 @@ public class OneIdManageInterceptor implements HandlerInterceptor {
     @Autowired
     private ObjectMapper objectMapper;
 
-
     /**
      * 在请求处理之前调用，用于拦截请求.
      *

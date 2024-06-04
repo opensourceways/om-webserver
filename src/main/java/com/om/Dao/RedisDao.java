@@ -42,7 +42,6 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class RedisDao {
-
     /**
      * RedisTemplate 字符串类型.
      */
@@ -58,7 +57,6 @@ public class RedisDao {
      * 日志记录器，用于记录 RedisDao 类的日志信息.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(RedisDao.class);
-
 
     /**
      * 获取登录错误计数.

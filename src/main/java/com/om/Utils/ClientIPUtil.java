@@ -9,8 +9,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 public final class ClientIPUtil {
-
-
     private ClientIPUtil() {
         throw new AssertionError("Utility class. Not intended for instantiation.");
     }
@@ -19,7 +17,6 @@ public final class ClientIPUtil {
      * 日志记录器，用于记录 ClientIPUtil 类的日志信息.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(ClientIPUtil.class);
-
 
     /**
      * 获取客户端IP地址.

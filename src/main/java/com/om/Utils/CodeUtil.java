@@ -60,7 +60,6 @@ public class CodeUtil {
     private static final String WSSE_HEADER_FORMAT =
             "UsernameToken Username=\"%s\",PasswordDigest=\"%s\",Nonce=\"%s\",Created=\"%s\"";
 
-
     /**
      * 发送验证码并返回字符串数组.
      *

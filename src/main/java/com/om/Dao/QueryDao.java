@@ -26,7 +26,6 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public class QueryDao {
-
     /**
      * 持有者类型 API 格式.
      */
