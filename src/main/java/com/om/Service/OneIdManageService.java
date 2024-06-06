@@ -41,6 +41,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.util.HtmlUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -368,8 +369,8 @@ public class OneIdManageService {
                 appId, appSecret, refTokenExpire);
 
         // token和refresh_token的hash
-        String token = DigestUtils.md5DigestAsHex(tokenJwt.getBytes());
-        String refreshToken = DigestUtils.md5DigestAsHex(refTokenJwt.getBytes());
+        String token = DigestUtils.md5DigestAsHex(tokenJwt.getBytes(StandardCharsets.UTF_8));
+        String refreshToken = DigestUtils.md5DigestAsHex(refTokenJwt.getBytes(StandardCharsets.UTF_8));
 
         // jwt格式token和refresh_token保存在服务端
         HashMap<String, Object> jwtTokenMap = new HashMap<>();
@@ -461,14 +462,14 @@ public class OneIdManageService {
             String tokenInfo = tokenStr.replace(TOKEN_REGEX, "");
             JsonNode jsonNode = objectMapper.readTree(tokenInfo);
             String refTokenJwt = jsonNode.get("refresh_token").asText();
-            if (!refreshToken.equals(DigestUtils.md5DigestAsHex(refTokenJwt.getBytes()))) {
+            if (!refreshToken.equals(DigestUtils.md5DigestAsHex(refTokenJwt.getBytes(StandardCharsets.UTF_8)))) {
                 return "token error or expire";
             }
 
             // 校验refresh_token是否正确或过期
             String appSecret = jsonNode.get("app_secret").asText();
-            String password = appSecret + env.getProperty("authing.token.base.password");
-            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(password)).build();
+            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(appSecret
+                    + env.getProperty("authing.token.base.password"))).build();
             jwtVerifier.verify(refTokenJwt);
 
             return jsonNode;

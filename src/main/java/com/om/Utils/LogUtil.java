@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Collections;
 import java.util.ArrayList;
+import java.util.Objects;
 
 public final class LogUtil {
     private LogUtil() {
@@ -75,9 +76,11 @@ public final class LogUtil {
             log.setStatus(responseEntity.getStatusCodeValue());
             if (responseEntity.getBody() instanceof HashMap) {
                 HashMap<String, Object> body = (HashMap) responseEntity.getBody();
-                Object msg = (body.get("msg") == null)
-                        ? body.get("message")
-                        : body.get("msg");
+                Object msg = null;
+                if (Objects.nonNull(body)) {
+                    msg = body.getOrDefault("msg", body.get("message"));
+                }
+
                 log.setMessage((msg == null) ? "" : msg.toString());
             }
         }

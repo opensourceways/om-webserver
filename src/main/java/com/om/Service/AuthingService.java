@@ -48,6 +48,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -159,21 +160,104 @@ public class AuthingService implements UserCenterServiceInter {
     private static String instanceCommunity;
 
     /**
+     * CodeUtil赋值.
+     *
+     * @param codeUtil CodeUtil实例
+     */
+    public static void setCodeUtil(CodeUtil codeUtil) {
+        AuthingService.codeUtil = codeUtil;
+    }
+
+    /**
+     * error2code赋值.
+     *
+     * @param error2code error2coder实例
+     */
+    public static void setError2code(Map<String, MessageCodeConfig> error2code) {
+        AuthingService.error2code = error2code;
+    }
+
+    /**
+     * ObjectMapper实例赋值.
+     *
+     * @param objectMapper objectMapper实例
+     */
+    public static void setObjectMapper(ObjectMapper objectMapper) {
+        AuthingService.objectMapper = objectMapper;
+    }
+
+    /**
+     * Domain2secure实例赋值.
+     *
+     * @param domain2secure domain2secure实例
+     */
+    public static void setDomain2secure(HashMap<String, Boolean> domain2secure) {
+        AuthingService.domain2secure = domain2secure;
+    }
+
+    /**
+     * OidcScopeOthers实例赋值.
+     *
+     * @param oidcScopeOthers oidcScopeOthers实例
+     */
+    public static void setOidcScopeOthers(HashMap<String, String[]> oidcScopeOthers) {
+        AuthingService.oidcScopeOthers = oidcScopeOthers;
+    }
+
+    /**
+     * oidcScopeAuthingMapping实例赋值.
+     *
+     * @param oidcScopeAuthingMapping oidcScopeAuthingMapping实例
+     */
+    public static void setOidcScopeAuthingMapping(HashMap<String, String> oidcScopeAuthingMapping) {
+        AuthingService.oidcScopeAuthingMapping = oidcScopeAuthingMapping;
+    }
+
+    /**
+     * 结果对象赋值.
+     *
+     * @param result 结果对象实例
+     */
+    public static void setResult(Result result) {
+        AuthingService.result = result;
+    }
+
+    /**
+     * oneid隐私版本信息赋值.
+     *
+     * @param oneidPrivacyVersion oneid隐私版本信息
+     */
+    public static void setOneidPrivacyVersion(String oneidPrivacyVersion) {
+        AuthingService.oneidPrivacyVersion = oneidPrivacyVersion;
+    }
+
+    /**
+     * 实例社区赋值.
+     *
+     * @param instanceCommunity 实例社区信息
+     */
+    public static void setInstanceCommunity(String instanceCommunity) {
+        AuthingService.instanceCommunity = instanceCommunity;
+    }
+
+    /**
      * 初始化方法.
      */
     @PostConstruct
     public void init() {
-        codeUtil = new CodeUtil();
-        error2code = MessageCodeConfig.getErrorCode();
-        objectMapper = new ObjectMapper();
-        domain2secure = HttpClientUtils.getConfigCookieInfo(
-                Objects.requireNonNull(env.getProperty("cookie.token.domains")),
-                Objects.requireNonNull(env.getProperty("cookie.token.secures")));
-        oidcScopeOthers = getOidcScopesOther();
-        oidcScopeAuthingMapping = oidcScopeAuthingMapping();
-        result = new Result();
-        oneidPrivacyVersion = env.getProperty("oneid.privacy.version", "");
-        instanceCommunity = env.getProperty("community", "");
+        setCodeUtil(new CodeUtil());
+        setError2code(MessageCodeConfig.getErrorCode());
+        setObjectMapper(new ObjectMapper());
+        String domains = env.getProperty("cookie.token.domains");
+        String secures = env.getProperty("cookie.token.secures");
+        if (domains != null && secures != null) {
+            setDomain2secure(HttpClientUtils.getConfigCookieInfo(domains, secures));
+        }
+        setOidcScopeOthers(getOidcScopesOther());
+        setOidcScopeAuthingMapping(oidcScopeAuthingMapping());
+        setResult(new Result());
+        setOneidPrivacyVersion(env.getProperty("oneid.privacy.version", ""));
+        setInstanceCommunity(env.getProperty("community", ""));
     }
 
     /**
@@ -397,13 +481,19 @@ public class AuthingService implements UserCenterServiceInter {
         String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(
                 user.getGivenName(), instanceCommunity);
         // 生成token
-        String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, user.getUsername(),
-                permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
-        // 写cookie
-        setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
+        String userName = user.getUsername();
+        String[] tokens = null;
+        if (Objects.nonNull(userName)) {
+            tokens = jwtTokenCreateService.authingUserToken(appId, userId, user.getUsername(),
+                    permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
+        }
         // 返回结果
         HashMap<String, Object> userData = new HashMap<>();
-        userData.put("token", tokens[1]);
+        if (tokens != null) {
+            // 写cookie
+            setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
+            userData.put("token", tokens[1]);
+        }
         userData.put("photo", user.getPhoto());
         userData.put("username", user.getUsername());
         userData.put("email_exist", StringUtils.isNotBlank(user.getEmail()));
@@ -516,14 +606,19 @@ public class AuthingService implements UserCenterServiceInter {
             userTokenMap.put("idToken", idToken);
             userTokenMap.put("scope", scope);
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
-            redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
+            redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes(StandardCharsets.UTF_8)),
+                    userTokenMapStr,
+                    refreshTokenExpire);
             URIBuilder uriBuilder = new URIBuilder(redirectUri);
             uriBuilder.setParameter("code", code);
             uriBuilder.setParameter("state", state);
             String res = uriBuilder.build().toString();
             return resultOidc(HttpStatus.OK, "OK", res);
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+        } catch (RuntimeException e) {
+            LOGGER.error("Internal Server RuntimeException." + e.getMessage());
+            return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+        } catch (Exception ex) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), ex);
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
         }
     }
@@ -597,7 +692,7 @@ public class AuthingService implements UserCenterServiceInter {
                 } else {
                     String header = servletRequest.getHeader("Authorization");
                     byte[] authorization = Base64.getDecoder().decode(header.replace("Basic ", ""));
-                    String[] split = new String(authorization).split(":");
+                    String[] split = new String(authorization, StandardCharsets.UTF_8).split(":");
                     appId = split[0];
                     appSecret = split[1];
                 }
@@ -613,7 +708,7 @@ public class AuthingService implements UserCenterServiceInter {
                 } else {
                     String header = servletRequest.getHeader("Authorization");
                     byte[] authorization = Base64.getDecoder().decode(header.replace("Basic ", ""));
-                    String[] split = new String(authorization).split(":");
+                    String[] split = new String(authorization, StandardCharsets.UTF_8).split(":");
                     appId = split[0];
                     appSecret = split[1];
                 }
@@ -655,7 +750,8 @@ public class AuthingService implements UserCenterServiceInter {
             String userId = decode.getAudience().get(0);
             Date expiresAt = decode.getExpiresAt();
             // token是否被刷新了或者已经过期
-            Object refreshedToken = redisDao.get(DigestUtils.md5DigestAsHex(accessToken.getBytes()));
+            Object refreshedToken = redisDao.get(DigestUtils
+                    .md5DigestAsHex(accessToken.getBytes(StandardCharsets.UTF_8)));
             if (refreshedToken != null || expiresAt.before(new Date())) {
                 return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
             }
@@ -748,7 +844,7 @@ public class AuthingService implements UserCenterServiceInter {
             String username = user.getUsername();
             String email = user.getEmail();
             String phone = user.getPhone();
-            String aigcPrivacyAccepted = env.getProperty("aigc.privacy.version").equals(
+            String aigcPrivacyAccepted = Objects.equals(env.getProperty("aigc.privacy.version"),
                     user.getFormatted()) ? user.getFormatted() : "";
             String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(
                     user.getGivenName(), instanceCommunity);
@@ -823,7 +919,7 @@ public class AuthingService implements UserCenterServiceInter {
         try {
             String redirectUri = servletRequest.getHeader("Referer");
             String headerToken = servletRequest.getHeader("token");
-            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes());
+            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes(StandardCharsets.UTF_8));
             String idTokenKey = "idToken_" + md5Token;
             token = rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
@@ -837,8 +933,10 @@ public class AuthingService implements UserCenterServiceInter {
             }
             // 退出登录，该token失效
             String redisKey = userId + issuedAt.toString();
-            redisDao.set(redisKey, token, Long.valueOf(
-                    Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
+            String seconds = env.getProperty("authing.token.expire.seconds");
+            if (Objects.nonNull(seconds)) {
+                redisDao.set(redisKey, token, Long.valueOf(seconds));
+            }
             // 退出登录，删除cookie，删除idToken
             String cookieTokenName = env.getProperty("cookie.token.name");
             String verifyTokenName = env.getProperty("cookie.verify.token.name");
@@ -939,11 +1037,16 @@ public class AuthingService implements UserCenterServiceInter {
                     .getPrivacyVersionWithCommunity(givenName, instanceCommunity);
             // 资源权限
             String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
-            // 生成token
-            String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, username,
-                    permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
-            String token = tokens[0];
-            String verifyToken = tokens[1];
+            String[] tokens = null;
+            String token = "";
+            String verifyToken = "";
+            if (Objects.nonNull(username)) {
+                // 生成token
+                tokens = jwtTokenCreateService.authingUserToken(appId, userId, username,
+                        permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
+                token = tokens[0];
+                verifyToken = tokens[1];
+            }
             // 写cookie
             String verifyTokenName = env.getProperty("cookie.verify.token.name");
             String cookieTokenName = env.getProperty("cookie.token.name");
@@ -1014,6 +1117,9 @@ public class AuthingService implements UserCenterServiceInter {
             return authingUserDao.deleteUserById(userId)
                     ? deleteUserAfter(servletRequest, servletResponse, token, userId, issuedAt, photo)
                     : result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
+        } catch (RuntimeException e) {
+            LOGGER.error("Internal Server RuntimeException." + e.getMessage());
+            return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
         } catch (Exception e) {
             return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
         }
@@ -1059,6 +1165,9 @@ public class AuthingService implements UserCenterServiceInter {
             } else {
                 return result(HttpStatus.BAD_REQUEST, null, accountType, null);
             }
+        } catch (RuntimeException e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
         } catch (Exception e) {
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
         }
@@ -1455,6 +1564,7 @@ public class AuthingService implements UserCenterServiceInter {
         String originConnId = identityObj.getJSONArray("originConnIds").get(0).toString();
         if (originConnId.equals(env.getProperty("social.connId.github"))) {
             String target = env.getProperty("github.users.api");
+            target = (Objects.isNull(target) ? "" : target);
             String githubLogin = jsonObjStringValue(userInfoInIdpObj, "profile").replace(target, "");
             res.put("identity", "github");
             res.put("login_name", githubLogin);
@@ -1612,13 +1722,15 @@ public class AuthingService implements UserCenterServiceInter {
         try {
             // 当前token失效
             String redisKey = userId + issuedAt.toString();
-            redisDao.set(redisKey, token, Long.valueOf(
-                    Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
+            String seconds = env.getProperty("authing.token.expire.seconds");
+            if (Objects.nonNull(seconds)) {
+                redisDao.set(redisKey, token, Long.valueOf(seconds));
+            }
             // 删除用户头像
             authingUserDao.deleteObsObjectByUrl(photo);
             // 删除cookie，删除idToken
             String headerToken = httpServletRequest.getHeader("token");
-            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes());
+            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes(StandardCharsets.UTF_8));
             String idTokenKey = "idToken_" + md5Token;
             String cookieTokenName = env.getProperty("cookie.token.name");
             HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName,
@@ -1777,7 +1889,8 @@ public class AuthingService implements UserCenterServiceInter {
             }
             // 缓存 oidcToken
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(tokens);
-            redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes()), userTokenMapStr, refreshTokenExpire);
+            redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes(StandardCharsets.UTF_8)),
+                    userTokenMapStr, refreshTokenExpire);
             ResponseEntity<HashMap<String, Object>> responseEntity =
                     new ResponseEntity<>(JSON.parseObject(
                             HtmlUtils.htmlUnescape(JSON.toJSONString(tokens)), HashMap.class), HttpStatus.OK);
@@ -1799,7 +1912,7 @@ public class AuthingService implements UserCenterServiceInter {
             String userId = decode.getAudience().get(0);
             Date expiresAt = decode.getExpiresAt();
             // tokens校验
-            String refreshTokenKey = DigestUtils.md5DigestAsHex(refreshToken.getBytes());
+            String refreshTokenKey = DigestUtils.md5DigestAsHex(refreshToken.getBytes(StandardCharsets.UTF_8));
             String tokenStr = (String) redisDao.get(refreshTokenKey);
             if (StringUtils.isBlank(tokenStr)) {
                 return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
@@ -1831,14 +1944,19 @@ public class AuthingService implements UserCenterServiceInter {
                 userTokenMap.put("idToken", jsonNode.get("idToken").asText());
             }
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
-            redisDao.set(DigestUtils.md5DigestAsHex(refreshTokenNew.getBytes()), userTokenMapStr, refreshTokenExpire);
+            redisDao.set(DigestUtils.md5DigestAsHex(refreshTokenNew.getBytes(StandardCharsets.UTF_8)),
+                    userTokenMapStr, refreshTokenExpire);
             // 移除以前的refresh_token，并将之前的access_token失效
             redisDao.remove(refreshTokenKey);
-            redisDao.set(DigestUtils.md5DigestAsHex(accessToken.getBytes()), accessToken, accessTokenExpire);
+            redisDao.set(DigestUtils.md5DigestAsHex(accessToken.getBytes(StandardCharsets.UTF_8)),
+                    accessToken, accessTokenExpire);
             ResponseEntity<HashMap<String, Object>> responseEntity =
                     new ResponseEntity<>(JSON.parseObject(
                             HtmlUtils.htmlUnescape(JSON.toJSONString(userTokenMap)), HashMap.class), HttpStatus.OK);
             return responseEntity;
+        } catch (RuntimeException e) {
+            LOGGER.error("Internal Server RuntimeException." + e.getMessage());
+            return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);

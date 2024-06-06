@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -78,7 +79,11 @@ public class RedisDao {
      * @return 还剩多少秒过期
      */
     public long expire(String key) {
-        return redisTemplate.opsForValue().getOperations().getExpire(key);
+        Long keyExpire = redisTemplate.opsForValue().getOperations().getExpire(key);
+        if (Objects.isNull(keyExpire)) {
+            return -1;
+        }
+        return keyExpire;
     }
 
     /**
@@ -201,7 +206,10 @@ public class RedisDao {
     public boolean exists(final String key) {
         boolean result = false;
         try {
-            result = redisTemplate.hasKey(key);
+            Boolean isExists = redisTemplate.hasKey(key);
+            if (Objects.nonNull(isExists)) {
+                result = isExists;
+            }
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
@@ -227,7 +235,7 @@ public class RedisDao {
         return result;
     }
 
-    class GzipSerializer implements RedisSerializer<Object> {
+    static class GzipSerializer implements RedisSerializer<Object> {
 
         /**
          * 缓冲区大小常量.
@@ -255,7 +263,9 @@ public class RedisDao {
                 bos = new ByteArrayOutputStream();
                 gzip = new GZIPOutputStream(bos);
                 // 在压缩
-                gzip.write(bytes);
+                if (Objects.nonNull(bytes)) {
+                    gzip.write(bytes);
+                }
                 gzip.finish();
                 byte[] result = bos.toByteArray();
                 return result;
