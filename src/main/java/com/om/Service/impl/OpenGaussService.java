@@ -65,7 +65,7 @@ import java.util.Objects;
 @Service("opengauss")
 public class OpenGaussService implements UserCenterServiceInter {
     /**
-     * 默认过期时间
+     * 默认过期时间.
      */
     private static final Long EXPIRE_DEFAULT = 120L;
 
@@ -671,7 +671,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             if (Objects.nonNull(seconds)) {
                 redisDao.set(redisKey, token, Long.valueOf(seconds));
             } else {
-                redisDao.set(redisKey,token, EXPIRE_DEFAULT);
+                redisDao.set(redisKey, token, EXPIRE_DEFAULT);
             }
 
             // 退出登录，删除cookie，删除idToken
@@ -1359,7 +1359,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             if (Objects.nonNull(seconds)) {
                 redisDao.set(redisKey, token, Long.valueOf(seconds));
             } else {
-                redisDao.set(redisKey,token, EXPIRE_DEFAULT);
+                redisDao.set(redisKey, token, EXPIRE_DEFAULT);
             }
             // 删除用户头像
             authingUserDao.deleteObsObjectByUrl(photo);
