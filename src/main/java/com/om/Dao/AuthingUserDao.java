@@ -1781,10 +1781,9 @@ public class AuthingUserDao {
      * 根据社区获取包含特定隐私版本号的隐私设置.
      *
      * @param privacyVersions 隐私版本号
-     * @param com 社区名称
      * @return 返回包含特定隐私版本号的隐私设置
      */
-    public String getPrivacyVersionWithCommunity(String privacyVersions, String com) {
+    public String getPrivacyVersionWithCommunity(String privacyVersions) {
         if (privacyVersions == null || !privacyVersions.contains(":")) {
             return "";
         }

@@ -75,6 +75,16 @@ import java.util.regex.Pattern;
 @Service("authing")
 public class AuthingService implements UserCenterServiceInter {
     /**
+     * 默认消息内容.
+     */
+    private static final String MSG_DEFAULT = "Internal Server Error";
+
+    /**
+     * 默认过期时间
+     */
+    private static final Long EXPIRE_DEFAULT = 120L;
+
+    /**
      * 使用 @Autowired 注解注入环境变量.
      */
     @Autowired
@@ -479,21 +489,19 @@ public class AuthingService implements UserCenterServiceInter {
         String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
         // 获取是否同意隐私
         String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(
-                user.getGivenName(), instanceCommunity);
+                user.getGivenName());
         // 生成token
         String userName = user.getUsername();
-        String[] tokens = null;
-        if (Objects.nonNull(userName)) {
-            tokens = jwtTokenCreateService.authingUserToken(appId, userId, user.getUsername(),
-                    permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
+        if (Objects.isNull(userName)) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
+        String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, userName,
+                permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
+        // 写cookie
+        setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
         // 返回结果
         HashMap<String, Object> userData = new HashMap<>();
-        if (tokens != null) {
-            // 写cookie
-            setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
-            userData.put("token", tokens[1]);
-        }
+        userData.put("token", tokens[1]);
         userData.put("photo", user.getPhoto());
         userData.put("username", user.getUsername());
         userData.put("email_exist", StringUtils.isNotBlank(user.getEmail()));
@@ -847,7 +855,7 @@ public class AuthingService implements UserCenterServiceInter {
             String aigcPrivacyAccepted = Objects.equals(env.getProperty("aigc.privacy.version"),
                     user.getFormatted()) ? user.getFormatted() : "";
             String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(
-                    user.getGivenName(), instanceCommunity);
+                    user.getGivenName());
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("photo", photo);
@@ -936,6 +944,8 @@ public class AuthingService implements UserCenterServiceInter {
             String seconds = env.getProperty("authing.token.expire.seconds");
             if (Objects.nonNull(seconds)) {
                 redisDao.set(redisKey, token, Long.valueOf(seconds));
+            } else {
+                redisDao.set(redisKey,token, EXPIRE_DEFAULT);
             }
             // 退出登录，删除cookie，删除idToken
             String cookieTokenName = env.getProperty("cookie.token.name");
@@ -1034,19 +1044,17 @@ public class AuthingService implements UserCenterServiceInter {
             // 获取隐私同意字段值
             String givenName = user.get("given_name") == null ? "" : user.get("given_name").toString();
             String oneidPrivacyVersionAccept = authingUserDao
-                    .getPrivacyVersionWithCommunity(givenName, instanceCommunity);
+                    .getPrivacyVersionWithCommunity(givenName);
             // 资源权限
             String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
-            String[] tokens = null;
-            String token = "";
-            String verifyToken = "";
-            if (Objects.nonNull(username)) {
-                // 生成token
-                tokens = jwtTokenCreateService.authingUserToken(appId, userId, username,
-                        permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
-                token = tokens[0];
-                verifyToken = tokens[1];
+            if (Objects.isNull(username)) {
+                return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
             }
+            // 生成token
+            String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, username,
+                    permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
+            String token = tokens[0];
+            String verifyToken = tokens[1];
             // 写cookie
             String verifyTokenName = env.getProperty("cookie.verify.token.name");
             String cookieTokenName = env.getProperty("cookie.token.name");
@@ -1166,7 +1174,7 @@ public class AuthingService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, null, accountType, null);
             }
         } catch (RuntimeException e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e.getMessage());
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
         } catch (Exception e) {
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
@@ -1725,6 +1733,8 @@ public class AuthingService implements UserCenterServiceInter {
             String seconds = env.getProperty("authing.token.expire.seconds");
             if (Objects.nonNull(seconds)) {
                 redisDao.set(redisKey, token, Long.valueOf(seconds));
+            } else {
+                redisDao.set(redisKey,token, EXPIRE_DEFAULT);
             }
             // 删除用户头像
             authingUserDao.deleteObsObjectByUrl(photo);
