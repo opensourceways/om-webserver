@@ -18,14 +18,18 @@ import com.om.Modules.authing.AuthingAppSync;
 import com.om.Result.Constant;
 import com.om.Result.Result;
 import com.om.Service.inter.UserCenterServiceInter;
+import com.om.Utils.AuthingUtil;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.LimitUtil;
-import com.om.Utils.RSAUtil;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang3.StringUtils;
+import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
+import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,21 +42,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.HtmlUtils;
-import jakarta.annotation.PostConstruct;
-
-import javax.crypto.NoSuchPaddingException;
-
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.interfaces.RSAPrivateKey;
-import java.security.spec.InvalidKeySpecException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -83,6 +76,12 @@ public class AuthingService implements UserCenterServiceInter {
      * 默认过期时间.
      */
     private static final Long EXPIRE_DEFAULT = 120L;
+
+    /**
+     * 使用 @Autowired 注解注入authingUtil.
+     */
+    @Autowired
+    private AuthingUtil authingUtil;
 
     /**
      * 使用 @Autowired 注解注入环境变量.
@@ -578,7 +577,7 @@ public class AuthingService implements UserCenterServiceInter {
                 return resultOidc(HttpStatus.NOT_FOUND, "redirect_uri not found in the app", null);
             }
             // 获取登录用户ID
-            token = rsaDecryptToken(token);
+            token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             String headToken = decode.getClaim("verifyToken").asString();
@@ -753,7 +752,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
             String accessToken = authorization.replace("Bearer ", "");
             // 解析access_token
-            String token = rsaDecryptToken(accessToken);
+            String token = authingUtil.rsaDecryptToken(accessToken);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             Date expiresAt = decode.getExpiresAt();
@@ -772,7 +771,7 @@ public class AuthingService implements UserCenterServiceInter {
             String[] profiles = env.getProperty("oidc.scope.profile", "").split(",");
             for (String profile : profiles) {
                 String profileTemp = oidcScopeAuthingMapping.getOrDefault(profile, profile);
-                Object value = jsonObjObjectValue(userObj, profileTemp);
+                Object value = authingUtil.jsonObjObjectValue(userObj, profileTemp);
                 if ("updated_at".equals(profile) && value != null) {
                     DateTimeFormatter df = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
                     value = LocalDateTime.parse(value.toString(), df).toInstant(ZoneOffset.UTC).toEpochMilli();
@@ -787,7 +786,7 @@ public class AuthingService implements UserCenterServiceInter {
                 }
                 // 三方登录字段
                 if (scope.equals("identities")) {
-                    ArrayList<Map<String, Object>> identities = authingUserIdentity(userObj);
+                    ArrayList<Map<String, Object>> identities = authingUtil.authingUserIdentity(userObj);
                     userData.put("identities", identities);
                     continue;
                 }
@@ -803,12 +802,12 @@ public class AuthingService implements UserCenterServiceInter {
                 String[] claims = oidcScopeOthers.getOrDefault(scope, new String[]{scope});
                 for (String claim : claims) {
                     String profileTemp = oidcScopeAuthingMapping.getOrDefault(claim, claim);
-                    Object value = jsonObjObjectValue(userObj, profileTemp);
+                    Object value = authingUtil.jsonObjObjectValue(userObj, profileTemp);
                     // auto generate email if not exist
                     if ("openeuler".equals(instanceCommunity) && "email".equals(claim) && value == null) {
-                        String prefix = jsonObjStringValue(userObj, "username");
+                        String prefix = authingUtil.jsonObjStringValue(userObj, "username");
                         if (StringUtils.isBlank(prefix)) {
-                            prefix = jsonObjStringValue(userObj, "phone");
+                            prefix = authingUtil.jsonObjStringValue(userObj, "phone");
                         }
                         value = genPredefinedEmail(userId, prefix);
                     }
@@ -844,7 +843,7 @@ public class AuthingService implements UserCenterServiceInter {
      */
     public ResponseEntity authingUserPermission(String community, String token) {
         try {
-            DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
+            DecodedJWT decode = JWT.decode(authingUtil.rsaDecryptToken(token));
             String userId = decode.getAudience().get(0);
             // 获取用户
             User user = authingUserDao.getUser(userId);
@@ -880,7 +879,7 @@ public class AuthingService implements UserCenterServiceInter {
      */
     public ResponseEntity userPermissions(String community, String token) {
         try {
-            DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
+            DecodedJWT decode = JWT.decode(authingUtil.rsaDecryptToken(token));
             String userId = decode.getAudience().get(0);
             // 获取权限
             ArrayList<String> permissions = new ArrayList<>();
@@ -898,7 +897,7 @@ public class AuthingService implements UserCenterServiceInter {
             JSONArray jsonArray = userObj.getJSONArray("identities");
             for (Object o : jsonArray) {
                 JSONObject obj = (JSONObject) o;
-                authingUserIdentityIdp(obj, map);
+                authingUtil.authingUserIdentityIdp(obj, map);
             }
             // 获取用户
             User user = authingUserDao.getUser(userId);
@@ -929,7 +928,7 @@ public class AuthingService implements UserCenterServiceInter {
             String headerToken = servletRequest.getHeader("token");
             String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes(StandardCharsets.UTF_8));
             String idTokenKey = "idToken_" + md5Token;
-            token = rsaDecryptToken(token);
+            token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             Date issuedAt = decode.getIssuedAt();
@@ -980,7 +979,7 @@ public class AuthingService implements UserCenterServiceInter {
     public ResponseEntity refreshUser(HttpServletRequest servletRequest,
                                       HttpServletResponse servletResponse, String token) {
         try {
-            token = rsaDecryptToken(token);
+            token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             // 获取用户
@@ -1092,9 +1091,9 @@ public class AuthingService implements UserCenterServiceInter {
     public ResponseEntity personalCenterUserInfo(HttpServletRequest servletRequest,
                                                  HttpServletResponse servletResponse, String token) {
         try {
-            String userId = getUserIdFromToken(token);
+            String userId = authingUtil.getUserIdFromToken(token);
             JSONObject userObj = authingUserDao.getUserById(userId);
-            HashMap<String, Object> userData = parseAuthingUser(userObj);
+            HashMap<String, Object> userData = authingUtil.parseAuthingUser(userObj);
             // 返回结果
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
@@ -1116,7 +1115,7 @@ public class AuthingService implements UserCenterServiceInter {
     public ResponseEntity deleteUser(HttpServletRequest servletRequest,
                                      HttpServletResponse servletResponse, String token) {
         try {
-            token = rsaDecryptToken(token);
+            token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             Date issuedAt = decode.getIssuedAt();
@@ -1156,7 +1155,7 @@ public class AuthingService implements UserCenterServiceInter {
         String msg;
         String accountType = getAccountType(account);
         try {
-            token = rsaDecryptToken(token);
+            token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String appId = decode.getClaim("client_id").asString();
             String userId = decode.getAudience().get(0);
@@ -1511,127 +1510,6 @@ public class AuthingService implements UserCenterServiceInter {
         return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
     }
 
-    // 获取自定义token中的user id
-    private String getUserIdFromToken(String token) throws InvalidKeySpecException, NoSuchAlgorithmException,
-            InvalidKeyException, NoSuchPaddingException {
-        DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
-        return decode.getAudience().get(0);
-    }
-
-    // 解密RSA加密过的token
-    private String rsaDecryptToken(String token) throws InvalidKeySpecException, NoSuchAlgorithmException,
-            InvalidKeyException, NoSuchPaddingException {
-        RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
-        return RSAUtil.privateDecrypt(token, privateKey);
-    }
-
-    /**
-     * 解析 Authing 用户方法.
-     *
-     * @param userObj 用户对象
-     * @return HashMap 包含用户信息的哈希表
-     */
-    public HashMap<String, Object> parseAuthingUser(JSONObject userObj) {
-        HashMap<String, Object> userData = new HashMap<>();
-        userData.put("username", jsonObjStringValue(userObj, "username"));
-        userData.put("email", jsonObjStringValue(userObj, "email"));
-        userData.put("phone", jsonObjStringValue(userObj, "phone"));
-        userData.put("phoneCountryCode", jsonObjStringValue(userObj, "phoneCountryCode"));
-        userData.put("signedUp", jsonObjStringValue(userObj, "signedUp"));
-        userData.put("nickname", jsonObjStringValue(userObj, "nickname"));
-        userData.put("company", jsonObjStringValue(userObj, "company"));
-        userData.put("photo", jsonObjStringValue(userObj, "photo"));
-        ArrayList<Map<String, Object>> identities = authingUserIdentity(userObj);
-        userData.put("identities", identities);
-        return userData;
-    }
-
-    // identities 解析（包括gitee,github,wechat）
-    private ArrayList<Map<String, Object>> authingUserIdentity(JSONObject userObj) {
-        ArrayList<Map<String, Object>> res = new ArrayList<>();
-        HashMap<String, Map<String, Object>> map = new HashMap<>();
-        try {
-            JSONArray jsonArray = userObj.getJSONArray("identities");
-            for (Object o : jsonArray) {
-                JSONObject obj = (JSONObject) o;
-                authingUserIdentityIdp(obj, map);
-            }
-            res.addAll(map.values());
-        } catch (Exception ex) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), ex);
-        }
-        return res;
-    }
-
-    // identities -> userInfoInIdp 解析（包括gitee,github,wechat）
-    private void authingUserIdentityIdp(JSONObject identityObj, HashMap<String, Map<String, Object>> map) {
-        HashMap<String, Object> res = new HashMap<>();
-        JSONObject userInfoInIdpObj = identityObj.getJSONObject("userInfoInIdp");
-        String userIdInIdp = identityObj.getString("userIdInIdp");
-        res.put("userIdInIdp", userIdInIdp);
-        String originConnId = identityObj.getJSONArray("originConnIds").get(0).toString();
-        if (originConnId.equals(env.getProperty("social.connId.github"))) {
-            String target = env.getProperty("github.users.api");
-            target = (Objects.isNull(target) ? "" : target);
-            String githubLogin = jsonObjStringValue(userInfoInIdpObj, "profile").replace(target, "");
-            res.put("identity", "github");
-            res.put("login_name", githubLogin);
-            res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "username"));
-            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
-            map.put("github", res);
-        } else if (originConnId.equals(env.getProperty("enterprise.connId.gitee"))) {
-            String giteeLogin = userInfoInIdpObj.getJSONObject("customData").getString("giteeLogin");
-            res.put("identity", "gitee");
-            res.put("login_name", giteeLogin);
-            res.put("user_name", userInfoInIdpObj.getJSONObject("customData").getString("giteeName"));
-            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
-            map.put("gitee", res);
-        } else if (originConnId.equals(env.getProperty("enterprise.connId.openatom"))) {
-            String phone = jsonObjStringValue(userInfoInIdpObj, "phone");
-            String email = jsonObjStringValue(userInfoInIdpObj, "email");
-            String name = StringUtils.isNotBlank(email) ? email : phone;
-            res.put("identity", "openatom");
-            res.put("login_name", name);
-            res.put("user_name", name);
-            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
-            map.put("openatom", res);
-        }
-    }
-
-    // JSONObject获取单个node的值
-    private String jsonObjStringValue(JSONObject jsonObj, String nodeName) {
-        String res = "";
-        try {
-            if (jsonObj.isNull(nodeName)) {
-                return res;
-            }
-            Object obj = jsonObj.get(nodeName);
-            if (obj != null) {
-                res = obj.toString();
-            }
-        } catch (Exception ex) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), ex);
-        }
-        return res;
-    }
-
-    // JSONObject获取单个node的值
-    private Object jsonObjObjectValue(JSONObject jsonObj, String nodeName) {
-        Object res = null;
-        try {
-            if (jsonObj.isNull(nodeName)) {
-                return res;
-            }
-            Object obj = jsonObj.get(nodeName);
-            if (obj != null) {
-                res = obj;
-            }
-        } catch (Exception ex) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), ex);
-        }
-        return res;
-    }
-
     private ResponseEntity result(HttpStatus status, String msg, Object data) {
         HashMap<String, Object> res = new HashMap<>();
         res.put("code", status.value());
@@ -1918,7 +1796,7 @@ public class AuthingService implements UserCenterServiceInter {
                         "when grant_type is authorization_code,parameters must contain refresh_token", null);
             }
             // 解析refresh_token
-            DecodedJWT decode = JWT.decode(rsaDecryptToken(refreshToken));
+            DecodedJWT decode = JWT.decode(authingUtil.rsaDecryptToken(refreshToken));
             String userId = decode.getAudience().get(0);
             Date expiresAt = decode.getExpiresAt();
             // tokens校验

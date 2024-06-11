@@ -28,6 +28,7 @@ import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 
+import com.om.Utils.AuthingUtil;
 import org.apache.commons.lang3.StringUtils;
 import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
@@ -90,6 +91,13 @@ public class OneIdManageService {
      */
     @Autowired
     private ObjectMapper objectMapper;
+
+
+    /**
+     * 使用 @Autowired 注解注入authingUtil.
+     */
+    @Autowired
+    private AuthingUtil authingUtil;
 
     /**
      * 从配置中获取企业Gitee提供者ID.
@@ -300,7 +308,7 @@ public class OneIdManageService {
 
             if (userInfo != null) {
                 return authingService.result(HttpStatus.OK, null,
-                        "success", authingService.parseAuthingUser(userInfo));
+                        "success", authingUtil.parseAuthingUser(userInfo));
             } else {
                 return authingService.result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, null);
             }
