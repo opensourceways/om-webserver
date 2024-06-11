@@ -14,13 +14,11 @@ package com.om.Service;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.Claim;
-import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.RSAUtil;
-import com.om.Vo.TokenUser;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +30,7 @@ import org.springframework.util.DigestUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPublicKey;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -138,9 +137,9 @@ public class JwtTokenCreateService {
                 .withExpiresAt(headTokenExpireAt) //过期时间
                 .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .sign(Algorithm.HMAC256(authingTokenBasePassword));
-        String verifyToken = DigestUtils.md5DigestAsHex(headToken.getBytes());
+        String verifyToken = DigestUtils.md5DigestAsHex(headToken.getBytes(StandardCharsets.UTF_8));
         redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
-        String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes());
+        String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes(StandardCharsets.UTF_8));
 
         String token = JWT.create()
                 .withAudience(userId) //谁接受签名
@@ -174,12 +173,13 @@ public class JwtTokenCreateService {
     public String[] refreshAuthingUserToken(HttpServletRequest request, HttpServletResponse response,
                                             String userId, Map<String, Claim> claimMap) {
         String headerJwtToken = request.getHeader("token");
-        String headJwtTokenMd5 = DigestUtils.md5DigestAsHex(headerJwtToken.getBytes());
+        String headJwtTokenMd5 = DigestUtils.md5DigestAsHex(headerJwtToken.getBytes(StandardCharsets.UTF_8));
         String appId = claimMap.get("client_id").asString();
         String inputPermission = claimMap.get("inputPermission").asString();
         String idToken = (String) redisDao.get("idToken_" + headJwtTokenMd5);
         String permission = new String(Base64.getDecoder()
-                .decode(claimMap.get("permission").asString().getBytes()));
+                .decode(claimMap.get("permission").asString()
+                        .getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
 
         // 生成新的token和headToken
         List<String> audience = JWT.decode(headerJwtToken).getAudience();

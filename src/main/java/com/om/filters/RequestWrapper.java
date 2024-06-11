@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
@@ -53,10 +54,10 @@ public class RequestWrapper extends HttpServletRequestWrapper {
 
         StringBuilder sb = new StringBuilder();
         BufferedReader reader = null;
-
+        InputStream inputStream = null;
         // 将inputStream里的数据读取出来
         try {
-            InputStream inputStream = request.getInputStream();
+            inputStream = request.getInputStream();
             reader = new BufferedReader(
                     new InputStreamReader(inputStream, Charset.defaultCharset()));
             String line;
@@ -66,6 +67,9 @@ public class RequestWrapper extends HttpServletRequestWrapper {
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
+            if (inputStream != null) {
+                inputStream.close();
+            }
             if (reader != null) {
                 try {
                     reader.close();
@@ -115,6 +119,6 @@ public class RequestWrapper extends HttpServletRequestWrapper {
      */
     @Override
     public BufferedReader getReader() throws IOException {
-        return new BufferedReader(new InputStreamReader(this.getInputStream()));
+        return new BufferedReader(new InputStreamReader(this.getInputStream(), StandardCharsets.UTF_8));
     }
 }

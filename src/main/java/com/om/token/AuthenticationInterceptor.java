@@ -22,6 +22,7 @@ import com.om.Service.TokenUserService;
 import com.om.Vo.TokenUser;
 
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
 
@@ -123,9 +124,9 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
                     sos.write(errorToken(401, "token error")); // token 签名接受者有误
                     return false;
                 }
-                String password = user.getPassword() + tokenUserPassword;
                 //验证token
-                JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(password)).build();
+                JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(user.getPassword()
+                        + tokenUserPassword)).build();
                 try {
                     jwtVerifier.verify(token);
                 } catch (JWTVerificationException e) {
@@ -156,6 +157,6 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         resMap.put("code", status);
         resMap.put("msg", msg);
         String resStr = objectMapper.valueToTree(resMap).toString();
-        return resStr.getBytes();
+        return resStr.getBytes(StandardCharsets.UTF_8);
     }
 }

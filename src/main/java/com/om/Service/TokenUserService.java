@@ -50,8 +50,7 @@ public class TokenUserService {
 
         String userName = tokenUserName;
         if (name.equals(userName)) {
-            String password = tokenUserPassword;
-            return new TokenUser(community, userName, password);
+            return new TokenUser(community, userName, tokenUserPassword);
         }
         return null;
     }

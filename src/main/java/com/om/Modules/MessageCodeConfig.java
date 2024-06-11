@@ -329,15 +329,6 @@ public enum MessageCodeConfig {
     }
 
     /**
-     * 设置消息代码.
-     *
-     * @param code 消息代码
-     */
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    /**
      * 获取英文消息.
      *
      * @return 英文消息
@@ -347,30 +338,12 @@ public enum MessageCodeConfig {
     }
 
     /**
-     * 设置英文消息.
-     *
-     * @param msgEn 英文消息
-     */
-    public void setMsgEn(String msgEn) {
-        this.msgEn = msgEn;
-    }
-
-    /**
      * 获取中文消息.
      *
      * @return 中文消息
      */
     public String getMsgZh() {
         return msgZh;
-    }
-
-    /**
-     * 设置中文消息.
-     *
-     * @param msgZh 中文消息
-     */
-    public void setMsgZh(String msgZh) {
-        this.msgZh = msgZh;
     }
 
     /**
