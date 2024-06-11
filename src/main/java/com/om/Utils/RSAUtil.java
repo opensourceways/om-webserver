@@ -56,6 +56,15 @@ public class RSAUtil implements Serializable {
      */
     @Value("${rsa.key.algorithm:RSA}")
     public void setKeyAlgorithm(String keyAlgorithm) {
+        setKeyAlgorithmStaticMethod(keyAlgorithm);
+    }
+
+    /**
+     * 通过静态方法设置密钥算法.
+     *
+     * @param keyAlgorithm 密钥算法
+     */
+    public static void setKeyAlgorithmStaticMethod(String keyAlgorithm) {
         RSAUtil.keyAlgorithm = keyAlgorithm;
     }
 
@@ -66,8 +75,18 @@ public class RSAUtil implements Serializable {
      */
     @Value("${rsa.authing.algorithm:RSA/ECB/OAEPWithSHA-256AndMGF1Padding}")
     public void setRsaAlgorithm(String rsaAlgorithm) {
+        setRsaAlgorithmStaticMethod(rsaAlgorithm);
+    }
+
+    /**
+     * 通过静态方法设置RSA算法.
+     *
+     * @param rsaAlgorithm 密钥算法
+     */
+    public static void setRsaAlgorithmStaticMethod(String rsaAlgorithm) {
         RSAUtil.rsaAlgorithm = rsaAlgorithm;
     }
+
 
     /**
      * 随机生成密钥对(公钥和私钥).
@@ -221,6 +240,7 @@ public class RSAUtil implements Serializable {
         }
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] dataResult = null;
         int offSet = 0;
         byte[] buff;
         int i = 0;
@@ -235,11 +255,12 @@ public class RSAUtil implements Serializable {
                 i++;
                 offSet = i * maxBlock;
             }
+            dataResult = out.toByteArray();
         } catch (Exception e) {
             throw new RuntimeException("Cipher Mode: " + opmode + " Error", e);
+        } finally {
+            IOUtils.closeQuietly(out);
         }
-        byte[] dataResult = out.toByteArray();
-        IOUtils.closeQuietly(out);
         return dataResult;
     }
 }

@@ -17,14 +17,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import com.om.Modules.MessageCodeConfig;
-import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +29,6 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializer;
-import org.springframework.data.redis.serializer.SerializationException;
 import org.springframework.stereotype.Repository;
 
 
@@ -78,7 +73,11 @@ public class RedisDao {
      * @return 还剩多少秒过期
      */
     public long expire(String key) {
-        return redisTemplate.opsForValue().getOperations().getExpire(key);
+        Long keyExpire = redisTemplate.opsForValue().getOperations().getExpire(key);
+        if (Objects.isNull(keyExpire)) {
+            return -1;
+        }
+        return keyExpire;
     }
 
     /**
@@ -201,7 +200,10 @@ public class RedisDao {
     public boolean exists(final String key) {
         boolean result = false;
         try {
-            result = redisTemplate.hasKey(key);
+            Boolean isExists = redisTemplate.hasKey(key);
+            if (Objects.nonNull(isExists)) {
+                result = isExists;
+            }
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
@@ -227,81 +229,6 @@ public class RedisDao {
         return result;
     }
 
-    class GzipSerializer implements RedisSerializer<Object> {
-
-        /**
-         * 缓冲区大小常量.
-         */
-        public static final int BUFFER_SIZE = 4096;
-        /**
-         * 这里组合方式，使用到了一个序列化器.
-         */
-        private RedisSerializer<Object> innerSerializer;
-
-        GzipSerializer(RedisSerializer<Object> innerSerializer) {
-            this.innerSerializer = innerSerializer;
-        }
-
-        @Override
-        public byte[] serialize(Object graph) throws SerializationException {
-            if (graph == null) {
-                return new byte[0];
-            }
-            ByteArrayOutputStream bos = null;
-            GZIPOutputStream gzip = null;
-            try {
-                // 先序列化
-                byte[] bytes = innerSerializer.serialize(graph);
-                bos = new ByteArrayOutputStream();
-                gzip = new GZIPOutputStream(bos);
-                // 在压缩
-                gzip.write(bytes);
-                gzip.finish();
-                byte[] result = bos.toByteArray();
-                return result;
-            } catch (Exception e) {
-                LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
-                throw new SerializationException("Gzip Serialization Error", e);
-            } finally {
-                IOUtils.closeQuietly(bos);
-                IOUtils.closeQuietly(gzip);
-            }
-        }
-
-        @Override
-        public Object deserialize(byte[] bytes) throws SerializationException {
-
-            if (bytes == null || bytes.length == 0) {
-                return null;
-            }
-
-            ByteArrayOutputStream bos = null;
-            ByteArrayInputStream bis = null;
-            GZIPInputStream gzip = null;
-            try {
-                bos = new ByteArrayOutputStream();
-                bis = new ByteArrayInputStream(bytes);
-                gzip = new GZIPInputStream(bis);
-                byte[] buff = new byte[BUFFER_SIZE];
-                int n;
-                // 先解压
-                while ((n = gzip.read(buff, 0, BUFFER_SIZE)) > 0) {
-                    bos.write(buff, 0, n);
-                }
-                // 再反序列化
-                Object result = innerSerializer.deserialize(bos.toByteArray());
-                return result;
-            } catch (Exception e) {
-                LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
-                throw new SerializationException("Gzip deserizelie error", e);
-            } finally {
-                IOUtils.closeQuietly(bos);
-                IOUtils.closeQuietly(bis);
-                IOUtils.closeQuietly(gzip);
-
-            }
-        }
-    }
 
     private RedisSerializer getJsonserializer() {
         Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);

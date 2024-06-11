@@ -28,6 +28,7 @@ import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 
+import com.om.Utils.AuthingUtil;
 import org.apache.commons.lang3.StringUtils;
 import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
@@ -41,6 +42,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.util.HtmlUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -89,6 +91,13 @@ public class OneIdManageService {
      */
     @Autowired
     private ObjectMapper objectMapper;
+
+
+    /**
+     * 使用 @Autowired 注解注入authingUtil.
+     */
+    @Autowired
+    private AuthingUtil authingUtil;
 
     /**
      * 从配置中获取企业Gitee提供者ID.
@@ -299,7 +308,7 @@ public class OneIdManageService {
 
             if (userInfo != null) {
                 return authingService.result(HttpStatus.OK, null,
-                        "success", authingService.parseAuthingUser(userInfo));
+                        "success", authingUtil.parseAuthingUser(userInfo));
             } else {
                 return authingService.result(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, null);
             }
@@ -368,8 +377,8 @@ public class OneIdManageService {
                 appId, appSecret, refTokenExpire);
 
         // token和refresh_token的hash
-        String token = DigestUtils.md5DigestAsHex(tokenJwt.getBytes());
-        String refreshToken = DigestUtils.md5DigestAsHex(refTokenJwt.getBytes());
+        String token = DigestUtils.md5DigestAsHex(tokenJwt.getBytes(StandardCharsets.UTF_8));
+        String refreshToken = DigestUtils.md5DigestAsHex(refTokenJwt.getBytes(StandardCharsets.UTF_8));
 
         // jwt格式token和refresh_token保存在服务端
         HashMap<String, Object> jwtTokenMap = new HashMap<>();
@@ -461,14 +470,14 @@ public class OneIdManageService {
             String tokenInfo = tokenStr.replace(TOKEN_REGEX, "");
             JsonNode jsonNode = objectMapper.readTree(tokenInfo);
             String refTokenJwt = jsonNode.get("refresh_token").asText();
-            if (!refreshToken.equals(DigestUtils.md5DigestAsHex(refTokenJwt.getBytes()))) {
+            if (!refreshToken.equals(DigestUtils.md5DigestAsHex(refTokenJwt.getBytes(StandardCharsets.UTF_8)))) {
                 return "token error or expire";
             }
 
             // 校验refresh_token是否正确或过期
             String appSecret = jsonNode.get("app_secret").asText();
-            String password = appSecret + env.getProperty("authing.token.base.password");
-            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(password)).build();
+            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(appSecret
+                    + env.getProperty("authing.token.base.password"))).build();
             jwtVerifier.verify(refTokenJwt);
 
             return jsonNode;

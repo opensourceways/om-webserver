@@ -50,8 +50,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import java.net.URL;
-import java.net.URLDecoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
@@ -66,6 +64,11 @@ import java.util.Objects;
 
 @Service("opengauss")
 public class OpenGaussService implements UserCenterServiceInter {
+    /**
+     * 默认过期时间.
+     */
+    private static final Long EXPIRE_DEFAULT = 120L;
+
     /**
      * 日志记录器，用于记录 OpenGaussService 类的日志信息.
      */
@@ -159,21 +162,104 @@ public class OpenGaussService implements UserCenterServiceInter {
     private static String poolSecret;
 
     /**
+     * CodeUtil赋值.
+     *
+     * @param codeUtil CodeUtil实例
+     */
+    public static void setCodeUtil(CodeUtil codeUtil) {
+        OpenGaussService.codeUtil = codeUtil;
+    }
+
+    /**
+     * error2code赋值.
+     *
+     * @param error2code error2coder实例
+     */
+    public static void setError2code(Map<String, MessageCodeConfig> error2code) {
+        OpenGaussService.error2code = error2code;
+    }
+
+    /**
+     * appId2Secret实例赋值.
+     *
+     * @param appId2Secret appId2Secret实例
+     */
+    public static void setAppId2Secret(Map<String, String> appId2Secret) {
+        OpenGaussService.appId2Secret = appId2Secret;
+    }
+
+    /**
+     * 结果对象赋值.
+     *
+     * @param result 结果对象实例
+     */
+    public static void setResult(Result result) {
+        OpenGaussService.result = result;
+    }
+
+    /**
+     * 渠道列表赋值.
+     *
+     * @param channels 渠道列表实例
+     */
+    public static void setChannels(List<String> channels) {
+        OpenGaussService.channels = channels;
+    }
+
+    /**
+     * ObjectMapper实例赋值.
+     *
+     * @param objectMapper objectMapper实例
+     */
+    public static void setObjectMapper(ObjectMapper objectMapper) {
+        OpenGaussService.objectMapper = objectMapper;
+    }
+
+    /**
+     * poolId实例赋值.
+     *
+     * @param poolId PoolId实例
+     */
+    public static void setPoolId(String poolId) {
+        OpenGaussService.poolId = poolId;
+    }
+
+    /**
+     * poolSecret实例赋值.
+     *
+     * @param poolSecret PoolSecret实例
+     */
+    public static void setpoolSecret(String poolSecret) {
+        OpenGaussService.poolSecret = poolSecret;
+    }
+
+    /**
+     * Domain2secure实例赋值.
+     *
+     * @param domain2secure Domain2secure实例
+     */
+    public static void setDomain2secure(HashMap<String, Boolean> domain2secure) {
+        OpenGaussService.domain2secure = domain2secure;
+    }
+
+    /**
      * 初始化方法.
      */
     @PostConstruct
     public void init() {
-        codeUtil = new CodeUtil();
-        error2code = MessageCodeConfig.getErrorCode();
-        appId2Secret = getApps();
-        result = new Result();
-        channels = getSendCodeChannel();
-        objectMapper = new ObjectMapper();
-        poolId = env.getProperty("opengauss.pool.key");
-        poolSecret = env.getProperty("opengauss.pool.secret");
-        domain2secure = HttpClientUtils.getConfigCookieInfo(
-                Objects.requireNonNull(env.getProperty("cookie.token.domains")),
-                Objects.requireNonNull(env.getProperty("cookie.token.secures")));
+        setCodeUtil(new CodeUtil());
+        setError2code(MessageCodeConfig.getErrorCode());
+        setAppId2Secret(getApps());
+        setResult(new Result());
+        setChannels(getSendCodeChannel());
+        setObjectMapper(new ObjectMapper());
+        setPoolId(env.getProperty("opengauss.pool.key"));
+        setpoolSecret(env.getProperty("opengauss.pool.secret"));
+        String domains = env.getProperty("cookie.token.domains");
+        String secures = env.getProperty("cookie.token.secures");
+        if (domains != null && secures != null) {
+            setDomain2secure(HttpClientUtils.getConfigCookieInfo(domains, secures));
+        }
         oneidDao.getManagementToken(poolId, poolSecret);
     }
 
@@ -581,8 +667,12 @@ public class OpenGaussService implements UserCenterServiceInter {
 
             // 退出登录，该token失效
             String redisKey = userId + issuedAt.toString();
-            redisDao.set(redisKey, token,
-                    Long.valueOf(Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
+            String seconds = env.getProperty("authing.token.expire.seconds");
+            if (Objects.nonNull(seconds)) {
+                redisDao.set(redisKey, token, Long.valueOf(seconds));
+            } else {
+                redisDao.set(redisKey, token, EXPIRE_DEFAULT);
+            }
 
             // 退出登录，删除cookie，删除idToken
             String cookieTokenName = env.getProperty("cookie.token.name");
@@ -666,6 +756,9 @@ public class OpenGaussService implements UserCenterServiceInter {
             } else {
                 return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
             }
+        } catch (RuntimeException e) {
+            LOGGER.error("Internal Server RuntimeException." + e.getMessage());
+            return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
         } catch (Exception e) {
             return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
         }
@@ -1207,7 +1300,10 @@ public class OpenGaussService implements UserCenterServiceInter {
     private Map<String, String> getApps() {
         HashMap<String, String> res = new HashMap<>();
         String property = env.getProperty("opengauss.apps");
-        String[] split = property.split(";");
+        String[] split = new String[0];
+        if (Objects.nonNull(property)) {
+            split = property.split(";");
+        }
         for (String s : split) {
             String[] app = s.split(":");
             res.put(app[0], app[1]);
@@ -1218,8 +1314,10 @@ public class OpenGaussService implements UserCenterServiceInter {
     private List<String> getSendCodeChannel() {
         ArrayList<String> channels = new ArrayList<>();
         String property = env.getProperty("oneid.send.code.channel");
-        for (String chanel : property.split(",")) {
-            channels.add("channel_" + chanel);
+        if (Objects.nonNull(property)) {
+            for (String chanel : property.split(",")) {
+                channels.add("channel_" + chanel);
+            }
         }
         return channels;
     }
@@ -1257,8 +1355,12 @@ public class OpenGaussService implements UserCenterServiceInter {
         try {
             // 当前token失效
             String redisKey = userId + issuedAt.toString();
-            redisDao.set(redisKey, token, Long.valueOf(
-                    Objects.requireNonNull(env.getProperty("authing.token.expire.seconds"))));
+            String seconds = env.getProperty("authing.token.expire.seconds");
+            if (Objects.nonNull(seconds)) {
+                redisDao.set(redisKey, token, Long.valueOf(seconds));
+            } else {
+                redisDao.set(redisKey, token, EXPIRE_DEFAULT);
+            }
             // 删除用户头像
             authingUserDao.deleteObsObjectByUrl(photo);
 

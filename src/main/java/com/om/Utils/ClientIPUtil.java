@@ -66,7 +66,9 @@ public final class ClientIPUtil {
                 } catch (UnknownHostException e) {
                     LOGGER.error("get local host error: " + e.getMessage());
                 }
-                ip = inet.getHostAddress();
+                if (inet != null) {
+                    ip = inet.getHostAddress();
+                }
             }
         }
         return ip;

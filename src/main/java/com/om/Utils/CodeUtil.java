@@ -32,6 +32,7 @@ import jakarta.mail.internet.MimeMessage;
 
 import java.math.BigInteger;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.DrbgParameters;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -41,6 +42,7 @@ import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 
 @Component
 public class CodeUtil {
@@ -121,6 +123,8 @@ public class CodeUtil {
                 default:
                     break;
             }
+        } catch (RuntimeException e) {
+            LOGGER.error("Internal Server RuntimeException" + e.getMessage());
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
@@ -237,7 +241,8 @@ public class CodeUtil {
         StringBuilder sb = new StringBuilder();
         String temp = "";
 
-        for (String s : map.keySet()) {
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            String s = entry.getKey();
             try {
                 temp = URLEncoder.encode(map.get(s), "UTF-8");
             } catch (Exception e) {
@@ -270,7 +275,7 @@ public class CodeUtil {
 
         try {
             md = MessageDigest.getInstance("SHA-256");
-            md.update((nonce + time + appSecret).getBytes());
+            md.update((nonce + time + appSecret).getBytes(StandardCharsets.UTF_8));
             passwordDigest = md.digest();
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
