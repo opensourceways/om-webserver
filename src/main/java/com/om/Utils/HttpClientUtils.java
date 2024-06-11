@@ -189,8 +189,7 @@ public final class HttpClientUtils implements Serializable {
     public static Map<String, Object> getBodyFromRequest(HttpServletRequest request) {
         ObjectMapper objectMapper = new ObjectMapper();
         Map<String, Object> body = new HashMap<>();
-        try {
-            BufferedReader br = request.getReader();
+        try (BufferedReader br = request.getReader()) {
             StringBuilder wholeStr = new StringBuilder();
             String str;
             while ((str = br.readLine()) != null) {

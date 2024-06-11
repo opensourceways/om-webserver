@@ -16,7 +16,6 @@ import cn.authing.core.mgmt.ManagementClient;
 
 import cn.authing.core.types.Application;
 import cn.authing.core.types.AuthorizedResource;
-import cn.authing.core.types.EmailScene;
 import cn.authing.core.types.FindUserParam;
 import cn.authing.core.types.PaginatedAuthorizedResources;
 import cn.authing.core.types.UpdateUserInput;
@@ -45,6 +44,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.annotation.PostConstruct;
@@ -62,6 +62,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -297,13 +298,40 @@ public class AuthingUserDao {
     private AuthingAppSync authingAppSync;
 
     /**
+     * 客户端实例赋值.
+     *
+     * @param managementClient 客户端实例
+     */
+    public static void setInitManagementClient(ManagementClient managementClient) {
+        AuthingUserDao.managementClient = managementClient;
+    }
+
+    /**
+     * OBS客户端实例赋值.
+     *
+     * @param obsClient OBS客户端实例
+     */
+    public static void setInitObsClient(ObsClient obsClient) {
+        AuthingUserDao.obsClient = obsClient;
+    }
+
+    /**
+     * 预留用户名列表赋值.
+     *
+     * @param nameList 预留用户名列表
+     */
+    public static void setInitReservedUsernames(List<String> nameList) {
+        AuthingUserDao.reservedUsernames = nameList;
+    }
+
+    /**
      * 在类实例化后立即执行的初始化方法.
      */
     @PostConstruct
     public void init() {
-        managementClient = new ManagementClient(userPoolId, secret);
-        obsClient = new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint);
-        reservedUsernames = getUsernameReserved();
+        setInitManagementClient(new ManagementClient(userPoolId, secret));
+        setInitObsClient(new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint));
+        setInitReservedUsernames(getUsernameReserved());
         photoSuffixes = Arrays.asList(photoSuffix.split(";"));
         Unirest.config().reset();
         Unirest.config().socketTimeout(0).connectTimeout(0);
@@ -825,7 +853,9 @@ public class AuthingUserDao {
             List<AuthorizedResource> ars = pars.getList();
             for (AuthorizedResource ar : ars) {
                 List<String> actions = ar.getActions();
-                pers.addAll(actions);
+                if (!CollectionUtils.isEmpty(actions)) {
+                    pers.addAll(actions);
+                }
             }
             return pers;
         } catch (Exception e) {
@@ -1366,8 +1396,13 @@ public class AuthingUserDao {
                         if (!msg.equals("success")) {
                             return msg;
                         }
-                        if (StringUtils.isNotBlank(user.getUsername()) && !user.getUsername().startsWith("oauth2_")) {
-                            return "用户名唯一，不可修改";
+                        if (Objects.nonNull(user)) {
+                            String userName = user.getUsername();
+                            if (Objects.nonNull(userName)
+                                    && StringUtils.isNotBlank(userName)
+                                    && !userName.startsWith("oauth2_")) {
+                                return "用户名唯一，不可修改";
+                            }
                         }
                         updateUserInput.withUsername(inputValue);
                         break;
@@ -1453,6 +1488,9 @@ public class AuthingUserDao {
 
             // 重命名文件
             String fileName = file.getOriginalFilename();
+            if (Objects.isNull(fileName)) {
+                throw new Exception("Filename is invalid");
+            }
             for (String c : Constant.PHOTO_NOT_ALLOWED_CHARS.split(",")) {
                 if (fileName.contains(c)) {
                     throw new Exception("Filename is invalid");
@@ -1743,15 +1781,11 @@ public class AuthingUserDao {
      * 根据社区获取包含特定隐私版本号的隐私设置.
      *
      * @param privacyVersions 隐私版本号
-     * @param com 社区名称
      * @return 返回包含特定隐私版本号的隐私设置
      */
-    public String getPrivacyVersionWithCommunity(String privacyVersions, String com) {
+    public String getPrivacyVersionWithCommunity(String privacyVersions) {
         if (privacyVersions == null || !privacyVersions.contains(":")) {
             return "";
-        }
-        if (com == null) {
-            com = community;
         }
 
         try {

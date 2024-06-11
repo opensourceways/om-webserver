@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * Redis 消息监听器类实现消息监听接口.
  */
@@ -23,7 +25,7 @@ public class RedisMessageListener implements MessageListener {
     @Override
     public void onMessage(Message message, byte[] pattern) {
         byte[] body = message.getBody();
-        String expiredKey = new String(body);
+        String expiredKey = new String(body, StandardCharsets.UTF_8);
         if (expiredKey.contains("loginCount")) {
             LOGGER.info(String.format("Account %s is unlocked", expiredKey.replace("loginCount", "")));
         }
