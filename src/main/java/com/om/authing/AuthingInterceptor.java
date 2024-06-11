@@ -43,6 +43,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPrivateKey;
 import java.util.Arrays;
 import java.util.Base64;
@@ -126,11 +127,21 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthingInterceptor.class);
 
     /**
+     * Domain2secure实例赋值.
+     *
+     * @param domain2secure Domain2secure实例
+     */
+    public static void setDomain2secure(HashMap<String, Boolean> domain2secure) {
+        AuthingInterceptor.domain2secure = domain2secure;
+    }
+
+
+    /**
      * 初始化方法，在对象创建后调用，用于初始化域名与安全性标志的映射关系.
      */
     @PostConstruct
     public void init() {
-        domain2secure = HttpClientUtils.getConfigCookieInfo(allowDomains, cookieSecures);
+        setDomain2secure(HttpClientUtils.getConfigCookieInfo(allowDomains, cookieSecures));
     }
 
     /**
@@ -215,7 +226,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
             claims = decode.getClaims();
             String permissionTemp = claims.get("permission").asString();
             oneidPrivacyVersionAccept = claims.get("oneidPrivacyAccepted").asString();
-            permission = new String(Base64.getDecoder().decode(permissionTemp.getBytes()));
+            permission = new String(Base64.getDecoder()
+                    .decode(permissionTemp
+                            .getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
             verifyToken = claims.get("verifyToken").asString();
         } catch (JWTDecodeException j) {
             tokenError(httpServletRequest, httpServletResponse, "unauthorized");
@@ -279,14 +292,13 @@ public class AuthingInterceptor implements HandlerInterceptor {
             }
 
             // 服务端校验headerToken是否有效
-            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes());
+            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes(StandardCharsets.UTF_8));
             if (!redisDao.exists("idToken_" + md5Token)) {
                 return "token expires";
             }
 
             // token 签名密码验证
-            String password = authingTokenBasePassword;
-            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(password)).build();
+            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(authingTokenBasePassword)).build();
             jwtVerifier.verify(headerToken);
             return md5Token;
         } catch (Exception e) {
@@ -321,8 +333,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             }
 
             // token 签名密码验证
-            String password = permission + authingTokenBasePassword;
-            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(password)).build();
+            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(permission + authingTokenBasePassword)).build();
             jwtVerifier.verify(token);
 
             // 退出登录后token失效
@@ -331,6 +342,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
             if (token.equalsIgnoreCase(beforeToken)) {
                 return "unauthorized";
             }
+        } catch (RuntimeException e) {
+            LOGGER.error("Internal Server RuntimeException" + e.getMessage());
+            return "unauthorized";
         } catch (Exception e) {
             return "unauthorized";
         }
@@ -420,7 +434,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
                 true, maxAge, "/", domain2secure);
         HttpClientUtils.setCookie(request, response, verifyTokenName, tokens[Constant.TOKEN_UT],
                 false, tokenExpire, "/", domain2secure);
-        String newVerifyToken = DigestUtils.md5DigestAsHex(tokens[Constant.TOKEN_UT].getBytes());
+        String newVerifyToken = DigestUtils.md5DigestAsHex(tokens[Constant.TOKEN_UT].getBytes(StandardCharsets.UTF_8));
         redisDao.set(Constant.ID_TOKEN_PREFIX + newVerifyToken, idToken, (long) tokenExpire);
 
         // 旧token失效,保持一个短时间的有效性

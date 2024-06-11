@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.Objects;
 
 /**
  * 数据访问对象类，用于处理 Oneid 数据库操作.
@@ -101,12 +102,30 @@ public class OneidDao {
     private static ObjectMapper objectMapper;
 
     /**
+     * OBS客户端实例赋值.
+     *
+     * @param obsClient OBS客户端实例
+     */
+    public static void setInitObsClient(ObsClient obsClient) {
+        OneidDao.obsClient = obsClient;
+    }
+
+    /**
+     * ObjectMapper实例赋值.
+     *
+     * @param objectMapper objectMapper实例
+     */
+    public static void setObjectMapper(ObjectMapper objectMapper) {
+        OneidDao.objectMapper = objectMapper;
+    }
+
+    /**
      * 初始化方法，在对象构造之后，初始化之前执行.
      */
     @PostConstruct
     public void init() {
-        obsClient = new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint);
-        objectMapper = new ObjectMapper();
+        setInitObsClient(new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint));
+        setObjectMapper(new ObjectMapper());
     }
 
     /**
@@ -393,6 +412,9 @@ public class OneidDao {
 
             // 重命名文件
             String fileName = file.getOriginalFilename();
+            if (Objects.isNull(fileName)) {
+                throw new Exception("Filename is invalid");
+            }
             for (String c : Constant.PHOTO_NOT_ALLOWED_CHARS.split(",")) {
                 if (fileName.contains(c)) {
                     throw new Exception("Filename is invalid");
