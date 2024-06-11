@@ -279,7 +279,6 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         String userName = servletRequest.getParameter("username");
-        String account = null;
         String appId = servletRequest.getParameter("client_id");
         // 校验appId
         if (authingUserDao.getAppById(appId) == null) {
@@ -289,11 +288,6 @@ public class AuthingService implements UserCenterServiceInter {
             if (StringUtils.isNotBlank(userName)) {
                 if (authingUserDao.isUserExists(appId, userName, "username")) {
                     return result(HttpStatus.BAD_REQUEST, null, "用户名已存在", null);
-                }
-            } else if (StringUtils.isNotBlank(account)) {
-                String accountType = checkPhoneAndEmail(appId, account);
-                if (!accountType.equals("email") && !accountType.equals("phone")) {
-                    return result(HttpStatus.BAD_REQUEST, null, accountType, null);
                 }
             }
         } catch (ServerErrorException e) {
