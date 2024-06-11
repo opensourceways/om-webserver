@@ -92,11 +92,14 @@ public class OneIdManageInterceptor implements HandlerInterceptor {
             String tokenJwt = jsonNode.get("token").asText();
 
             // 校验refresh_token是否正确或过期
-            String password = appSecret + env.getProperty("authing.token.base.password");
-            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(password)).build();
+            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(appSecret
+                    + env.getProperty("authing.token.base.password"))).build();
             jwtVerifier.verify(tokenJwt);
 
             return true;
+        } catch (RuntimeException e) {
+            tokenError(response, "token error or expire ");
+            return false;
         } catch (Exception e) {
             tokenError(response, "token error or expire");
             return false;
