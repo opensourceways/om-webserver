@@ -875,6 +875,8 @@ public class AuthingUserDao {
             if (response.getStatus() == 200) {
                 JSONObject resObj = response.getBody().getObject();
                 resObj.remove("sm2");
+                resObj.remove("version");
+                resObj.remove("publicIps");
                 msg = resObj.toString();
             }
         } catch (Exception e) {
