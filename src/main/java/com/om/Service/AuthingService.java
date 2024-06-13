@@ -486,7 +486,7 @@ public class AuthingService implements UserCenterServiceInter {
         // 生成token
         String userName = user.getUsername();
         if (Objects.isNull(userName)) {
-            return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
+            userName = "";
         }
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, userName,
                 permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
@@ -1028,11 +1028,11 @@ public class AuthingService implements UserCenterServiceInter {
             String userId = user.get("sub").toString();
             String idToken = user.get("id_token").toString();
             String picture = user.get("picture").toString();
-            String username = (String) user.get("username");
+            String userName = (String) user.get("username");
             String phone = (String) user.get("phone_number");
             String email = (String) user.get("email");
             if ("openeuler".equals(instanceCommunity) && StringUtils.isBlank(email)) {
-                email = genPredefinedEmail(userId, username);
+                email = genPredefinedEmail(userId, userName);
             }
             // 获取隐私同意字段值
             String givenName = user.get("given_name") == null ? "" : user.get("given_name").toString();
@@ -1040,11 +1040,11 @@ public class AuthingService implements UserCenterServiceInter {
                     .getPrivacyVersionWithCommunity(givenName);
             // 资源权限
             String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
-            if (Objects.isNull(username)) {
-                return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+            if (Objects.isNull(userName)) {
+                userName = "";
             }
             // 生成token
-            String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, username,
+            String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, userName,
                     permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
             String token = tokens[0];
             String verifyToken = tokens[1];
@@ -1062,7 +1062,7 @@ public class AuthingService implements UserCenterServiceInter {
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("token", verifyToken);
             userData.put("photo", picture);
-            userData.put("username", username);
+            userData.put("username", userName);
             userData.put("email_exist", StringUtils.isNotBlank(email));
             userData.put("phone_exist", StringUtils.isNotBlank(phone));
             userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
