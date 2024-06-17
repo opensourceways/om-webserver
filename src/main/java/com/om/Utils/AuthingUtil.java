@@ -141,6 +141,13 @@ public class AuthingUtil {
             res.put("user_name", name);
             res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("openatom", res);
+        } else if (originConnId.equals(env.getProperty("social.connId.wechat"))) {
+            String name = jsonObjStringValue(userInfoInIdpObj, "nickname");
+            res.put("identity", "wechat");
+            res.put("login_name", name);
+            res.put("user_name", name);
+            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
+            map.put("wechat", res);
         }
     }
 
