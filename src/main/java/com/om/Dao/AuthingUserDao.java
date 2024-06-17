@@ -132,6 +132,24 @@ public class AuthingUserDao {
     private String socialAuthUrlGithub;
 
     /**
+     * 微信 社交登录的外部身份提供者 ID.
+     */
+    @Value("${social.extIdpId.wechat: }")
+    private String socialExtIdpIdWechat;
+
+    /**
+     * 微信 社交登录的标识符.
+     */
+    @Value("${social.identifier.wechat: }")
+    private String socialIdentifierWechat;
+
+    /**
+     * 微信 社交登录的授权 URL.
+     */
+    @Value("${social.authorizationUrl.wechat: }")
+    private String socialAuthUrlWechat;
+
+    /**
      * Gitee 企业登录的外部身份提供者 ID.
      */
     @Value("${enterprise.extIdpId.gitee}")
@@ -1243,6 +1261,13 @@ public class AuthingUserDao {
             list.add(mapGithub);
             list.add(mapGitee);
             list.add(mapOpenatom);
+            if (StringUtils.isNotBlank(socialAuthUrlWechat)) {
+                HashMap<String, String> mapWechat = new HashMap<>();
+                String authWechat = String.format(socialAuthUrlWechat, socialIdentifierWechat, appId, userToken);
+                mapWechat.put("name", "social_wechat");
+                mapWechat.put("authorizationUrl", authWechat);
+                list.add(mapWechat);
+            }
             return list;
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
@@ -1296,6 +1321,10 @@ public class AuthingUserDao {
                 case "openatom":
                     identifier = enterIdentifieOpenatom;
                     extIdpId = enterExtIdpIdOpenatom;
+                    break;
+                case "wechat":
+                    identifier = socialIdentifierWechat;
+                    extIdpId = socialExtIdpIdWechat;
                     break;
                 default:
                     return msg;
