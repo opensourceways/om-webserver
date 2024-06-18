@@ -479,7 +479,7 @@ public class AuthingService implements UserCenterServiceInter {
         // 登录成功解除登录失败次数限制
         redisDao.remove(account + Constant.LOGIN_COUNT);
         // 资源权限
-        String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
+        String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission, "");
         // 获取是否同意隐私
         String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(
                 user.getGivenName());
@@ -1040,7 +1040,7 @@ public class AuthingService implements UserCenterServiceInter {
             String oneidPrivacyVersionAccept = authingUserDao
                     .getPrivacyVersionWithCommunity(givenName);
             // 资源权限
-            String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
+            String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission, "");
             if (Objects.isNull(userName)) {
                 userName = "";
             }
