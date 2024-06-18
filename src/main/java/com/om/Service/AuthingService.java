@@ -565,6 +565,7 @@ public class AuthingService implements UserCenterServiceInter {
             if (!scopes.contains("openid") || !scopes.contains("profile")) {
                 return resultOidc(HttpStatus.NOT_FOUND, "scope must contain <openid profile>", null);
             }
+            redirectUri = URLDecoder.decode(redirectUri, "UTF-8");
             // app回调地址校验
             ResponseEntity responseEntity = appVerify(appId, redirectUri);
             if (responseEntity.getStatusCode().value() != 200) {
