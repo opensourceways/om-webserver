@@ -1269,6 +1269,9 @@ public class AuthingUserDao {
                 list.add(mapWechat);
             }
             return list;
+        } catch (RuntimeException e) {
+            LOGGER.error("Internal Server RuntimeException" + e.getMessage());
+            return null;
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return null;
