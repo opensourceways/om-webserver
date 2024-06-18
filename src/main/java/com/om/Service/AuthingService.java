@@ -663,6 +663,7 @@ public class AuthingService implements UserCenterServiceInter {
             String complParam = StringUtils.isBlank(complementation)
                     ? "" : String.format("&complementation=%s", complementation);
             String langParam = StringUtils.isBlank(lang) ? "" : String.format("&lang=%s", lang);
+            redirectUri = URLEncoder.encode(redirectUri, "UTF-8");
             String loginPageRedirect = String.format(
                     "%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s%s%s",
                     loginPage, clientId, scope, redirectUri, state, complParam, langParam);
