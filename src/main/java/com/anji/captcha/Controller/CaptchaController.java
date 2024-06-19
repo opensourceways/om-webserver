@@ -10,6 +10,7 @@ import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.anji.captcha.util.StringUtils;
+import com.om.aop.RequestLimitRedis;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -37,6 +38,7 @@ public class CaptchaController {
      * @param request HTTP 请求对象
      * @return 返回 ResponseModel 包含处理结果信息
      */
+    @RequestLimitRedis(period = 20, count = 14)
     @PostMapping("/get")
     public ResponseModel get(@RequestBody CaptchaVO data, HttpServletRequest request) {
         data.setBrowserInfo(getRemoteId(request));
@@ -50,6 +52,7 @@ public class CaptchaController {
      * @param request HTTP 请求对象
      * @return 返回 ResponseModel 包含验证码检查结果信息
      */
+    @RequestLimitRedis
     @PostMapping("/check")
     public ResponseModel check(@RequestBody CaptchaVO data, HttpServletRequest request) {
         data.setBrowserInfo(getRemoteId(request));
