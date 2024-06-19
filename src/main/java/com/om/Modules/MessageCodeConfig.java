@@ -295,7 +295,13 @@ public enum MessageCodeConfig {
      */
     E00064("E00064", "Only ID, username, gitee username,"
             + " and github username are supported for single parameter search of users",
-            "仅支持ID、用户名、gitee用户名、github用户名单一参数查找用户");
+            "仅支持ID、用户名、gitee用户名、github用户名单一参数查找用户"),
+
+    /**
+     * Error code E00065: Request exceeds the limit.
+     * Chinese: 请求超过限制.
+     */
+    E00065("E00065", "Request exceeds the limit. Please try again later", "请求过于频繁，请稍后再次尝试");
 
     /**
      * 消息代码.

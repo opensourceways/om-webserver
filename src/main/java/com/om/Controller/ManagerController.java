@@ -17,6 +17,7 @@ import com.anji.captcha.service.CaptchaService;
 import com.om.Service.AuthingService;
 import com.om.Service.OneIdManageService;
 import com.om.Vo.User;
+import com.om.aop.RequestLimitRedis;
 import com.om.authing.AuthingUserToken;
 import com.om.token.ManageToken;
 
@@ -72,6 +73,7 @@ public class ManagerController {
      * @param body 包含请求体信息的 Map 对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis(period = 10, count = 1000)
     @RequestMapping(value = "/token", method = RequestMethod.POST)
     public ResponseEntity tokenApply(@RequestBody Map<String, String> body) {
         return oneIdManageService.tokenApply(body);
@@ -84,6 +86,7 @@ public class ManagerController {
      * @param token 包含在请求头中的令牌字符串
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis(period = 10, count = 1000)
     @ManageToken
     @RequestMapping(value = "/sendcode", method = RequestMethod.POST)
     public ResponseEntity sendCode(@RequestBody Map<String, String> body,
@@ -98,6 +101,7 @@ public class ManagerController {
      * @param token 包含在请求头中的令牌字符串
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis(period = 10, count = 1000)
     @ManageToken
     @RequestMapping(value = "/bind/account", method = RequestMethod.POST)
     public ResponseEntity bindAccount(@RequestBody Map<String, String> body,
@@ -112,6 +116,7 @@ public class ManagerController {
      * @param userCookie 用户 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis(period = 10, count = 1000)
     @ManageToken
     @AuthingUserToken
     @RequestMapping(value = "/authenticate", method = RequestMethod.GET)
@@ -130,6 +135,7 @@ public class ManagerController {
      * @param githubLogin GitHub 登录名（可选）
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis(period = 10, count = 1000)
     @ManageToken
     @RequestMapping(value = "/getuserinfo", method = RequestMethod.GET)
     public ResponseEntity getUser(
@@ -147,6 +153,7 @@ public class ManagerController {
      * @param token     用户凭证 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis(period = 10, count = 1000)
     @ManageToken
     @AuthingUserToken
     @RequestMapping(value = "/u/permissions", method = RequestMethod.GET)
@@ -164,6 +171,7 @@ public class ManagerController {
      * @param token           用户凭证 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis(period = 10, count = 1000)
     @ManageToken
     @AuthingUserToken
     @RequestMapping(value = "/personal/center/user", method = RequestMethod.GET)
@@ -180,6 +188,7 @@ public class ManagerController {
      * @param body 包含用户信息的请求体对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis(period = 10, count = 1000)
     @ManageToken
     @RequestMapping(value = "/privacy/revoke", method = RequestMethod.POST)
     public ResponseEntity revokePrivacy(@RequestBody User body) {

@@ -19,6 +19,7 @@ import com.om.Service.AuthingService;
 import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
+import com.om.aop.RequestLimitRedis;
 import com.om.authing.AuthingUserToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -68,6 +69,7 @@ public class AuthingController {
      * @param request HTTP 请求对象
      * @return 返回响应模型 ResponseModel
      */
+    @RequestLimitRedis(period = 20, count = 14)
     @RequestMapping(value = "/captcha/get", method = RequestMethod.POST)
     public ResponseModel captchaGet(@RequestBody CaptchaVO data, HttpServletRequest request) {
         data.setBrowserInfo(getRemoteId(request));
@@ -81,6 +83,7 @@ public class AuthingController {
      * @param request HTTP 请求对象
      * @return 返回响应模型 ResponseModel
      */
+    @RequestLimitRedis
     @RequestMapping(value = "/captcha/check", method = RequestMethod.POST)
     public ResponseModel captchaCheck(@RequestBody CaptchaVO data, HttpServletRequest request) {
         data.setBrowserInfo(getRemoteId(request));
@@ -94,6 +97,7 @@ public class AuthingController {
      * @param servletResponse HTTP 响应对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @RequestMapping(value = "/account/exists", method = RequestMethod.GET)
     public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
@@ -108,6 +112,7 @@ public class AuthingController {
      * @param captchaVerification 验证码验证信息
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @RequestMapping(value = {"/captcha/sendCode", "/v3/sendCode"}, method = RequestMethod.GET)
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
@@ -121,6 +126,7 @@ public class AuthingController {
      * @param servletRequest HTTP 请求对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @RequestMapping(value = "/captcha/checkLogin", method = RequestMethod.GET)
     public ResponseEntity captchaLogin(HttpServletRequest servletRequest) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
@@ -134,6 +140,7 @@ public class AuthingController {
      * @param servletResponse HTTP 响应对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @RequestMapping(value = "/register", method = RequestMethod.POST)
     public ResponseEntity register(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
@@ -148,6 +155,7 @@ public class AuthingController {
      * @param body 包含登录信息的 Map 对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @RequestMapping(value = "/login", method = RequestMethod.POST)
     public ResponseEntity login(HttpServletRequest servletRequest,
                                 HttpServletResponse servletResponse,
@@ -164,6 +172,7 @@ public class AuthingController {
      * @param redirect 重定向URI
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @RequestMapping(value = "/app/verify", method = RequestMethod.GET)
     public ResponseEntity appVerify(HttpServletRequest servletRequest,
                                     @RequestParam(value = "client_id") String clientId,
@@ -183,6 +192,7 @@ public class AuthingController {
      * @param scope 范围
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/oidc/auth", method = RequestMethod.GET)
     public ResponseEntity oidcAuth(@CookieValue(value = "_Y_G_", required = false) String token,
@@ -201,6 +211,7 @@ public class AuthingController {
      * @param servletResponse HTTP 响应对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis(period = 10, count = 1000)
     @RequestMapping(value = "/oidc/authorize", method = RequestMethod.GET)
     public ResponseEntity oidcAuthorize(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         return authingService.oidcAuthorize(servletRequest, servletResponse);
@@ -212,6 +223,7 @@ public class AuthingController {
      * @param servletRequest HTTP 请求对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis(period = 10, count = 1000)
     @RequestMapping(value = "/oidc/token", method = RequestMethod.POST)
     public ResponseEntity oidcToken(HttpServletRequest servletRequest) {
         return authingService.oidcToken(servletRequest);
@@ -223,6 +235,7 @@ public class AuthingController {
      * @param servletRequest HTTP 请求对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis(period = 10, count = 1000)
     @RequestMapping(value = "/oidc/user", method = RequestMethod.GET)
     public ResponseEntity oidcUser(HttpServletRequest servletRequest) {
         return authingService.userByAccessToken(servletRequest);
@@ -236,6 +249,7 @@ public class AuthingController {
      * @param token 包含令牌的 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/logout", method = RequestMethod.GET)
     public ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
@@ -252,6 +266,7 @@ public class AuthingController {
      * @param token 包含令牌的 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/user/refresh", method = RequestMethod.GET)
     public ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
@@ -267,6 +282,7 @@ public class AuthingController {
      * @param token 包含令牌的 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/user/permission", method = RequestMethod.GET)
     public ResponseEntity getUser(@RequestParam(value = "community", required = false) String community,
@@ -281,6 +297,7 @@ public class AuthingController {
      * @param token 包含令牌的 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/user/permissions", method = RequestMethod.GET)
     public ResponseEntity userPermissions(@RequestParam(value = "community", required = false) String community,
@@ -299,6 +316,7 @@ public class AuthingController {
      * @param redirect 重定向URI
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @RequestMapping(value = "/token/apply", method = RequestMethod.GET)
     public ResponseEntity tokenApply(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
@@ -317,6 +335,7 @@ public class AuthingController {
      * @param token 包含令牌的 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/personal/center/user", method = RequestMethod.GET)
     public ResponseEntity userInfo(HttpServletRequest servletRequest,
@@ -334,6 +353,7 @@ public class AuthingController {
      * @param token 包含令牌的 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/delete/user", method = RequestMethod.GET)
     public ResponseEntity deleteUser(HttpServletRequest httpServletRequest,
@@ -352,6 +372,7 @@ public class AuthingController {
      * @param captchaVerification 验证码验证信息
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/sendcode", method = RequestMethod.GET)
     public ResponseEntity sendCode(@RequestParam(value = "account") String account,
@@ -368,6 +389,7 @@ public class AuthingController {
      * @param servletResponse HTTP 响应对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/sendcode/unbind", method = RequestMethod.GET)
     public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest,
@@ -385,6 +407,7 @@ public class AuthingController {
      * @param token 包含令牌的 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/update/account", method = RequestMethod.GET)
     public ResponseEntity updateAccount(HttpServletRequest servletRequest,
@@ -402,6 +425,7 @@ public class AuthingController {
      * @param token 包含令牌的 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/unbind/account", method = RequestMethod.GET)
     public ResponseEntity unbindAccount(HttpServletRequest servletRequest,
@@ -419,6 +443,7 @@ public class AuthingController {
      * @param token 包含令牌的 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/bind/account", method = RequestMethod.GET)
     public ResponseEntity bindAccount(HttpServletRequest servletRequest,
@@ -434,6 +459,7 @@ public class AuthingController {
      * @param token 包含令牌的 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/conn/list", method = RequestMethod.GET)
     public ResponseEntity linkConnList(@CookieValue(value = "_Y_G_", required = false) String token) {
@@ -447,6 +473,7 @@ public class AuthingController {
      * @param secondtoken 第二个令牌值
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/link/account", method = RequestMethod.GET)
     public ResponseEntity linkAccount(@CookieValue(value = "_Y_G_", required = false) String token,
@@ -461,6 +488,7 @@ public class AuthingController {
      * @param platform 平台信息
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/unlink/account", method = RequestMethod.GET)
     public ResponseEntity unLinkAccount(@CookieValue(value = "_Y_G_", required = false) String token,
@@ -477,6 +505,7 @@ public class AuthingController {
      * @param map 包含更新数据的 Map 对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/update/baseInfo", method = RequestMethod.POST)
     public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest,
@@ -496,6 +525,7 @@ public class AuthingController {
      * @param file 要上传的文件
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/update/photo", method = RequestMethod.POST)
     public ResponseEntity upload(HttpServletRequest servletRequest,
@@ -512,6 +542,7 @@ public class AuthingController {
      * @param request HTTP 请求对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @RequestMapping(value = "/public/key", method = RequestMethod.GET)
     public ResponseEntity getPublicKey(HttpServletRequest request) {
         UserCenterServiceInter service = getServiceImpl(request);
@@ -524,6 +555,7 @@ public class AuthingController {
      * @param request HTTP 请求对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/update/password", method = RequestMethod.POST)
     public ResponseEntity updatePassword(HttpServletRequest request) {
@@ -537,6 +569,7 @@ public class AuthingController {
      * @param request HTTP 请求对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @RequestMapping(value = "/reset/password/verify", method = RequestMethod.POST)
     public ResponseEntity resetPwdVerify(HttpServletRequest request) {
         UserCenterServiceInter service = getServiceImpl(request);
@@ -549,6 +582,7 @@ public class AuthingController {
      * @param request HTTP 请求对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis
     @RequestMapping(value = "/reset/password", method = RequestMethod.POST)
     public ResponseEntity resetPwd(HttpServletRequest request) {
         UserCenterServiceInter service = getServiceImpl(request);
