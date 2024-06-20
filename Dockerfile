@@ -1,3 +1,4 @@
+# FROM openeuler/openeuler:22.03 as Builder
 FROM openeuler/openeuler:22.03-lts-sp1 as BUILDER
 
 RUN sed -i "s|repo.openeuler.org|mirrors.nju.edu.cn/openeuler|g" /etc/yum.repos.d/openEuler.repo \
@@ -7,7 +8,7 @@ RUN sed -i "s|repo.openeuler.org|mirrors.nju.edu.cn/openeuler|g" /etc/yum.repos.
 WORKDIR /
 
 RUN cd / \
-    && yum install -y wget \
+    && apt-get update \
     && wget https://mirrors.tuna.tsinghua.edu.cn/Adoptium/18/jdk/x64/linux/OpenJDK18U-jdk_x64_linux_hotspot_18.0.2.1_1.tar.gz \
     && tar -zxvf OpenJDK18U-jdk_x64_linux_hotspot_18.0.2.1_1.tar.gz \
     && wget https://repo.huaweicloud.com/apache/maven/maven-3/3.8.1/binaries/apache-maven-3.8.1-bin.tar.gz \
