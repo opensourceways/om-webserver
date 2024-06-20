@@ -15,9 +15,7 @@ import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Result;
 import com.om.Utils.ClientIPUtil;
 import com.om.Utils.LogUtil;
-import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
-import org.apache.commons.lang3.StringUtils;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -34,8 +32,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -47,6 +43,9 @@ public class RequestLimitRedisAspect {
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(RequestLimitRedisAspect.class);
 
+    /**
+     * 请求返回.
+     */
     private static Result result = new Result();
 
     /**
@@ -58,32 +57,14 @@ public class RequestLimitRedisAspect {
     /**
      * Value of the rejection period configured globally.
      */
-    @Value("${dos-global.rejectPeriod:20}")
+    @Value("${dos-global.rejectPeriod:1}")
     private long rejectPeriod;
 
     /**
      * Value of the rejection count configured globally.
      */
-    @Value("${dos-global.rejectCount:10}")
+    @Value("${dos-global.rejectCount:100}")
     private long rejectCount;
-
-    private String localIp;
-
-    @PostConstruct
-    public void init() {
-        localIp = "";
-        InetAddress localhost = null;
-        try {
-            localhost = InetAddress.getLocalHost();
-        } catch (UnknownHostException e) {
-            LOGGER.error("get local ip failed");
-            return;
-        }
-        String ip = localhost.getHostAddress();
-        if (StringUtils.isNotBlank(ip)) {
-            localIp = ip;
-        }
-    }
 
     /**
      * Pointcut method to define where the aspect applies based on the
@@ -110,7 +91,7 @@ public class RequestLimitRedisAspect {
     public Object before(final ProceedingJoinPoint joinPoint, final RequestLimitRedis requestLimit) throws Throwable {
         long period = rejectPeriod;
         long limitCount = rejectCount;
-        if (requestLimit != null && requestLimit.count() >0 && requestLimit.period() > 0) {
+        if (requestLimit != null && requestLimit.count() > 0 && requestLimit.period() > 0) {
             period = requestLimit.period();
             limitCount = requestLimit.count();
         }
@@ -125,7 +106,7 @@ public class RequestLimitRedisAspect {
         // 获取url
         String ip = ClientIPUtil.getClientIpAddress(request);
         String uri = request.getRequestURI();
-        String key = "req_limit:".concat(localIp).concat(uri).concat(ip);
+        String key = "req_limit:".concat(uri).concat(ip);
 
         ZSetOperations zSetOperations = redisTemplate.opsForZSet();
 
@@ -150,7 +131,7 @@ public class RequestLimitRedisAspect {
         return joinPoint.proceed();
     }
 
-    public ResponseEntity result(HttpStatus status, MessageCodeConfig msgCode) {
+    private ResponseEntity result(HttpStatus status, MessageCodeConfig msgCode) {
         return result.setResult(status, msgCode, null, null, new HashMap<>());
     }
 }
