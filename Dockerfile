@@ -54,7 +54,8 @@ RUN echo "umask 027" >> /home/om-webserver/.bashrc \
     && echo "set +o history" >> /etc/bashrc \
     && echo "set +o history" >> /home/om-webserver/.bashrc \
     && sed -i "s|HISTSIZE=1000|HISTSIZE=0|" /etc/profile \
-    && sed -i "s|PASS_MAX_DAYS[ \t]*99999|PASS_MAX_DAYS 30|" /etc/login.defs
+    && sed -i "s|PASS_MAX_DAYS[ \t]*99999|PASS_MAX_DAYS 30|" /etc/login.defs \
+    && sed -i '4,6d' /home/om-webserver/.bashrc
 
 RUN passwd -l om-webserver \
     && usermod -s /sbin/nologin sync \
@@ -89,7 +90,10 @@ RUN rm -rf /usr/bin/gdb* \
     && rm -rf /usr/share/gcc-10.3.1 \
 	&& yum remove gdb-gdbserver findutils passwd shadow -y \
     && yum clean all \
-    && chmod 500 -R /home/om-webserver
+    && chmod 600 -R /home/om-webserver/ \
+    && chmod 700 /home/om-webserver \
+    && chmod 500 -R /home/om-webserver/jdk-18.0.2.1+1-jre \
+    && chmod 500 -R /home/om-webserver/target
 
 ENV JAVA_HOME=${WORKSPACE}/jdk-18.0.2.1+1-jre
 ENV PATH=${JAVA_HOME}/bin:$PATH
