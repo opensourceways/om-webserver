@@ -29,7 +29,7 @@ public final class Constant {
     public static final String OPEN_GAUSS = "opengauss";
 
     /**
-     * openMind社区
+     * openMind社区.
      */
     public static final String OPEN_MIND = "openmind";
     /**
@@ -71,17 +71,17 @@ public final class Constant {
     public static final String USERNAMEREGEX = "^[a-zA-Z][0-9a-zA-Z_-]{1,18}[0-9a-zA-Z]$";
 
     /**
-     * openmind用户名规则
+     * openmind用户名规则.
      */
     public static final String OPEN_MIND_USERNAME_REGEX = "^[a-zA-Z]([-_.]([a-zA-Z0-9])|[a-zA-Z0-9])+$";
 
     /**
-     * openmind用户名最小长度
+     * openmind用户名最小长度.
      */
     public static final int OPEN_MIND_USERNAME_MIN = 3;
 
     /**
-     * openmind用户名最大长度
+     * openmind用户名最大长度.
      */
     public static final int OPEN_MIND_USERNAME_MAX = 40;
 

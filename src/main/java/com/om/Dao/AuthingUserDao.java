@@ -1607,6 +1607,7 @@ public class AuthingUserDao {
      *
      * @param appId 应用程序 ID
      * @param userName 用户名
+     * @param community 社区名
      * @return 如果用户名可用则返回消息提示，否则返回错误信息
      * @throws ServerErrorException 如果在检查过程中出现服务器错误
      */
