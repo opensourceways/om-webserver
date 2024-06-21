@@ -369,6 +369,7 @@ public class AuthingService implements UserCenterServiceInter {
         String appId = (String) getBodyPara(body, "client_id");
         String password = (String) getBodyPara(body, "password");
         String acceptPrivacyVersion = (String) getBodyPara(body, "oneidPrivacyAccepted");
+        String community = (String) getBodyPara(body, "community");
         // 校验appId
         if (authingUserDao.getAppById(appId) == null) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00047, null, null);
@@ -377,7 +378,7 @@ public class AuthingService implements UserCenterServiceInter {
         String accountType;
         try {
             // 用户名校验
-            msg = authingUserDao.checkUsername(appId, username);
+            msg = authingUserDao.checkUsername(appId, username, community);
             if (!msg.equals(Constant.SUCCESS)) {
                 return result(HttpStatus.BAD_REQUEST, null, msg, null);
             }
