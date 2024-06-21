@@ -1414,6 +1414,7 @@ public class AuthingUserDao {
             User user = (User) appUserInfo[1];
 
             UpdateUserInput updateUserInput = new UpdateUserInput();
+            String community = (String) map.getOrDefault("community", null);
 
             for (Map.Entry<String, Object> entry : map.entrySet()) {
                 String item = entry.getKey();
@@ -1426,7 +1427,7 @@ public class AuthingUserDao {
                         updateUserInput.withCompany(inputValue);
                         break;
                     case "username":
-                        msg = checkUsername(appId, inputValue);
+                        msg = checkUsername(appId, inputValue, community);
                         if (!msg.equals("success")) {
                             return msg;
                         }
@@ -1606,18 +1607,34 @@ public class AuthingUserDao {
      *
      * @param appId 应用程序 ID
      * @param userName 用户名
+     * @param community 社区名
      * @return 如果用户名可用则返回消息提示，否则返回错误信息
      * @throws ServerErrorException 如果在检查过程中出现服务器错误
      */
-    public String checkUsername(String appId, String userName) throws ServerErrorException {
+    public String checkUsername(String appId, String userName, String community) throws ServerErrorException {
         String msg = "success";
         if (StringUtils.isBlank(userName)) {
             msg = "用户名不能为空";
-        } else if (!userName.matches(Constant.USERNAMEREGEX)) {
-            msg = "请输入3到20个字符。只能由字母、数字或者下划线(_)组成。必须以字母开头，不能以下划线(_)结尾";
-        } else if (reservedUsernames.contains(userName) || isUserExists(appId, userName, "username")) {
-            msg = "用户名已存在";
+            return msg;
         }
+        if (Constant.OPEN_MIND.equals(community)) {
+            if (userName.length() < Constant.OPEN_MIND_USERNAME_MIN
+                    || userName.length() > Constant.OPEN_MIND_USERNAME_MAX
+                    || !userName.matches(Constant.OPEN_MIND_USERNAME_REGEX)) {
+                msg = "[openMind] username invalid";
+                return msg;
+            }
+        } else {
+            if (!userName.matches(Constant.USERNAMEREGEX)) {
+                msg = "请输入3到20个字符。只能由字母、数字或者下划线(_)组成。必须以字母开头，不能以下划线(_)结尾";
+                return msg;
+            }
+        }
+        if (reservedUsernames.contains(userName) || isUserExists(appId, userName, "username")) {
+            msg = "用户名已存在";
+            return msg;
+        }
+
         return msg;
     }
 
