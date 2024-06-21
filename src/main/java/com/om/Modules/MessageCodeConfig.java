@@ -301,7 +301,15 @@ public enum MessageCodeConfig {
      * Error code E00065: Request exceeds the limit.
      * Chinese: 请求超过限制.
      */
-    E00065("E00065", "Request exceeds the limit. Please try again later", "请求过于频繁，请稍后再次尝试");
+    E00065("E00065", "Request exceeds the limit. Please try again later", "请求过于频繁，请稍后再次尝试"),
+
+    /**
+     * openmind用户名不符合要求.
+     */
+    E00066("E00066", "Contain 3 to 40 characters. include only letters, digits or special characters _-. ."
+            + " Must start with a letter, cannot end with a special character, "
+            + "and cannot contain two or more consecutive special characters",
+            "请输入3到40个字符。只能由字母、数字或特殊字符_-.组成。必须以字母开头，不能以特殊字符结尾，且不能包含两个及以上连续特殊字符");
 
     /**
      * 消息代码.
@@ -435,6 +443,7 @@ public enum MessageCodeConfig {
         map.put("No password is set", E00052);
         map.put("Account not exist", E00052);
         map.put("已绑定邮箱", E00016);
+        map.put("[openMind] username invalid", E00066);
 
         return map;
     }
