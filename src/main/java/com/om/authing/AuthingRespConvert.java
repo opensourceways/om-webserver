@@ -92,8 +92,11 @@ public final class AuthingRespConvert {
         if (StringUtils.isNotBlank(msg)) {
             conMsg = msg;
         }
+        if (resObj == null) {
+            return conMsg;
+        }
         String resObjMsg = resObj.getString("message");
-        if (resObj != null && resObj.has("apiCode") && API_CODE_MAP.containsKey(resObj.getInt("apiCode"))) {
+        if (resObj.has("apiCode") && API_CODE_MAP.containsKey(resObj.getInt("apiCode"))) {
             conMsg = resObjMsg;
         } else {
             LOGGER.warn("Authing err message: {}", resObjMsg);
