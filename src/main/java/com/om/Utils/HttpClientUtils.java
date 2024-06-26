@@ -199,22 +199,18 @@ public final class HttpClientUtils implements Serializable {
                 body = objectMapper.convertValue(objectMapper.readTree(wholeStr.toString()),
                         new TypeReference<Map<String, Object>>() {
                         });
-                saveUserIdToAttr(request, body);
+                String[] idKeyList = {"username"};
+                List<String> idKey = Arrays.asList(idKeyList);
+                for (Map.Entry<String, Object> entry : body.entrySet()) {
+                    if (idKey.contains(entry.getKey())) {
+                        request.setAttribute(entry.getKey(), entry.getValue());
+                        break;
+                    }
+                }
             }
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return body;
-    }
-
-    private static void saveUserIdToAttr(HttpServletRequest request, Map<String, Object> body) {
-        String[] idKeyList = {"username"};
-        List<String> idKey = Arrays.asList(idKeyList);
-        for (Map.Entry<String, Object> entry : body.entrySet()) {
-            if (idKey.contains(entry.getKey())) {
-                request.setAttribute(entry.getKey(), entry.getValue());
-                return;
-            }
-        }
     }
 }
