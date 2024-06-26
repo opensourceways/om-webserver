@@ -24,6 +24,7 @@ import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.Modules.authing.AuthingAppSync;
+import com.om.authing.AuthingRespConvert;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
@@ -380,7 +381,7 @@ public class AuthingUserDao {
             JSONObject resObj = response.getBody().getObject();
             int statusCode = resObj.getInt("statusCode");
             if (statusCode != 200) {
-                msg = resObj.getString("message");
+                msg = AuthingRespConvert.convertMsg(resObj, null);
             }
 
             return msg;
@@ -411,7 +412,7 @@ public class AuthingUserDao {
             JSONObject resObj = response.getBody().getObject();
             int statusCode = resObj.getInt("statusCode");
             if (statusCode != 200) {
-                msg = resObj.getString("message");
+                msg = AuthingRespConvert.convertMsg(resObj, null);
             }
 
             return msg;
@@ -923,7 +924,7 @@ public class AuthingUserDao {
                     + "\"passwordEncryptType\": \"rsa\"}", newPwd, oldPwd);
             HttpResponse<JsonNode> response = authPost("/update-password", appId, user.getToken(), body);
             JSONObject resObj = response.getBody().getObject();
-            msg = resObj.getInt("statusCode") != 200 ? resObj.getString("message") : Constant.SUCCESS;
+            msg = resObj.getInt("statusCode") != 200 ? AuthingRespConvert.convertMsg(resObj, msg) : Constant.SUCCESS;
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
@@ -980,7 +981,7 @@ public class AuthingUserDao {
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/reset-password")
                     .header("Content-Type", "application/json").body(body).asJson();
             JSONObject resObj = response.getBody().getObject();
-            msg = resObj.getInt("statusCode") != 200 ? resObj.getString("message") : Constant.SUCCESS;
+            msg = resObj.getInt("statusCode") != 200 ? AuthingRespConvert.convertMsg(resObj, msg) : Constant.SUCCESS;
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
@@ -1680,7 +1681,7 @@ public class AuthingUserDao {
             HttpResponse<JsonNode> response = authPost("/signup", appId, body);
             JSONObject resObj = response.getBody().getObject();
             if (resObj.getInt("statusCode") != 200) {
-                msg = resObj.getString("message");
+                msg = AuthingRespConvert.convertMsg(resObj, MessageCodeConfig.E00024.getMsgZh());
             }
             return msg;
         } catch (Exception e) {
@@ -1710,7 +1711,7 @@ public class AuthingUserDao {
             } else {
                 msg = (resObj.getInt("statusCode") == 200)
                         ? resObj.get("data")
-                        : resObj.getString("message");
+                        : AuthingRespConvert.convertMsg(resObj, (String) defaultMsg);
             }
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
