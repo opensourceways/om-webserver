@@ -23,6 +23,7 @@ import com.om.aop.RequestLimitRedis;
 import com.om.authing.AuthingUserToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -477,7 +478,7 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/link/account", method = RequestMethod.GET)
     public ResponseEntity linkAccount(@CookieValue(value = "_Y_G_", required = false) String token,
-                                      @RequestParam(value = "secondtoken") String secondtoken) {
+                                      @RequestHeader("secondtoken") String secondtoken) {
         return authingService.linkAccount(token, secondtoken);
     }
 
