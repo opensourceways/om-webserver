@@ -353,7 +353,7 @@ public class AuthingUserDao {
         setInitReservedUsernames(getUsernameReserved());
         photoSuffixes = Arrays.asList(photoSuffix.split(";"));
         Unirest.config().reset();
-        Unirest.config().socketTimeout(0).connectTimeout(0);
+        Unirest.config().socketTimeout(30000).connectTimeout(10000);
         allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry");
     }
 
