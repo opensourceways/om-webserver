@@ -29,6 +29,7 @@ import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 
 import com.om.Utils.AuthingUtil;
+import com.om.Utils.SHA256Util;
 import org.apache.commons.lang3.StringUtils;
 import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
@@ -39,10 +40,8 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.util.HtmlUtils;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -377,8 +376,8 @@ public class OneIdManageService {
                 appId, appSecret, refTokenExpire);
 
         // token和refresh_token的hash
-        String token = DigestUtils.md5DigestAsHex(tokenJwt.getBytes(StandardCharsets.UTF_8));
-        String refreshToken = DigestUtils.md5DigestAsHex(refTokenJwt.getBytes(StandardCharsets.UTF_8));
+        String token = SHA256Util.getSha256Str(tokenJwt);
+        String refreshToken = SHA256Util.getSha256Str(refTokenJwt);
 
         // jwt格式token和refresh_token保存在服务端
         HashMap<String, Object> jwtTokenMap = new HashMap<>();
@@ -470,7 +469,7 @@ public class OneIdManageService {
             String tokenInfo = tokenStr.replace(TOKEN_REGEX, "");
             JsonNode jsonNode = objectMapper.readTree(tokenInfo);
             String refTokenJwt = jsonNode.get("refresh_token").asText();
-            if (!refreshToken.equals(DigestUtils.md5DigestAsHex(refTokenJwt.getBytes(StandardCharsets.UTF_8)))) {
+            if (!refreshToken.equals(SHA256Util.getSha256Str(refTokenJwt))) {
                 return "token error or expire";
             }
 

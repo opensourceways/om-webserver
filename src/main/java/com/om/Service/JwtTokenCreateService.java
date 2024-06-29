@@ -19,13 +19,13 @@ import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.RSAUtil;
+import com.om.Utils.SHA256Util;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -137,7 +137,7 @@ public class JwtTokenCreateService {
                 .withExpiresAt(headTokenExpireAt) //过期时间
                 .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .sign(Algorithm.HMAC256(authingTokenBasePassword));
-        String verifyToken = DigestUtils.md5DigestAsHex(headToken.getBytes(StandardCharsets.UTF_8));
+        String verifyToken = SHA256Util.getSha256Str(headToken);
         redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
         String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes(StandardCharsets.UTF_8));
 
@@ -173,7 +173,7 @@ public class JwtTokenCreateService {
     public String[] refreshAuthingUserToken(HttpServletRequest request, HttpServletResponse response,
                                             String userId, Map<String, Claim> claimMap) {
         String headerJwtToken = request.getHeader("token");
-        String headJwtTokenMd5 = DigestUtils.md5DigestAsHex(headerJwtToken.getBytes(StandardCharsets.UTF_8));
+        String headJwtTokenMd5 = SHA256Util.getSha256Str(headerJwtToken);
         String appId = claimMap.get("client_id").asString();
         String inputPermission = claimMap.get("inputPermission").asString();
         String idToken = (String) redisDao.get("idToken_" + headJwtTokenMd5);
