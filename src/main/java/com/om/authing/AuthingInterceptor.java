@@ -283,7 +283,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
      * 校验header中的token.
      *
      * @param headerToken header中的token
-     * @return 校验正确返回token的MSHA256值
+     * @return 校验正确返回token的SHA256值
      */
     private String verifyHeaderToken(String headerToken) {
         try {
