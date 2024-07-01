@@ -173,10 +173,10 @@ public class JwtTokenCreateService {
     public String[] refreshAuthingUserToken(HttpServletRequest request, HttpServletResponse response,
                                             String userId, Map<String, Claim> claimMap) {
         String headerJwtToken = request.getHeader("token");
-        String headJwtTokenMd5 = SHA256Util.getSha256Str(headerJwtToken);
+        String headJwtTokenSHA256 = SHA256Util.getSha256Str(headerJwtToken);
         String appId = claimMap.get("client_id").asString();
         String inputPermission = claimMap.get("inputPermission").asString();
-        String idToken = (String) redisDao.get("idToken_" + headJwtTokenMd5);
+        String idToken = (String) redisDao.get("idToken_" + headJwtTokenSHA256);
         String permission = new String(Base64.getDecoder()
                 .decode(claimMap.get("permission").asString()
                         .getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);

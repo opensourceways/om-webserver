@@ -180,9 +180,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
         if (manageToken != null && manageToken.required()) {
             headerJwtToken = httpServletRequest.getHeader("user-token");
         }
-        String headJwtTokenMd5 = verifyHeaderToken(headerJwtToken);
-        if (headJwtTokenMd5.equals("unauthorized") || headJwtTokenMd5.equals("token expires")) {
-            tokenError(httpServletRequest, httpServletResponse, headJwtTokenMd5);
+        String headJwtTokenSHA256 = verifyHeaderToken(headerJwtToken);
+        if (headJwtTokenSHA256.equals("unauthorized") || headJwtTokenSHA256.equals("token expires")) {
+            tokenError(httpServletRequest, httpServletResponse, headJwtTokenSHA256);
             return false;
         }
 
@@ -244,7 +244,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         }
 
         // 校验token
-        String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, userId,
+        String verifyTokenMsg = verifyToken(headJwtTokenSHA256, token, verifyToken, userId,
                 issuedAt, expiresAt, permission);
         if (!Constant.SUCCESS.equals(verifyTokenMsg)) {
             tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);

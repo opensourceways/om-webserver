@@ -923,8 +923,8 @@ public class AuthingService implements UserCenterServiceInter {
         try {
             String redirectUri = servletRequest.getHeader("Referer");
             String headerToken = servletRequest.getHeader("token");
-            String md5Token = SHA256Util.getSha256Str(headerToken);
-            String idTokenKey = "idToken_" + md5Token;
+            String SHA256Token = SHA256Util.getSha256Str(headerToken);
+            String idTokenKey = "idToken_" + SHA256Token;
             token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
@@ -1615,8 +1615,8 @@ public class AuthingService implements UserCenterServiceInter {
             authingUserDao.deleteObsObjectByUrl(photo);
             // 删除cookie，删除idToken
             String headerToken = httpServletRequest.getHeader("token");
-            String md5Token = SHA256Util.getSha256Str(headerToken);
-            String idTokenKey = "idToken_" + md5Token;
+            String SHA256Token = SHA256Util.getSha256Str(headerToken);
+            String idTokenKey = "idToken_" + SHA256Token;
             String cookieTokenName = env.getProperty("cookie.token.name");
             HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName,
                     null, true, 0, "/", domain2secure);
