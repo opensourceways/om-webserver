@@ -183,25 +183,6 @@ public class RSAUtil implements Serializable {
                 Base64.decodeBase64(data), privateKey.getModulus().bitLength()), StandardCharsets.UTF_8);
     }
 
-
-    /**
-     * 私钥加密.
-     *
-     * @param data       明文
-     * @param privateKey 私钥
-     * @return 加密后的数据
-     * @throws NoSuchPaddingException   当填充方式不存在时抛出异常
-     * @throws NoSuchAlgorithmException 当算法不存在时抛出异常
-     * @throws InvalidKeyException      当密钥无效时抛出异常
-     */
-    public static String privateEncrypt(String data, RSAPrivateKey privateKey) throws NoSuchPaddingException,
-            NoSuchAlgorithmException, InvalidKeyException {
-        Cipher cipher = Cipher.getInstance(rsaAlgorithm);
-        cipher.init(Cipher.ENCRYPT_MODE, privateKey);
-        return Base64.encodeBase64URLSafeString(rsaSplitCodec(cipher, Cipher.ENCRYPT_MODE,
-                data.getBytes(StandardCharsets.UTF_8), privateKey.getModulus().bitLength()));
-    }
-
     /**
      * 公钥解密.
      *
