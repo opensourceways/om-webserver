@@ -264,6 +264,17 @@ public class OpenGaussService implements UserCenterServiceInter {
     }
 
     /**
+     * 检测token.
+     *
+     * @param token token
+     * @return token中用户信息
+     */
+    @Override
+    public ResponseEntity verifyToken(String token) {
+        return null;
+    }
+
+    /**
      * 注册用户的方法.
      *
      * @param servletRequest  HTTP请求对象

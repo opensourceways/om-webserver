@@ -276,6 +276,22 @@ public class AuthingController {
     }
 
     /**
+     * 检测登录状态.
+     *
+     * @param servletRequest request
+     * @param token token信息
+     * @return 解析的用户信息
+     */
+    @RequestLimitRedis
+    @AuthingUserToken
+    @RequestMapping(value = "/verify/token", method = RequestMethod.GET)
+    public ResponseEntity verifyToken(HttpServletRequest servletRequest,
+                                      @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.verifyToken(token);
+    }
+
+    /**
      * 获取用户信息的方法.
      *
      * @param community 社区名称（可选）
