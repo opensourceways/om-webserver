@@ -230,7 +230,8 @@ public class AuthingController {
     }
 
     @RequestMapping(value = "${oidc.token_endpoint}", method = RequestMethod.POST)
-    public ResponseEntity oidcToken(@RequestBody OidcToken oidcToken) {
+    public ResponseEntity oidcToken(HttpServletRequest servletRequest) {
+        OidcToken oidcToken = getOidcToken(servletRequest);
         return oidcService.oidcToken(oidcToken);
     }
 
@@ -306,5 +307,30 @@ public class AuthingController {
         captchaVO.setCaptchaVerification(captchaVerification);
         ResponseModel response = captchaService.verification(captchaVO);
         return response.isSuccess();
+    }
+
+    /**
+     * 转化OidcToken实体类.
+     *
+     * @param servletRequest 请求体
+     * @return OidcToken实例
+     */
+    private OidcToken getOidcToken(HttpServletRequest servletRequest) {
+        OidcToken oidcToken = new OidcToken();
+        if (servletRequest == null) {
+            return oidcToken;
+        }
+        Map<String, String[]> parameterMap = servletRequest.getParameterMap();
+        oidcToken.setGrant_type(parameterMap.getOrDefault("grant_type", new String[]{""})[0]);
+        oidcToken.setClient_id(parameterMap.getOrDefault("client_id", new String[]{""})[0]);
+        oidcToken.setClient_secret(parameterMap.getOrDefault("client_secret", new String[]{""})[0]);
+        oidcToken.setRedirect_uri(parameterMap.getOrDefault("redirect_uri", new String[]{""})[0]);
+        oidcToken.setCode(parameterMap.getOrDefault("code", new String[]{""})[0]);
+        oidcToken.setAccount(parameterMap.getOrDefault("account", new String[]{""})[0]);
+        oidcToken.setPassword(parameterMap.getOrDefault("password", new String[]{""})[0]);
+        oidcToken.setScope(parameterMap.getOrDefault("scope", new String[]{""})[0]);
+        oidcToken.setRefresh_token(parameterMap.getOrDefault("refresh_token", new String[]{""})[0]);
+        oidcToken.setAuthorization(servletRequest.getHeader("Authorization"));
+        return oidcToken;
     }
 }
