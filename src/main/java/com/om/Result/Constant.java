@@ -18,6 +18,15 @@ public final class Constant {
     private Constant() {
         throw new AssertionError("Utility class. Not intended for instantiation.");
     }
+    /**
+     * 外部请求socket超时时间30s.
+     */
+    public static final Integer SOCKET_TIMEOUT = 30000;
+
+    /**
+     * 外部请求connect超时时间10s.
+     */
+    public static final Integer CONNECT_TIMEOUT = 10000;
 
     /**
      * OPEN_EULER: openeuler.
