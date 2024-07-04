@@ -126,10 +126,15 @@ public class AuthingUtil {
             res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("github", res);
         } else if (originConnId.equals(env.getProperty("enterprise.connId.gitee"))) {
-            String giteeLogin = userInfoInIdpObj.getJSONObject("customData").getString("giteeLogin");
             res.put("identity", "gitee");
-            res.put("login_name", giteeLogin);
-            res.put("user_name", userInfoInIdpObj.getJSONObject("customData").getString("giteeName"));
+            if (userInfoInIdpObj.has("customData")) {
+                String giteeLogin = userInfoInIdpObj.getJSONObject("customData").getString("giteeLogin");
+                res.put("login_name", giteeLogin);
+                res.put("user_name", userInfoInIdpObj.getJSONObject("customData").getString("giteeName"));
+            } else {
+                res.put("login_name", jsonObjStringValue(userInfoInIdpObj, "name"));
+                res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "username"));
+            }
             res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("gitee", res);
         } else if (originConnId.equals(env.getProperty("enterprise.connId.openatom"))) {
