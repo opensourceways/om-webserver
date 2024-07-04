@@ -25,6 +25,10 @@ import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
 import com.om.token.ManageToken;
 
+import kong.unirest.HttpResponse;
+import kong.unirest.JsonNode;
+import kong.unirest.Unirest;
+import kong.unirest.UnirestException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,11 +55,17 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.List;
 
 /**
  * 拦截器类，用于进行身份验证拦截.
  */
 public class AuthingInterceptor implements HandlerInterceptor {
+    /**
+     * 鉴权自身的接口.
+     */
+    private static final String LOCAL_VERIFY_TOKEN_URI = "/oneid/verify/token";
+
     /**
      * 用于与 Redis 数据库进行交互的 DAO.
      */
@@ -117,6 +127,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private String oneidPrivacyVersion;
 
     /**
+     * 三方鉴权接口.
+     */
+    @Value("${thirdService.verifyToken.url: }")
+    private String thirdVerifyUrl;
+
+    /**
      * 存储域名与安全性标志之间的映射关系.
      */
     private static HashMap<String, Boolean> domain2secure;
@@ -170,6 +186,11 @@ public class AuthingInterceptor implements HandlerInterceptor {
         AuthingUserToken authingUserToken = method.getAnnotation(AuthingUserToken.class);
         if (authingUserToken == null || !authingUserToken.required()) {
             return true;
+        }
+
+        if (!verifyThirdToken(httpServletRequest, httpServletResponse)) {
+            tokenError(httpServletRequest, httpServletResponse, "unauthorized");
+            return false;
         }
 
         // get if manageToken present
@@ -457,5 +478,47 @@ public class AuthingInterceptor implements HandlerInterceptor {
                 null, false, 0, "/", domain2secure);
 
         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
+    }
+
+    /**
+     * 三方鉴权.
+     *
+     * @param request 请求体
+     * @param response 响应体
+     * @return 是否成功
+     */
+    private boolean verifyThirdToken(HttpServletRequest request, HttpServletResponse response) {
+        if (StringUtils.isBlank(thirdVerifyUrl)) {
+            return true;
+        }
+        String uri = request.getRequestURI();
+        if (LOCAL_VERIFY_TOKEN_URI.equals(uri)) {
+            return true;
+        }
+        try {
+            String headerToken = request.getHeader("Csrf-Token");
+            String cookie = request.getHeader("Cookie");
+            HttpResponse<JsonNode> restResponse = Unirest.get(thirdVerifyUrl)
+                    .header("Content-Type", "application/json")
+                    .header("Csrf-Token", headerToken)
+                    .header("Cookie", cookie).asJson();
+            if (restResponse.getStatus() == 401) {
+                return false;
+            }
+            if (restResponse.getStatus() == 200) {
+                List<String> setCookies = restResponse.getHeaders().get("Set-Cookie");
+                if (setCookies != null) {
+                    for (String setCookie : setCookies) {
+                        response.addHeader("Set-Cookie", setCookie);
+                    }
+                }
+            }
+        } catch (UnirestException e) {
+            LOGGER.error("get third service token verify failed {}", e.getMessage());
+        } catch (Exception e) {
+            LOGGER.error("get third service token verify failed {}", e.getMessage());
+        }
+
+        return true;
     }
 }
