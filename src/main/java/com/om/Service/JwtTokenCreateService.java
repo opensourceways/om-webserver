@@ -28,7 +28,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPublicKey;
@@ -165,18 +164,16 @@ public class JwtTokenCreateService {
      * 刷新 Authing 用户令牌.
      *
      * @param request  HTTP请求对象
-     * @param response HTTP响应对象
+     * @param idToken idToken
      * @param userId   用户ID
      * @param claimMap 包含声明的映射
      * @return 包含生成的令牌的字符串数组
      */
-    public String[] refreshAuthingUserToken(HttpServletRequest request, HttpServletResponse response,
+    public String[] refreshAuthingUserToken(HttpServletRequest request, String idToken,
                                             String userId, Map<String, Claim> claimMap) {
         String headerJwtToken = request.getHeader("token");
-        String headJwtTokenMd5 = DigestUtils.md5DigestAsHex(headerJwtToken.getBytes(StandardCharsets.UTF_8));
         String appId = claimMap.get("client_id").asString();
         String inputPermission = claimMap.get("inputPermission").asString();
-        String idToken = (String) redisDao.get("idToken_" + headJwtTokenMd5);
         String permission = new String(Base64.getDecoder()
                 .decode(claimMap.get("permission").asString()
                         .getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8);
