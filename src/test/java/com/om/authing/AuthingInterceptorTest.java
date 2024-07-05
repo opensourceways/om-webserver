@@ -70,7 +70,7 @@ public class AuthingInterceptorTest {
         when(mockRedisDao.exists("key")).thenReturn(false);
         when(mockRedisDao.get("key")).thenReturn("result");
         when(mockJwtTokenCreateService.refreshAuthingUserToken(any(HttpServletRequest.class),
-                any(HttpServletResponse.class), eq("userId"), eq(Map.ofEntries()))).thenReturn(new String[]{"result"});
+                any(String.class), eq("userId"), eq(Map.ofEntries()))).thenReturn(new String[]{"result"});
         when(mockRedisDao.expire("key")).thenReturn(0L);
 
         final boolean result = authingInterceptorUnderTest.preHandle(httpServletRequest, httpServletResponse, "object");
@@ -85,7 +85,7 @@ public class AuthingInterceptorTest {
         when(mockRedisDao.exists("key")).thenReturn(false);
         when(mockRedisDao.get("key")).thenReturn("result");
         when(mockJwtTokenCreateService.refreshAuthingUserToken(any(HttpServletRequest.class),
-                any(HttpServletResponse.class), eq("userId"), eq(Map.ofEntries()))).thenReturn(new String[]{});
+                any(String.class), eq("userId"), eq(Map.ofEntries()))).thenReturn(new String[]{});
         when(mockRedisDao.expire("key")).thenReturn(0L);
 
         final boolean result = authingInterceptorUnderTest.preHandle(httpServletRequest, httpServletResponse, "object");

@@ -552,15 +552,16 @@ public class AuthingController {
     /**
      * 更新密码的方法.
      *
-     * @param request HTTP 请求对象
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/update/password", method = RequestMethod.POST)
-    public ResponseEntity updatePassword(HttpServletRequest request) {
-        UserCenterServiceInter service = getServiceImpl(request);
-        return service.updatePassword(request);
+    public ResponseEntity updatePassword(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.updatePassword(servletRequest, servletResponse);
     }
 
     /**
@@ -579,14 +580,15 @@ public class AuthingController {
     /**
      * 重置密码的方法.
      *
-     * @param request HTTP 请求对象
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
     @RequestMapping(value = "/reset/password", method = RequestMethod.POST)
-    public ResponseEntity resetPwd(HttpServletRequest request) {
-        UserCenterServiceInter service = getServiceImpl(request);
-        return service.resetPwd(request);
+    public ResponseEntity resetPwd(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.resetPwd(servletRequest, servletResponse);
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {

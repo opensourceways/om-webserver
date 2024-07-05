@@ -774,6 +774,45 @@ public class AuthingUserDao {
     }
 
     /**
+     * 根据邮箱查询用户id.
+     *
+     * @param email 电子邮箱
+     * @return 用户id
+     */
+    public String getUserIdByEmail(String email) {
+        try {
+            User user = managementClient.users().find(new FindUserParam().withEmail(email)).execute();
+            if (user == null) {
+                return null;
+            }
+            return user.getId();
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return null;
+        }
+    }
+
+    /**
+     * 根据手机号查询用户id.
+     *
+     * @param phone 手机号
+     * @return 用户id
+     */
+    public String getUserIdByPhone(String phone) {
+        try {
+            phone = getPurePhone(phone);
+            User user = managementClient.users().find(new FindUserParam().withPhone(phone)).execute();
+            if (user == null) {
+                return null;
+            }
+            return user.getId();
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            return null;
+        }
+    }
+
+    /**
      * 通过令牌获取应用用户信息.
      *
      * @param token 用户令牌
