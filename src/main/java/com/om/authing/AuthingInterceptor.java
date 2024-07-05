@@ -212,7 +212,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
         // 解析token
         String userId;
-        Date issuedAt;
         Date expiresAt;
         String permission;
         String verifyToken;
@@ -221,7 +220,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
         try {
             DecodedJWT decode = JWT.decode(token);
             userId = decode.getAudience().get(0);
-            issuedAt = decode.getIssuedAt();
             expiresAt = decode.getExpiresAt();
             claims = decode.getClaims();
             String permissionTemp = claims.get("permission").asString();
@@ -244,10 +242,14 @@ public class AuthingInterceptor implements HandlerInterceptor {
         }
 
         // 校验token
-        String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, userId,
-                issuedAt, expiresAt, permission);
+        String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, expiresAt, permission);
         if (!Constant.SUCCESS.equals(verifyTokenMsg)) {
             tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
+            return false;
+        }
+        // 校验登录状态
+        if (!isLoginNormal(verifyToken, userId)) {
+            tokenError(httpServletRequest, httpServletResponse, "unauthorized");
             return false;
         }
 
@@ -263,6 +265,25 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return false;
         }
 
+        return true;
+    }
+
+    /**
+     * 校验登录状态.
+     *
+     * @param verifyToken token
+     * @param userId 用户id
+     * @return 是否处于登录
+     */
+    private boolean isLoginNormal(String verifyToken, String userId) {
+        String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(userId).toString();
+        String tokenKey = Constant.ID_TOKEN_PREFIX + verifyToken;
+        String idToken = (String) redisDao.get(tokenKey);
+        if (!redisDao.containListValue(loginKey, idToken)) {
+            return false;
+        }
+        int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
+        redisDao.setKeyExpire(loginKey, expireSeconds);
         return true;
     }
 
@@ -313,14 +334,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
      * @param headerToken header中带的token
      * @param token       cookie中解密的token
      * @param verifyToken 用于校验的token
-     * @param userId      用户id
-     * @param issuedAt    token创建时间
      * @param expiresAt   token过期时间
      * @param permission  用户权限信息
      * @return 校验结果
      */
     private String verifyToken(String headerToken, String token, String verifyToken,
-                               String userId, Date issuedAt, Date expiresAt, String permission) {
+                               Date expiresAt, String permission) {
         try {
             // header中的token和cookie中的token不一样
             if (!headerToken.equals(verifyToken)) {
@@ -335,13 +354,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
             // token 签名密码验证
             JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(permission + authingTokenBasePassword)).build();
             jwtVerifier.verify(token);
-
-            // 退出登录后token失效
-            String redisKey = userId + issuedAt.toString();
-            String beforeToken = (String) redisDao.get(redisKey);
-            if (token.equalsIgnoreCase(beforeToken)) {
-                return "unauthorized";
-            }
         } catch (RuntimeException e) {
             LOGGER.error("Internal Server RuntimeException" + e.getMessage());
             return "unauthorized";
@@ -421,9 +433,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
         if (idToken == null) {
             return Constant.TOKEN_EXPIRES;
         }
-
         // headToken刷新token
-        String[] tokens = jwtTokenCreateService.refreshAuthingUserToken(request, response, userId, claimMap);
+        String[] tokens = jwtTokenCreateService.refreshAuthingUserToken(request, idToken, userId, claimMap);
 
         // 刷新cookie
         int tokenExpire = Integer.parseInt(
