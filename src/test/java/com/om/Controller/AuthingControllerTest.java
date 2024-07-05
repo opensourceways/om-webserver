@@ -553,12 +553,12 @@ public class AuthingControllerTest {
         when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("community", "openeuler");
-        when(authingService.updatePassword(any()))
+        when(authingService.updatePassword(any(), any()))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        ResponseEntity responseResult = authingController.updatePassword(request, response);
 
-        ResponseEntity response = authingController.updatePassword(request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(responseResult.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
@@ -579,10 +579,10 @@ public class AuthingControllerTest {
         when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("community", "openeuler");
-        when(authingService.resetPwd(any()))
+        when(authingService.resetPwd(any(), any()))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
-
-        ResponseEntity response = authingController.resetPwd(request);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        ResponseEntity responseResult = authingController.resetPwd(request, response);
+        assertThat(responseResult.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 }
