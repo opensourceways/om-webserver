@@ -216,8 +216,8 @@ public class RedisDao {
      * @param key 键
      * @return 长度
      */
-    public long getListSize(final String key) {
-        long result = 0;
+    public Long getListSize(final String key) {
+        Long result = 0L;
         try {
             result = redisTemplate.opsForList().size(key);
         } catch (Exception e) {
@@ -253,8 +253,8 @@ public class RedisDao {
      * @param expire 过期时间
      * @return 设置结果
      */
-    public boolean setKeyExpire(final String key, long expire) {
-        boolean result = false;
+    public Boolean setKeyExpire(final String key, long expire) {
+        Boolean result = false;
         try {
             result = redisTemplate.expire(key, expire, TimeUnit.SECONDS);
         } catch (Exception e) {

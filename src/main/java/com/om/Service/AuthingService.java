@@ -1476,38 +1476,35 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity resetPwdVerify(HttpServletRequest request) {
         Object msg = MessageCodeConfig.E00012.getMsgZh();
-        try {
-            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
-            String account = (String) getBodyPara(body, "account");
-            String code = (String) getBodyPara(body, "code");
-            String appId = (String) getBodyPara(body, "client_id");
-            // 校验appId
-            Application app = authingUserDao.getAppById(appId);
-            if (app == null) {
-                return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E00047.getMsgZh(), null);
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
+        String account = (String) getBodyPara(body, "account");
+        String code = (String) getBodyPara(body, "code");
+        String appId = (String) getBodyPara(body, "client_id");
+        // 校验appId
+        Application app = authingUserDao.getAppById(appId);
+        if (app == null) {
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E00047.getMsgZh(), null);
+        }
+        // 邮箱手机号验证
+        String accountType = getAccountType(account);
+        String userId = null;
+        if (accountType.equals(Constant.EMAIL_TYPE)) {
+            msg = authingUserDao.resetPwdVerifyEmail(appId, account, code);
+            userId = authingUserDao.getUserIdByEmail(account);
+        } else if (accountType.equals(Constant.PHONE_TYPE)) {
+            msg = authingUserDao.resetPwdVerifyPhone(appId, account, code);
+            userId = authingUserDao.getUserIdByPhone(account);
+        } else {
+            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        }
+        // 获取修改密码的token
+        if (msg instanceof JSONObject resetToken) {
+            int expireTime = resetToken.getInt("tokenExpiresIn");
+            String tokenKey = Constant.REDIS_PREFIX_RESET_PASSWD + resetToken.getString("passwordResetToken");
+            if (StringUtils.isNotBlank(userId) && expireTime > 0) {
+                redisDao.set(tokenKey, userId, (long) expireTime);
             }
-            // 邮箱手机号验证
-            String accountType = getAccountType(account);
-            String userId = null;
-            if (accountType.equals(Constant.EMAIL_TYPE)) {
-                msg = authingUserDao.resetPwdVerifyEmail(appId, account, code);
-                userId = authingUserDao.getUserIdByEmail(account);
-            } else if (accountType.equals(Constant.PHONE_TYPE)) {
-                msg = authingUserDao.resetPwdVerifyPhone(appId, account, code);
-                userId = authingUserDao.getUserIdByPhone(account);
-            } else {
-                return result(HttpStatus.BAD_REQUEST, null, accountType, null);
-            }
-            // 获取修改密码的token
-            if (msg instanceof JSONObject resetToken) {
-                int expireTime = resetToken.getInt("tokenExpiresIn");
-                String tokenKey = Constant.REDIS_PREFIX_RESET_PASSWD + resetToken.getString("passwordResetToken");
-                if (StringUtils.isNotBlank(userId) && expireTime > 0) {
-                    redisDao.set(tokenKey, userId, (long) expireTime);
-                }
-                return result(HttpStatus.OK, Constant.SUCCESS, resetToken.getString("passwordResetToken"));
-            }
-        } catch (Exception ignored) {
+            return result(HttpStatus.OK, Constant.SUCCESS, resetToken.getString("passwordResetToken"));
         }
         return result(HttpStatus.BAD_REQUEST, null, msg.toString(), null);
     }
