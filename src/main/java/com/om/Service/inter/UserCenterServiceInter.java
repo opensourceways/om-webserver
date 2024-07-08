@@ -184,9 +184,10 @@ public interface UserCenterServiceInter {
      * 更新密码方法.
      *
      * @param servletRequest HTTP请求对象
+     * @param servletResponse HTTP响应对象
      * @return ResponseEntity 响应实体
      */
-    ResponseEntity updatePassword(HttpServletRequest servletRequest);
+    ResponseEntity updatePassword(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
     /**
      * 重置密码验证方法.
@@ -200,9 +201,10 @@ public interface UserCenterServiceInter {
      * 重置密码方法.
      *
      * @param servletRequest HTTP请求对象
+     * @param servletResponse HTTP响应对象
      * @return ResponseEntity 响应实体
      */
-    ResponseEntity resetPwd(HttpServletRequest servletRequest);
+    ResponseEntity resetPwd(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
     /**
      * 应用验证方法.
