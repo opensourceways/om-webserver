@@ -4,6 +4,8 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Service.AuthingService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
@@ -22,6 +24,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Arrays;
 
 @Component
 public class AuthingUtil {
@@ -55,7 +58,7 @@ public class AuthingUtil {
      * @param token
      * @return String
      */
-    public  String rsaDecryptToken(String token) throws InvalidKeySpecException, NoSuchAlgorithmException,
+    public String rsaDecryptToken(String token) throws InvalidKeySpecException, NoSuchAlgorithmException,
             InvalidKeyException, NoSuchPaddingException {
         RSAPrivateKey privateKey = RSAUtil.getPrivateKey(env.getProperty("rsa.authing.privateKey"));
         return RSAUtil.privateDecrypt(token, privateKey);
@@ -198,5 +201,75 @@ public class AuthingUtil {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), ex);
         }
         return res;
+    }
+
+    /**
+     * 获取cookie.
+     *
+     * @param request 请求体
+     * @param cookieName cookie名
+     * @return cookie
+     */
+    public Cookie getCookie(HttpServletRequest request, String cookieName) {
+        Cookie cookie = null;
+        try {
+            Cookie[] cookies = request.getCookies();
+            cookie = getCookie(cookies, cookieName);
+        } catch (Exception ignored) {
+        }
+        return cookie;
+    }
+
+    /**
+     * 获取cookie.
+     *
+     * @param cookies 所有cookie
+     * @param cookieName cookie名
+     * @return 返回的cookie
+     */
+    private Cookie getCookie(Cookie[] cookies, String cookieName) {
+        Cookie cookie = null;
+        try {
+            cookie = Arrays.stream(cookies).filter(cookieEle ->
+                    cookieEle.getName().equals(cookieName)).findFirst().orElse(null);
+        } catch (Exception ignored) {
+        }
+        return cookie;
+    }
+
+    /**
+     * 解析oidc支持的scope.
+     *
+     * @return scope map
+     */
+    public HashMap<String, String> oidcScopeAuthingMapping() {
+        String[] mappings = env.getProperty("oidc.scope.authing.mapping", "").split(",");
+        HashMap<String, String> authingMapping = new HashMap<>();
+        for (String mapping : mappings) {
+            if (StringUtils.isBlank(mapping)) {
+                continue;
+            }
+            String[] split = mapping.split(":");
+            authingMapping.put(split[0], split[1]);
+        }
+        return authingMapping;
+    }
+
+    /**
+     * 解析oidc支持的scope.
+     *
+     * @return 其他的scope map
+     */
+    public HashMap<String, String[]> getOidcScopesOther() {
+        String[] others = env.getProperty("oidc.scope.other", "").split(";");
+        HashMap<String, String[]> otherMap = new HashMap<>();
+        for (String other : others) {
+            if (StringUtils.isBlank(other)) {
+                continue;
+            }
+            String[] split = other.split("->");
+            otherMap.put(split[0], split[1].split(","));
+        }
+        return otherMap;
     }
 }
