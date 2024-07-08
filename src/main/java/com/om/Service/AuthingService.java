@@ -22,6 +22,7 @@ import com.om.Utils.AuthingUtil;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.LimitUtil;
+import com.om.Utils.SHA256Util;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,7 +40,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.HtmlUtils;
 
@@ -609,7 +609,7 @@ public class AuthingService implements UserCenterServiceInter {
             userTokenMap.put("idToken", idToken);
             userTokenMap.put("scope", scope);
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
-            redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes(StandardCharsets.UTF_8)),
+            redisDao.set(SHA256Util.getSha256Str(refreshToken),
                     userTokenMapStr,
                     refreshTokenExpire);
             URIBuilder uriBuilder = new URIBuilder(redirectUri);
@@ -754,8 +754,8 @@ public class AuthingService implements UserCenterServiceInter {
             String userId = decode.getAudience().get(0);
             Date expiresAt = decode.getExpiresAt();
             // token是否被刷新了或者已经过期
-            Object refreshedToken = redisDao.get(DigestUtils
-                    .md5DigestAsHex(accessToken.getBytes(StandardCharsets.UTF_8)));
+            Object refreshedToken = redisDao.get(SHA256Util
+                    .getSha256Str(accessToken));
             if (refreshedToken != null || expiresAt.before(new Date())) {
                 return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
             }
@@ -923,8 +923,8 @@ public class AuthingService implements UserCenterServiceInter {
         try {
             String redirectUri = servletRequest.getHeader("Referer");
             String headerToken = servletRequest.getHeader("token");
-            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes(StandardCharsets.UTF_8));
-            String idTokenKey = "idToken_" + md5Token;
+            String sha256Token = SHA256Util.getSha256Str(headerToken);
+            String idTokenKey = "idToken_" + sha256Token;
             token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
@@ -1640,8 +1640,8 @@ public class AuthingService implements UserCenterServiceInter {
             authingUserDao.deleteObsObjectByUrl(photo);
             // 删除cookie，删除idToken
             String headerToken = httpServletRequest.getHeader("token");
-            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes(StandardCharsets.UTF_8));
-            String idTokenKey = "idToken_" + md5Token;
+            String sha256Token = SHA256Util.getSha256Str(headerToken);
+            String idTokenKey = "idToken_" + sha256Token;
             String cookieTokenName = env.getProperty("cookie.token.name");
             HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName,
                     null, true, 0, "/", domain2secure);
@@ -1799,7 +1799,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
             // 缓存 oidcToken
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(tokens);
-            redisDao.set(DigestUtils.md5DigestAsHex(refreshToken.getBytes(StandardCharsets.UTF_8)),
+            redisDao.set(SHA256Util.getSha256Str(refreshToken),
                     userTokenMapStr, refreshTokenExpire);
             ResponseEntity<HashMap<String, Object>> responseEntity =
                     new ResponseEntity<>(JSON.parseObject(
@@ -1822,7 +1822,7 @@ public class AuthingService implements UserCenterServiceInter {
             String userId = decode.getAudience().get(0);
             Date expiresAt = decode.getExpiresAt();
             // tokens校验
-            String refreshTokenKey = DigestUtils.md5DigestAsHex(refreshToken.getBytes(StandardCharsets.UTF_8));
+            String refreshTokenKey = SHA256Util.getSha256Str(refreshToken);
             String tokenStr = (String) redisDao.get(refreshTokenKey);
             if (StringUtils.isBlank(tokenStr)) {
                 return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
@@ -1854,11 +1854,11 @@ public class AuthingService implements UserCenterServiceInter {
                 userTokenMap.put("idToken", jsonNode.get("idToken").asText());
             }
             String userTokenMapStr = "oidcTokens:" + objectMapper.writeValueAsString(userTokenMap);
-            redisDao.set(DigestUtils.md5DigestAsHex(refreshTokenNew.getBytes(StandardCharsets.UTF_8)),
+            redisDao.set(SHA256Util.getSha256Str(refreshTokenNew),
                     userTokenMapStr, refreshTokenExpire);
             // 移除以前的refresh_token，并将之前的access_token失效
             redisDao.remove(refreshTokenKey);
-            redisDao.set(DigestUtils.md5DigestAsHex(accessToken.getBytes(StandardCharsets.UTF_8)),
+            redisDao.set(SHA256Util.getSha256Str(accessToken),
                     accessToken, accessTokenExpire);
             ResponseEntity<HashMap<String, Object>> responseEntity =
                     new ResponseEntity<>(JSON.parseObject(
