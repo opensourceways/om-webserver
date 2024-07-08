@@ -34,6 +34,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -67,16 +68,6 @@ import java.util.regex.Pattern;
  */
 @Service("authing")
 public class AuthingService implements UserCenterServiceInter {
-    /**
-     * 默认消息内容.
-     */
-    private static final String MSG_DEFAULT = "Internal Server Error";
-
-    /**
-     * 默认过期时间.
-     */
-    private static final Long EXPIRE_DEFAULT = 120L;
-
     /**
      * 使用 @Autowired 注解注入authingUtil.
      */
@@ -167,6 +158,12 @@ public class AuthingService implements UserCenterServiceInter {
      * 静态变量: 实例社区信息.
      */
     private static String instanceCommunity;
+
+    /**
+     * 用户最大登录数量.
+     */
+    @Value("${cookie.user.login.maxNum:5}")
+    private Integer maxLoginNum;
 
     /**
      * CodeUtil赋值.
@@ -262,8 +259,8 @@ public class AuthingService implements UserCenterServiceInter {
         if (domains != null && secures != null) {
             setDomain2secure(HttpClientUtils.getConfigCookieInfo(domains, secures));
         }
-        setOidcScopeOthers(getOidcScopesOther());
-        setOidcScopeAuthingMapping(oidcScopeAuthingMapping());
+        setOidcScopeOthers(authingUtil.getOidcScopesOther());
+        setOidcScopeAuthingMapping(authingUtil.oidcScopeAuthingMapping());
         setResult(new Result());
         setOneidPrivacyVersion(env.getProperty("oneid.privacy.version", ""));
         setInstanceCommunity(env.getProperty("community", ""));
@@ -491,6 +488,15 @@ public class AuthingService implements UserCenterServiceInter {
         }
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, userName,
                 permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
+
+        String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(userId).toString();
+        int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
+        redisDao.addList(loginKey, idToken, expireSeconds);
+        long listSize = redisDao.getListSize(loginKey);
+        if (listSize > maxLoginNum) {
+            redisDao.removeListTail(loginKey, maxLoginNum);
+        }
+
         // 写cookie
         setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
         // 返回结果
@@ -928,20 +934,17 @@ public class AuthingService implements UserCenterServiceInter {
             token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
-            Date issuedAt = decode.getIssuedAt();
             String appId = decode.getClaim("client_id").asString();
             // 验证回调是否匹配
             ResponseEntity responseEntity = logoutRedirectUrisMatch(appId, redirectUri);
             if (responseEntity.getStatusCode().value() != 200) {
                 return resultOidc(HttpStatus.NOT_FOUND, "redirect_uri not found in the app", null);
             }
-            // 退出登录，该token失效
-            String redisKey = userId + issuedAt.toString();
-            String seconds = env.getProperty("authing.token.expire.seconds");
-            if (Objects.nonNull(seconds)) {
-                redisDao.set(redisKey, token, Long.valueOf(seconds));
-            } else {
-                redisDao.set(redisKey, token, EXPIRE_DEFAULT);
+            String idToken = (String) redisDao.get(idTokenKey);
+            if (StringUtils.isNotBlank(idToken)) {
+                String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER)
+                        .append(userId).toString();
+                redisDao.removeListValue(loginKey, idToken);
             }
             // 退出登录，删除cookie，删除idToken
             String cookieTokenName = env.getProperty("cookie.token.name");
@@ -1074,18 +1077,28 @@ public class AuthingService implements UserCenterServiceInter {
             // 生成token
             String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, userName,
                     permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
+
+            String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER)
+                    .append(userId).toString();
+            int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
+            redisDao.addList(loginKey, idToken, expireSeconds);
+            long listSize = redisDao.getListSize(loginKey);
+            if (listSize > maxLoginNum) {
+                redisDao.removeListTail(loginKey, maxLoginNum);
+            }
+
             String token = tokens[0];
             String verifyToken = tokens[1];
             // 写cookie
             String verifyTokenName = env.getProperty("cookie.verify.token.name");
             String cookieTokenName = env.getProperty("cookie.token.name");
             String maxAgeTemp = env.getProperty("authing.cookie.max.age");
-            int expire = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
-            int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : expire;
+
+            int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : expireSeconds;
             HttpClientUtils.setCookie(httpServletRequest, servletResponse,
                     cookieTokenName, token, true, maxAge, "/", domain2secure);
             HttpClientUtils.setCookie(httpServletRequest, servletResponse,
-                    verifyTokenName, verifyToken, false, expire, "/", domain2secure);
+                    verifyTokenName, verifyToken, false, expireSeconds, "/", domain2secure);
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("token", verifyToken);
@@ -1140,11 +1153,10 @@ public class AuthingService implements UserCenterServiceInter {
             token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
-            Date issuedAt = decode.getIssuedAt();
             String photo = authingUserDao.getUser(userId).getPhoto();
             //用户注销
             return authingUserDao.deleteUserById(userId)
-                    ? deleteUserAfter(servletRequest, servletResponse, token, userId, issuedAt, photo)
+                    ? deleteUserAfter(servletRequest, servletResponse, userId, photo)
                     : result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
         } catch (RuntimeException e) {
             LOGGER.error("Internal Server RuntimeException." + e.getMessage());
@@ -1454,22 +1466,31 @@ public class AuthingService implements UserCenterServiceInter {
     /**
      * 更新密码方法.
      *
-     * @param request HTTP请求对象
+     * @param servletRequest HTTP请求对象
+     * @param servletResponse HTTP响应对象
      * @return ResponseEntity 响应实体
      */
     @Override
-    public ResponseEntity updatePassword(HttpServletRequest request) {
+    public ResponseEntity updatePassword(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         String msg = MessageCodeConfig.E00050.getMsgZh();
         try {
-            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
             String oldPwd = (String) getBodyPara(body, "old_pwd");
             String newPwd = (String) getBodyPara(body, "new_pwd");
-            Cookie cookie = getCookie(request, env.getProperty("cookie.token.name"));
+            Cookie cookie = authingUtil.getCookie(servletRequest, env.getProperty("cookie.token.name"));
             msg = authingUserDao.updatePassword(cookie.getValue(), oldPwd, newPwd);
             if (msg.equals("success")) {
+                String token = authingUtil.rsaDecryptToken(cookie.getValue());
+                DecodedJWT decode = JWT.decode(token);
+                String userId = decode.getAudience().get(0);
+                logoutAllSessions(userId, servletRequest, servletResponse);
+                authingUserDao.kickUser(userId);
                 return result(HttpStatus.OK, "success", null);
             }
-        } catch (Exception ignored) {
+        } catch (RuntimeException e) {
+            LOGGER.error("update password failed {}", e.getMessage());
+        } catch (Exception e) {
+            LOGGER.error("update password failed {}", e.getMessage());
         }
         return result(HttpStatus.BAD_REQUEST, null, msg, null);
     }
@@ -1495,15 +1516,23 @@ public class AuthingService implements UserCenterServiceInter {
             }
             // 邮箱手机号验证
             String accountType = getAccountType(account);
+            String userId = "";
             if (accountType.equals(Constant.EMAIL_TYPE)) {
                 msg = authingUserDao.resetPwdVerifyEmail(appId, account, code);
+                userId = authingUserDao.getUserIdByEmail(account);
             } else if (accountType.equals(Constant.PHONE_TYPE)) {
                 msg = authingUserDao.resetPwdVerifyPhone(appId, account, code);
+                userId = authingUserDao.getUserIdByPhone(account);
             } else {
                 return result(HttpStatus.BAD_REQUEST, null, accountType, null);
             }
             // 获取修改密码的token
             if (msg instanceof JSONObject resetToken) {
+                int expireTime = resetToken.getInt("tokenExpiresIn");
+                String tokenKey = Constant.REDIS_PREFIX_RESET_PASSWD + resetToken.getString("passwordResetToken");
+                if (StringUtils.isNotBlank(userId) && expireTime > 0) {
+                    redisDao.set(tokenKey, userId, (long) expireTime);
+                }
                 return result(HttpStatus.OK, Constant.SUCCESS, resetToken.getString("passwordResetToken"));
             }
         } catch (Exception ignored) {
@@ -1514,17 +1543,28 @@ public class AuthingService implements UserCenterServiceInter {
     /**
      * 重置密码方法.
      *
-     * @param request HTTP请求对象
+     * @param servletRequest HTTP请求对象
+     * @param servletResponse HTTP请求响应对象
      * @return ResponseEntity 响应实体
      */
     @Override
-    public ResponseEntity resetPwd(HttpServletRequest request) {
+    public ResponseEntity resetPwd(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         try {
-            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
             String pwdResetToken = (String) getBodyPara(body, "pwd_reset_token");
             String newPwd = (String) getBodyPara(body, "new_pwd");
             newPwd = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(newPwd));
+            String tokenKey = Constant.REDIS_PREFIX_RESET_PASSWD + pwdResetToken;
+            String userId = (String) redisDao.get(tokenKey);
+            if (StringUtils.isBlank(userId)) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
+            }
+            redisDao.remove(tokenKey);
             String resetMsg = authingUserDao.resetPwd(pwdResetToken, newPwd);
+            if (resetMsg.equals(Constant.SUCCESS)) {
+                logoutAllSessions(userId, servletRequest, servletResponse);
+                authingUserDao.kickUser(userId);
+            }
             return resetMsg.equals(Constant.SUCCESS) ? result(HttpStatus.OK, Constant.SUCCESS, null)
                     : result(HttpStatus.BAD_REQUEST, null, resetMsg, null);
         } catch (Exception ignored) {
@@ -1614,68 +1654,22 @@ public class AuthingService implements UserCenterServiceInter {
 
     }
 
-    private String checkPhoneAndEmail(String appId, String account) throws ServerErrorException {
-        String accountType = getAccountType(account);
-        if ((accountType.equals("email") || accountType.equals("phone"))
-                && authingUserDao.isUserExists(appId, account, accountType)) {
-            return "该账号已注册";
-        }
-        return accountType;
-
-    }
-
     private ResponseEntity deleteUserAfter(HttpServletRequest httpServletRequest,
-                                           HttpServletResponse servletResponse, String token,
-                                           String userId, Date issuedAt, String photo) {
+                                           HttpServletResponse servletResponse,
+                                           String userId, String photo) {
         try {
-            // 当前token失效
-            String redisKey = userId + issuedAt.toString();
-            String seconds = env.getProperty("authing.token.expire.seconds");
-            if (Objects.nonNull(seconds)) {
-                redisDao.set(redisKey, token, Long.valueOf(seconds));
-            } else {
-                redisDao.set(redisKey, token, EXPIRE_DEFAULT);
-            }
             // 删除用户头像
             authingUserDao.deleteObsObjectByUrl(photo);
             // 删除cookie，删除idToken
             String headerToken = httpServletRequest.getHeader("token");
             String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes(StandardCharsets.UTF_8));
             String idTokenKey = "idToken_" + md5Token;
-            String cookieTokenName = env.getProperty("cookie.token.name");
-            HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName,
-                    null, true, 0, "/", domain2secure);
             redisDao.remove(idTokenKey);
+            logoutAllSessions(userId, httpServletRequest, servletResponse);
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return result(HttpStatus.OK, "delete user success", null);
-    }
-
-    private HashMap<String, String[]> getOidcScopesOther() {
-        String[] others = env.getProperty("oidc.scope.other", "").split(";");
-        HashMap<String, String[]> otherMap = new HashMap<>();
-        for (String other : others) {
-            if (StringUtils.isBlank(other)) {
-                continue;
-            }
-            String[] split = other.split("->");
-            otherMap.put(split[0], split[1].split(","));
-        }
-        return otherMap;
-    }
-
-    private HashMap<String, String> oidcScopeAuthingMapping() {
-        String[] mappings = env.getProperty("oidc.scope.authing.mapping", "").split(",");
-        HashMap<String, String> authingMapping = new HashMap<>();
-        for (String mapping : mappings) {
-            if (StringUtils.isBlank(mapping)) {
-                continue;
-            }
-            String[] split = mapping.split(":");
-            authingMapping.put(split[0], split[1]);
-        }
-        return authingMapping;
     }
 
     private ResponseEntity getOidcTokenByCode(String appId, String appSecret, String code, String redirectUri) {
@@ -1927,26 +1921,6 @@ public class AuthingService implements UserCenterServiceInter {
                 verifyToken, false, expire, "/", domain2secure);
     }
 
-    private Cookie getCookie(HttpServletRequest request, String cookieName) {
-        Cookie cookie = null;
-        try {
-            Cookie[] cookies = request.getCookies();
-            cookie = getCookie(cookies, cookieName);
-        } catch (Exception ignored) {
-        }
-        return cookie;
-    }
-
-    private Cookie getCookie(Cookie[] cookies, String cookieName) {
-        Cookie cookie = null;
-        try {
-            cookie = Arrays.stream(cookies).filter(cookieEle ->
-                    cookieEle.getName().equals(cookieName)).findFirst().orElse(null);
-        } catch (Exception ignored) {
-        }
-        return cookie;
-    }
-
     private String getGiteeLoginFromAuthing(String userId) {
         String giteeLogin = "";
         if (StringUtils.isBlank(userId)) {
@@ -1989,12 +1963,25 @@ public class AuthingService implements UserCenterServiceInter {
             if (StringUtils.isBlank(userId) || StringUtils.isBlank(username)) {
                 return "";
             }
-            // generate email in predefined formats
             String email = username + Constant.AUTO_GEN_EMAIL_SUFFIX;
             return authingUserDao.updateEmailById(userId, email);
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
             return "";
+        }
+    }
+
+    private void logoutAllSessions(String userId, HttpServletRequest request, HttpServletResponse response) {
+        String cookieTokenName = env.getProperty("cookie.token.name");
+        String verifyTokenName = env.getProperty("cookie.verify.token.name");
+        HttpClientUtils.setCookie(request, response,
+                verifyTokenName, null, false, 0, "/", domain2secure);
+        HttpClientUtils.setCookie(request, response,
+                cookieTokenName, null, true, 0, "/", domain2secure);
+        if (StringUtils.isNotBlank(userId)) {
+            String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER)
+                    .append(userId).toString();
+            redisDao.remove(loginKey);
         }
     }
 }

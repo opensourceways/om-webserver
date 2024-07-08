@@ -251,6 +251,16 @@ public final class Constant {
     public static final String ID_TOKEN_PREFIX = "idToken_";
 
     /**
+     * 记录刚登录时的id-token，用于单会话登录.
+     */
+    public static final String REDIS_PREFIX_LOGIN_USER = "loginIdToken_";
+
+    /**
+     * 记录重置密码token的用户id.
+     */
+    public static final String REDIS_PREFIX_RESET_PASSWD = "resetPassWdToken_";
+
+    /**
      * Token过期.
      */
     public static final String TOKEN_EXPIRES = "token expires";

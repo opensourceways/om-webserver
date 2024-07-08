@@ -147,6 +147,123 @@ public class RedisDao {
     }
 
     /**
+     * list追加.
+     *
+     * @param key 键
+     * @param value 值
+     * @param expire 过期时间
+     * @return 是否添加成功
+     */
+    public boolean addList(final String key, String value, Integer expire) {
+        boolean result = false;
+        try {
+            redisTemplate.setValueSerializer(new GzipSerializer(getJsonserializer()));
+            redisTemplate.opsForList().leftPush(key, value);
+            if (expire < 1) {
+                redisTemplate.persist(key);
+            } else {
+                redisTemplate.expire(key, expire, TimeUnit.SECONDS);
+            }
+            result = true;
+        } catch (Exception e) {
+            LOGGER.error("Internal Server Error {}", e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 移除末尾值.
+     *
+     * @param key 键
+     * @param leaveNum 可保留长度
+     * @return 是否成功
+     */
+    public boolean removeListTail(final String key, int leaveNum) {
+        boolean result = false;
+        if (leaveNum <= 0) {
+            return result;
+        }
+        try {
+            redisTemplate.opsForList().trim(key, 0, leaveNum - 1);
+            result = true;
+        } catch (Exception e) {
+            LOGGER.error("Internal Server Error {}", e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 移除指定值.
+     *
+     * @param key 键
+     * @param value 值
+     * @return 是否移除成功
+     */
+    public boolean removeListValue(final String key, String value) {
+        boolean result = false;
+        try {
+            redisTemplate.opsForList().remove(key, 1, value);
+            result = true;
+        } catch (Exception e) {
+            LOGGER.error("Internal Server Error {}", e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 获取链表长度.
+     *
+     * @param key 键
+     * @return 长度
+     */
+    public Long getListSize(final String key) {
+        Long result = 0L;
+        try {
+            result = redisTemplate.opsForList().size(key);
+        } catch (Exception e) {
+            LOGGER.error("Internal Server Error {}", e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 是否包含某个值.
+     *
+     * @param key 键
+     * @param value 值
+     * @return 是否包含
+     */
+    public boolean containListValue(final String key, String value) {
+        boolean result = false;
+        try {
+            Long index = redisTemplate.opsForList().indexOf(key, value);
+            if (index != null && index >= 0) {
+                result = true;
+            }
+        } catch (Exception e) {
+            LOGGER.error("Internal Server Error {}", e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 设置过期时间.
+     *
+     * @param key 键
+     * @param expire 过期时间
+     * @return 设置结果
+     */
+    public Boolean setKeyExpire(final String key, long expire) {
+        Boolean result = false;
+        try {
+            result = redisTemplate.expire(key, expire, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            LOGGER.error("Internal Server Error {}", e.getMessage());
+        }
+        return result;
+    }
+
+    /**
      * 设置哈希表中字段的值，并设置过期时间.
      *
      * @param key    哈希表键

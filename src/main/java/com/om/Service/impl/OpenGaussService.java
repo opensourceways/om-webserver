@@ -1088,12 +1088,13 @@ public class OpenGaussService implements UserCenterServiceInter {
     /**
      * 更新密码方法.
      *
-     * @param request HTTP请求对象
+     * @param servletRequest HTTP请求对象
+     * @param servletResponse HTTP响应对象
      * @return ResponseEntity 响应实体
      */
     @Override
-    public ResponseEntity updatePassword(HttpServletRequest request) {
-        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
+    public ResponseEntity updatePassword(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
         String appId = (String) getBodyPara(body, "client_id");
         String oldPassword = (String) getBodyPara(body, "old_pwd");
         String newPassword = (String) getBodyPara(body, "new_pwd");
@@ -1110,7 +1111,7 @@ public class OpenGaussService implements UserCenterServiceInter {
 
         // update password
         try {
-            Cookie cookie = getCookie(request, env.getProperty("cookie.token.name"));
+            Cookie cookie = getCookie(servletRequest, env.getProperty("cookie.token.name"));
             String token = cookie.getValue();
             DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
             String userId = decode.getAudience().get(0);
@@ -1192,10 +1193,11 @@ public class OpenGaussService implements UserCenterServiceInter {
      * 重置密码方法.
      *
      * @param servletRequest HTTP请求对象
+     * @param servletResponse HTTP响应对象
      * @return ResponseEntity 响应实体
      */
     @Override
-    public ResponseEntity resetPwd(HttpServletRequest servletRequest) {
+    public ResponseEntity resetPwd(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
         String appId = (String) getBodyPara(body, "client_id");
         String token = (String) getBodyPara(body, "pwd_reset_token");
