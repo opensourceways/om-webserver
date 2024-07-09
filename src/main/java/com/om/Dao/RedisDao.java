@@ -17,6 +17,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -236,8 +237,8 @@ public class RedisDao {
     public boolean containListValue(final String key, String value) {
         boolean result = false;
         try {
-            Long index = redisTemplate.opsForList().indexOf(key, value);
-            if (index != null && index >= 0) {
+            List<String> list = redisTemplate.opsForList().range(key, 0, -1);
+            if (list != null && list.contains(value)) {
                 result = true;
             }
         } catch (Exception e) {
