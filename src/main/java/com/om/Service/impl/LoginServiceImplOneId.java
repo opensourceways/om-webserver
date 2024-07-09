@@ -16,6 +16,7 @@ import com.om.Result.Constant;
 import com.om.Result.Result;
 import com.om.Service.OneIdService;
 import com.om.Service.inter.LoginServiceInter;
+import com.om.Utils.HS256Util;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.LimitUtil;
 import com.om.Vo.dto.LoginParam;
@@ -152,7 +153,10 @@ public class LoginServiceImplOneId implements LoginServiceInter {
             redisDao.updateValue(redisKey, codeTemp + "_used", 0);
 
             // 生成token
-            String idToken = user.getId();
+            String idToken = HS256Util.getHS256Token(user);
+            if (idToken == null) {
+                return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
+            }
             return oneIdService.loginSuccessSetToken(user, idToken, loginParam.getClient_id());
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
