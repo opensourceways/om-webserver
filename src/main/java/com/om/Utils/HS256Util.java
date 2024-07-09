@@ -43,7 +43,7 @@ public final class HS256Util {
         loginPage = oidcPage;
     }
 
-    private static final Logger logger =  LoggerFactory.getLogger(CodeUtil.class);
+    private static final Logger logger =  LoggerFactory.getLogger(HS256Util.class);
 
     public static String getHS256Token(OneIdEntity.User user){
         // 计算签发时间与过期时间
