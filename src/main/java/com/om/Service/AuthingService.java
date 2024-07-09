@@ -1383,17 +1383,6 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     /**
-     * 绑定账户方法.
-     *
-     * @param token       第一个令牌
-     * @param secondtoken 第二个令牌
-     * @return ResponseEntity 响应实体
-     */
-    public ResponseEntity linkAccount(String token, String secondtoken) {
-        return message(authingUserDao.linkAccount(token, secondtoken));
-    }
-
-    /**
      * 解除账户绑定方法.
      *
      * @param token    令牌

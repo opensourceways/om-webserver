@@ -1319,28 +1319,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 使用两个令牌绑定账户.
-     *
-     * @param token 第一个访问令牌
-     * @param secondToken 第二个访问令牌
-     * @return 返回绑定账户操作的结果消息
-     */
-    public String linkAccount(String token, String secondToken) {
-        try {
-            Object[] appUserInfo = getAppUserInfo(token);
-            String appId = appUserInfo[0].toString();
-            User us = (User) appUserInfo[1];
-            AuthenticationClient authentication = initUserAuthentication(appId, us);
-
-            authentication.linkAccount(token, secondToken).execute();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
-            return e.getMessage();
-        }
-        return "true";
-    }
-
-    /**
      * 使用令牌解除与特定平台的账户绑定.
      *
      * @param token 访问令牌

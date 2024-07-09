@@ -489,16 +489,6 @@ public class AuthingControllerTest {
     }
 
     @Test
-    public void testLinkAccount() throws Exception {
-        when(mockAuthingService.linkAccount("token", "secondtoken"))
-                .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
-
-        ResponseEntity response = authingController.linkAccount("token", "secondtoken");
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
     public void testUnLinkAccount() throws Exception {
         when(mockAuthingService.unLinkAccount("token", "platform"))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
