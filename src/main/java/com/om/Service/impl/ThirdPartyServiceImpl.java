@@ -186,7 +186,10 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
 
                 return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, token, null);
             } else {
-                String idToken = userInDb.getId();
+                String idToken = HS256Util.getHS256Token(userInDb);
+                if (idToken == null) {
+                    return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
+                }
                 return oneIdService.loginSuccessSetToken(userInDb, idToken, appId);
             }
         } catch (Exception e) {
