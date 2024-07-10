@@ -385,7 +385,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
         String idToken;
         String userId;
         if (user != null) {
-            idToken = HS256Util.getHS256Token(user);
+            idToken = HS256Util.getHS256Token(user, appId, appSecret);
             if (idToken == null) {
                 return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
             }

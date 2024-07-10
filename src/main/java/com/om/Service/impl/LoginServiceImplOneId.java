@@ -153,7 +153,7 @@ public class LoginServiceImplOneId implements LoginServiceInter {
             redisDao.updateValue(redisKey, codeTemp + "_used", 0);
 
             // 生成token
-            String idToken = HS256Util.getHS256Token(user);
+            String idToken = HS256Util.getHS256Token(user, loginParam.getClient_id(), app.getAppSecret());
             if (idToken == null) {
                 return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
             }
