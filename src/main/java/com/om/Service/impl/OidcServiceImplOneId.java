@@ -347,7 +347,12 @@ public class OidcServiceImplOneId implements OidcServiceInter {
             tokens.put("refresh_token", jsonNode.get("refreshToken").asText());
         }
         if (scopes.contains("id_token")) {
-            tokens.put("id_token", jsonNode.get("idToken").asText());
+            // 传入了appSecret则替换默认签名密钥为传入的appSecret重新签名返回给第三方。
+            String oldIdToken = jsonNode.get("idToken").asText();
+            OneIdEntity.User user = new OneIdEntity.User();
+            user.setId(JWT.decode(oldIdToken).getSubject());
+            String idToken = HS256Util.getHS256Token(user, appId, appSecret);
+            tokens.put("id_token", idToken);
         }
 
         redisDao.remove(code);
@@ -385,7 +390,7 @@ public class OidcServiceImplOneId implements OidcServiceInter {
         String idToken;
         String userId;
         if (user != null) {
-            idToken = HS256Util.getHS256Token(user);
+            idToken = HS256Util.getHS256Token(user, appId, appSecret);
             if (idToken == null) {
                 return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
             }
