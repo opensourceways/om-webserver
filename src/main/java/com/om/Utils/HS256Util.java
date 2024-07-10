@@ -21,12 +21,18 @@ import static com.om.config.LoginConfig.OIDC_ACCESS_TOKEN_EXPIRE;
 @Component
 public final class HS256Util {
 
-    private static String HS256Key;
-
-    private static String loginPage;
+    /**
+     * id_token签名算法密钥
+     */
+    private static String idTokenKey;
 
     /**
-     * HS256密钥
+     * 签名算法签发者
+     */
+    private static String issuerPage;
+
+    /**
+     * 签名算法密钥，用于生成id_token的签名
      */
     @Value("${token.base.password}")
     private String hs256Key;
@@ -39,8 +45,8 @@ public final class HS256Util {
 
     @PostConstruct
     public void init() {
-        HS256Key = hs256Key;
-        loginPage = oidcPage;
+        idTokenKey = hs256Key;
+        issuerPage = oidcPage;
     }
 
     private static final Logger logger =  LoggerFactory.getLogger(HS256Util.class);
@@ -53,25 +59,25 @@ public final class HS256Util {
         LocalDateTime expireDate = nowDate.plusSeconds(accessTokenExpire);
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
 
-        if (Objects.isNull(HS256Key)) {
+        if (Objects.isNull(idTokenKey)) {
             logger.error("invalid HS256 key!");
             return null;
         }
-        String HS256 = null;
+        String idToken = null;
         try {
             //Nonce
             String nonce = randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH);
-            HS256 = JWT.create()
-                    .withIssuer(loginPage)
+            idToken = JWT.create()
+                    .withIssuer(issuerPage)
                     .withSubject(user.getId())
                     .withAudience(user.getId()) //谁接受签名
                     .withIssuedAt(issuedAt) //生成签名的时间
                     .withExpiresAt(expireAt) //过期时间
                     .withClaim("nonce", nonce)    //载荷
-                    .sign(Algorithm.HMAC256(HS256Key));
+                    .sign(Algorithm.HMAC256(idTokenKey));
         } catch (Exception e) {
             logger.error("init hs256 fail!" + e.getMessage());
         }
-        return HS256;
+        return idToken;
     }
 }
