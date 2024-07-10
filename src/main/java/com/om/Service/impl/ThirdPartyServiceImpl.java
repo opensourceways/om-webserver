@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.om.Utils.HS256Util;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
@@ -185,7 +186,10 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
 
                 return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, token, null);
             } else {
-                String idToken = userInDb.getId();
+                String idToken = HS256Util.getHS256Token(userInDb);
+                if (idToken == null) {
+                    return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
+                }
                 return oneIdService.loginSuccessSetToken(userInDb, idToken, appId);
             }
         } catch (Exception e) {
@@ -233,7 +237,10 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             redisDao.remove(redisKey);
 
             user.setId(u.getId());
-            String idToken = user.getId();
+            String idToken = HS256Util.getHS256Token(user);
+            if (idToken == null) {
+                return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
+            }
             return oneIdService.loginSuccessSetToken(user, idToken, appId);
         } catch (Exception e) {
             logger.error(e.getMessage());
@@ -285,7 +292,10 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             }
 
             redisDao.remove(redisKey);
-            String idToken = user.getId();
+            String idToken = HS256Util.getHS256Token(user);
+            if (idToken == null) {
+                return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
+            }
             return oneIdService.loginSuccessSetToken(user, idToken, appId);
         } catch (Exception e) {
             logger.error(e.getMessage());

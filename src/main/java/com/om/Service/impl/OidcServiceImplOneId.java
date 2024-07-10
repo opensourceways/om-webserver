@@ -16,6 +16,7 @@ import com.om.Service.JwtTokenCreateService;
 import com.om.Service.OneIdService;
 import com.om.Service.inter.OidcServiceInter;
 import com.om.Utils.CodeUtil;
+import com.om.Utils.HS256Util;
 import com.om.Utils.LimitUtil;
 import com.om.Vo.dto.OidcAuth;
 import com.om.Vo.dto.OidcAuthorize;
@@ -384,7 +385,10 @@ public class OidcServiceImplOneId implements OidcServiceInter {
         String idToken;
         String userId;
         if (user != null) {
-            idToken = user.getId();
+            idToken = HS256Util.getHS256Token(user);
+            if (idToken == null) {
+                return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
+            }
             userId = JWT.decode(idToken).getSubject();
         } else {
             long codeExpire = LoginConfig.MAIL_CODE_EXPIRE;
