@@ -60,7 +60,7 @@ public final class HS256Util {
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
 
         if (Objects.isNull(idTokenKey)) {
-            logger.error("invalid HS256 key!");
+            logger.error("invalid idTokenKey!");
             return null;
         }
         String idToken = null;
@@ -76,7 +76,7 @@ public final class HS256Util {
                     .withClaim("nonce", nonce)    //载荷
                     .sign(Algorithm.HMAC256(idTokenKey));
         } catch (Exception e) {
-            logger.error("init hs256 fail!" + e.getMessage());
+            logger.error("init idToken fail!" + e.getMessage());
         }
         return idToken;
     }
