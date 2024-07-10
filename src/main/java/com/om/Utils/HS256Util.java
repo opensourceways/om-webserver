@@ -51,7 +51,7 @@ public final class HS256Util {
 
     private static final Logger logger =  LoggerFactory.getLogger(HS256Util.class);
 
-    public static String getHS256Token(OneIdEntity.User user){
+    public static String getHS256Token(OneIdEntity.User user, String clientId){
         // 计算签发时间与过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -70,7 +70,7 @@ public final class HS256Util {
             idToken = JWT.create()
                     .withIssuer(issuerPage)
                     .withSubject(user.getId())
-                    .withAudience(user.getId()) //谁接受签名
+                    .withAudience(clientId) //谁接受签名
                     .withIssuedAt(issuedAt) //生成签名的时间
                     .withExpiresAt(expireAt) //过期时间
                     .withClaim("nonce", nonce)    //载荷
