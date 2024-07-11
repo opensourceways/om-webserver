@@ -186,7 +186,7 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
 
                 return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, token, null);
             } else {
-                String idToken = HS256Util.getHS256Token(userInDb);
+                String idToken = HS256Util.getHS256Token(userInDb, appId, null);
                 if (idToken == null) {
                     return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
                 }
@@ -237,7 +237,7 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             redisDao.remove(redisKey);
 
             user.setId(u.getId());
-            String idToken = HS256Util.getHS256Token(user);
+            String idToken = HS256Util.getHS256Token(user, appId, null);
             if (idToken == null) {
                 return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
             }
@@ -292,7 +292,7 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             }
 
             redisDao.remove(redisKey);
-            String idToken = HS256Util.getHS256Token(user);
+            String idToken = HS256Util.getHS256Token(user, appId, null);
             if (idToken == null) {
                 return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
             }
