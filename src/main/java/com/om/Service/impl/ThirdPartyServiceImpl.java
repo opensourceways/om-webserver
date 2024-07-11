@@ -9,6 +9,7 @@ import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
 import com.om.Dao.RedisDao;
+import com.om.Dao.oneId.OneIdAppDao;
 import com.om.Dao.oneId.OneIdEntity;
 import com.om.Dao.oneId.OneIdThirdPartyDao;
 import com.om.Dao.oneId.OneIdThirdPartyUserDao;
@@ -64,6 +65,9 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
 
     @Autowired
     OneIdService oneIdService;
+
+    @Autowired
+    OneIdAppDao oneIdAppDao;
 
     @Override
     public ResponseEntity<?> thirdPartyList(String clientId) {
@@ -186,7 +190,7 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
 
                 return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, token, null);
             } else {
-                String idToken = HS256Util.getHS256Token(userInDb);
+                String idToken = HS256Util.getHS256Token(userInDb, appId, source.getClientSecret());
                 if (idToken == null) {
                     return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
                 }
@@ -225,7 +229,7 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             if (oneIdThirdPartyUserDao.getThirdPartyUserByProvider(provider, userIdInPd) != null) {
                 return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00067, null, null, null);
             }
-
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
             OneIdEntity.User user = new OneIdEntity.User();
             user.setIdentities(new ArrayList<>(Collections.singletonList(thirdPartyUser)));
             user.setUsername(provider + "_" + thirdPartyUser.getUsername());
@@ -237,7 +241,7 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             redisDao.remove(redisKey);
 
             user.setId(u.getId());
-            String idToken = HS256Util.getHS256Token(user);
+            String idToken = HS256Util.getHS256Token(user, appId, app.getAppSecret());
             if (idToken == null) {
                 return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
             }
@@ -292,7 +296,8 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             }
 
             redisDao.remove(redisKey);
-            String idToken = HS256Util.getHS256Token(user);
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+            String idToken = HS256Util.getHS256Token(user, appId, app.getAppSecret());
             if (idToken == null) {
                 return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
             }
