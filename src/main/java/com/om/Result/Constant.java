@@ -68,7 +68,7 @@ public final class Constant {
     /**
      * 电话号码正则表达式，匹配以加号开头的数字.
      */
-    public static final String PHONEREGEX = "^(\\+)?[0-9]+$";
+    public static final String PHONEREGEX = "^(\\+\\d{7,15})|(\\d{6,11})$";
     /**
      * 邮箱正则表达式，匹配常见邮箱格式.
      */
