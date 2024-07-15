@@ -309,7 +309,11 @@ public enum MessageCodeConfig {
     E00066("E00066", "Contain 3 to 40 characters. include only letters, digits or special characters _-. ."
             + " Must start with a letter, cannot end with a special character, "
             + "and cannot contain two or more consecutive special characters",
-            "请输入3到40个字符。只能由字母、数字或特殊字符_-.组成。必须以字母开头，不能以特殊字符结尾，且不能包含两个及以上连续特殊字符");
+            "请输入3到40个字符。只能由字母、数字或特殊字符_-.组成。必须以字母开头，不能以特殊字符结尾，且不能包含两个及以上连续特殊字符"),
+    /**
+     * 错误代码 E00038: 请先绑定邮箱.
+     */
+    E00067("E00067", "Please bind the phone number first", "请先绑定手机号");
 
     /**
      * 消息代码.
@@ -444,6 +448,7 @@ public enum MessageCodeConfig {
         map.put("Account not exist", E00052);
         map.put("已绑定邮箱", E00016);
         map.put("[openMind] username invalid", E00066);
+        map.put("Please bind the phone number first", E00067);
 
         return map;
     }

@@ -502,14 +502,16 @@ public class AuthingController {
      *
      * @param token 包含令牌的 Cookie 值（可选）
      * @param platform 平台信息
+     * @param community 社区
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/unlink/account", method = RequestMethod.GET)
     public ResponseEntity unLinkAccount(@CookieValue(value = "_Y_G_", required = false) String token,
-                                        @RequestParam(value = "platform") String platform) {
-        return authingService.unLinkAccount(token, platform);
+                                        @RequestParam(value = "platform") String platform,
+                                        @RequestParam(value = "community", required = false) String community) {
+        return authingService.unLinkAccount(token, platform, community);
     }
 
     /**
