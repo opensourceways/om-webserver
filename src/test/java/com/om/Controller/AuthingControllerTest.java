@@ -500,10 +500,10 @@ public class AuthingControllerTest {
 
     @Test
     public void testUnLinkAccount() throws Exception {
-        when(mockAuthingService.unLinkAccount("token", "platform"))
+        when(mockAuthingService.unLinkAccount("token", "platform", null))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
 
-        ResponseEntity response = authingController.unLinkAccount("token", "platform");
+        ResponseEntity response = authingController.unLinkAccount("token", "platform", null);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
