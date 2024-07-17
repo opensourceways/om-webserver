@@ -311,7 +311,7 @@ public enum MessageCodeConfig {
             + "and cannot contain two or more consecutive special characters",
             "请输入3到40个字符。只能由字母、数字或特殊字符_-.组成。必须以字母开头，不能以特殊字符结尾，且不能包含两个及以上连续特殊字符"),
     /**
-     * 错误代码 E00038: 请先绑定邮箱.
+     * 错误代码 E00067: 请先绑定手机号.
      */
     E00067("E00067", "Please bind the phone number first", "请先绑定手机号");
 
