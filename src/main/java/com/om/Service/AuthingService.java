@@ -1398,10 +1398,11 @@ public class AuthingService implements UserCenterServiceInter {
      *
      * @param token    令牌
      * @param platform 平台
+     * @param community 社区
      * @return ResponseEntity 响应实体
      */
-    public ResponseEntity unLinkAccount(String token, String platform) {
-        String msg = authingUserDao.unLinkAccount(token, platform);
+    public ResponseEntity unLinkAccount(String token, String platform, String community) {
+        String msg = authingUserDao.unLinkAccount(token, platform, community);
         return msg.equals("success") ? result(HttpStatus.OK, "unlink account success", null)
                 : result(HttpStatus.BAD_REQUEST, null, msg, null);
     }
