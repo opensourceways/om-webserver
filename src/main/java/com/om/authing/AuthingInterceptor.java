@@ -56,6 +56,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 拦截器类，用于进行身份验证拦截.
@@ -482,11 +484,19 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private void tokenError(HttpServletRequest httpServletRequest,
                             HttpServletResponse httpServletResponse,
                             String message) throws IOException {
+        String refrer = httpServletRequest.getHeader("referer");
+        List<String> childDomains = HttpClientUtils.extractSubdomains(refrer);
+        Map<String, Boolean> cleanCookie = childDomains.stream().collect(Collectors.toMap(
+                Function.identity(), // keyMapper，直接返回元素本身作为key
+                item -> true, // valueMapper，每个key对应的value都是true
+                (existing, replacement) -> existing
+        ));
+        cleanCookie.putAll(domain2secure);
         HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, cookieTokenName,
-                null, true, 0, "/", domain2secure);
+                null, true, 0, "/", (HashMap<String, Boolean>) cleanCookie);
 
         HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, verifyTokenName,
-                null, false, 0, "/", domain2secure);
+                null, false, 0, "/", (HashMap<String, Boolean>) cleanCookie);
 
         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
     }
