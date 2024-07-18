@@ -492,11 +492,14 @@ public class AuthingInterceptor implements HandlerInterceptor {
                 (existing, replacement) -> existing
         ));
         cleanCookie.putAll(domain2secure);
-        HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, cookieTokenName,
-                null, true, 0, "/", (HashMap<String, Boolean>) cleanCookie);
-
-        HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, verifyTokenName,
-                null, false, 0, "/", (HashMap<String, Boolean>) cleanCookie);
+        for (String key : cleanCookie.keySet()) {
+            HashMap<String, Boolean> clearMap = new HashMap<>();
+            clearMap.put(key, cleanCookie.get(key));
+            HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, cookieTokenName,
+                    null, true, 0, "/", clearMap);
+            HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, verifyTokenName,
+                    null, false, 0, "/", clearMap);
+        }
 
         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
     }
