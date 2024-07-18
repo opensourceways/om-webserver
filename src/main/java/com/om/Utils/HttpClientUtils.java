@@ -13,10 +13,12 @@ package com.om.Utils;
 
 import java.io.BufferedReader;
 import java.io.Serializable;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -212,5 +214,38 @@ public final class HttpClientUtils implements Serializable {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
         }
         return body;
+    }
+
+    /** 获取去掉顶级域名的子域名及本域名数组.
+     *
+     * @param urlString
+     * @return 包含去掉顶级域名的子域名及本域名数组
+     */
+    public static List<String> extractSubdomains(String urlString) {
+        try {
+            URL url = new URL(urlString);
+            String host = url.getHost();
+            // 分割主机名以获取子域名部分
+            String[] parts = host.split("\\.");
+            // 如果只有一个部分（例如 localhost），则不进行处理
+            if (parts.length <= 1) {
+                return new ArrayList<>();
+            }
+            // 重建子域名列表，从TLD开始
+            List<String> subdomains = new ArrayList<>();
+            StringBuilder sb = new StringBuilder();
+            for (int i = parts.length - 1; i > 0; i--) { // 跳过TLD
+                sb.insert(0, parts[i] + ".");
+                subdomains.add(sb.toString().substring(0, sb.length() - 1)); // 去掉开头的点
+            }
+            // 添加完整的主机名
+            subdomains.add(host);
+            // 去掉顶级域名
+            subdomains.remove(0);
+            return subdomains;
+
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
     }
 }
