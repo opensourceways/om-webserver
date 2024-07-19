@@ -11,26 +11,38 @@
 
 package om.Service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.Controller.AuthingController;
 import com.om.Service.QueryService;
 import com.om.omwebserver.OmWebserverApplication;
-import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = OmWebserverApplication.class)
 public class ServiceTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(ServiceTest.class);
 
     @Autowired
     private QueryService queryService;
 
     @Autowired
     private com.om.Service.AuthingService AuthingService;
+
+
+    @Autowired
+    private AuthingController authingController;
 
     ObjectMapper objectMapper = new ObjectMapper();
 
@@ -54,5 +66,11 @@ public class ServiceTest {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Test
+    public void thirdPartyCallBack() {
+        ResponseEntity response = authingController.thirdPartyCallback("code", "state", "appId", "connId");
+        assertThat(response.getStatusCode()).isNotEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }
