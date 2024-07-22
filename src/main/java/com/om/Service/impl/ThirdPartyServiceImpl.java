@@ -126,6 +126,11 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             if (source == null) {
                 return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00066, null, null, null);
             }
+            // app校验
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(appId);
+            if (null == app) {
+                return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00047, null, null, null);
+            }
 
             // code换token
             String body = String.format("{\"client_id\": \"%s\", \"client_secret\": \"%s\", " +
@@ -190,7 +195,7 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
 
                 return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, token, null);
             } else {
-                String idToken = HS256Util.getHS256Token(userInDb, appId, source.getClientSecret());
+                String idToken = HS256Util.getHS256Token(userInDb, appId, app.getAppSecret());
                 if (idToken == null) {
                     return Result.resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.OIDC_E00005, null);
                 }
