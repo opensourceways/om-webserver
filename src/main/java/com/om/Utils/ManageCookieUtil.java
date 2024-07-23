@@ -59,7 +59,7 @@ public final class ManageCookieUtil {
      * @param domain cookie域
      */
 
-    public static void delteCookie(HttpServletResponse servletResponse, String name, String domain) {
+    public static void deleteCookie(HttpServletResponse servletResponse, String name, String domain) {
         Cookie cookie = new Cookie(name, "");
         cookie.setMaxAge(0);
         cookie.setPath("/");
@@ -82,9 +82,9 @@ public final class ManageCookieUtil {
         if (cookieNames.length < 2) {
             return;
         }
-        delteCookie(servletResponse, cookieNames[0], domain);
-        delteCookie(servletResponse, cookieNames[1], domain);
-        delteCookie(servletResponse, cookieNames[1], null);
+        deleteCookie(servletResponse, cookieNames[0], domain);
+        deleteCookie(servletResponse, cookieNames[1], domain);
+        deleteCookie(servletResponse, cookieNames[1], null);
     }
 
 }
