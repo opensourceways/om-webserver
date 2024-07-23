@@ -22,6 +22,7 @@ import com.om.Utils.AuthingUtil;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.LimitUtil;
+import com.om.Utils.ManageCookieUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -953,6 +954,7 @@ public class AuthingService implements UserCenterServiceInter {
                     verifyTokenName, null, false, 0, "/", domain2secure);
             HttpClientUtils.setCookie(servletRequest, servletResponse,
                     cookieTokenName, null, true, 0, "/", domain2secure);
+            ManageCookieUtil.deleteCsrfCookieOnOpenMind(servletResponse);
             redisDao.remove(idTokenKey);
             // 下线用户
             Boolean isLogout = authingUserDao.kickUser(userId);
