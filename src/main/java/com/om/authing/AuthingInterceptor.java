@@ -22,6 +22,7 @@ import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Service.JwtTokenCreateService;
 import com.om.Utils.HttpClientUtils;
+import com.om.Utils.ManageCookieUtil;
 import com.om.Utils.RSAUtil;
 import com.om.token.ManageToken;
 
@@ -500,7 +501,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, verifyTokenName,
                     null, false, 0, "/", clearMap);
         }
-
+        ManageCookieUtil.deleteCsrfCookieOnOpenMind(httpServletResponse);
         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
     }
 
