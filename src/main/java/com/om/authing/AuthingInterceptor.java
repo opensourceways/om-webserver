@@ -23,6 +23,7 @@ import com.om.Result.Constant;
 import com.om.Service.JwtTokenCreateService;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
+import com.om.token.ClientSessionManager;
 import com.om.token.ManageToken;
 
 import kong.unirest.HttpResponse;
@@ -85,6 +86,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
      */
     @Autowired
     private Environment env;
+
+    /**
+     * 注入三方客户端session管理类.
+     */
+    @Autowired
+    private ClientSessionManager clientSessionManager;
 
     /**
      * Authing Token 的基础密码.
@@ -500,6 +507,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             HttpClientUtils.setCookie(httpServletRequest, httpServletResponse, verifyTokenName,
                     null, false, 0, "/", clearMap);
         }
+        clientSessionManager.deleteCookieInConfig(httpServletResponse);
 
         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
     }
