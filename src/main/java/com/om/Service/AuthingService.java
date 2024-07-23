@@ -22,6 +22,7 @@ import com.om.Utils.AuthingUtil;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.LimitUtil;
+import com.om.token.ClientSessionManager;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -114,6 +115,11 @@ public class AuthingService implements UserCenterServiceInter {
      */
     @Autowired
     private AuthingAppSync authingAppSync;
+    /**
+     * 注入三方客户端session管理类.
+     */
+    @Autowired
+    private ClientSessionManager clientSessionManager;
     /**
      * 静态变量: LOGGER - 日志记录器.
      */
@@ -953,6 +959,7 @@ public class AuthingService implements UserCenterServiceInter {
                     verifyTokenName, null, false, 0, "/", domain2secure);
             HttpClientUtils.setCookie(servletRequest, servletResponse,
                     cookieTokenName, null, true, 0, "/", domain2secure);
+            clientSessionManager.deleteCookieInConfig(servletResponse);
             redisDao.remove(idTokenKey);
             // 下线用户
             Boolean isLogout = authingUserDao.kickUser(userId);
