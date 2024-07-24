@@ -802,7 +802,7 @@ public class AuthingService implements UserCenterServiceInter {
                 // 用户SIG组信息
                 if (scope.equals("groups")) {
                     // Gitee Name
-                    String giteeLogin = getGiteeLoginFromAuthing(userId);
+                    String giteeLogin = authingUtil.getGiteeLoginFromAuthing(userId);
                     String userSigInfo = queryDao.queryUserOwnertype("openeuler", giteeLogin);
                     ArrayList<String> groups = getUserRelatedSigs(userSigInfo);
                     userData.put("groups", groups);
@@ -1374,6 +1374,10 @@ public class AuthingService implements UserCenterServiceInter {
         if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
         }
+        //账号格式校验
+        if (!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX)) {
+            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+        }
         return message(authingUserDao.bindAccount(token, account, code, accountType));
     }
 
@@ -1485,6 +1489,9 @@ public class AuthingService implements UserCenterServiceInter {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
             String oldPwd = (String) getBodyPara(body, "old_pwd");
             String newPwd = (String) getBodyPara(body, "new_pwd");
+            if (oldPwd == null || StringUtils.isBlank(oldPwd) || newPwd == null || StringUtils.isBlank(newPwd)) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
+            }
             Cookie cookie = authingUtil.getCookie(servletRequest, env.getProperty("cookie.token.name"));
             msg = authingUserDao.updatePassword(cookie.getValue(), oldPwd, newPwd);
             if (msg.equals("success")) {
@@ -1561,6 +1568,9 @@ public class AuthingService implements UserCenterServiceInter {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
             String pwdResetToken = (String) getBodyPara(body, "pwd_reset_token");
             String newPwd = (String) getBodyPara(body, "new_pwd");
+            if (newPwd == null || StringUtils.isBlank(newPwd)) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
+            }
             newPwd = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(newPwd));
             String tokenKey = Constant.REDIS_PREFIX_RESET_PASSWD + pwdResetToken;
             String userId = (String) redisDao.get(tokenKey);
@@ -1929,27 +1939,6 @@ public class AuthingService implements UserCenterServiceInter {
                 verifyToken, false, expire, "/", domain2secure);
     }
 
-    private String getGiteeLoginFromAuthing(String userId) {
-        String giteeLogin = "";
-        if (StringUtils.isBlank(userId)) {
-            return giteeLogin;
-        }
-        try {
-            JSONArray identities = authingUserDao.getUserById(userId).getJSONArray("identities");
-            for (Object identity : identities) {
-                JSONObject identityObj = (JSONObject) identity;
-                String originConnId = identityObj.getJSONArray("originConnIds").get(0).toString();
-                if (!originConnId.equals(env.getProperty("enterprise.connId.gitee"))) {
-                    continue;
-                }
-                giteeLogin = identityObj
-                        .getJSONObject("userInfoInIdp").getJSONObject("customData").getString("giteeLogin");
-            }
-        } catch (Exception e) {
-            LOGGER.error("Fail to get gitee name. " + e.getMessage());
-        }
-        return giteeLogin;
-    }
 
     private ArrayList<String> getUserRelatedSigs(String userSigInfo) {
         ArrayList<String> userRelatedSigs = new ArrayList<>();

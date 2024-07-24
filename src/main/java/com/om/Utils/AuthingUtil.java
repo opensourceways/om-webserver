@@ -2,6 +2,7 @@ package com.om.Utils;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.om.Dao.AuthingUserDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Service.AuthingService;
 import jakarta.servlet.http.Cookie;
@@ -34,6 +35,12 @@ public class AuthingUtil {
      */
     @Autowired
     private Environment env;
+
+    /**
+     * 使用 @Autowired 注解注入 AuthingUserDao.
+     */
+    @Autowired
+    private AuthingUserDao authingUserDao;
 
     /**
      * 静态变量: LOGGER - 日志记录器.
@@ -201,6 +208,33 @@ public class AuthingUtil {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), ex);
         }
         return res;
+    }
+
+    /**
+     * 获取giteeName.
+     * @param userId
+     * @return giteeName
+     */
+    public String getGiteeLoginFromAuthing(String userId) {
+        String giteeLogin = "";
+        if (StringUtils.isBlank(userId)) {
+            return giteeLogin;
+        }
+        try {
+            JSONArray identities = authingUserDao.getUserById(userId).getJSONArray("identities");
+            for (Object identity : identities) {
+                JSONObject identityObj = (JSONObject) identity;
+                String originConnId = identityObj.getJSONArray("originConnIds").get(0).toString();
+                if (!originConnId.equals(env.getProperty("enterprise.connId.gitee"))) {
+                    continue;
+                }
+                giteeLogin = identityObj
+                        .getJSONObject("userInfoInIdp").getJSONObject("customData").getString("giteeLogin");
+            }
+        } catch (Exception e) {
+            LOGGER.error("Fail to get gitee name. " + e.getMessage());
+        }
+        return giteeLogin;
     }
 
     /**
