@@ -18,6 +18,7 @@ import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.om.Result.Constant;
 import com.om.Service.AuthingService;
+import com.om.Service.OidcService;
 import com.om.Service.UserCenterServiceContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -46,6 +47,9 @@ import static org.mockito.Mockito.when;
 public class AuthingControllerTest {
     @MockBean
     private AuthingService mockAuthingService;
+
+    @MockBean
+    private OidcService mockOidcService;
 
     @MockBean
     private UserCenterServiceContext mockUserCenterServiceContext;
@@ -259,7 +263,7 @@ public class AuthingControllerTest {
 
     @Test
     public void testOidcAuth() throws Exception {
-        when(mockAuthingService.oidcAuth("token", "clientId", "redirectUri", "responseType", "state",
+        when(mockOidcService.oidcAuth("token", "clientId", "redirectUri", "responseType", "state",
                 "scope")).thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
 
         ResponseEntity response = authingController.oidcAuth("token", "clientId", "redirectUri", "responseType", "state",
@@ -269,7 +273,7 @@ public class AuthingControllerTest {
 
     @Test
     public void testOidcAuthorize() throws Exception {
-        when(mockAuthingService.oidcAuthorize(any(HttpServletRequest.class),
+        when(mockOidcService.oidcAuthorize(any(HttpServletRequest.class),
                 any(HttpServletResponse.class))).thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -280,7 +284,7 @@ public class AuthingControllerTest {
 
     @Test
     public void testOidcToken() throws Exception {
-        when(mockAuthingService.oidcToken(any(HttpServletRequest.class)))
+        when(mockOidcService.oidcToken(any(HttpServletRequest.class)))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
         MockHttpServletRequest request = new MockHttpServletRequest();
         ResponseEntity response = authingController.oidcToken(request);
@@ -290,7 +294,7 @@ public class AuthingControllerTest {
 
     @Test
     public void testOidcUser() throws Exception {
-        when(mockAuthingService.userByAccessToken(any(HttpServletRequest.class)))
+        when(mockOidcService.userByAccessToken(any(HttpServletRequest.class)))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
         MockHttpServletRequest request = new MockHttpServletRequest();
         ResponseEntity response = authingController.oidcUser(request);
