@@ -13,6 +13,7 @@ import cn.authing.core.types.UdfTargetType;
 import cn.authing.core.types.UserDefinedData;
 import cn.authing.core.types.UdfDataType;
 import cn.authing.core.types.UserDefinedDataInput;
+import cn.authing.core.types.UserDefinedField;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,12 +35,12 @@ public class PrivacyHistoryService {
     /**
      * 隐私历史记录字段注释.
      */
-    private static final String PRIVACY_HISTORY_LABEL = "接受隐私协议历史记录";
+    private static final String PRIVACY_HISTORY_LABEL = "PrivacyHistory";
 
     /**
      * 隐私历史记录条数.
      */
-    private static final Integer HISTORY_MAX_NUMBER = 20;
+    private static final Integer HISTORY_MAX_NUMBER = 50;
 
     /**
      * 日志记录器，用于记录身份验证拦截器的日志信息.
@@ -77,13 +78,20 @@ public class PrivacyHistoryService {
         try {
             // 初始化authing连接
             managementClient = new ManagementClient(userPoolId, authingSecret);
+            // 查询所有字段
+            List<UserDefinedField> list = managementClient.udf().list(UdfTargetType.USER).execute();
+            for (UserDefinedField userDefinedField : list) {
+                if ((PRIVACY_HISTORY_COLUMN_PREFIX + '_' + community).equals(userDefinedField.getKey())) {
+                    return;
+                }
+            }
             // 初始化本服务的隐私历史记录字段
             managementClient.udf()
                     .set(UdfTargetType.USER, PRIVACY_HISTORY_COLUMN_PREFIX + "_" + community,
                             UdfDataType.STRING, community + PRIVACY_HISTORY_LABEL)
                     .execute();
         } catch (Exception e) {
-            LOGGER.error(e.getMessage());
+            LOGGER.error("PrivacyHistory init fail {}", e.getMessage());
         }
     }
 
@@ -93,6 +101,9 @@ public class PrivacyHistoryService {
      * @param userId 用户id
      */
     public void savePrivacyHistory(String privacyContent, String userId) {
+        if (StringUtils.isEmpty(privacyContent) || StringUtils.isEmpty(userId)) {
+            return;
+        }
         try {
             // 查询用户之前的全量历史隐私签署信息
             List<UserDefinedData> list = managementClient.udf().listUdv(UdfTargetType.USER, userId).execute();
@@ -116,7 +127,7 @@ public class PrivacyHistoryService {
                     .singletonList(new UserDefinedDataInput((PRIVACY_HISTORY_COLUMN_PREFIX + "_" + community),
                             newPrivacy))).execute();
         } catch (Exception e) {
-            LOGGER.error(e.getMessage());
+            LOGGER.error("PrivacyHistory save fail {}", e.getMessage());
         }
     }
 
