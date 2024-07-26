@@ -35,6 +35,11 @@ public final class AuthingRespConvert {
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthingRespConvert.class);
 
     /**
+     * 字段冲突，表明邮箱已经被别人绑定.
+     */
+    private static final String FIELD_CONFLICT = "duplicate key value violates unique";
+
+    /**
      * 只能能对外展示的Authing错误信息.
      */
     private static final Map<Integer, String> API_CODE_MAP = Collections.unmodifiableMap(
@@ -104,6 +109,23 @@ public final class AuthingRespConvert {
             conMsg = resObjMsg;
         } else {
             LOGGER.warn("Authing err message: {}", resObjMsg);
+        }
+        return conMsg;
+    }
+
+    /**
+     * 绑定邮箱错误信息转化.
+     *
+     * @param msg 原始信息
+     * @return 转化结果
+     */
+    public static String convertBindEmailMsg(String msg) {
+        String conMsg = msg;
+        if (StringUtils.isBlank(msg)) {
+            return conMsg;
+        }
+        if (msg.startsWith(FIELD_CONFLICT)) {
+            conMsg = MessageCodeConfig.E0004.getMsgZh();
         }
         return conMsg;
     }
