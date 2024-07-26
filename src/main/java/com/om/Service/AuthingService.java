@@ -21,6 +21,7 @@ import com.om.Utils.AuthingUtil;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.LimitUtil;
+import com.om.authing.AuthingRespConvert;
 import com.om.token.ClientSessionManager;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
@@ -1309,6 +1310,7 @@ public class AuthingService implements UserCenterServiceInter {
                     if (buckets.hasNext()) {
                         message = buckets.next().get("message").get("message").asText();
                     }
+                    message = AuthingRespConvert.convertBindEmailMsg(message);
                 } catch (JsonProcessingException e) {
                     LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
                     message = e.getMessage();
