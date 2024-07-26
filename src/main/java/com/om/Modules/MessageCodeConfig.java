@@ -226,7 +226,7 @@ public enum MessageCodeConfig {
     /**
      * 错误代码 E00048: 服务异常.
      */
-    E00048("E00048", "Internal Server Error", "服务异常"),
+    E00048("E00048", "Internal Server Error", "服务错误"),
     /**
      * 错误代码 E00049: 该邮箱 1 分钟内已发送过验证码，请稍后再试.
      */
