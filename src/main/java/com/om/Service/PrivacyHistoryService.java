@@ -102,12 +102,12 @@ public class PrivacyHistoryService {
                     privacyAll = userDefinedData.getValue();
                 }
             }
-            // 追加历史记录
-            privacyAll = privacyAll + ";" + privacyContent;
+            // 头插法加入历史记录。
+            privacyAll = privacyContent + ";" + privacyAll;
             // 去重。
             List<String> newList = Arrays.stream(privacyAll.split(";")).distinct().filter(StringUtils::isNotBlank).collect(Collectors.toList());
-            // 保留20个签署记录。
-            newList = newList.subList(Math.max(newList.size() - HISTORY_MAX_NUMBER, 0), newList.size());
+            // 保留最新20个签署记录。
+            newList = newList.subList(0, Math.min(newList.size(), HISTORY_MAX_NUMBER));
 
             String newPrivacy = String.join(";", newList);
             // 封装入参保存
