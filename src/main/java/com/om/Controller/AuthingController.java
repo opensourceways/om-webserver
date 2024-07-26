@@ -16,6 +16,7 @@ import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.om.Result.Constant;
 import com.om.Service.AuthingService;
+import com.om.Service.OidcService;
 import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
@@ -61,6 +62,12 @@ public class AuthingController {
      */
     @Autowired
     private CaptchaService captchaService;
+
+    /**
+     * oidc服务.
+     */
+    @Autowired
+    private OidcService oidcService;
 
     /**
      * 处理获取验证码请求的方法.
@@ -201,7 +208,7 @@ public class AuthingController {
                                    @RequestParam(value = "response_type") String responseType,
                                    @RequestParam(value = "state", required = false) String state,
                                    @RequestParam(value = "scope") String scope) {
-        return authingService.oidcAuth(token, clientId, redirectUri, responseType, state, scope);
+        return oidcService.oidcAuth(token, clientId, redirectUri, responseType, state, scope);
     }
 
     /**
@@ -214,7 +221,7 @@ public class AuthingController {
     @RequestLimitRedis(period = 10, count = 1000)
     @RequestMapping(value = "/oidc/authorize", method = RequestMethod.GET)
     public ResponseEntity oidcAuthorize(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        return authingService.oidcAuthorize(servletRequest, servletResponse);
+        return oidcService.oidcAuthorize(servletRequest, servletResponse);
     }
 
     /**
@@ -226,7 +233,7 @@ public class AuthingController {
     @RequestLimitRedis(period = 10, count = 1000)
     @RequestMapping(value = "/oidc/token", method = RequestMethod.POST)
     public ResponseEntity oidcToken(HttpServletRequest servletRequest) {
-        return authingService.oidcToken(servletRequest);
+        return oidcService.oidcToken(servletRequest);
     }
 
     /**
@@ -238,7 +245,7 @@ public class AuthingController {
     @RequestLimitRedis(period = 10, count = 1000)
     @RequestMapping(value = "/oidc/user", method = RequestMethod.GET)
     public ResponseEntity oidcUser(HttpServletRequest servletRequest) {
-        return authingService.userByAccessToken(servletRequest);
+        return oidcService.userByAccessToken(servletRequest);
     }
 
     /**
