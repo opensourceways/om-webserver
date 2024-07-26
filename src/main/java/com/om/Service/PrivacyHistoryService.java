@@ -79,7 +79,8 @@ public class PrivacyHistoryService {
             managementClient = new ManagementClient(userPoolId, authingSecret);
             // 初始化本服务的隐私历史记录字段
             managementClient.udf()
-                    .set(UdfTargetType.USER, PRIVACY_HISTORY_COLUMN_PREFIX + "_" + community, UdfDataType.STRING, community + PRIVACY_HISTORY_LABEL)
+                    .set(UdfTargetType.USER, PRIVACY_HISTORY_COLUMN_PREFIX + "_" + community,
+                            UdfDataType.STRING, community + PRIVACY_HISTORY_LABEL)
                     .execute();
             managementClient.udf().remove(UdfTargetType.USER, "privacy_history").execute();
         } catch (Exception e) {
@@ -105,14 +106,16 @@ public class PrivacyHistoryService {
             // 头插法加入历史记录。
             privacyAll = privacyContent + ";" + privacyAll;
             // 去重。
-            List<String> newList = Arrays.stream(privacyAll.split(";")).distinct().filter(StringUtils::isNotBlank).collect(Collectors.toList());
+            List<String> newList = Arrays.stream(privacyAll.split(";")).distinct()
+                    .filter(StringUtils::isNotBlank).collect(Collectors.toList());
             // 保留最新20个签署记录。
             newList = newList.subList(0, Math.min(newList.size(), HISTORY_MAX_NUMBER));
 
             String newPrivacy = String.join(";", newList);
             // 封装入参保存
-            managementClient.udf().setUdvBatch(UdfTargetType.USER, userId,
-                    Collections.singletonList(new UserDefinedDataInput((PRIVACY_HISTORY_COLUMN_PREFIX + "_" + community), newPrivacy))).execute();
+            managementClient.udf().setUdvBatch(UdfTargetType.USER, userId, Collections
+                    .singletonList(new UserDefinedDataInput((PRIVACY_HISTORY_COLUMN_PREFIX + "_" + community)
+                            , newPrivacy))).execute();
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
         }
