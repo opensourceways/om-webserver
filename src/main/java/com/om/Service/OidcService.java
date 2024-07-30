@@ -546,7 +546,7 @@ public class OidcService {
                 long codeExpire = Long.parseLong(env.getProperty("mail.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
                 loginErrorCount += 1;
                 redisDao.set(loginErrorCountKey, String.valueOf(loginErrorCount), codeExpire);
-                return (ResponseEntity) loginRes;
+                return authingService.result(HttpStatus.BAD_REQUEST, null, (String) loginRes, null);
             }
             //登录成功解除登录失败次数限制
             redisDao.remove(loginErrorCountKey);
