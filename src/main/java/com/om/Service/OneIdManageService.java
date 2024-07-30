@@ -179,6 +179,9 @@ public class OneIdManageService {
     public ResponseEntity sendCode(Map<String, String> body, String token, boolean isSuccess) {
         String account = body.get("account");
         String channel = body.get("channel");
+        if (!Constant.AUTHING_CHANNELS.contains(channel.toUpperCase())) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
 
         // 图片验证码二次校验
         if (!isSuccess) {

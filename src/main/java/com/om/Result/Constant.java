@@ -325,5 +325,12 @@ public final class Constant {
      * 认证资源前缀长度为14.
      */
     public static final int AUTHING_RES_PREFIX_LENGTH = 14;
+
+    /**
+     * 合法authing的channel字符串序列.
+     */
+    public static final String AUTHING_CHANNELS = "CHANNEL_LOGIN,CHANNEL_REGISTER,CHANNEL_RESET_PASSWORD,"
+            + "CHANNEL_VERIFY_EMAIL_LINK,CHANNEL_UPDATE_EMAIL,CHANNEL_BIND_EMAIL,CHANNEL_UNBIND_EMAIL,"
+            + "CHANNEL_VERIFY_MFA,CHANNEL_UNLOCK_ACCOUNT,CHANNEL_COMPLETE_EMAIL,CHANNEL_DELETE_ACCOUNT";
 }
 
