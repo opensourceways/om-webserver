@@ -24,6 +24,7 @@ import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.Modules.authing.AuthingAppSync;
+import com.om.Service.PrivacyHistoryService;
 import com.om.authing.AuthingRespConvert;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
@@ -315,6 +316,12 @@ public class AuthingUserDao {
      */
     @Autowired
     private AuthingAppSync authingAppSync;
+
+    /**
+     * 历史隐私记录保存类.
+     */
+    @Autowired
+    private PrivacyHistoryService privacyHistoryService;
 
     /**
      * 客户端实例赋值.
@@ -1501,6 +1508,11 @@ public class AuthingUserDao {
                                     oneidPrivacyVersion));
                             LOGGER.info(String.format("User %s accept privacy version %s for app version %s",
                                     user.getId(), inputValue, appVersion));
+                            // 签署新的隐私协议时，保存旧的到历史隐私记录
+                            String previous = getPrivacyVersionWithCommunity(user.getGivenName());
+                            if (StringUtils.isNotEmpty(previous)) {
+                                privacyHistoryService.savePrivacyHistory(previous, user.getId());
+                            }
                         }
                         if ("revoked".equals(inputValue)) {
                             updateUserInput.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
