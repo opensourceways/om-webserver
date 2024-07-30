@@ -261,17 +261,6 @@ public class AuthingService implements UserCenterServiceInter {
             if (StringUtils.isBlank(userName)) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
-            if (Constant.OPEN_MIND.equals(instanceCommunity)) {
-                if (userName.length() < Constant.OPEN_MIND_USERNAME_MIN
-                        || userName.length() > Constant.OPEN_MIND_USERNAME_MAX
-                        || !userName.matches(Constant.OPEN_MIND_USERNAME_REGEX)) {
-                    return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
-                }
-            } else {
-                if (!userName.matches(Constant.USERNAMEREGEX)) {
-                    return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
-                }
-            }
             if (authingUserDao.isUserExists(appId, userName, "username")) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00019, null, null);
             }
@@ -411,8 +400,7 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity captchaLogin(HttpServletRequest request) {
         String account = request.getParameter("account");
-        if (StringUtils.isEmpty(account) || (!account.matches(Constant.PHONEREGEX)
-                && !account.matches(Constant.EMAILREGEX))) {
+        if (StringUtils.isEmpty(account)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
         LoginFailCounter failCounter = limitUtil.initLoginFailCounter(request.getParameter("account"));
@@ -465,13 +453,7 @@ public class AuthingService implements UserCenterServiceInter {
             userId = JWT.decode(idToken).getSubject();
             user = authingUserDao.getUser(userId);
         } else {
-            ResponseEntity responseEntity = (ResponseEntity) loginRes;
-            Map resMap = (Map) responseEntity.getBody();
-            String msg = null;
-            if (resMap != null) {
-                msg = JSON.toJSONString(resMap.get("msg"));
-            }
-            return result(HttpStatus.BAD_REQUEST, null, msg, limitUtil.loginFail(failCounter));
+            return result(HttpStatus.BAD_REQUEST, null, (String) loginRes, limitUtil.loginFail(failCounter));
         }
         // 登录成功解除登录失败次数限制
         redisDao.remove(account + Constant.LOGIN_COUNT);
@@ -1202,7 +1184,7 @@ public class AuthingService implements UserCenterServiceInter {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
             String oldPwd = (String) getBodyPara(body, "old_pwd");
             String newPwd = (String) getBodyPara(body, "new_pwd");
-            if (oldPwd == null || StringUtils.isBlank(oldPwd) || newPwd == null || StringUtils.isBlank(newPwd)) {
+            if (StringUtils.isBlank(newPwd)) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
             }
             Cookie cookie = authingUtil.getCookie(servletRequest, env.getProperty("cookie.token.name"));
@@ -1281,7 +1263,7 @@ public class AuthingService implements UserCenterServiceInter {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
             String pwdResetToken = (String) getBodyPara(body, "pwd_reset_token");
             String newPwd = (String) getBodyPara(body, "new_pwd");
-            if (newPwd == null || StringUtils.isBlank(newPwd)) {
+            if (StringUtils.isBlank(newPwd)) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
             }
             newPwd = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(newPwd));
@@ -1405,7 +1387,7 @@ public class AuthingService implements UserCenterServiceInter {
     public Object login(String appId, String account, String code, String password) {
         // code/password 同时传入报错
         if ((StringUtils.isNotBlank(code) && StringUtils.isNotBlank(password))) {
-            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+            return MessageCodeConfig.E00012.getMsgZh();
         }
         // 手机 or 邮箱判断
         String accountType = "";
@@ -1415,7 +1397,7 @@ public class AuthingService implements UserCenterServiceInter {
         // 校验appId
         Application app = authingUserDao.getAppById(appId);
         if (app == null) {
-            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00047, null, null);
+            return MessageCodeConfig.E00047.getMsgZh();
         }
         // 登录
         Object msg;
@@ -1431,12 +1413,12 @@ public class AuthingService implements UserCenterServiceInter {
             } else { // 用户名登录
                 // 用户名校验
                 if (StringUtils.isBlank(account) || !account.matches(Constant.USERNAMEREGEX)) {
-                    return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+                    return MessageCodeConfig.E00012.getMsgZh();
                 }
                 msg = authingUserDao.loginByUsernamePwd(app, account, password);
             }
         } catch (ServerErrorException e) {
-            return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
+            return MessageCodeConfig.E00048.getMsgZh();
         }
 
         return msg;
