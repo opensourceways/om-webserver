@@ -1,6 +1,6 @@
 package com.om.aop;
 
-import com.om.Utils.LogUtil;
+import com.om.utils.LogUtil;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.Aspect;
@@ -32,7 +32,7 @@ public class ManagementOperationLogAOP {
     /**
      * 定义切点，匹配 com.om.Controller 包下所有类的所有方法.
      */
-    @Pointcut("execution(* com.om.Controller.*.*(..))")
+    @Pointcut("execution(* com.om.controller.*.*(..))")
     public void pointcut() {
     }
 
