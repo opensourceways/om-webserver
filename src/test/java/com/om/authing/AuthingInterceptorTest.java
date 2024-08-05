@@ -11,8 +11,8 @@
 
 package com.om.authing;
 
-import com.om.Dao.RedisDao;
-import com.om.Service.JwtTokenCreateService;
+import com.om.dao.RedisDao;
+import com.om.service.JwtTokenCreateService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.Before;
