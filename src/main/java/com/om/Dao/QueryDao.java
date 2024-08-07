@@ -52,7 +52,7 @@ public class QueryDao {
             String res = response.getBody().toString();
             return res;
         } catch (UnirestException e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return "{\"msg\":\"error\",\"code\":404,\"data\":null}";
         }
     }

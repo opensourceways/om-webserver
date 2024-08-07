@@ -123,7 +123,7 @@ public class JwtTokenCreateService {
         try {
             expireSeconds = Integer.parseInt(authingTokenExpireSeconds);
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
