@@ -1,6 +1,14 @@
 package com.om.Service;
 
 
+import cn.authing.core.types.UpdateUserInput;
+import cn.authing.core.types.User;
+import cn.authing.core.types.UdfTargetType;
+import cn.authing.core.types.UserDefinedData;
+import cn.authing.core.types.UdfDataType;
+import cn.authing.core.types.UserDefinedDataInput;
+import cn.authing.core.types.UserDefinedField;
+import com.alibaba.fastjson2.JSON;
 import jakarta.annotation.PostConstruct;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -9,14 +17,10 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import cn.authing.core.mgmt.ManagementClient;
-import cn.authing.core.types.UdfTargetType;
-import cn.authing.core.types.UserDefinedData;
-import cn.authing.core.types.UdfDataType;
-import cn.authing.core.types.UserDefinedDataInput;
-import cn.authing.core.types.UserDefinedField;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,6 +50,11 @@ public class PrivacyHistoryService {
      * 日志记录器，用于记录身份验证拦截器的日志信息.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(PrivacyHistoryService.class);
+
+    /**
+     * 允许的社区列表.
+     */
+    private List<String> allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry");;
 
     /**
      * 用户池id.
@@ -128,6 +137,102 @@ public class PrivacyHistoryService {
                             newPrivacy))).execute();
         } catch (Exception e) {
             LOGGER.error("PrivacyHistory save fail {}", e.getMessage());
+        }
+    }
+
+    /**
+     * 传入版本号更新用户隐私设置.
+     *
+     * @param userId 用户id
+     * @param latestVersion 最新的隐私版本号
+     * @return bool 是否更新成功
+     */
+    public boolean updatePrivacy(String userId, String latestVersion) {
+        try {
+            if (StringUtils.isEmpty(userId) || StringUtils.isEmpty(latestVersion)) {
+                return false;
+            }
+            // get user
+            User user = managementClient.users().detail(userId, false, false).execute();
+            UpdateUserInput input = new UpdateUserInput();
+            input.withGivenName(updatePrivacyVersions(user.getGivenName(), latestVersion));
+            User updateUser = managementClient.users().update(userId, input).execute();
+            if (updateUser == null) {
+                return false;
+            }
+            LOGGER.info(String.format("User %s update privacy consent version %s",
+                    user.getId(), latestVersion));
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("update pravacy error {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 更新隐私版本号.
+     *
+     * @param previous 先前的版本号
+     * @param version 新版本号
+     * @return 返回更新后的隐私版本号
+     */
+    public String updatePrivacyVersions(String previous, String version) {
+        if (!isValidCommunity(community)) {
+            return "";
+        }
+
+        if (StringUtils.isBlank(previous)) {
+            return createPrivacyVersions(version, false);
+        }
+
+        if (!previous.contains(":")) {
+            if ("unused".equals(previous)) {
+                return createPrivacyVersions(version, false);
+            } else {
+                HashMap<String, String> privacys = new HashMap<>();
+                privacys.put("openeuler", previous);
+                privacys.put(community, version);
+                return JSON.toJSONString(privacys);
+            }
+        } else {
+            try {
+                HashMap<String, String> privacys = JSON.parseObject(previous, HashMap.class);
+                privacys.put(community, version);
+                return JSON.toJSONString(privacys);
+            } catch (Exception e) {
+                LOGGER.error("updatePrivacyVersions fail {}", e.getMessage());
+                return createPrivacyVersions(version, false);
+            }
+        }
+    }
+
+    private boolean isValidCommunity(String communityIns) {
+        for (String com : allowedCommunity) {
+            if (communityIns.startsWith(com)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 创建隐私版本号.
+     *
+     * @param version 版本号
+     * @param needSlash 是否需要斜杠
+     * @return 返回创建的隐私版本号
+     */
+    public String createPrivacyVersions(String version, Boolean needSlash) {
+        if (!isValidCommunity(community)) {
+            return "";
+        }
+
+        HashMap<String, String> privacys = new HashMap<>();
+        privacys.put(community, version);
+        if (needSlash) {
+            return JSON.toJSONString(privacys).replaceAll("\"", "\\\\\"");
+        } else {
+            return JSON.toJSONString(privacys);
         }
     }
 

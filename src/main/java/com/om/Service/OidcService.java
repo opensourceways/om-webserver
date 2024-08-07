@@ -535,7 +535,7 @@ public class OidcService {
                 return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, null);
             }
             // 用户密码校验
-            Object loginRes = authingService.login(appId, account, null, password);
+            Object loginRes = authingService.login(appId, account, null, password, null);
             // 获取用户信息
             String userId;
             String idToken;
