@@ -162,7 +162,7 @@ public class OneIdManageService {
                         "grant_type must be token or refresh_token", null);
             }
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
 
@@ -416,7 +416,7 @@ public class OneIdManageService {
             Map<String, Object> tokens = createTokens(appId, appSecret);
             return result(HttpStatus.OK, "OK", tokens);
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
     }
@@ -445,7 +445,7 @@ public class OneIdManageService {
 
             return result(HttpStatus.OK, "OK", newTokens);
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
     }
@@ -485,7 +485,7 @@ public class OneIdManageService {
 
             return jsonNode;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return "token error or expire";
         }
     }
