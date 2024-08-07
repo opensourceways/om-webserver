@@ -53,7 +53,7 @@ class GzipSerializer implements RedisSerializer<Object> {
             byte[] result = bos.toByteArray();
             return result;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             throw new SerializationException("Gzip Serialization Error", e);
         } finally {
             IOUtils.closeQuietly(bos);
@@ -85,7 +85,7 @@ class GzipSerializer implements RedisSerializer<Object> {
             Object result = innerSerializer.deserialize(bos.toByteArray());
             return result;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             throw new SerializationException("Gzip deserizelie error", e);
         } finally {
             IOUtils.closeQuietly(bos);

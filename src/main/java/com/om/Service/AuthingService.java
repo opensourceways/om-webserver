@@ -562,7 +562,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
@@ -605,7 +605,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("companyList", companyNameList);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
@@ -657,7 +657,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("redirect_uri", redirectUri);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
@@ -687,7 +687,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("username", username);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
@@ -712,7 +712,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("userId", userId);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
@@ -804,7 +804,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
@@ -827,7 +827,7 @@ public class AuthingService implements UserCenterServiceInter {
             // 返回结果
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
 
@@ -1336,7 +1336,7 @@ public class AuthingService implements UserCenterServiceInter {
                     }
                     message = AuthingRespConvert.convertBindEmailMsg(message);
                 } catch (JsonProcessingException e) {
-                    LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+                    LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
                     message = e.getMessage();
                 }
                 return result(HttpStatus.BAD_REQUEST, null, message, null);
@@ -1368,7 +1368,7 @@ public class AuthingService implements UserCenterServiceInter {
             redisDao.remove(idTokenKey);
             logoutAllSessions(userId, httpServletRequest, servletResponse);
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return result(HttpStatus.OK, "delete user success", null);
     }

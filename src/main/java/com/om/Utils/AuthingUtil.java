@@ -102,7 +102,7 @@ public class AuthingUtil {
             }
             res.addAll(map.values());
         } catch (Exception ex) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), ex);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
         }
         return res;
     }
@@ -176,7 +176,7 @@ public class AuthingUtil {
                 res = obj.toString();
             }
         } catch (Exception ex) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), ex);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
         }
         return res;
     }
@@ -198,7 +198,7 @@ public class AuthingUtil {
                 res = obj;
             }
         } catch (Exception ex) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), ex);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
         }
         return res;
     }

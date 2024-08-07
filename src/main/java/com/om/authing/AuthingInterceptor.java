@@ -353,7 +353,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             jwtVerifier.verify(headerToken);
             return md5Token;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return "unauthorized";
         }
     }
