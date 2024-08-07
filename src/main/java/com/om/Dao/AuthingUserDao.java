@@ -387,7 +387,7 @@ public class AuthingUserDao {
 
             return msg;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return MessageCodeConfig.E0008.getMsgZh();
         }
     }
@@ -418,7 +418,7 @@ public class AuthingUserDao {
 
             return msg;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return MessageCodeConfig.E0008.getMsgZh();
         }
     }
@@ -531,7 +531,7 @@ public class AuthingUserDao {
                 default -> true;
             };
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             throw new ServerErrorException();
         }
     }
@@ -693,7 +693,7 @@ public class AuthingUserDao {
             user.put("id_token", res.get("id_token").toString());
             return user;
         } catch (Exception ex) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), ex);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
             return null;
         }
     }
@@ -716,7 +716,7 @@ public class AuthingUserDao {
             int code = response.getBody().getObject().getInt("code");
             return code == 200;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return false;
         }
     }
@@ -731,7 +731,7 @@ public class AuthingUserDao {
         try {
             return managementClient.users().detail(userId, true, true).execute();
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return null;
         }
     }
@@ -755,7 +755,7 @@ public class AuthingUserDao {
                     .asJson();
             return response.getBody().getObject().getJSONObject("data");
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return null;
         }
     }
@@ -771,7 +771,7 @@ public class AuthingUserDao {
             User user = managementClient.users().find(new FindUserParam().withUsername(username)).execute();
             return getUserById(user.getId());
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return null;
         }
     }
@@ -790,7 +790,7 @@ public class AuthingUserDao {
             }
             return user.getId();
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return null;
         }
     }
@@ -810,7 +810,7 @@ public class AuthingUserDao {
             }
             return user.getId();
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return null;
         }
     }
@@ -851,7 +851,7 @@ public class AuthingUserDao {
                     .asJson();
             return response.getBody().getObject().getJSONObject("data");
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return null;
         }
     }
@@ -868,7 +868,7 @@ public class AuthingUserDao {
             User res = managementClient.users().update(userId, new UpdateUserInput().withEmail(email)).execute();
             return res.getEmail();
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return "";
         }
     }
@@ -889,7 +889,7 @@ public class AuthingUserDao {
             int code = response.getBody().getObject().getInt("code");
             return code == 200;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return false;
         }
     }
@@ -941,7 +941,7 @@ public class AuthingUserDao {
                 msg = resObj.toString();
             }
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return msg;
     }
@@ -968,7 +968,7 @@ public class AuthingUserDao {
             JSONObject resObj = response.getBody().getObject();
             msg = resObj.getInt("statusCode") != 200 ? AuthingRespConvert.convertMsg(resObj, msg) : Constant.SUCCESS;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return msg;
     }
@@ -1025,7 +1025,7 @@ public class AuthingUserDao {
             JSONObject resObj = response.getBody().getObject();
             msg = resObj.getInt("statusCode") != 200 ? AuthingRespConvert.convertMsg(resObj, msg) : Constant.SUCCESS;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return msg;
     }
@@ -1059,7 +1059,7 @@ public class AuthingUserDao {
                     return "false";
             }
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return e.getMessage();
         }
         return "true";
@@ -1097,7 +1097,7 @@ public class AuthingUserDao {
                     return resFail;
             }
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return e.getMessage();
         }
         return "unbind success";
@@ -1184,7 +1184,7 @@ public class AuthingUserDao {
                     return "false";
             }
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return e.getMessage();
         }
         return "true";
@@ -1316,7 +1316,7 @@ public class AuthingUserDao {
             LOGGER.error("Internal Server RuntimeException" + e.getMessage());
             return null;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return null;
         }
     }
@@ -1337,7 +1337,7 @@ public class AuthingUserDao {
 
             authentication.linkAccount(token, secondToken).execute();
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return e.getMessage();
         }
         return "true";
@@ -1410,7 +1410,7 @@ public class AuthingUserDao {
                 msg = "success";
             }
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return msg;
     }
@@ -1441,7 +1441,7 @@ public class AuthingUserDao {
                     flag = true;
                 }
             } catch (Exception e) {
-                LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+                LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             }
         }
         return flag;
@@ -1524,10 +1524,10 @@ public class AuthingUserDao {
             managementClient.users().update(user.getId(), updateUserInput).execute();
             return msg;
         } catch (ServerErrorException e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             throw e;
         } catch (Exception ex) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), ex);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
             return MessageCodeConfig.E0007.getMsgZh();
         }
     }
@@ -1608,7 +1608,7 @@ public class AuthingUserDao {
             deleteObsObjectByUrl(photo);
             return true;
         } catch (Exception ex) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), ex);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
             return false;
         } finally {
             if (inputStream != null) {
@@ -1639,7 +1639,7 @@ public class AuthingUserDao {
                 obsClient.deleteObject(datastatImgBucket, objName);
             }
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
     }
 
@@ -1652,7 +1652,7 @@ public class AuthingUserDao {
                     .asJson();
             return response.getBody().getObject().get("accessToken").toString();
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return "";
         }
     }
@@ -1717,7 +1717,7 @@ public class AuthingUserDao {
                 }
             }
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return appIds;
     }
@@ -1739,7 +1739,7 @@ public class AuthingUserDao {
             }
             return msg;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return MessageCodeConfig.E00024.getMsgZh();
         }
     }
@@ -1768,7 +1768,7 @@ public class AuthingUserDao {
                         : AuthingRespConvert.convertMsg(resObj, (String) defaultMsg);
             }
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return msg;
     }
@@ -1862,7 +1862,7 @@ public class AuthingUserDao {
             userIds.add(userId);
             return managementClient.users().kick(userIds).execute();
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return false;
         }
     }
