@@ -1510,11 +1510,16 @@ public class AuthingUserDao {
                                     user.getId(), inputValue, appVersion));
                             // 签署新的隐私协议时，保存旧的到历史隐私记录
                             String previous = getPrivacyVersionWithCommunity(user.getGivenName());
-                            if (StringUtils.isNotEmpty(previous)) {
+                            if (StringUtils.isNotEmpty(previous) && !"revoked".equals(previous)) {
                                 privacyHistoryService.savePrivacyHistory(previous, user.getId());
                             }
                         }
                         if ("revoked".equals(inputValue)) {
+                            // 取消签署的隐私协议时，也保存取消前的到历史隐私记录。
+                            String previous = getPrivacyVersionWithCommunity(user.getGivenName());
+                            if (StringUtils.isNotEmpty(previous) && !"revoked".equals(previous)) {
+                                privacyHistoryService.savePrivacyHistory(previous, user.getId());
+                            }
                             updateUserInput.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
                             LOGGER.info(String.format("User %s cancel privacy consent version %s for app version %s",
                                     user.getId(), inputValue, appVersion));
