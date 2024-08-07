@@ -95,7 +95,7 @@ public final class HttpClientUtils implements Serializable {
             try {
                 secure = secures[i];
             } catch (Exception e) {
-                LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+                LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             }
             res.put(domain, Boolean.valueOf(secure));
         }
@@ -211,7 +211,7 @@ public final class HttpClientUtils implements Serializable {
                 }
             }
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return body;
     }
