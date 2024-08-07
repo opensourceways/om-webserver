@@ -116,6 +116,12 @@ public class AuthingService implements UserCenterServiceInter {
     private ClientSessionManager clientSessionManager;
 
     /**
+     * 注入隐私操作类.
+     */
+    @Autowired
+    private PrivacyHistoryService privacyHistoryService;
+
+    /**
      * 静态变量: LOGGER - 日志记录器.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthingService.class);
@@ -425,6 +431,7 @@ public class AuthingService implements UserCenterServiceInter {
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
         String password = (String) getBodyPara(body, "password");
+        String oneidPrivacy = (String) getBodyPara(body, "oneidPrivacyVersion");
         LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
         // 限制一分钟登录失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
@@ -443,11 +450,15 @@ public class AuthingService implements UserCenterServiceInter {
             }
         }
         // 登录成功返回用户token
-        Object loginRes = login(appId, account, code, password);
+        Object loginRes = login(appId, account, code, password, oneidPrivacy);
         // 获取用户信息
         String idToken;
         String userId;
         User user;
+        // 判断传入隐私版本号合法
+        if (MessageCodeConfig.E00037.getMsgZh().equals(loginRes)) {
+            return result(HttpStatus.UNAUTHORIZED, MessageCodeConfig.E00037, null, null);
+        }
         if (loginRes instanceof JSONObject) {
             JSONObject userObj = (JSONObject) loginRes;
             idToken = userObj.getString("id_token");
@@ -463,6 +474,13 @@ public class AuthingService implements UserCenterServiceInter {
         // 获取是否同意隐私
         String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(
                 user.getGivenName());
+        // 同意隐私版本更新为前端传入的最新版本
+        if (!oneidPrivacyVersionAccept.equals(oneidPrivacy)) {
+          if (privacyHistoryService.updatePrivacy(userId, oneidPrivacy)) {
+              oneidPrivacyVersionAccept = oneidPrivacy;
+          }
+        }
+
         // 生成token
         String userName = user.getUsername();
         if (Objects.isNull(userName)) {
@@ -1384,9 +1402,10 @@ public class AuthingService implements UserCenterServiceInter {
      * @param account 账号
      * @param code 验证码
      * @param password 密码
+     * @param oneidPrivacy 隐私版本
      * @return 登录响应体
      */
-    public Object login(String appId, String account, String code, String password) {
+    public Object login(String appId, String account, String code, String password, String oneidPrivacy) {
         // code/password 同时传入报错
         if ((StringUtils.isNotBlank(code) && StringUtils.isNotBlank(password))) {
             return MessageCodeConfig.E00012.getMsgZh();
@@ -1395,6 +1414,14 @@ public class AuthingService implements UserCenterServiceInter {
         String accountType = "";
         if (StringUtils.isNotBlank(account)) {
             accountType = getAccountType(account);
+        }
+        // 校验隐私协议
+        if (StringUtils.isNotBlank(code)
+                && (accountType.equals(Constant.EMAIL_TYPE) || accountType.equals(Constant.PHONE_TYPE))) {
+            // 若与服务器版本不一致
+            if (StringUtils.isEmpty(oneidPrivacy) || !oneidPrivacyVersion.equals(oneidPrivacy)) {
+                return MessageCodeConfig.E00037.getMsgZh();
+            }
         }
         // 校验appId
         Application app = authingUserDao.getAppById(appId);
