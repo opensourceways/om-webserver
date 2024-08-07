@@ -77,7 +77,7 @@ public class GitDao {
                 users = response.getBody().getArray();
             }
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return null;
         }
 
@@ -120,7 +120,7 @@ public class GitDao {
                 users = response.getBody().getObject().getJSONArray("items");
             }
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return null;
         }
 

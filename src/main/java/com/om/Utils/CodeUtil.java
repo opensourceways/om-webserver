@@ -126,7 +126,7 @@ public class CodeUtil {
         } catch (RuntimeException e) {
             LOGGER.error("Internal Server RuntimeException" + e.getMessage());
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return new String[]{code, String.valueOf(codeExpire), resMsg};
     }
@@ -246,7 +246,7 @@ public class CodeUtil {
             try {
                 temp = URLEncoder.encode(map.get(s), "UTF-8");
             } catch (Exception e) {
-                LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+                LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             }
             sb.append(s).append("=").append(temp).append("&");
         }
@@ -278,7 +278,7 @@ public class CodeUtil {
             md.update((nonce + time + appSecret).getBytes(StandardCharsets.UTF_8));
             passwordDigest = md.digest();
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
 
         // PasswordDigest
