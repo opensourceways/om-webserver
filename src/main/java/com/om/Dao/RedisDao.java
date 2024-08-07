@@ -124,7 +124,7 @@ public class RedisDao {
             }
             result = true;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return result;
     }
@@ -142,7 +142,7 @@ public class RedisDao {
             ValueOperations operations = redisTemplate.opsForValue();
             result = operations.get(key);
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return result;
     }
@@ -285,7 +285,7 @@ public class RedisDao {
             redisTemplate.expire(key, expire, TimeUnit.SECONDS);
             result = true;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return result;
     }
@@ -304,7 +304,7 @@ public class RedisDao {
             HashOperations<String, String, String> hashOperations = redisTemplate.opsForHash();
             result = hashOperations.get(key, field);
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return result;
     }
@@ -323,7 +323,7 @@ public class RedisDao {
                 result = isExists;
             }
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return result;
     }
@@ -342,7 +342,7 @@ public class RedisDao {
             }
             result = true;
         } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return result;
     }
@@ -367,7 +367,7 @@ public class RedisDao {
             int code = dataNode.get("code").intValue();
             return code == 200;
         } catch (JsonProcessingException e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e);
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return false;
         }
     }
