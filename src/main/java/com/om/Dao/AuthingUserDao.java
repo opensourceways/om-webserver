@@ -295,11 +295,6 @@ public class AuthingUserDao {
     private List<String> photoSuffixes;
 
     /**
-     * 允许的社区列表.
-     */
-    private List<String> allowedCommunity;
-
-    /**
      * Redis 数据访问对象.
      */
     @Autowired
@@ -361,7 +356,6 @@ public class AuthingUserDao {
         photoSuffixes = Arrays.asList(photoSuffix.split(";"));
         Unirest.config().reset();
         Unirest.config().socketTimeout(Constant.SOCKET_TIMEOUT).connectTimeout(Constant.CONNECT_TIMEOUT);
-        allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry");
     }
 
     /**
@@ -444,7 +438,7 @@ public class AuthingUserDao {
         String body = String.format("{\"connection\": \"PASSCODE\","
                         + "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},"
                         + "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}",
-                email, code, username, createPrivacyVersions(oneidPrivacyVersion, true));
+                email, code, username, privacyHistoryService.createPrivacyVersions(oneidPrivacyVersion, true));
         return register(appId, body);
     }
 
@@ -466,7 +460,8 @@ public class AuthingUserDao {
         String body = String.format("{\"connection\": \"PASSCODE\","
                         + "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"},"
                         + "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}",
-                phone, code, phoneCountryCode, username, createPrivacyVersions(oneidPrivacyVersion, true));
+                phone, code, phoneCountryCode, username, privacyHistoryService
+                        .createPrivacyVersions(oneidPrivacyVersion, true));
         return register(appId, body);
     }
 
@@ -488,7 +483,8 @@ public class AuthingUserDao {
                         + "\"profile\":{\"email\":\"%s\", \"givenName\":\"%s\"},"
                         + "\"options\":{\"passwordEncryptType\":\"rsa\","
                         + " \"emailPassCodeForInformationCompletion\":\"%s\"}}",
-                username, password, email, createPrivacyVersions(oneidPrivacyVersion, true), code);
+                username, password, email, privacyHistoryService
+                        .createPrivacyVersions(oneidPrivacyVersion, true), code);
         return register(appId, body);
     }
 
@@ -512,7 +508,7 @@ public class AuthingUserDao {
                         + "\"options\":{\"passwordEncryptType\":\"rsa\", "
                         + "\"phonePassCodeForInformationCompletion\":\"%s\"}}",
                 username, password, phone, phoneCountryCode,
-                createPrivacyVersions(oneidPrivacyVersion, true), code);
+                privacyHistoryService.createPrivacyVersions(oneidPrivacyVersion, true), code);
         return register(appId, body);
     }
 
@@ -1504,8 +1500,8 @@ public class AuthingUserDao {
                         break;
                     case "oneidprivacyaccepted":
                         if (oneidPrivacyVersion.equals(inputValue)) {
-                            updateUserInput.withGivenName(updatePrivacyVersions(user.getGivenName(),
-                                    oneidPrivacyVersion));
+                            updateUserInput.withGivenName(privacyHistoryService
+                                    .updatePrivacyVersions(user.getGivenName(), oneidPrivacyVersion));
                             LOGGER.info(String.format("User %s accept privacy version %s for app version %s",
                                     user.getId(), inputValue, appVersion));
                             // 签署新的隐私协议时，保存旧的到历史隐私记录
@@ -1520,7 +1516,8 @@ public class AuthingUserDao {
                             if (StringUtils.isNotEmpty(previous) && !"revoked".equals(previous)) {
                                 privacyHistoryService.savePrivacyHistory(previous, user.getId());
                             }
-                            updateUserInput.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
+                            updateUserInput.withGivenName(privacyHistoryService
+                                    .updatePrivacyVersions(user.getGivenName(), "revoked"));
                             LOGGER.info(String.format("User %s cancel privacy consent version %s for app version %s",
                                     user.getId(), inputValue, appVersion));
                         }
@@ -1551,7 +1548,7 @@ public class AuthingUserDao {
             // get user
             User user = managementClient.users().detail(userId, false, false).execute();
             UpdateUserInput input = new UpdateUserInput();
-            input.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
+            input.withGivenName(privacyHistoryService.updatePrivacyVersions(user.getGivenName(), "revoked"));
             User updateUser = managementClient.users().update(userId, input).execute();
             if (updateUser == null) {
                 return false;
@@ -1834,64 +1831,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 创建隐私版本号.
-     *
-     * @param version 版本号
-     * @param needSlash 是否需要斜杠
-     * @return 返回创建的隐私版本号
-     */
-    public String createPrivacyVersions(String version, Boolean needSlash) {
-        if (!isValidCommunity(community)) {
-            return "";
-        }
-
-        HashMap<String, String> privacys = new HashMap<>();
-        privacys.put(community, version);
-        if (needSlash) {
-            return JSON.toJSONString(privacys).replaceAll("\"", "\\\\\"");
-        } else {
-            return JSON.toJSONString(privacys);
-        }
-    }
-
-    /**
-     * 更新隐私版本号.
-     *
-     * @param previous 先前的版本号
-     * @param version 新版本号
-     * @return 返回更新后的隐私版本号
-     */
-    public String updatePrivacyVersions(String previous, String version) {
-        if (!isValidCommunity(community)) {
-            return "";
-        }
-
-        if (StringUtils.isBlank(previous)) {
-            return createPrivacyVersions(version, false);
-        }
-
-        if (!previous.contains(":")) {
-            if ("unused".equals(previous)) {
-                return createPrivacyVersions(version, false);
-            } else {
-                HashMap<String, String> privacys = new HashMap<>();
-                privacys.put("openeuler", previous);
-                privacys.put(community, version);
-                return JSON.toJSONString(privacys);
-            }
-        } else {
-            try {
-                HashMap<String, String> privacys = JSON.parseObject(previous, HashMap.class);
-                privacys.put(community, version);
-                return JSON.toJSONString(privacys);
-            } catch (Exception e) {
-                LOGGER.error(e.getMessage());
-                return createPrivacyVersions(version, false);
-            }
-        }
-    }
-
-    /**
      * 根据社区获取包含特定隐私版本号的隐私设置.
      *
      * @param privacyVersions 隐私版本号
@@ -1914,15 +1853,6 @@ public class AuthingUserDao {
             LOGGER.error(e.getMessage());
             return "";
         }
-    }
-
-    private boolean isValidCommunity(String communityIns) {
-        for (String com : allowedCommunity) {
-            if (communityIns.startsWith(com)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**

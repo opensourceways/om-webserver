@@ -224,6 +224,32 @@ public class AuthingControllerTest {
     }
 
     @Test
+    public void testLogin_withPrivacy() throws Exception {
+        when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setParameter("community", "openeuler");
+
+        HashMap<String, Object> res = new HashMap<>();
+        res.put("code", 0);
+        res.put("data", null);
+        res.put("msg", null);
+        ResponseEntity<HashMap<String, Object>> responseEntity =
+                new ResponseEntity<>(JSON.parseObject(
+                        HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), HttpStatus.OK);
+
+        Map<String, Object> map = new HashMap<>();
+        map.put("code", "code");
+        map.put("captchaVerification", "cap");
+        map.put("oneidPrivacyVersion", "privacyVersion");
+        when(authingService.login(any(HttpServletRequest.class), any(), any(Boolean.class))).thenReturn(responseEntity);
+        when(mockCaptchaService.verification(any(CaptchaVO.class))).thenReturn(new ResponseModel(RepCodeEnum.SUCCESS));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        ResponseEntity login = authingController.login(request, response, map);
+
+        assertThat(login.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
     public void testLogin_CaptchaServiceReturnsError() throws Exception {
         when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
         MockHttpServletRequest request = new MockHttpServletRequest();
