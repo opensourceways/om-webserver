@@ -16,6 +16,7 @@ import com.anji.captcha.model.common.RepCodeEnum;
 import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
+import com.om.Dao.AuthingUserDao;
 import com.om.Result.Constant;
 import com.om.Service.AuthingService;
 import com.om.Service.OidcService;
@@ -56,6 +57,9 @@ public class AuthingControllerTest {
 
     @Mock
     private AuthingService authingService;
+
+    @Mock
+    private AuthingUserDao authingUserDao;
 
     @MockBean
     private CaptchaService mockCaptchaService;
@@ -615,5 +619,14 @@ public class AuthingControllerTest {
         MockHttpServletResponse response = new MockHttpServletResponse();
         ResponseEntity responseResult = authingController.resetPwd(request, response);
         assertThat(responseResult.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void testUpdateBaseInfo() throws Exception {
+        when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
+        when(authingUserDao.updateUserBaseInfo(any(String.class), any()))
+                .thenReturn("success");
+        String response = authingUserDao.updateUserBaseInfo("", new HashMap<>());
+        assertThat(response.equals("success"));
     }
 }
