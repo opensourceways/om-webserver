@@ -1414,7 +1414,7 @@ public class AuthingService implements UserCenterServiceInter {
                         : authingUserDao.loginByPhonePwd(app, account, password);
             } else { // 用户名登录
                 // 用户名校验
-                if (StringUtils.isBlank(account) || !account.matches(Constant.USERNAMEREGEX)) {
+                if (StringUtils.isBlank(account)) {
                     return MessageCodeConfig.E00012.getMsgZh();
                 }
                 msg = authingUserDao.loginByUsernamePwd(app, account, password);
