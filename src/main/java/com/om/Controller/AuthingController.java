@@ -16,7 +16,6 @@ import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.om.Result.Constant;
 import com.om.Service.AuthingService;
-import com.om.Service.OidcService;
 import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
@@ -62,12 +61,6 @@ public class AuthingController {
      */
     @Autowired
     private CaptchaService captchaService;
-
-    /**
-     * oidc服务.
-     */
-    @Autowired
-    private OidcService oidcService;
 
     /**
      * 处理获取验证码请求的方法.
@@ -186,66 +179,6 @@ public class AuthingController {
                                     @RequestParam(value = "redirect_uri") String redirect) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.appVerify(clientId, redirect);
-    }
-
-    /**
-     * 处理 OIDC认证请求的方法.
-     *
-     * @param token 请求中包含的令牌
-     * @param clientId 客户端ID
-     * @param redirectUri 重定向URI
-     * @param responseType 响应类型
-     * @param state 状态信息（可选）
-     * @param scope 范围
-     * @return 返回 ResponseEntity 对象
-     */
-    @RequestLimitRedis
-    @AuthingUserToken
-    @RequestMapping(value = "/oidc/auth", method = RequestMethod.GET)
-    public ResponseEntity oidcAuth(@CookieValue(value = "_Y_G_", required = false) String token,
-                                   @RequestParam(value = "client_id") String clientId,
-                                   @RequestParam(value = "redirect_uri") String redirectUri,
-                                   @RequestParam(value = "response_type") String responseType,
-                                   @RequestParam(value = "state", required = false) String state,
-                                   @RequestParam(value = "scope") String scope) {
-        return oidcService.oidcAuth(token, clientId, redirectUri, responseType, state, scope);
-    }
-
-    /**
-     * 处理 OIDC授权请求的方法.
-     *
-     * @param servletRequest HTTP 请求对象
-     * @param servletResponse HTTP 响应对象
-     * @return 返回 ResponseEntity 对象
-     */
-    @RequestLimitRedis(period = 10, count = 1000)
-    @RequestMapping(value = "/oidc/authorize", method = RequestMethod.GET)
-    public ResponseEntity oidcAuthorize(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        return oidcService.oidcAuthorize(servletRequest, servletResponse);
-    }
-
-    /**
-     * 处理 OIDC令牌请求的方法.
-     *
-     * @param servletRequest HTTP 请求对象
-     * @return 返回 ResponseEntity 对象
-     */
-    @RequestLimitRedis(period = 10, count = 1000)
-    @RequestMapping(value = "/oidc/token", method = RequestMethod.POST)
-    public ResponseEntity oidcToken(HttpServletRequest servletRequest) {
-        return oidcService.oidcToken(servletRequest);
-    }
-
-    /**
-     * 处理 OIDC用户信息请求的方法.
-     *
-     * @param servletRequest HTTP 请求对象
-     * @return 返回 ResponseEntity 对象
-     */
-    @RequestLimitRedis(period = 10, count = 1000)
-    @RequestMapping(value = "/oidc/user", method = RequestMethod.GET)
-    public ResponseEntity oidcUser(HttpServletRequest servletRequest) {
-        return oidcService.userByAccessToken(servletRequest);
     }
 
     /**
