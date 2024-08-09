@@ -16,7 +16,7 @@ public class RedisListenerConfiguration {
     /**
      * 用于监听的 Redis 模式，默认为 "__keyevent@0__:expired".
      */
-    @Value("${spring.data.redis.listen-pattern:__keyevent@0__:expired}")
+    @Value("${spring.data.redis.listen-pattern}")
     private String pattern;
 
     /**

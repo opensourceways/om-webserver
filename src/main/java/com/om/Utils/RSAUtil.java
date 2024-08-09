@@ -54,7 +54,7 @@ public class RSAUtil implements Serializable {
      *
      * @param keyAlgorithm 密钥算法
      */
-    @Value("${rsa.key.algorithm:RSA}")
+    @Value("${rsa.key.algorithm}")
     public void setKeyAlgorithm(String keyAlgorithm) {
         setKeyAlgorithmStaticMethod(keyAlgorithm);
     }
@@ -73,7 +73,7 @@ public class RSAUtil implements Serializable {
      *
      * @param rsaAlgorithm RSA 算法
      */
-    @Value("${rsa.authing.algorithm:RSA/ECB/OAEPWithSHA-256AndMGF1Padding}")
+    @Value("${rsa.authing.algorithm}")
     public void setRsaAlgorithm(String rsaAlgorithm) {
         setRsaAlgorithmStaticMethod(rsaAlgorithm);
     }
