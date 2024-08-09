@@ -19,7 +19,6 @@ import com.anji.captcha.service.CaptchaService;
 import com.om.Dao.AuthingUserDao;
 import com.om.Result.Constant;
 import com.om.Service.AuthingService;
-import com.om.Service.OidcService;
 import com.om.Service.UserCenterServiceContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -50,9 +49,6 @@ public class AuthingControllerTest {
     private AuthingService mockAuthingService;
 
     @MockBean
-    private OidcService mockOidcService;
-
-    @MockBean
     private UserCenterServiceContext mockUserCenterServiceContext;
 
     @Mock
@@ -69,7 +65,6 @@ public class AuthingControllerTest {
     @Before
     public void init() {
         ReflectionTestUtils.setField(authingController, "authingService", mockAuthingService);
-        ReflectionTestUtils.setField(authingController, "oidcService", mockOidcService);
         ReflectionTestUtils.setField(authingController, "userCenterServiceContext", mockUserCenterServiceContext);
         ReflectionTestUtils.setField(authingController, "captchaService", mockCaptchaService);
     }
@@ -288,47 +283,6 @@ public class AuthingControllerTest {
                         HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), HttpStatus.OK);
         when(authingService.appVerify(any(String.class), any(String.class))).thenReturn(responseEntity);
         ResponseEntity response = authingController.appVerify(request, "sdfsdfsd", "https://localhost");
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
-    public void testOidcAuth() throws Exception {
-        when(mockOidcService.oidcAuth("token", "clientId", "redirectUri", "responseType", "state",
-                "scope")).thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
-
-        ResponseEntity response = authingController.oidcAuth("token", "clientId", "redirectUri", "responseType", "state",
-                "scope");
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
-    public void testOidcAuthorize() throws Exception {
-        when(mockOidcService.oidcAuthorize(any(HttpServletRequest.class),
-                any(HttpServletResponse.class))).thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        ResponseEntity responseResult = authingController.oidcAuthorize(request, response);
-
-        assertThat(responseResult.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
-    public void testOidcToken() throws Exception {
-        when(mockOidcService.oidcToken(any(HttpServletRequest.class)))
-                .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        ResponseEntity response = authingController.oidcToken(request);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
-    public void testOidcUser() throws Exception {
-        when(mockOidcService.userByAccessToken(any(HttpServletRequest.class)))
-                .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        ResponseEntity response = authingController.oidcUser(request);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
