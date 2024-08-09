@@ -315,31 +315,31 @@ public class AuthingControllerTest {
 
     @Test
     public void testGetUser() throws Exception {
-        when(mockAuthingService.authingUserPermission("community", "token"))
+        when(mockAuthingService.authingUserPermission("token"))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
 
-        ResponseEntity user = authingController.getUser("community", "token");
+        ResponseEntity user = authingController.getUser("token");
         assertThat(user.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     public void testUserPermissions() throws Exception {
-        when(mockAuthingService.userPermissions("community", "token"))
+        when(mockAuthingService.userPermissions("token"))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
 
-        ResponseEntity response = authingController.userPermissions("community", "token");
+        ResponseEntity response = authingController.userPermissions("token");
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     public void testTokenApply() throws Exception {
         when(mockAuthingService.tokenApply(any(HttpServletRequest.class), any(HttpServletResponse.class),
-                eq("community"), eq("code"), eq("permission"), eq("redirect")))
+                eq("code"), eq("permission"), eq("redirect")))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("community", "openeuler");
         MockHttpServletResponse response = new MockHttpServletResponse();
-        ResponseEntity responseResult = authingController.tokenApply(request, response, "community",
+        ResponseEntity responseResult = authingController.tokenApply(request, response,
                 "code", "permission", "redirect");
 
         assertThat(responseResult.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -489,10 +489,10 @@ public class AuthingControllerTest {
 
     @Test
     public void testUnLinkAccount() throws Exception {
-        when(mockAuthingService.unLinkAccount("token", "platform", null))
+        when(mockAuthingService.unLinkAccount("token", "platform"))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
 
-        ResponseEntity response = authingController.unLinkAccount("token", "platform", null);
+        ResponseEntity response = authingController.unLinkAccount("token", "platform");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }

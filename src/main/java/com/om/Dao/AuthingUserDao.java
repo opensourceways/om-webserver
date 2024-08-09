@@ -1348,10 +1348,9 @@ public class AuthingUserDao {
      *
      * @param token 访问令牌
      * @param platform 要解除链接的平台
-     * @param community 社区
      * @return 返回解除账户链接操作的结果消息
      */
-    public String unLinkAccount(String token, String platform, String community) {
+    public String unLinkAccount(String token, String platform) {
         String msg = "解绑三方账号失败";
         String identifier;
         String extIdpId;
@@ -1463,7 +1462,6 @@ public class AuthingUserDao {
             User user = (User) appUserInfo[1];
 
             UpdateUserInput updateUserInput = new UpdateUserInput();
-            String community = (String) map.getOrDefault("community", null);
 
             for (Map.Entry<String, Object> entry : map.entrySet()) {
                 String item = entry.getKey();
