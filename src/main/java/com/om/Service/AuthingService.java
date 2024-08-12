@@ -350,7 +350,6 @@ public class AuthingService implements UserCenterServiceInter {
         String appId = (String) getBodyPara(body, "client_id");
         String password = (String) getBodyPara(body, "password");
         String acceptPrivacyVersion = (String) getBodyPara(body, "oneidPrivacyAccepted");
-        String community = (String) getBodyPara(body, "community");
         // 校验appId
         if (authingUserDao.getAppById(appId) == null) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00047, null, null);
@@ -359,7 +358,7 @@ public class AuthingService implements UserCenterServiceInter {
         String accountType;
         try {
             // 用户名校验
-            msg = authingUserDao.checkUsername(appId, username, community);
+            msg = authingUserDao.checkUsername(appId, username, instanceCommunity);
             if (!msg.equals(Constant.SUCCESS)) {
                 return result(HttpStatus.BAD_REQUEST, null, msg, null);
             }
@@ -552,11 +551,10 @@ public class AuthingService implements UserCenterServiceInter {
     /**
      * Authing用户权限方法.
      *
-     * @param community 社区
      * @param token     令牌
      * @return ResponseEntity 响应实体
      */
-    public ResponseEntity authingUserPermission(String community, String token) {
+    public ResponseEntity authingUserPermission(String token) {
         try {
             DecodedJWT decode = JWT.decode(authingUtil.rsaDecryptToken(token));
             String userId = decode.getAudience().get(0);
@@ -588,11 +586,10 @@ public class AuthingService implements UserCenterServiceInter {
     /**
      * 用户权限方法.
      *
-     * @param community 社区
      * @param token     令牌
      * @return ResponseEntity 响应实体
      */
-    public ResponseEntity userPermissions(String community, String token) {
+    public ResponseEntity userPermissions(String token) {
         try {
             DecodedJWT decode = JWT.decode(authingUtil.rsaDecryptToken(token));
             String userId = decode.getAudience().get(0);
@@ -731,14 +728,13 @@ public class AuthingService implements UserCenterServiceInter {
      *
      * @param httpServletRequest HTTP请求对象
      * @param servletResponse    HTTP响应对象
-     * @param community          社区
      * @param code               代码
      * @param permission         权限
      * @param redirectUrl        重定向URL
      * @return ResponseEntity 响应实体
      */
     public ResponseEntity tokenApply(HttpServletRequest httpServletRequest,
-                                     HttpServletResponse servletResponse, String community,
+                                     HttpServletResponse servletResponse,
                                      String code, String permission, String redirectUrl) {
         try {
             String appId = httpServletRequest.getParameter("client_id");
@@ -1114,11 +1110,10 @@ public class AuthingService implements UserCenterServiceInter {
      *
      * @param token    令牌
      * @param platform 平台
-     * @param community 社区
      * @return ResponseEntity 响应实体
      */
-    public ResponseEntity unLinkAccount(String token, String platform, String community) {
-        String msg = authingUserDao.unLinkAccount(token, platform, community);
+    public ResponseEntity unLinkAccount(String token, String platform) {
+        String msg = authingUserDao.unLinkAccount(token, platform);
         return msg.equals("success") ? result(HttpStatus.OK, "unlink account success", null)
                 : result(HttpStatus.BAD_REQUEST, null, msg, null);
     }
