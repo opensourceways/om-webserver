@@ -25,6 +25,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.Modules.authing.AuthingAppSync;
 import com.om.Service.PrivacyHistoryService;
+import com.om.Utils.LogUtil;
 import com.om.authing.AuthingRespConvert;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
@@ -952,9 +953,10 @@ public class AuthingUserDao {
      * @param token 访问令牌
      * @param oldPwd 旧密码
      * @param newPwd 新密码
+     * @param userIp 用户ip
      * @return 如果成功更新密码则返回消息提示，否则返回 null
      */
-    public String updatePassword(String token, String oldPwd, String newPwd) {
+    public String updatePassword(String token, String oldPwd, String newPwd, String userIp) {
         String msg = MessageCodeConfig.E00053.getMsgZh();
         try {
             Object[] appUserInfo = getAppUserInfo(token);
@@ -966,7 +968,15 @@ public class AuthingUserDao {
                     + "\"passwordEncryptType\": \"rsa\"}", newPwd, oldPwd);
             HttpResponse<JsonNode> response = authPost("/update-password", appId, user.getToken(), body);
             JSONObject resObj = response.getBody().getObject();
-            msg = resObj.getInt("statusCode") != 200 ? AuthingRespConvert.convertMsg(resObj, msg) : Constant.SUCCESS;
+            if (resObj.getInt("statusCode") != 200) {
+                msg = AuthingRespConvert.convertMsg(resObj, msg);
+                LogUtil.createLogs(user.getId(), "update password", "user",
+                        "The user update password", userIp, "failed");
+            } else {
+                msg = Constant.SUCCESS;
+                LogUtil.createLogs(user.getId(), "update password", "user",
+                        "The user update password", userIp, "success");
+            }
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
@@ -1039,10 +1049,11 @@ public class AuthingUserDao {
      * @param account 新账户信息
      * @param code 新代码
      * @param type 类型
+     * @param userIp ip
      * @return 如果成功更新账户信息则返回消息提示，否则返回 null
      */
     public String updateAccount(String token, String oldAccount, String oldCode,
-                                String account, String code, String type) {
+                                String account, String code, String type, String userIp) {
         try {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
@@ -1051,11 +1062,17 @@ public class AuthingUserDao {
             switch (type.toLowerCase()) {
                 case "email":
                     authentication.updateEmail(account, code, oldAccount, oldCode).execute();
+                    LogUtil.createLogs(us.getId(), "update email", "user",
+                            "The user update email", userIp, "success");
                     break;
                 case "phone":
                     updatePhoneWithAuthingCode(oldAccount, oldCode, account, code, appId, us.getToken());
+                    LogUtil.createLogs(us.getId(), "update phone", "user",
+                            "The user update phone", userIp, "success");
                     break;
                 default:
+                    LogUtil.createLogs(us.getId(), "update account", "user",
+                            "The user update account", userIp, "failed");
                     return "false";
             }
         } catch (Exception e) {
@@ -1071,9 +1088,10 @@ public class AuthingUserDao {
      * @param token 访问令牌
      * @param account 要解绑的账户信息
      * @param type 账户类型
+     * @param userIp 用户ip
      * @return 如果成功解绑账户则返回消息提示，否则返回 null
      */
-    public String unbindAccount(String token, String account, String type) {
+    public String unbindAccount(String token, String account, String type, String userIp) {
         String resFail = "unbind fail";
         try {
             Object[] appUserInfo = getAppUserInfo(token);
@@ -1092,8 +1110,12 @@ public class AuthingUserDao {
                         return resFail;
                     }
                     authentication.unbindPhone().execute();
+                    LogUtil.createLogs(us.getId(), "update userInfo", "user",
+                            "The user unbind phoneNumber", userIp, "success");
                     break;
                 default:
+                    LogUtil.createLogs(us.getId(), "update userInfo", "user",
+                            "The user unbind phoneNumber", userIp, "failed");
                     return resFail;
             }
         } catch (Exception e) {
@@ -1159,9 +1181,10 @@ public class AuthingUserDao {
      * @param account 要绑定的账户信息
      * @param code 验证码
      * @param type 账户类型
+     * @param userIp 用户ip
      * @return 如果成功绑定账户则返回消息提示，否则返回 null
      */
-    public String bindAccount(String token, String account, String code, String type) {
+    public String bindAccount(String token, String account, String code, String type, String userIp) {
         try {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
@@ -1172,15 +1195,21 @@ public class AuthingUserDao {
                     String emailInDb = user.getEmail();
                     // situation: email is auto-generated
                     if (StringUtils.isNotBlank(emailInDb) && emailInDb.endsWith(Constant.AUTO_GEN_EMAIL_SUFFIX)) {
-                        bindEmailWithSelfDistributedCode(authentication, user.getId(), account, code);
+                        bindEmailWithSelfDistributedCode(authentication, user.getId(), account, code, userIp);
                     } else {
                         authentication.bindEmail(account, code).execute();
+                        LogUtil.createLogs(user.getId(), "bind email", "user",
+                                "The user bind email", userIp, "success");
                     }
                     break;
                 case "phone":
                     bindPhoneWithAuthingCode(account, code, appId, user.getToken());
+                    LogUtil.createLogs(user.getId(), "bind phone", "user",
+                            "The user bind phone", userIp, "success");
                     break;
                 default:
+                    LogUtil.createLogs(user.getId(), "bind account", "user",
+                            "The user bind account", userIp, "failed");
                     return "false";
             }
         } catch (Exception e) {
@@ -1190,19 +1219,25 @@ public class AuthingUserDao {
         return "true";
     }
 
-    private void bindEmailWithSelfDistributedCode(
-            AuthenticationClient authentication, String userId, String account, String code) throws Exception {
+    private void bindEmailWithSelfDistributedCode(AuthenticationClient authentication, String userId,
+                                                   String account, String code, String userIp) throws Exception {
         String redisKey = account.toLowerCase() + "_CodeBindEmail";
         String codeTemp = (String) redisDao.get(redisKey);
         if (codeTemp == null) {
+            LogUtil.createLogs(userId, "bind email", "user",
+                    "The user bind email", userIp, "failed");
             throw new Exception("验证码无效或已过期");
         }
         if (!codeTemp.equals(code)) {
+            LogUtil.createLogs(userId, "bind email", "user",
+                    "The user bind email", userIp, "failed");
             throw new Exception("验证码不正确");
         }
 
         // check if email is bind to other account
         if (authentication.isUserExists(null, account, null, null).execute()) {
+            LogUtil.createLogs(userId, "bind email", "user",
+                    "The user bind email", userIp, "failed");
             throw new Exception("该邮箱已被其它账户绑定");
         }
 
@@ -1210,7 +1245,11 @@ public class AuthingUserDao {
 
         if (res.equals(account)) {
             redisDao.remove(redisKey);
+            LogUtil.createLogs(userId, "bind email", "user",
+                    "The user bind email", userIp, "success");
         } else {
+            LogUtil.createLogs(userId, "bind email", "user",
+                    "The user bind email", userIp, "failed");
             throw new Exception("服务异常");
         }
     }

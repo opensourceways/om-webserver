@@ -11,6 +11,7 @@
 
 package com.om.Controller.init;
 
+import com.om.Utils.LogUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,13 +41,16 @@ public class InitController implements ApplicationRunner {
     public void run(ApplicationArguments args) throws Exception {
         String applicationPath = System.getenv("APPLICATION_PATH");
         if (StringUtils.isBlank(applicationPath)) {
-            LOG.info("Delete application fail, file not found");
+            LogUtil.createLogs("system", "delete file", "application init",
+                    "system delete file application.yaml", "localhost", "failed,file not found");
             return;
         }
         if (CommonUtil.deleteFile(applicationPath)) {
-            LOG.info("Delete application success");
+            LogUtil.createLogs("system", "delete file", "application init",
+                    "system delete file application.yaml", "localhost", "success");
         } else {
-            LOG.info("Delete application fail");
+            LogUtil.createLogs("system", "delete file", "application init",
+                    "system delete file application.yaml", "localhost", "failed");
         }
     }
 }
