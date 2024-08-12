@@ -231,12 +231,6 @@ public class AuthingUserDao {
     private String authingApiHostV3;
 
     /**
-     * AIGC 隐私版本号.
-     */
-    @Value("${aigc.privacy.version}")
-    private String aigcPrivacyVersion;
-
-    /**
      * OneID 隐私版本号.
      */
     @Value("${oneid.privacy.version}")
@@ -1487,14 +1481,6 @@ public class AuthingUserDao {
                             }
                         }
                         updateUserInput.withUsername(inputValue);
-                        break;
-                    case "aigcprivacyaccepted":
-                        if (aigcPrivacyVersion.equals(inputValue)) {
-                            updateUserInput.withFormatted(aigcPrivacyVersion);
-                        }
-                        if ("revoked".equals(inputValue)) {
-                            updateUserInput.withFormatted("revoked");
-                        }
                         break;
                     case "oneidprivacyaccepted":
                         if (oneidPrivacyVersion.equals(inputValue)) {
