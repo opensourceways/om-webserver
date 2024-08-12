@@ -564,8 +564,6 @@ public class AuthingService implements UserCenterServiceInter {
             String username = user.getUsername();
             String email = user.getEmail();
             String phone = user.getPhone();
-            String aigcPrivacyAccepted = Objects.equals(env.getProperty("aigc.privacy.version"),
-                    user.getFormatted()) ? user.getFormatted() : "";
             String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(
                     user.getGivenName());
             // 返回结果
@@ -574,7 +572,6 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("username", username);
             userData.put("email", email);
             userData.put("phone", phone);
-            userData.put("aigcPrivacyAccepted", aigcPrivacyAccepted);
             userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
