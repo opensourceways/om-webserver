@@ -111,7 +111,6 @@ public class ManagerController {
     /**
      * 身份验证的方法.
      *
-     * @param community  社区参数（可选）
      * @param userCookie 用户 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
@@ -119,10 +118,8 @@ public class ManagerController {
     @ManageToken
     @AuthingUserToken
     @RequestMapping(value = "/authenticate", method = RequestMethod.GET)
-    public ResponseEntity authenticate(
-            @RequestParam(value = "community", required = false) String community,
-            @CookieValue(value = "_Y_G_", required = false) String userCookie) {
-        return oneIdManageService.authenticate(community, userCookie);
+    public ResponseEntity authenticate(@CookieValue(value = "_Y_G_", required = false) String userCookie) {
+        return oneIdManageService.authenticate(userCookie);
     }
 
     /**
@@ -148,7 +145,6 @@ public class ManagerController {
     /**
      * 获取用户权限信息的方法.
      *
-     * @param community 社区参数（可选）
      * @param token     用户凭证 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
@@ -156,10 +152,8 @@ public class ManagerController {
     @ManageToken
     @AuthingUserToken
     @RequestMapping(value = "/u/permissions", method = RequestMethod.GET)
-    public ResponseEntity getUserPermissions(
-            @RequestParam(value = "community", required = false) String community,
-            @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.userPermissions(community, token);
+    public ResponseEntity getUserPermissions(@CookieValue(value = "_Y_G_", required = false) String token) {
+        return authingService.userPermissions(token);
     }
 
     /**
