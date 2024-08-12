@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Objects;
 
 public final class LogUtil {
+
     private LogUtil() {
         throw new AssertionError("Utility class. Not intended for instantiation.");
     }
@@ -157,5 +158,20 @@ public final class LogUtil {
                 .replace("\u007F", "\\u007F")
                 .replace("\u0009", "\\u0009");
         return formatedOutput;
+    }
+
+    /**
+     * 组装记录日志.
+     *
+     * @param userId 用户id
+     * @param type 操作类型
+     * @param module 模块名
+     * @param detail 操作资源详情
+     * @param ip 操作者ip
+     * @param result 操作结果
+     */
+    public static void createLogs(String userId, String type, String module, String detail, String ip, String result) {
+        LOGGER.info(String.format("(Client ip:%s, User id:%s, Module:%s, Type:%s) Detail:%s.--->Result:%s.",
+                ip, userId, module, type, detail, result));
     }
 }
