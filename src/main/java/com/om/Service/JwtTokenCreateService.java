@@ -11,6 +11,7 @@
 
 package com.om.Service;
 
+import com.anji.captcha.util.StringUtils;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.Claim;
@@ -18,6 +19,7 @@ import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Utils.CodeUtil;
+import com.om.Utils.EncryptionService;
 import com.om.Utils.RSAUtil;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
@@ -45,6 +47,12 @@ public class JwtTokenCreateService {
      */
     @Autowired
     private RedisDao redisDao;
+
+    /**
+     * 注入加密类.
+     */
+    @Autowired
+    private EncryptionService encryptionService;
 
     /**
      * 注入 CodeUtil 依赖.
@@ -137,6 +145,7 @@ public class JwtTokenCreateService {
                 .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .sign(Algorithm.HMAC256(authingTokenBasePassword));
         String verifyToken = DigestUtils.md5DigestAsHex(headToken.getBytes(StandardCharsets.UTF_8));
+        idToken = encryptionService.publicEncrypt(idToken);
         redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
         String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes(StandardCharsets.UTF_8));
 
