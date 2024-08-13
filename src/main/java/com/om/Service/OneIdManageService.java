@@ -255,12 +255,11 @@ public class OneIdManageService {
     /**
      * 身份验证的方法.
      *
-     * @param community  社区参数
      * @param userCookie 用户 Cookie 值
      * @return 返回 ResponseEntity 对象
      */
-    public ResponseEntity authenticate(String community, String userCookie) {
-        return authingService.authingUserPermission(community, userCookie);
+    public ResponseEntity authenticate(String userCookie) {
+        return authingService.authingUserPermission(userCookie);
     }
 
     /**
