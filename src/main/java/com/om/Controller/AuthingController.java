@@ -234,31 +234,27 @@ public class AuthingController {
     /**
      * 获取用户信息的方法.
      *
-     * @param community 社区名称（可选）
      * @param token 包含令牌的 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/user/permission", method = RequestMethod.GET)
-    public ResponseEntity getUser(@RequestParam(value = "community", required = false) String community,
-                                  @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.authingUserPermission(community, token);
+    public ResponseEntity getUser(@CookieValue(value = "_Y_G_", required = false) String token) {
+        return authingService.authingUserPermission(token);
     }
 
     /**
      * 获取用户权限的方法.
      *
-     * @param community 社区名称（可选）
      * @param token 包含令牌的 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/user/permissions", method = RequestMethod.GET)
-    public ResponseEntity userPermissions(@RequestParam(value = "community", required = false) String community,
-                                          @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.userPermissions(community, token);
+    public ResponseEntity userPermissions(@CookieValue(value = "_Y_G_", required = false) String token) {
+        return authingService.userPermissions(token);
     }
 
     /**
@@ -266,7 +262,6 @@ public class AuthingController {
      *
      * @param httpServletRequest HTTP 请求对象
      * @param servletResponse HTTP 响应对象
-     * @param community 社区名称（可选）
      * @param code 代码
      * @param permission 权限
      * @param redirect 重定向URI
@@ -276,11 +271,10 @@ public class AuthingController {
     @RequestMapping(value = "/token/apply", method = RequestMethod.GET)
     public ResponseEntity tokenApply(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
-                                     @RequestParam(value = "community", required = false) String community,
                                      @RequestParam(value = "code") String code,
                                      @RequestParam(value = "permission") String permission,
                                      @RequestParam(value = "redirect") String redirect) {
-        return authingService.tokenApply(httpServletRequest, servletResponse, community, code, permission, redirect);
+        return authingService.tokenApply(httpServletRequest, servletResponse, code, permission, redirect);
     }
 
     /**
@@ -442,16 +436,14 @@ public class AuthingController {
      *
      * @param token 包含令牌的 Cookie 值（可选）
      * @param platform 平台信息
-     * @param community 社区
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/unlink/account", method = RequestMethod.GET)
     public ResponseEntity unLinkAccount(@CookieValue(value = "_Y_G_", required = false) String token,
-                                        @RequestParam(value = "platform") String platform,
-                                        @RequestParam(value = "community", required = false) String community) {
-        return authingService.unLinkAccount(token, platform, community);
+                                        @RequestParam(value = "platform") String platform) {
+        return authingService.unLinkAccount(token, platform);
     }
 
     /**
