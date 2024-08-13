@@ -10,6 +10,7 @@ import org.junit.runner.RunWith;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.HashMap;
@@ -38,6 +39,26 @@ public class ManagerControllerTest {
         map.put("channel", "channel");
         ResponseEntity response = MockOneIdManageService.sendCode(map, "token", Boolean.TRUE);
 
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void testBindAccount() throws Exception {
+        when(mockCaptchaService.verification(any(CaptchaVO.class))).thenReturn(new ResponseModel(RepCodeEnum.SUCCESS));
+        when(MockOneIdManageService.bindAccount(any(), any(), any()))
+                .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        ResponseEntity response = MockOneIdManageService.bindAccount(request, new HashMap<>(), "token");
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    public void testRevokePrivacy() throws Exception {
+        when(mockCaptchaService.verification(any(CaptchaVO.class))).thenReturn(new ResponseModel(RepCodeEnum.SUCCESS));
+        when(MockOneIdManageService.revokePrivacy(any(), any()))
+                .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        ResponseEntity response = MockOneIdManageService.revokePrivacy( "userId", request);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 }

@@ -96,6 +96,7 @@ public class ManagerController {
     /**
      * 绑定账号的方法.
      *
+     * @param servletRequest 请求入参
      * @param body  包含请求体信息的 Map 对象
      * @param token 包含在请求头中的令牌字符串
      * @return 返回 ResponseEntity 对象
@@ -103,9 +104,10 @@ public class ManagerController {
     @RequestLimitRedis(period = 1, count = 1000)
     @ManageToken
     @RequestMapping(value = "/bind/account", method = RequestMethod.POST)
-    public ResponseEntity bindAccount(@RequestBody Map<String, String> body,
+    public ResponseEntity bindAccount(HttpServletRequest servletRequest,
+                                      @RequestBody Map<String, String> body,
                                       @RequestHeader(value = "token") String token) {
-        return oneIdManageService.bindAccount(body, token);
+        return oneIdManageService.bindAccount(servletRequest, body, token);
     }
 
     /**
@@ -178,14 +180,15 @@ public class ManagerController {
     /**
      * 撤销隐私设置的方法.
      *
+     * @param servletRequest 请求入参
      * @param body 包含用户信息的请求体对象
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis(period = 1, count = 1000)
     @ManageToken
     @RequestMapping(value = "/privacy/revoke", method = RequestMethod.POST)
-    public ResponseEntity revokePrivacy(@RequestBody User body) {
-        return oneIdManageService.revokePrivacy(body.getUserId());
+    public ResponseEntity revokePrivacy(HttpServletRequest servletRequest, @RequestBody User body) {
+        return oneIdManageService.revokePrivacy(body.getUserId(), servletRequest);
     }
 
     private boolean verifyCaptcha(String captchaVerification) {
