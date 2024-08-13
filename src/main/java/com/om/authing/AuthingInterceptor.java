@@ -21,6 +21,7 @@ import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Service.JwtTokenCreateService;
+import com.om.Utils.EncryptionService;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
 import com.om.token.ClientSessionManager;
@@ -92,6 +93,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
      */
     @Autowired
     private ClientSessionManager clientSessionManager;
+
+    /**
+     * 注入加密服务.
+     */
+    @Autowired
+    private EncryptionService encryptionService;
 
     /**
      * Authing Token 的基础密码.
@@ -309,7 +316,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
         String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(userId).toString();
         String tokenKey = Constant.ID_TOKEN_PREFIX + verifyToken;
         String idToken = (String) redisDao.get(tokenKey);
-        if (!redisDao.containListValue(loginKey, idToken)) {
+        try {
+            idToken = encryptionService.privateDecrypt(idToken);
+        } catch (Exception e) {
+            LOGGER.error("idToken decrypt error {}", e.getMessage());
+        }
+        if (!redisDao.containListValue(loginKey, EncryptionService.getSha256Str(idToken))) {
             return false;
         }
         int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
@@ -460,11 +472,18 @@ public class AuthingInterceptor implements HandlerInterceptor {
                                 String verifyToken, String userId, Map<String, Claim> claimMap) {
         String oldTokenKey = Constant.ID_TOKEN_PREFIX + verifyToken;
         String idToken = (String) redisDao.get(oldTokenKey);
-        if (idToken == null) {
+        String idTokenDecry = null;
+        try {
+            idTokenDecry = encryptionService.privateDecrypt(idToken);
+        } catch (Exception e) {
+            LOGGER.error("idToken encrypt error {}", e.getMessage());
+        }
+
+        if (idTokenDecry == null) {
             return Constant.TOKEN_EXPIRES;
         }
         // headToken刷新token
-        String[] tokens = jwtTokenCreateService.refreshAuthingUserToken(request, idToken, userId, claimMap);
+        String[] tokens = jwtTokenCreateService.refreshAuthingUserToken(request, idTokenDecry, userId, claimMap);
 
         // 刷新cookie
         int tokenExpire = Integer.parseInt(
