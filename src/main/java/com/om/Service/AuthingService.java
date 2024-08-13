@@ -431,7 +431,7 @@ public class AuthingService implements UserCenterServiceInter {
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
         String password = (String) getBodyPara(body, "password");
-        String oneidPrivacy = (String) getBodyPara(body, "oneidPrivacyVersion");
+        String oneidPrivacy = (String) getBodyPara(body, "oneidPrivacyAccepted");
         LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
         // 限制一分钟登录失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
