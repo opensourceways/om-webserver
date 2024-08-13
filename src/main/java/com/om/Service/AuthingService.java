@@ -22,6 +22,8 @@ import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.EncryptionService;
 import com.om.Utils.LimitUtil;
+import com.om.Utils.ClientIPUtil;
+import com.om.Utils.LogUtil;
 import com.om.authing.AuthingRespConvert;
 import com.om.token.ClientSessionManager;
 import jakarta.annotation.PostConstruct;
@@ -865,10 +867,17 @@ public class AuthingService implements UserCenterServiceInter {
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             String photo = authingUserDao.getUser(userId).getPhoto();
+            String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
             //用户注销
-            return authingUserDao.deleteUserById(userId)
-                    ? deleteUserAfter(servletRequest, servletResponse, userId, photo)
-                    : result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
+            if (authingUserDao.deleteUserById(userId)) {
+                LogUtil.createLogs(userId, "delete account", "user",
+                        "The user delete account", userIp, "success");
+                return deleteUserAfter(servletRequest, servletResponse, userId, photo);
+            } else {
+                LogUtil.createLogs(userId, "delete account", "user",
+                        "The user delete account", userIp, "failed");
+                return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
+            }
         } catch (RuntimeException e) {
             LOGGER.error("Internal Server RuntimeException." + e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
@@ -1007,6 +1016,7 @@ public class AuthingService implements UserCenterServiceInter {
         String account = servletRequest.getParameter("account");
         String code = servletRequest.getParameter("code");
         String accountType = servletRequest.getParameter("account_type");
+        String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
         if (StringUtils.isBlank(oldAccount) || StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
         }
@@ -1016,11 +1026,12 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
         if (accountType.toLowerCase().equals("email") && oldAccount.equals(account)) {
+
             return result(HttpStatus.BAD_REQUEST, null, "新邮箱与已绑定邮箱相同", null);
         } else if (accountType.toLowerCase().equals("phone") && oldAccount.equals(account)) {
             return result(HttpStatus.BAD_REQUEST, null, "新手机号与已绑定手机号相同", null);
         }
-        String res = authingUserDao.updateAccount(token, oldAccount, oldCode, account, code, accountType);
+        String res = authingUserDao.updateAccount(token, oldAccount, oldCode, account, code, accountType, userIp);
         return message(res);
     }
 
@@ -1038,6 +1049,7 @@ public class AuthingService implements UserCenterServiceInter {
         String account = servletRequest.getParameter("account");
         String code = servletRequest.getParameter("code");
         String accountType = servletRequest.getParameter("account_type");
+        String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
         if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
         }
@@ -1048,7 +1060,7 @@ public class AuthingService implements UserCenterServiceInter {
             redisKeyPrefix = phoneCountryCode + account;
             // TODO currently international phone skip code verify
             if (!"+86".equals(phoneCountryCode)) {
-                String res = authingUserDao.unbindAccount(token, account, accountType);
+                String res = authingUserDao.unbindAccount(token, account, accountType, userIp);
                 return res.equals("unbind success") ? result(HttpStatus.OK, res, null)
                         : result(HttpStatus.BAD_REQUEST, null, res, null);
             }
@@ -1061,7 +1073,7 @@ public class AuthingService implements UserCenterServiceInter {
         if (!codeTemp.equals(code)) {
             return result(HttpStatus.BAD_REQUEST, null, "验证码不正确", null);
         }
-        String res = authingUserDao.unbindAccount(token, account, accountType);
+        String res = authingUserDao.unbindAccount(token, account, accountType, userIp);
         if (res.equals("unbind success")) {
             redisDao.remove(redisKey);
             return result(HttpStatus.OK, res, null);
@@ -1083,6 +1095,7 @@ public class AuthingService implements UserCenterServiceInter {
         String account = servletRequest.getParameter("account");
         String code = servletRequest.getParameter("code");
         String accountType = servletRequest.getParameter("account_type");
+        String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
         if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
         }
@@ -1090,7 +1103,7 @@ public class AuthingService implements UserCenterServiceInter {
         if (!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
-        return message(authingUserDao.bindAccount(token, account, code, accountType));
+        return message(authingUserDao.bindAccount(token, account, code, accountType, userIp));
     }
 
     /**
@@ -1200,11 +1213,12 @@ public class AuthingService implements UserCenterServiceInter {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
             String oldPwd = (String) getBodyPara(body, "old_pwd");
             String newPwd = (String) getBodyPara(body, "new_pwd");
+            String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
             if (StringUtils.isBlank(newPwd)) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
             }
             Cookie cookie = authingUtil.getCookie(servletRequest, env.getProperty("cookie.token.name"));
-            msg = authingUserDao.updatePassword(cookie.getValue(), oldPwd, newPwd);
+            msg = authingUserDao.updatePassword(cookie.getValue(), oldPwd, newPwd, userIp);
             if (msg.equals("success")) {
                 String token = authingUtil.rsaDecryptToken(cookie.getValue());
                 DecodedJWT decode = JWT.decode(token);
@@ -1279,6 +1293,7 @@ public class AuthingService implements UserCenterServiceInter {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
             String pwdResetToken = (String) getBodyPara(body, "pwd_reset_token");
             String newPwd = (String) getBodyPara(body, "new_pwd");
+            String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
             if (StringUtils.isBlank(newPwd)) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
             }
@@ -1292,7 +1307,12 @@ public class AuthingService implements UserCenterServiceInter {
             String resetMsg = authingUserDao.resetPwd(pwdResetToken, newPwd);
             if (resetMsg.equals(Constant.SUCCESS)) {
                 logoutAllSessions(userId, servletRequest, servletResponse);
+                LogUtil.createLogs(userId, "reset password", "user",
+                        "The user reset password", userIp, "success");
                 authingUserDao.kickUser(userId);
+            } else {
+                LogUtil.createLogs(userId, "reset password", "user",
+                        "The user reset password", userIp, "failed");
             }
             return resetMsg.equals(Constant.SUCCESS) ? result(HttpStatus.OK, Constant.SUCCESS, null)
                     : result(HttpStatus.BAD_REQUEST, null, resetMsg, null);
