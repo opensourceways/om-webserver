@@ -29,6 +29,9 @@ import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 
 import com.om.Utils.AuthingUtil;
+import com.om.Utils.ClientIPUtil;
+import com.om.Utils.LogUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
@@ -225,16 +228,17 @@ public class OneIdManageService {
     /**
      * 绑定账号的方法.
      *
+     * @param servletRequest 请求入参
      * @param body  包含请求体信息的 Map 对象
      * @param token 包含在请求头中的令牌字符串
      * @return 返回 ResponseEntity 对象
      */
-    public ResponseEntity bindAccount(Map<String, String> body, String token) {
+    public ResponseEntity bindAccount(HttpServletRequest servletRequest, Map<String, String> body, String token) {
         String account = body.get("account");
         String code = body.get("code");
         String userId = body.get("user_id");
         String accountType = body.get("account_type");
-
+        String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
         if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
@@ -245,7 +249,13 @@ public class OneIdManageService {
             AuthenticationClient authentication =
                     authingUserDao.initUserAuthentication(jsonNode.get("app_id").asText(), user);
             String res = authingUserDao.bindAccount(authentication, account, code, accountType);
-
+            if ("true".equals(res)) {
+                LogUtil.createLogs(userId, "bind account", "user",
+                        "The user bind account", userIp, "success");
+            } else {
+                LogUtil.createLogs(userId, "bind account", "user",
+                        "The user bind account", userIp, "failed");
+            }
             return authingService.message(res);
         } catch (Exception e) {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
@@ -323,14 +333,19 @@ public class OneIdManageService {
      * 撤销隐私设置的方法.
      *
      * @param userId 用户id
+     * @param servletRequest 请求入参
      * @return 返回 ResponseEntity 对象
      */
-    public ResponseEntity revokePrivacy(String userId) {
+    public ResponseEntity revokePrivacy(String userId, HttpServletRequest servletRequest) {
         try {
+            String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
             if (authingUserDao.revokePrivacy(userId)) {
+                LogUtil.createLogs(userId, "update userInfo", "user",
+                        "The user revoke privacy", userIp, "success");
                 return authingService.result(HttpStatus.OK, MessageCodeConfig.S0001, null, null);
             }
-
+            LogUtil.createLogs(userId, "update userInfo", "user",
+                    "The user revoke privacy", userIp, "failed");
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
