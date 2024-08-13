@@ -11,7 +11,6 @@
 
 package com.om.Service;
 
-import com.anji.captcha.util.StringUtils;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.Claim;
