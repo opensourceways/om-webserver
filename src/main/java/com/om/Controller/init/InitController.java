@@ -15,6 +15,7 @@ import com.om.Utils.LogUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,13 +33,27 @@ public class InitController implements ApplicationRunner {
     private static final Logger LOG = LoggerFactory.getLogger(InitController.class);
 
     /**
-     * 运行应用程序的方法.
-     *
-     * @param args 应用程序参数
-     * @throws Exception 可能抛出的异常
+     * redis证书路径.
      */
-    @Override
-    public void run(ApplicationArguments args) throws Exception {
+    @Value("${redis.path:}")
+    private String redisPath;
+
+    private void deleteRedis() {
+        if (StringUtils.isBlank(redisPath)) {
+            LogUtil.createLogs("system", "delete file", "application init",
+                    "system delete file redis", "localhost", "failed,file not found");
+            return;
+        }
+        if (CommonUtil.deleteFile(redisPath)) {
+            LogUtil.createLogs("system", "delete file", "application init",
+                    "system delete file redis", "localhost", "success");
+        } else {
+            LogUtil.createLogs("system", "delete file", "application init",
+                    "system delete file redis", "localhost", "failed");
+        }
+    }
+
+    private void deleteApplicationConfig() {
         String applicationPath = System.getenv("APPLICATION_PATH");
         if (StringUtils.isBlank(applicationPath)) {
             LogUtil.createLogs("system", "delete file", "application init",
@@ -52,5 +67,17 @@ public class InitController implements ApplicationRunner {
             LogUtil.createLogs("system", "delete file", "application init",
                     "system delete file application.yaml", "localhost", "failed");
         }
+    }
+
+    /**
+     * 运行应用程序的方法.
+     *
+     * @param args 应用程序参数
+     * @throws Exception 可能抛出的异常
+     */
+    @Override
+    public void run(ApplicationArguments args) throws Exception {
+        deleteApplicationConfig();
+        deleteRedis();
     }
 }
