@@ -33,7 +33,7 @@ public class InitController implements ApplicationRunner {
     private static final Logger LOG = LoggerFactory.getLogger(InitController.class);
 
     /**
-     * redis证书路径.
+     * redis路径.
      */
     @Value("${redis.path:}")
     private String redisPath;
