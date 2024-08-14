@@ -13,6 +13,7 @@ package com.om.authing;
 
 import com.om.Dao.RedisDao;
 import com.om.Service.JwtTokenCreateService;
+import com.om.Utils.EncryptionService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.Before;
@@ -28,6 +29,8 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.servlet.ModelAndView;
 
+import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,6 +42,8 @@ import static org.mockito.Mockito.when;
 public class AuthingInterceptorTest {
     @Mock
     private RedisDao mockRedisDao;
+    @Mock
+    private EncryptionService mockEncryption;
     @Mock
     private JwtTokenCreateService mockJwtTokenCreateService;
 
@@ -103,5 +108,24 @@ public class AuthingInterceptorTest {
     public void testAfterCompletion() throws Exception {
         authingInterceptorUnderTest.afterCompletion(new MockHttpServletRequest(), new MockHttpServletResponse(), "o",
                 new Exception("message"));
+    }
+
+    @Test
+    public void testIsLoginNormal() throws Exception {
+        Method method = authingInterceptorUnderTest.getClass().getDeclaredMethod("isLoginNormal",
+                String.class, String.class);
+        method.setAccessible(true);
+        when(mockRedisDao.containListValue(any(), any())).thenReturn(true);
+        when(mockEncryption.privateDecrypt(any())).thenReturn("idToken");
+        method.invoke(authingInterceptorUnderTest, "verifyToken", "userId");
+
+    }
+
+    @Test
+    public void testRefreshAuthingUserToken() throws Exception {
+        when(mockJwtTokenCreateService.authingUserToken(
+                any(),any(),any(),any(),any(),any(),any())).thenReturn(new String[2]);
+        mockJwtTokenCreateService.refreshAuthingUserToken( new MockHttpServletRequest(),"idToken",
+                "userId", new HashMap<>());
     }
 }
