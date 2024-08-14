@@ -11,6 +11,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.HashMap;
@@ -55,10 +56,11 @@ public class ManagerControllerTest {
     @Test
     public void testRevokePrivacy() throws Exception {
         when(mockCaptchaService.verification(any(CaptchaVO.class))).thenReturn(new ResponseModel(RepCodeEnum.SUCCESS));
-        when(MockOneIdManageService.revokePrivacy(any(), any()))
+        when(MockOneIdManageService.revokePrivacy(any(), any(), any()))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
         MockHttpServletRequest request = new MockHttpServletRequest();
-        ResponseEntity response = MockOneIdManageService.revokePrivacy( "userId", request);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        ResponseEntity res = MockOneIdManageService.revokePrivacy( "userId", request, response);
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 }

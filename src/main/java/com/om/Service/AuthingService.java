@@ -1504,7 +1504,13 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-    private void logoutAllSessions(String userId, HttpServletRequest request, HttpServletResponse response) {
+    /**
+     * 多端登出所有用户.
+     * @param userId
+     * @param request
+     * @param response
+     */
+    public void logoutAllSessions(String userId, HttpServletRequest request, HttpServletResponse response) {
         String cookieTokenName = env.getProperty("cookie.token.name");
         String verifyTokenName = env.getProperty("cookie.verify.token.name");
         HttpClientUtils.setCookie(request, response,
