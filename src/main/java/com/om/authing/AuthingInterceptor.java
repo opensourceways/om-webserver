@@ -22,6 +22,8 @@ import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Service.JwtTokenCreateService;
 import com.om.Utils.HttpClientUtils;
+import com.om.Utils.LogUtil;
+import com.om.Utils.ClientIPUtil;
 import com.om.Utils.RSAUtil;
 import com.om.token.ClientSessionManager;
 import com.om.token.ManageToken;
@@ -211,8 +213,15 @@ public class AuthingInterceptor implements HandlerInterceptor {
             headerJwtToken = httpServletRequest.getHeader("user-token");
         }
         String headJwtTokenMd5 = verifyHeaderToken(headerJwtToken);
+        String userIp = ClientIPUtil.getClientIpAddress(httpServletRequest);
         if (headJwtTokenMd5.equals("unauthorized") || headJwtTokenMd5.equals("token expires")) {
             tokenError(httpServletRequest, httpServletResponse, headJwtTokenMd5);
+            if (headJwtTokenMd5.equals("token expires")) {
+                DecodedJWT decode = JWT.decode(headerJwtToken);
+                String user = decode.getAudience().get(0);
+                LogUtil.createLogs(user, "token expire", "user", "The user's token expire",
+                        userIp, "auto logout");
+            }
             return false;
         }
 
@@ -272,7 +281,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         }
 
         // 校验token
-        String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, expiresAt, permission);
+        String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, expiresAt, permission, userIp, userId);
         if (!Constant.SUCCESS.equals(verifyTokenMsg)) {
             tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
             return false;
@@ -366,10 +375,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
      * @param verifyToken 用于校验的token
      * @param expiresAt   token过期时间
      * @param permission  用户权限信息
+     * @param userIp  用户IP
+     * @param userId  用户ID
      * @return 校验结果
      */
     private String verifyToken(String headerToken, String token, String verifyToken,
-                               Date expiresAt, String permission) {
+                               Date expiresAt, String permission, String userIp, String userId) {
         try {
             // header中的token和cookie中的token不一样
             if (!headerToken.equals(verifyToken)) {
@@ -378,6 +389,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
             // token 是否过期
             if (expiresAt.before(new Date())) {
+                LogUtil.createLogs(userId, "token expire", "user", "The user's token expire",
+                        userIp, "auto logout");
                 return "token expires";
             }
 
