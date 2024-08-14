@@ -20,6 +20,7 @@ import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.AuthingUtil;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
+import com.om.Utils.EncryptionService;
 import com.om.Utils.LimitUtil;
 import com.om.Utils.ClientIPUtil;
 import com.om.Utils.LogUtil;
@@ -112,6 +113,12 @@ public class AuthingService implements UserCenterServiceInter {
     private AuthingAppSync authingAppSync;
 
     /**
+     * 注入加密服务.
+     */
+    @Autowired
+    private EncryptionService encryptionService;
+
+    /**
      * 注入三方客户端session管理类.
      */
     @Autowired
@@ -168,6 +175,12 @@ public class AuthingService implements UserCenterServiceInter {
      */
     @Value("${cookie.user.login.maxNum:5}")
     private Integer maxLoginNum;
+
+    /**
+     * authing token RSA key.
+     */
+    @Value("${rsa.authing.privateKey}")
+    private String rsaAuthingPrivateKey;
 
     /**
      * CodeUtil赋值.
@@ -492,7 +505,7 @@ public class AuthingService implements UserCenterServiceInter {
 
         String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(userId).toString();
         int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
-        redisDao.addList(loginKey, idToken, expireSeconds);
+        redisDao.addList(loginKey, EncryptionService.getSha256Str(idToken), expireSeconds);
         long listSize = redisDao.getListSize(loginKey);
         if (listSize > maxLoginNum) {
             redisDao.removeListTail(loginKey, maxLoginNum);
@@ -640,10 +653,11 @@ public class AuthingService implements UserCenterServiceInter {
                 return result(HttpStatus.NOT_FOUND, "redirect_uri not found in the app", null);
             }
             String idToken = (String) redisDao.get(idTokenKey);
+            idToken = encryptionService.privateDecrypt(idToken);
             if (StringUtils.isNotBlank(idToken)) {
                 String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER)
                         .append(userId).toString();
-                redisDao.removeListValue(loginKey, idToken);
+                redisDao.removeListValue(loginKey, EncryptionService.getSha256Str(idToken));
             }
             // 退出登录，删除cookie，删除idToken
             String cookieTokenName = env.getProperty("cookie.token.name");
@@ -780,7 +794,7 @@ public class AuthingService implements UserCenterServiceInter {
             String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER)
                     .append(userId).toString();
             int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
-            redisDao.addList(loginKey, idToken, expireSeconds);
+            redisDao.addList(loginKey, EncryptionService.getSha256Str(idToken), expireSeconds);
             long listSize = redisDao.getListSize(loginKey);
             if (listSize > maxLoginNum) {
                 redisDao.removeListTail(loginKey, maxLoginNum);
