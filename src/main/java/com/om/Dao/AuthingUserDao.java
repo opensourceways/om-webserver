@@ -1541,6 +1541,10 @@ public class AuthingUserDao {
                             }
                             updateUserInput.withGivenName(privacyHistoryService
                                     .updatePrivacyVersions(user.getGivenName(), "revoked"));
+                            if (StringUtils.isNotBlank(user.getId())) {
+                                String loginKey = Constant.REDIS_PREFIX_LOGIN_USER + user.getId();
+                                redisDao.remove(loginKey);
+                            }
                             LOGGER.info(String.format("User %s cancel privacy consent version %s for app version %s",
                                     user.getId(), inputValue, appVersion));
                         }
