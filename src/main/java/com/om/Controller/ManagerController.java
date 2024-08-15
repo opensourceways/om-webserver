@@ -182,13 +182,15 @@ public class ManagerController {
      *
      * @param servletRequest 请求入参
      * @param body 包含用户信息的请求体对象
+     * @param servletResponse 请求返回
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis(period = 1, count = 1000)
     @ManageToken
     @RequestMapping(value = "/privacy/revoke", method = RequestMethod.POST)
-    public ResponseEntity revokePrivacy(HttpServletRequest servletRequest, @RequestBody User body) {
-        return oneIdManageService.revokePrivacy(body.getUserId(), servletRequest);
+    public ResponseEntity revokePrivacy(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                        @RequestBody User body) {
+        return oneIdManageService.revokePrivacy(body.getUserId(), servletRequest, servletResponse);
     }
 
     private boolean verifyCaptcha(String captchaVerification) {

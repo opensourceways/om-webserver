@@ -32,6 +32,7 @@ import com.om.Utils.AuthingUtil;
 import com.om.Utils.ClientIPUtil;
 import com.om.Utils.LogUtil;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.commons.lang3.StringUtils;
 import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
@@ -334,14 +335,17 @@ public class OneIdManageService {
      *
      * @param userId 用户id
      * @param servletRequest 请求入参
+     * @param servletResponse 请求返回
      * @return 返回 ResponseEntity 对象
      */
-    public ResponseEntity revokePrivacy(String userId, HttpServletRequest servletRequest) {
+    public ResponseEntity revokePrivacy(String userId, HttpServletRequest servletRequest,
+                                        HttpServletResponse servletResponse) {
         try {
             String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
             if (authingUserDao.revokePrivacy(userId)) {
                 LogUtil.createLogs(userId, "update userInfo", "user",
                         "The user revoke privacy", userIp, "success");
+                authingService.logoutAllSessions(userId, servletRequest, servletResponse);
                 return authingService.result(HttpStatus.OK, MessageCodeConfig.S0001, null, null);
             }
             LogUtil.createLogs(userId, "update userInfo", "user",
