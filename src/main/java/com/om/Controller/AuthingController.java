@@ -14,6 +14,7 @@ package com.om.Controller;
 import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
+import com.anji.captcha.util.StringUtils;
 import com.om.Result.Constant;
 import com.om.Service.AuthingService;
 import com.om.Service.UserCenterServiceContext;
@@ -36,7 +37,6 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.Map;
 
-import static com.anji.captcha.Controller.CaptchaController.getRemoteId;;
 
 /**
  * 控制器类，用于处理与 Authing 相关的请求和逻辑.
@@ -61,6 +61,37 @@ public class AuthingController {
      */
     @Autowired
     private CaptchaService captchaService;
+
+    /**
+     * 从 HttpServletRequest 中获取远程主机的 IP 地址或者主机名.
+     *
+     * @param request HTTP 请求对象
+     * @return 返回远程主机的 IP 地址或者主机名
+     */
+    public static String getRemoteId(HttpServletRequest request) {
+        String xfwd = request.getHeader("X-Forwarded-For");
+        String ip = getRemoteIpFromXfwd(xfwd);
+        String ua = request.getHeader("user-agent");
+        if (StringUtils.isNotBlank(ip)) {
+            return ip + ua;
+        }
+        return request.getRemoteAddr() + ua;
+    }
+
+
+    /**
+     * 从 X-Forwarded-For 头部信息中获取远程客户端 IP 地址.
+     *
+     * @param xfwd 包含 X-Forwarded-For 头部信息的字符串
+     * @return 返回解析后的远程客户端 IP 地址
+     */
+    private static String getRemoteIpFromXfwd(String xfwd) {
+        if (StringUtils.isNotBlank(xfwd)) {
+            String[] ipList = xfwd.split(",");
+            return StringUtils.trim(ipList[0]);
+        }
+        return null;
+    }
 
     /**
      * 处理获取验证码请求的方法.
