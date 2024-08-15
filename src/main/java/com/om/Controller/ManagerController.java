@@ -73,6 +73,7 @@ public class ManagerController {
      * @param body 包含请求体信息的 Map 对象
      * @return 返回 ResponseEntity 对象
      */
+    @RequestLimitRedis(period = 1, count = 1000)
     @RequestMapping(value = "/token", method = RequestMethod.POST)
     public ResponseEntity tokenApply(@RequestBody Map<String, String> body) {
         return oneIdManageService.tokenApply(body);
