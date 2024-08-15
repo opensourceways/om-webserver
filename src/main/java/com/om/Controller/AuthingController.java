@@ -448,21 +448,6 @@ public class AuthingController {
     }
 
     /**
-     * 链接账号的方法.
-     *
-     * @param token 包含令牌的 Cookie 值（可选）
-     * @param secondtoken 第二个令牌值
-     * @return 返回 ResponseEntity 对象
-     */
-    @RequestLimitRedis
-    @AuthingUserToken
-    @RequestMapping(value = "/link/account", method = RequestMethod.GET)
-    public ResponseEntity linkAccount(@CookieValue(value = "_Y_G_", required = false) String token,
-                                      @RequestParam(value = "secondtoken") String secondtoken) {
-        return authingService.linkAccount(token, secondtoken);
-    }
-
-    /**
      * 解除账号链接的方法.
      *
      * @param token 包含令牌的 Cookie 值（可选）
