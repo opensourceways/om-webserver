@@ -18,8 +18,8 @@ import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.om.Service.TokenUserService;
-import com.om.Vo.TokenUser;
+import com.om.service.TokenUserService;
+import com.om.vo.TokenUser;
 
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
