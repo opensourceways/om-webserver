@@ -73,6 +73,16 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private static final String LOCAL_VERIFY_TOKEN_URI = "/oneid/verify/token";
 
     /**
+     * 登出接口.
+     */
+    private static final String LOGOUT_URI = "/oneid/logout";
+
+    /**
+     * 更新隐私接口.
+     */
+    private static final String BASEINFO_URI = "/oneid/update/baseInfo";
+
+    /**
      * 用于与 Redis 数据库进行交互的 DAO.
      */
     @Autowired
@@ -278,25 +288,22 @@ public class AuthingInterceptor implements HandlerInterceptor {
             tokenError(httpServletRequest, httpServletResponse, "unauthorized");
             return false;
         }
-
-        // 是否接受隐私协议
-        String url = httpServletRequest.getRequestURI();
-        if (!"unused".equals(oneidPrivacyVersion) && !"/oneid/update/baseInfo".equals(url)
-                && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept)) {
-            tokenError(httpServletRequest, httpServletResponse, "Not accept privacy policy and terms of service.");
-            return false;
-        }
-
         // 校验token
         String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, expiresAt, permission, userIp, userId);
         if (!Constant.SUCCESS.equals(verifyTokenMsg)) {
             tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
             return false;
         }
-        // 校验登录状态
-        if (!isLoginNormal(verifyToken, userId)) {
-            tokenError(httpServletRequest, httpServletResponse, "unauthorized");
-            return false;
+
+        // 是否接受隐私协议
+        String url = httpServletRequest.getRequestURI();
+        if (!isLoginNormal(verifyToken, userId)
+                || (!"unused".equals(oneidPrivacyVersion) && !BASEINFO_URI.equals(url)
+                && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept))) {
+            if (!LOGOUT_URI.equals(url)) {
+                tokenError(httpServletRequest, httpServletResponse, "unauthorized");
+                return false;
+            }
         }
 
         // skip refresh if manageToken present
