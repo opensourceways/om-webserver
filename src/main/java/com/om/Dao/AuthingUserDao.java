@@ -1355,28 +1355,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 使用两个令牌绑定账户.
-     *
-     * @param token 第一个访问令牌
-     * @param secondToken 第二个访问令牌
-     * @return 返回绑定账户操作的结果消息
-     */
-    public String linkAccount(String token, String secondToken) {
-        try {
-            Object[] appUserInfo = getAppUserInfo(token);
-            String appId = appUserInfo[0].toString();
-            User us = (User) appUserInfo[1];
-            AuthenticationClient authentication = initUserAuthentication(appId, us);
-
-            authentication.linkAccount(token, secondToken).execute();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return e.getMessage();
-        }
-        return "true";
-    }
-
-    /**
      * 使用令牌解除与特定平台的账户绑定.
      *
      * @param token 访问令牌
@@ -1484,10 +1462,11 @@ public class AuthingUserDao {
      *
      * @param token 访问令牌
      * @param map 包含要更新的用户基本信息的映射
+     * @param userIp 用户IP
      * @return 更新用户基本信息的结果消息
      * @throws ServerErrorException 如果更新过程中出现服务器错误
      */
-    public String updateUserBaseInfo(String token, Map<String, Object> map) throws ServerErrorException {
+    public String updateUserBaseInfo(String token, Map<String, Object> map, String userIp) throws ServerErrorException {
         String msg = "success";
         try {
             Object[] appUserInfo = getAppUserInfo(token);
@@ -1525,8 +1504,9 @@ public class AuthingUserDao {
                         if (oneidPrivacyVersion.equals(inputValue)) {
                             updateUserInput.withGivenName(privacyHistoryService
                                     .updatePrivacyVersions(user.getGivenName(), oneidPrivacyVersion));
-                            LOGGER.info(String.format("User %s accept privacy version %s for app version %s",
-                                    user.getId(), inputValue, appVersion));
+                            LogUtil.createLogs(user.getId(), "accept privacy", "user",
+                                    "User accept privacy version:" + inputValue + ",appVersion:" + appVersion,
+                                    userIp, "success");
                             // 签署新的隐私协议时，保存旧的到历史隐私记录
                             String previous = getPrivacyVersionWithCommunity(user.getGivenName());
                             if (StringUtils.isNotEmpty(previous) && !"revoked".equals(previous)) {
@@ -1545,8 +1525,9 @@ public class AuthingUserDao {
                                 String loginKey = Constant.REDIS_PREFIX_LOGIN_USER + user.getId();
                                 redisDao.remove(loginKey);
                             }
-                            LOGGER.info(String.format("User %s cancel privacy consent version %s for app version %s",
-                                    user.getId(), inputValue, appVersion));
+                            LogUtil.createLogs(user.getId(), "cancel privacy", "user",
+                                    "User cancel privacy consent version:" + inputValue
+                                            + ",appVersion:" + appVersion, userIp, "success");
                         }
                         break;
                     default:
@@ -1554,6 +1535,8 @@ public class AuthingUserDao {
                 }
             }
             managementClient.users().update(user.getId(), updateUserInput).execute();
+            LogUtil.createLogs(user.getId(), "update baseInfo", "user",
+                    "User update baseInfo", userIp, "success");
             return msg;
         } catch (ServerErrorException e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
@@ -1594,9 +1577,10 @@ public class AuthingUserDao {
      *
      * @param token 访问令牌
      * @param file 包含新用户照片的文件
+     * @param userIp 用户IP
      * @return 如果成功更新用户照片则返回 true，否则返回 false
      */
-    public boolean updatePhoto(String token, MultipartFile file) {
+    public boolean updatePhoto(String token, MultipartFile file, String userIp) {
         InputStream inputStream = null;
         try {
             inputStream = CommonUtil.rewriteImage(file);
@@ -1635,9 +1619,12 @@ public class AuthingUserDao {
 
             // 修改用户头像
             authentication.updateProfile(new UpdateUserInput().withPhoto(objectUrl)).execute();
-
+            LogUtil.createLogs(user.getId(), "update photo", "user", "The user update photo",
+                    userIp, "success");
             // 删除旧的头像
             deleteObsObjectByUrl(photo);
+            LogUtil.createLogs(user.getId(), "delete photo", "user", "The user delete photo",
+                    userIp, "success");
             return true;
         } catch (Exception ex) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
