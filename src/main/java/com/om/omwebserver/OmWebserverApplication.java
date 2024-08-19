@@ -25,7 +25,7 @@ import org.springframework.data.redis.cache.RedisCacheWriter;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.scheduling.annotation.EnableAsync;
 
-import com.om.Modules.TtlRedisCacheManager;
+import com.om.modules.TtlRedisCacheManager;
 
 @SpringBootApplication
 @ComponentScan(basePackages = {"com.om.*"})

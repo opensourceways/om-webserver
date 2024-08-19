@@ -11,7 +11,7 @@
 
 package com.om.authing;
 
-import com.om.Modules.MessageCodeConfig;
+import com.om.modules.MessageCodeConfig;
 import kong.unirest.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;

@@ -11,10 +11,10 @@
 
 package com.om.aop;
 
-import com.om.Modules.MessageCodeConfig;
-import com.om.Result.Result;
-import com.om.Utils.ClientIPUtil;
-import com.om.Utils.LogUtil;
+import com.om.modules.MessageCodeConfig;
+import com.om.result.Result;
+import com.om.utils.ClientIPUtil;
+import com.om.utils.LogUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
