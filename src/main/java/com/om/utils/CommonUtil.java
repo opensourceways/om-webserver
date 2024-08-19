@@ -20,6 +20,7 @@ import java.util.Objects;
 
 import javax.imageio.ImageIO;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
@@ -97,6 +98,19 @@ public final class CommonUtil {
             return file.delete();
         }
         return true;
+    }
+
+    /**
+     * 字符串为空或者null，则判定为相等.
+     *
+     * @param src 第一个字符串
+     * @param dec 第二个字符串
+     * @return 字符串是否相同
+     */
+    public static boolean isStringEquals(String src, String dec) {
+        String srcTmp = src == null ? "" : src;
+        String decTmp = dec == null ? "" : dec;
+        return StringUtils.equals(srcTmp, decTmp);
     }
 
     private static byte[] check(byte[] bs) {

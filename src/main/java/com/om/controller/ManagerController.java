@@ -194,6 +194,20 @@ public class ManagerController {
         return oneIdManageService.revokePrivacy(body.getUserId(), servletRequest, servletResponse);
     }
 
+    /**
+     * authing控制台下线用户钩子函数.
+     *
+     * @param servletRequest 请求体
+     * @param authingKickUserReq body
+     * @return 操作是否成功
+     */
+    @RequestLimitRedis(period = 1, count = 100)
+    @RequestMapping(value = "/kickUser", method = RequestMethod.POST)
+    public ResponseEntity kickUser(HttpServletRequest servletRequest,
+                                   @RequestBody String authingKickUserReq) {
+        return oneIdManageService.authingKickUser(servletRequest, authingKickUserReq);
+    }
+
     private boolean verifyCaptcha(String captchaVerification) {
         CaptchaVO captchaVO = new CaptchaVO();
         captchaVO.setCaptchaVerification(captchaVerification);
