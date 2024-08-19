@@ -30,6 +30,7 @@ import com.om.result.Constant;
 
 import com.om.utils.AuthingUtil;
 import com.om.utils.ClientIPUtil;
+import com.om.utils.CommonUtil;
 import com.om.utils.LogUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -54,6 +55,18 @@ import java.util.Map;
 
 @Service
 public class OneIdManageService {
+    /**
+     * 离线用户时useragent.
+     */
+    @Value("${authing.kick.userAgent: }")
+    private String kickUserAgent;
+
+    /**
+     * 离线用户时token.
+     */
+    @Value("${authing.kick.token: }")
+    private String kickUserToken;
+
     /**
      * 自动注入环境变量.
      */
@@ -355,6 +368,94 @@ public class OneIdManageService {
             LOGGER.error(e.getMessage());
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
+    }
+
+    /**
+     * authing下线用户钩子.
+     *
+     * @param servletRequest 响应体
+     * @param authingKickUserReq body
+     * @return 返回值
+     */
+    public ResponseEntity authingKickUser(HttpServletRequest servletRequest, String authingKickUserReq) {
+        if (authingKick(servletRequest, authingKickUserReq)) {
+            LogUtil.createLogs("system", "kick user", "manage service",
+                    "authing console kick user",
+                    ClientIPUtil.getClientIpAddress(servletRequest), "success");
+            return result(HttpStatus.OK, "OK", null);
+        } else {
+            LogUtil.createLogs("system", "kick user", "manage service",
+                    "authing console kick user",
+                    ClientIPUtil.getClientIpAddress(servletRequest), "failed");
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012.getMsgEn(), null);
+        }
+    }
+
+    private boolean authingKick(HttpServletRequest servletRequest, String authingKickUserReq) {
+        boolean ret = false;
+        String userAgent = servletRequest.getHeader("user-agent");
+        String webHookSecret = servletRequest.getHeader("x-authing-token");
+        if (StringUtils.isAnyBlank(userAgent, webHookSecret, authingKickUserReq)) {
+            LOGGER.error("kick user failed: param invalid");
+            return ret;
+        }
+        if (!kickUserAgent.equals(userAgent)
+                || !kickUserToken.equals(webHookSecret)) {
+            LOGGER.error("kick user failed: param invalid");
+            return ret;
+        }
+        try {
+            JsonNode jsonNode = objectMapper.readTree(authingKickUserReq);
+            String eventName = jsonNode.get("eventName").asText();
+            if (!"kick".equals(eventName)) {
+                LOGGER.error("not kick event: {}", eventName);
+                return ret;
+            }
+            JsonNode data = jsonNode.get("data");
+            if (data == null) {
+                LOGGER.error("kick user failed: data null");
+                return ret;
+            }
+            JsonNode users = data.get("users");
+            if (users == null || !users.isArray()) {
+                LOGGER.error("kick user failed: users null");
+                return ret;
+            }
+            for (int i = 0; i < users.size(); i++) {
+                String userId = users.get(i).get("id").asText();
+                String userName = users.get(i).get("username").asText();
+                userName = "null".equals(userName) ? "" : userName;
+                String phone = users.get(i).get("phone").asText();
+                phone = "null".equals(phone) ? "" : phone;
+                String email = users.get(i).get("email").asText();
+                email = "null".equals(email) ? "" : email;
+                String userPoolId = users.get(i).get("userPoolId").asText();
+                String token = users.get(i).get("token").asText();
+                User user = authingUserDao.getUser(userId);
+                if (user != null
+                        && CommonUtil.isStringEquals(userName, user.getUsername())
+                        && CommonUtil.isStringEquals(phone, user.getPhone())
+                        && CommonUtil.isStringEquals(email, user.getEmail())
+                        && CommonUtil.isStringEquals(userPoolId, user.getUserPoolId())
+                        && CommonUtil.isStringEquals(token, user.getToken())) {
+                    // 退出当前用户所有会话
+                    String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER)
+                            .append(userId).toString();
+                    redisDao.remove(loginKey);
+                    LogUtil.createLogs("system", "kick user", "manage service",
+                            "authing console kick user:".concat(userId),
+                            ClientIPUtil.getClientIpAddress(servletRequest), "success");
+                }
+            }
+            ret = true;
+        } catch (JsonProcessingException e) {
+            LOGGER.error("kick user failed {}", e.getMessage());
+            return ret;
+        } catch (Exception e) {
+            LOGGER.error("kick user failed {}", e.getMessage());
+            return ret;
+        }
+        return ret;
     }
 
     /**
