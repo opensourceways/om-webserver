@@ -19,6 +19,7 @@ import com.om.result.Constant;
 import com.om.service.AuthingService;
 import com.om.service.UserCenterServiceContext;
 import com.om.service.inter.UserCenterServiceInter;
+import com.om.utils.ClientIPUtil;
 import com.om.utils.HttpClientUtils;
 import com.om.aop.RequestLimitRedis;
 import com.om.authing.AuthingUserToken;
@@ -69,8 +70,7 @@ public class AuthingController {
      * @return 返回远程主机的 IP 地址或者主机名
      */
     public static String getRemoteId(HttpServletRequest request) {
-        String xfwd = request.getHeader("X-Forwarded-For");
-        String ip = getRemoteIpFromXfwd(xfwd);
+        String ip = ClientIPUtil.getClientIpAddress(request);
         String ua = request.getHeader("user-agent");
         if (StringUtils.isNotBlank(ip)) {
             return ip + ua;
@@ -78,20 +78,6 @@ public class AuthingController {
         return request.getRemoteAddr() + ua;
     }
 
-
-    /**
-     * 从 X-Forwarded-For 头部信息中获取远程客户端 IP 地址.
-     *
-     * @param xfwd 包含 X-Forwarded-For 头部信息的字符串
-     * @return 返回解析后的远程客户端 IP 地址
-     */
-    private static String getRemoteIpFromXfwd(String xfwd) {
-        if (StringUtils.isNotBlank(xfwd)) {
-            String[] ipList = xfwd.split(",");
-            return StringUtils.trim(ipList[0]);
-        }
-        return null;
-    }
 
     /**
      * 处理获取验证码请求的方法.

@@ -1069,7 +1069,6 @@ public class AuthingService implements UserCenterServiceInter {
             String phoneCountryCode = authingUserDao.getPhoneCountryCode(account);
             account = authingUserDao.getPurePhone(account);
             redisKeyPrefix = phoneCountryCode + account;
-            // TODO currently international phone skip code verify
             if (!"+86".equals(phoneCountryCode)) {
                 String res = authingUserDao.unbindAccount(token, account, accountType, userIp);
                 return res.equals("unbind success") ? result(HttpStatus.OK, res, null)

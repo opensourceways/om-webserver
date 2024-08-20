@@ -80,6 +80,12 @@ public class AuthingUserDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthingUserDao.class);
 
     /**
+     * authing后缀.
+     */
+    @Value("${authing.client.suffix:}")
+    private String authingSuffix;
+
+    /**
      * Authing 用户池 ID.
      */
     @Value("${authing.userPoolId}")
@@ -249,7 +255,7 @@ public class AuthingUserDao {
     @Value("${community}")
     private String community;
 
-    // -- temporary (解决gitee多身份源解绑问题) -- TODO
+    // -- temporary (解决gitee多身份源解绑问题)
     /**
      * 临时外部身份提供者 IDs.
      */
@@ -267,7 +273,7 @@ public class AuthingUserDao {
      */
     @Value("${temp.users}")
     private String users;
-    // -- temporary -- TODO
+    // -- temporary
 
     /**
      * Authing 用户管理客户端实例.
@@ -1131,7 +1137,7 @@ public class AuthingUserDao {
         AuthenticationClient appClient = null;
         Application app = getAppById(appId);
         if (app != null) {
-            String appHost = "https://" + app.getIdentifier() + ".authing.cn";
+            String appHost = "https://" + app.getIdentifier() + authingSuffix;
             appClient = new AuthenticationClient(appId, appHost);
             appClient.setSecret(app.getSecret());
         } else {
@@ -1399,7 +1405,7 @@ public class AuthingUserDao {
                 return "请先绑定邮箱";
             }
 
-            // -- temporary (解决gitee多身份源解绑问题) -- TODO
+            // -- temporary (解决gitee多身份源解绑问题)
             List<String> userIds = Stream.of(users.split(";")).toList();
             if (platform.toLowerCase().equals("gitee") && userIds.contains(us.getId())) {
                 if (unLinkAccountTemp(us, identifiers, extIdpIds)) {
@@ -1407,7 +1413,7 @@ public class AuthingUserDao {
                 } else {
                     return msg;
                 }
-            } // -- temporary -- TODO
+            } // -- temporary --
 
             String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", identifier, extIdpId);
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV2 + "/users/identity/unlinkByUser")
