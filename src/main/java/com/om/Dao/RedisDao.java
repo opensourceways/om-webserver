@@ -17,6 +17,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -228,18 +229,36 @@ public class RedisDao {
     }
 
     /**
-     * 是否包含某个值.
+     * 更新list.
      *
      * @param key 键
-     * @param value 值
-     * @return 是否包含
+     * @param index 元素位置
+     * @param value 新的值
+     * @return 是否更新成功
      */
-    public boolean containListValue(final String key, String value) {
+    public boolean updateListValue(final String key, long index, String value) {
         boolean result = false;
         try {
+            redisTemplate.opsForList().set(key, index, value);
+            result = true;
+        } catch (Exception e) {
+            LOGGER.error("Internal Server Error {}", e.getMessage());
+        }
+        return result;
+    }
+
+    /**
+     * 获取list.
+     *
+     * @param key key
+     * @return value
+     */
+    public List<String> getListValue(final String key) {
+        List<String> result = new ArrayList<>();
+        try {
             List<String> list = redisTemplate.opsForList().range(key, 0, -1);
-            if (list != null && list.contains(value)) {
-                result = true;
+            if (list != null) {
+                result.addAll(list);
             }
         } catch (Exception e) {
             LOGGER.error("Internal Server Error {}", e.getMessage());

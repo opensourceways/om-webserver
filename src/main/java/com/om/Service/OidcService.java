@@ -15,6 +15,7 @@ import cn.authing.core.types.Application;
 import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
@@ -22,6 +23,7 @@ import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
+import com.om.Service.bean.OnlineUserInfo;
 import com.om.Utils.AuthingUtil;
 import com.om.Utils.CodeUtil;
 import jakarta.annotation.PostConstruct;
@@ -39,9 +41,12 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.util.HtmlUtils;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -53,6 +58,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -225,7 +231,8 @@ public class OidcService {
                 }
                 String redirectUri = parameterMap.getOrDefault("redirect_uri", new String[]{""})[0];
                 String code = parameterMap.getOrDefault("code", new String[]{""})[0];
-                return getOidcTokenByCode(appId, appSecret, code, redirectUri);
+                String logoutUrl = parameterMap.getOrDefault("logout_uri", new String[]{""})[0];
+                return getOidcTokenByCode(appId, appSecret, code, redirectUri, logoutUrl);
             } else if (grantType.equals("password")) {
                 String appId;
                 String appSecret;
@@ -351,6 +358,7 @@ public class OidcService {
             codeMap.put("appId", appId);
             codeMap.put("redirectUri", redirectUri);
             codeMap.put("scope", scope);
+            codeMap.put("userId", userId);
             String codeMapStr = "oidcCode:" + objectMapper.writeValueAsString(codeMap);
             redisDao.set(code, codeMapStr, codeExpire);
             // 缓存 oidcToken
@@ -644,7 +652,8 @@ public class OidcService {
         }
     }
 
-    private ResponseEntity getOidcTokenByCode(String appId, String appSecret, String code, String redirectUri) {
+    private ResponseEntity getOidcTokenByCode(String appId, String appSecret, String code, String redirectUri,
+                                              String logoutUrl) {
         try {
             // 参数校验
             if (StringUtils.isBlank(appId) || StringUtils.isBlank(appSecret)) {
@@ -666,6 +675,7 @@ public class OidcService {
             String appIdTemp = jsonNode.get("appId").asText();
             String redirectUriTemp = jsonNode.get("redirectUri").asText();
             String scopeTemp = jsonNode.get("scope").asText();
+            String userId = jsonNode.get("userId").asText();
             // app校验（授权码对应的app）
             if (!appId.equals(appIdTemp)) {
                 redisDao.remove(code);
@@ -692,16 +702,70 @@ public class OidcService {
             if (scopes.contains("offline_access")) {
                 tokens.put("refresh_token", jsonNode.get("refreshToken").asText());
             }
+            String idToken = jsonNode.get("idToken").asText();
             if (scopes.contains("id_token")) {
-                tokens.put("id_token", jsonNode.get("idToken").asText());
+                tokens.put("id_token", idToken);
             }
             redisDao.remove(code);
+            addOidcLogoutUrl(userId, idToken, redirectUri, logoutUrl);
             return new ResponseEntity<>(JSON.parseObject(
                     HtmlUtils.htmlUnescape(JSON.toJSONString(tokens)), HashMap.class), HttpStatus.OK);
         } catch (Exception e) {
             LOGGER.error("Internal Server Error {}", e.getMessage());
             redisDao.remove(code);
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+        }
+    }
+
+    /**
+     * oidc扩展协议，增加退出接入应用的机制.
+     *
+     * @param userId 用户id
+     * @param idToken idtoken
+     * @param redirectUri 重定向url
+     * @param logoutUrl 登出url
+     */
+    private void addOidcLogoutUrl(String userId, String idToken, String redirectUri, String logoutUrl) {
+        if (StringUtils.isAnyBlank(userId, idToken, logoutUrl)) {
+            return;
+        }
+        try {
+            URL redirect = new URL(redirectUri);
+            URL logout = new URL(logoutUrl);
+            String redirectDomain = redirect.getHost();
+            String logoutDomain = logout.getHost();
+            if (!StringUtils.equals(redirectDomain, logoutDomain)) {
+                return;
+            }
+            String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(userId).toString();
+            List<String> userList = redisDao.getListValue(loginKey);
+            if (CollectionUtils.isEmpty(userList)) {
+                return;
+            }
+
+            for (int i = 0; i < userList.size(); i++) {
+                OnlineUserInfo onlineUserInfo = new OnlineUserInfo();
+                String userJson = userList.get(i);
+                if (userJson.startsWith("{")) {
+                    onlineUserInfo = objectMapper.readValue(userJson, OnlineUserInfo.class);
+                } else {
+                    onlineUserInfo.setIdToken(userJson);
+                }
+                if (onlineUserInfo.getLogoutUrls() == null) {
+                    onlineUserInfo.setLogoutUrls(new HashSet<>());
+                }
+                if (StringUtils.equals(idToken, onlineUserInfo.getIdToken())) {
+                    onlineUserInfo.getLogoutUrls().add(logoutUrl);
+                    redisDao.updateListValue(loginKey, i, objectMapper.writeValueAsString(onlineUserInfo));
+                    break;
+                }
+            }
+        } catch (MalformedURLException e) {
+            LOGGER.error("add oidc logout url failed {}", e.getMessage());
+        } catch (JsonProcessingException e) {
+            LOGGER.error("add oidc logout url parse json failed {}", e.getMessage());
+        } catch (Exception e) {
+            LOGGER.error("add oidc logout url failed {}", e.getMessage());
         }
     }
 

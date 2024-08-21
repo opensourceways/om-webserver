@@ -1,3 +1,14 @@
+/* This project is licensed under the Mulan PSL v2.
+ You can use this software according to the terms and conditions of the Mulan PSL v2.
+ You may obtain a copy of Mulan PSL v2 at:
+     http://license.coscl.org.cn/MulanPSL2
+ THIS SOFTWARE IS PROVIDED ON AN "AS IS" BASIS, WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
+ PURPOSE.
+ See the Mulan PSL v2 for more details.
+ Create: 2024
+*/
+
 package com.om.Service;
 
 import cn.authing.core.types.Application;
@@ -16,6 +27,7 @@ import com.om.Modules.ServerErrorException;
 import com.om.Modules.authing.AuthingAppSync;
 import com.om.Result.Constant;
 import com.om.Result.Result;
+import com.om.Service.bean.OnlineUserInfo;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.AuthingUtil;
 import com.om.Utils.CodeUtil;
@@ -27,6 +39,8 @@ import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.apache.commons.codec.binary.Hex;
@@ -40,6 +54,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.HtmlUtils;
@@ -53,6 +68,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -114,6 +134,12 @@ public class AuthingService implements UserCenterServiceInter {
      */
     @Autowired
     private ClientSessionManager clientSessionManager;
+
+    /**
+     * 退出APP线程池.
+     */
+    private static final ExecutorService LOGOUT_EXE = new ThreadPoolExecutor(4, 5,
+            60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(10000));
 
     /**
      * 静态变量: LOGGER - 日志记录器.
@@ -638,7 +664,7 @@ public class AuthingService implements UserCenterServiceInter {
             if (StringUtils.isNotBlank(idToken)) {
                 String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER)
                         .append(userId).toString();
-                redisDao.removeListValue(loginKey, idToken);
+                removeOnlineUser(loginKey, idToken);
             }
             // 退出登录，删除cookie，删除idToken
             String cookieTokenName = env.getProperty("cookie.token.name");
@@ -659,6 +685,50 @@ public class AuthingService implements UserCenterServiceInter {
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+    }
+
+    private void removeOnlineUser(String loginKey, String idToken) {
+        try {
+            List<String> userList = redisDao.getListValue(loginKey);
+            if (CollectionUtils.isEmpty(userList)) {
+                return;
+            }
+            for (String userJson : userList) {
+                OnlineUserInfo onlineUserInfo = new OnlineUserInfo();
+                if (userJson.startsWith("{")) {
+                    onlineUserInfo = objectMapper.readValue(userJson, OnlineUserInfo.class);
+                } else {
+                    onlineUserInfo.setIdToken(userJson);
+                }
+                if (StringUtils.equals(idToken, onlineUserInfo.getIdToken())) {
+                    logoutApps(idToken, onlineUserInfo.getLogoutUrls());
+                    redisDao.removeListValue(loginKey, userJson);
+                    break;
+                }
+            }
+        } catch (JsonProcessingException e) {
+            LOGGER.error("parse json failed {}", e.getMessage());
+        }
+    }
+
+    private void logoutApps(String idToken, Set<String> logoutUrls) {
+        if (CollectionUtils.isEmpty(logoutUrls)) {
+            return;
+        }
+        for (String logoutUrl : logoutUrls) {
+            LOGOUT_EXE.submit(() -> {
+                try {
+                    HttpResponse<kong.unirest.JsonNode> response = Unirest.get(logoutUrl)
+                            .header("Authorization", idToken)
+                            .asJson();
+                    if (response.getStatus() != 200) {
+                        LOGGER.error("logout app failed {} {}", logoutUrl, response.getStatus());
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("logout app failed {} {}", logoutUrl, e.getMessage());
+                }
+            });
         }
     }
 
@@ -707,9 +777,12 @@ public class AuthingService implements UserCenterServiceInter {
             token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
+            int expire = Integer.parseInt(env.getProperty("authing.token.expire.seconds",
+                    Constant.DEFAULT_EXPIRE_SECOND));
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("userId", userId);
+            userData.put("tokenExpireInterval", expire);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
