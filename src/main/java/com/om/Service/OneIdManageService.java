@@ -396,6 +396,8 @@ public class OneIdManageService {
         HashMap<String, Object> tokenMap = new HashMap<>();
         tokenMap.put("token", token);
         tokenMap.put("refresh_token", refreshToken);
+        tokenMap.put("token_expire", tokenExpire);
+        tokenMap.put("refresh_token_expire", refTokenExpire);
         return tokenMap;
     }
 
