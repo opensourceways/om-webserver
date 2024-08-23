@@ -669,12 +669,12 @@ public class OidcService {
             // app校验（授权码对应的app）
             if (!appId.equals(appIdTemp)) {
                 redisDao.remove(code);
-                return resultOidc(HttpStatus.BAD_REQUEST, "code invalid or expired", null);
+                return resultOidc(HttpStatus.BAD_REQUEST, "client_id invalid", null);
             }
             // app回调地址校验（授权码对应的app的回调地址）
             if (!redirectUri.equals(redirectUriTemp)) {
                 redisDao.remove(code);
-                return resultOidc(HttpStatus.BAD_REQUEST, "code invalid or expired", null);
+                return resultOidc(HttpStatus.BAD_REQUEST, "redirect_uri invalid", null);
             }
             // app密码校验
             Application app = authingUserDao.getAppById(appId);
