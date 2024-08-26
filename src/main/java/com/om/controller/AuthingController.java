@@ -11,6 +11,7 @@
 
 package com.om.controller;
 
+import com.anji.captcha.model.common.RepCodeEnum;
 import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
@@ -89,8 +90,13 @@ public class AuthingController {
     @RequestLimitRedis(period = 20, count = 14)
     @RequestMapping(value = "/captcha/get", method = RequestMethod.POST)
     public ResponseModel captchaGet(@RequestBody CaptchaVO data, HttpServletRequest request) {
-        data.setBrowserInfo(getRemoteId(request));
-        return captchaService.get(data);
+        CaptchaVO captchaVO = new CaptchaVO();
+        if (!"blockPuzzle".equals(data.getCaptchaType())) {
+            return ResponseModel.errorMsg(RepCodeEnum.ERROR);
+        }
+        captchaVO.setCaptchaType(data.getCaptchaType());
+        captchaVO.setBrowserInfo(getRemoteId(request));
+        return captchaService.get(captchaVO);
     }
 
     /**
@@ -103,8 +109,15 @@ public class AuthingController {
     @RequestLimitRedis
     @RequestMapping(value = "/captcha/check", method = RequestMethod.POST)
     public ResponseModel captchaCheck(@RequestBody CaptchaVO data, HttpServletRequest request) {
-        data.setBrowserInfo(getRemoteId(request));
-        return captchaService.check(data);
+        CaptchaVO captchaVO = new CaptchaVO();
+        if (!"blockPuzzle".equals(data.getCaptchaType())) {
+            return ResponseModel.errorMsg(RepCodeEnum.ERROR);
+        }
+        captchaVO.setCaptchaType(data.getCaptchaType());
+        captchaVO.setPointJson(data.getPointJson());
+        captchaVO.setToken(data.getToken());
+        captchaVO.setBrowserInfo(getRemoteId(request));
+        return captchaService.check(captchaVO);
     }
 
     /**
@@ -436,6 +449,7 @@ public class AuthingController {
     /**
      * 解除账号链接的方法.
      *
+     * @param servletRequest 请求入参
      * @param token 包含令牌的 Cookie 值（可选）
      * @param platform 平台信息
      * @return 返回 ResponseEntity 对象
@@ -443,9 +457,10 @@ public class AuthingController {
     @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/unlink/account", method = RequestMethod.GET)
-    public ResponseEntity unLinkAccount(@CookieValue(value = "_Y_G_", required = false) String token,
+    public ResponseEntity unLinkAccount(HttpServletRequest servletRequest,
+                                        @CookieValue(value = "_Y_G_", required = false) String token,
                                         @RequestParam(value = "platform") String platform) {
-        return authingService.unLinkAccount(token, platform);
+        return authingService.unLinkAccount(servletRequest, token, platform);
     }
 
     /**
