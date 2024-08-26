@@ -376,6 +376,7 @@ public class AuthingService implements UserCenterServiceInter {
         String appId = (String) getBodyPara(body, "client_id");
         String password = (String) getBodyPara(body, "password");
         String acceptPrivacyVersion = (String) getBodyPara(body, "oneidPrivacyAccepted");
+        String ip = ClientIPUtil.getClientIpAddress(servletRequest);
         // 校验appId
         if (authingUserDao.getAppById(appId) == null) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00047, null, null);
@@ -411,11 +412,25 @@ public class AuthingService implements UserCenterServiceInter {
             msg = accountType.equals(Constant.EMAIL_TYPE)
                     ? authingUserDao.registerByEmailPwd(appId, account, password, username, code)
                     : authingUserDao.registerByPhonePwd(appId, account, password, username, code);
+            if (msg.equals(Constant.SUCCESS)) {
+                LogUtil.createLogs(username, "user register", "register",
+                        "The user register By password", ip, "success");
+            } else {
+                LogUtil.createLogs(username, "user register", "register",
+                        "The user register By password", ip, "fail");
+            }
         } else if (StringUtils.isNotBlank(code)) {
             // 验证码登录
             msg = accountType.equals(Constant.EMAIL_TYPE)
                     ? authingUserDao.registerByEmailCode(appId, account, code, username)
                     : authingUserDao.registerByPhoneCode(appId, account, code, username);
+            if (msg.equals(Constant.SUCCESS)) {
+                LogUtil.createLogs(username, "user register", "register",
+                        "The user register By code", ip, "success");
+            } else {
+                LogUtil.createLogs(username, "user register", "register",
+                        "The user register By code", ip, "fail");
+            }
         } else {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
@@ -457,6 +472,7 @@ public class AuthingService implements UserCenterServiceInter {
         String code = (String) getBodyPara(body, "code");
         String password = (String) getBodyPara(body, "password");
         String oneidPrivacy = (String) getBodyPara(body, "oneidPrivacyAccepted");
+        String ip = ClientIPUtil.getClientIpAddress(servletRequest);
         LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
         // 限制一分钟登录失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
@@ -489,7 +505,11 @@ public class AuthingService implements UserCenterServiceInter {
             idToken = userObj.getString("id_token");
             userId = JWT.decode(idToken).getSubject();
             user = authingUserDao.getUser(userId);
+            LogUtil.createLogs(userId, "user login", "login",
+                    "The user login", ip, "success");
         } else {
+            LogUtil.createLogs(account, "user login", "login",
+                    "The user login", ip, "failed");
             return result(HttpStatus.BAD_REQUEST, null, (String) loginRes, limitUtil.loginFail(failCounter));
         }
         // 登录成功解除登录失败次数限制
@@ -685,6 +705,8 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("is_logout", isLogout);
             userData.put("client_id", appId);
             userData.put("redirect_uri", redirectUri);
+            LogUtil.createLogs(userId, "logout", "login",
+                    "The user logout", ClientIPUtil.getClientIpAddress(servletRequest), "success");
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
@@ -831,6 +853,8 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("email_exist", StringUtils.isNotBlank(email));
             userData.put("phone_exist", StringUtils.isNotBlank(phone));
             userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
+            LogUtil.createLogs(userId, "user login", "login", "The user third party login",
+                    ClientIPUtil.getClientIpAddress(httpServletRequest), "success");
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
@@ -1131,12 +1155,14 @@ public class AuthingService implements UserCenterServiceInter {
     /**
      * 解除账户绑定方法.
      *
+     * @param servletRequest 请求入参
      * @param token    令牌
      * @param platform 平台
      * @return ResponseEntity 响应实体
      */
-    public ResponseEntity unLinkAccount(String token, String platform) {
-        String msg = authingUserDao.unLinkAccount(token, platform);
+    public ResponseEntity unLinkAccount(HttpServletRequest servletRequest, String token, String platform) {
+        String ip = ClientIPUtil.getClientIpAddress(servletRequest);
+        String msg = authingUserDao.unLinkAccount(token, platform, ip);
         return msg.equals("success") ? result(HttpStatus.OK, "unlink account success", null)
                 : result(HttpStatus.BAD_REQUEST, null, msg, null);
     }

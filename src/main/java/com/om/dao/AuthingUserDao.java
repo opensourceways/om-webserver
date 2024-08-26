@@ -1363,11 +1363,12 @@ public class AuthingUserDao {
     /**
      * 使用令牌解除与特定平台的账户绑定.
      *
+     * @param ip 用户ip
      * @param token 访问令牌
      * @param platform 要解除链接的平台
      * @return 返回解除账户链接操作的结果消息
      */
-    public String unLinkAccount(String token, String platform) {
+    public String unLinkAccount(String token, String platform, String ip) {
         String msg = "解绑三方账号失败";
         String identifier;
         String extIdpId;
@@ -1409,8 +1410,12 @@ public class AuthingUserDao {
             List<String> userIds = Stream.of(users.split(";")).toList();
             if (platform.toLowerCase().equals("gitee") && userIds.contains(us.getId())) {
                 if (unLinkAccountTemp(us, identifiers, extIdpIds)) {
+                    LogUtil.createLogs(us.getId(), "unlink account", "user",
+                            "The user unlink account", ip, "success");
                     return "success";
                 } else {
+                    LogUtil.createLogs(us.getId(), "unlink account", "user",
+                            "The user unlink account", ip, "failed");
                     return msg;
                 }
             } // -- temporary --
@@ -1424,6 +1429,11 @@ public class AuthingUserDao {
                     .asJson();
             if (response.getBody().getObject().getInt("code") == 200) {
                 msg = "success";
+                LogUtil.createLogs(us.getId(), "unlink account", "user",
+                        "The user unlink account", ip, "success");
+            } else {
+                LogUtil.createLogs(us.getId(), "unlink account", "user",
+                        "The user unlink account", ip, "failed");
             }
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
