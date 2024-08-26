@@ -89,12 +89,12 @@ public class AuthingController {
      */
     @RequestLimitRedis(period = 20, count = 14)
     @RequestMapping(value = "/captcha/get", method = RequestMethod.POST)
-    public ResponseModel captchaGet(@RequestBody CaptchaVO data, HttpServletRequest request) {
+    public ResponseModel captchaGet(@RequestBody Map<String, String> data, HttpServletRequest request) {
         CaptchaVO captchaVO = new CaptchaVO();
-        if (!"blockPuzzle".equals(data.getCaptchaType())) {
+        if (!"blockPuzzle".equals(data.get("captchaType"))) {
             return ResponseModel.errorMsg(RepCodeEnum.ERROR);
         }
-        captchaVO.setCaptchaType(data.getCaptchaType());
+        captchaVO.setCaptchaType(data.get("captchaType"));
         captchaVO.setBrowserInfo(getRemoteId(request));
         return captchaService.get(captchaVO);
     }
@@ -108,14 +108,14 @@ public class AuthingController {
      */
     @RequestLimitRedis
     @RequestMapping(value = "/captcha/check", method = RequestMethod.POST)
-    public ResponseModel captchaCheck(@RequestBody CaptchaVO data, HttpServletRequest request) {
+    public ResponseModel captchaCheck(@RequestBody Map<String, String> data, HttpServletRequest request) {
         CaptchaVO captchaVO = new CaptchaVO();
-        if (!"blockPuzzle".equals(data.getCaptchaType())) {
+        if (!"blockPuzzle".equals(data.get("captchaType"))) {
             return ResponseModel.errorMsg(RepCodeEnum.ERROR);
         }
-        captchaVO.setCaptchaType(data.getCaptchaType());
-        captchaVO.setPointJson(data.getPointJson());
-        captchaVO.setToken(data.getToken());
+        captchaVO.setCaptchaType(data.get("captchaType"));
+        captchaVO.setPointJson(data.get("pointJson"));
+        captchaVO.setToken(data.get("token"));
         captchaVO.setBrowserInfo(getRemoteId(request));
         return captchaService.check(captchaVO);
     }
@@ -514,21 +514,6 @@ public class AuthingController {
     public ResponseEntity getPublicKey(HttpServletRequest request) {
         UserCenterServiceInter service = getServiceImpl(request);
         return service.getPublicKey();
-    }
-
-    /**
-     * 更新密码的方法.
-     *
-     * @param servletRequest HTTP 请求对象
-     * @param servletResponse HTTP 响应对象
-     * @return 返回 ResponseEntity 对象
-     */
-    @RequestLimitRedis
-    @AuthingUserToken
-    @RequestMapping(value = "/update/password", method = RequestMethod.POST)
-    public ResponseEntity updatePassword(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.updatePassword(servletRequest, servletResponse);
     }
 
     /**

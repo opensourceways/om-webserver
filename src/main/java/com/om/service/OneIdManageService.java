@@ -430,7 +430,8 @@ public class OneIdManageService {
                 String email = users.get(i).get("email").asText();
                 email = "null".equals(email) ? "" : email;
                 String userPoolId = users.get(i).get("userPoolId").asText();
-                String token = users.get(i).get("token").asText();
+                JsonNode tokenNode = users.get(i).get("token");
+                String token = (tokenNode == null ? "" : tokenNode.asText());
                 User user = authingUserDao.getUser(userId);
                 if (user != null
                         && CommonUtil.isStringEquals(userName, user.getUsername())
