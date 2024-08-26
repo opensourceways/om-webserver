@@ -948,42 +948,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 使用访问令牌更新用户密码.
-     *
-     * @param token 访问令牌
-     * @param oldPwd 旧密码
-     * @param newPwd 新密码
-     * @param userIp 用户ip
-     * @return 如果成功更新密码则返回消息提示，否则返回 null
-     */
-    public String updatePassword(String token, String oldPwd, String newPwd, String userIp) {
-        String msg = MessageCodeConfig.E00053.getMsgZh();
-        try {
-            Object[] appUserInfo = getAppUserInfo(token);
-            String appId = appUserInfo[0].toString();
-            User user = (User) appUserInfo[1];
-
-            String body = String.format("{\"newPassword\": \"%s\","
-                    + "\"oldPassword\": \"%s\","
-                    + "\"passwordEncryptType\": \"rsa\"}", newPwd, oldPwd);
-            HttpResponse<JsonNode> response = authPost("/update-password", appId, user.getToken(), body);
-            JSONObject resObj = response.getBody().getObject();
-            if (resObj.getInt("statusCode") != 200) {
-                msg = AuthingRespConvert.convertMsg(resObj, msg);
-                LogUtil.createLogs(user.getId(), "update password", "user",
-                        "The user update password", userIp, "failed");
-            } else {
-                msg = Constant.SUCCESS;
-                LogUtil.createLogs(user.getId(), "update password", "user",
-                        "The user update password", userIp, "success");
-            }
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-        }
-        return msg;
-    }
-
-    /**
      * 重置密码并验证用户邮箱.
      *
      * @param appId 应用程序 ID

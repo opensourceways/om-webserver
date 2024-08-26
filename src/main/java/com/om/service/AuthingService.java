@@ -38,7 +38,6 @@ import com.om.utils.LogUtil;
 import com.om.authing.AuthingRespConvert;
 import com.om.token.ClientSessionManager;
 import jakarta.annotation.PostConstruct;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kong.unirest.json.JSONObject;
@@ -53,7 +52,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
-import java.util.Collections;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.HtmlUtils;
@@ -651,7 +649,6 @@ public class AuthingService implements UserCenterServiceInter {
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("permissions", permissions);
             userData.put("username", user.getUsername());
-            userData.put("companyList", Collections.emptyList());
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
@@ -1224,42 +1221,6 @@ public class AuthingService implements UserCenterServiceInter {
         } catch (JsonProcessingException e) {
             return result(HttpStatus.INTERNAL_SERVER_ERROR, null, msg, null);
         }
-    }
-
-    /**
-     * 更新密码方法.
-     *
-     * @param servletRequest HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @return ResponseEntity 响应实体
-     */
-    @Override
-    public ResponseEntity updatePassword(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        String msg = MessageCodeConfig.E00050.getMsgZh();
-        try {
-            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
-            String oldPwd = (String) getBodyPara(body, "old_pwd");
-            String newPwd = (String) getBodyPara(body, "new_pwd");
-            String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
-            if (StringUtils.isBlank(newPwd)) {
-                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
-            }
-            Cookie cookie = authingUtil.getCookie(servletRequest, env.getProperty("cookie.token.name"));
-            msg = authingUserDao.updatePassword(cookie.getValue(), oldPwd, newPwd, userIp);
-            if (msg.equals("success")) {
-                String token = authingUtil.rsaDecryptToken(cookie.getValue());
-                DecodedJWT decode = JWT.decode(token);
-                String userId = decode.getAudience().get(0);
-                logoutAllSessions(userId, servletRequest, servletResponse);
-                authingUserDao.kickUser(userId);
-                return result(HttpStatus.OK, "success", null);
-            }
-        } catch (RuntimeException e) {
-            LOGGER.error("update password failed {}", e.getMessage());
-        } catch (Exception e) {
-            LOGGER.error("update password failed {}", e.getMessage());
-        }
-        return result(HttpStatus.BAD_REQUEST, null, msg, null);
     }
 
     /**
