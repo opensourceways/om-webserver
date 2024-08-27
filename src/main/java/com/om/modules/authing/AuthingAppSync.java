@@ -47,6 +47,12 @@ public class AuthingAppSync {
     private static final int APP_LIST_PAGE_MAX = 100;
 
     /**
+     * authing后缀.
+     */
+    @Value("${authing.client.suffix:}")
+    private String authingSuffix;
+
+    /**
      * Authing 用户池ID.
      */
     @Value("${authing.userPoolId}")
@@ -97,7 +103,7 @@ public class AuthingAppSync {
                     appDetailsMap.put(appId, app);
                 }
                 if (!appClientMap.containsKey(appId)) {
-                    String appHost = "https://" + app.getIdentifier() + ".authing.cn";
+                    String appHost = "https://" + app.getIdentifier() + authingSuffix;
                     AuthenticationClient appClient = new AuthenticationClient(appId, appHost);
                     appClient.setSecret(app.getSecret());
                     appClientMap.put(appId, appClient);

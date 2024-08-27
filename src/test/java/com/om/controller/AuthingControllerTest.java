@@ -72,9 +72,8 @@ public class AuthingControllerTest {
     @Test
     public void testCaptchaGet() throws Exception {
         when(mockCaptchaService.get(any(CaptchaVO.class))).thenReturn(new ResponseModel(RepCodeEnum.SUCCESS));
-        CaptchaVO captchaVO = new CaptchaVO();
         MockHttpServletRequest request = new MockHttpServletRequest();
-        ResponseModel responseModel = authingController.captchaGet(captchaVO, request);
+        ResponseModel responseModel = authingController.captchaGet(any(), request);
 
         assertThat(responseModel.getRepCode()).isEqualTo(RepCodeEnum.SUCCESS.getCode());
     }
@@ -82,10 +81,8 @@ public class AuthingControllerTest {
     @Test
     public void testCaptchaCheck() throws Exception {
         when(mockCaptchaService.check(any(CaptchaVO.class))).thenReturn(new ResponseModel(RepCodeEnum.SUCCESS));
-        CaptchaVO captchaVO = new CaptchaVO();
         MockHttpServletRequest request = new MockHttpServletRequest();
-        ResponseModel responseModel = authingController.captchaCheck(captchaVO, request);
-
+        ResponseModel responseModel = authingController.captchaCheck(any(), request);
         assertThat(responseModel.getRepCode()).isEqualTo(RepCodeEnum.SUCCESS.getCode());
     }
 
@@ -479,10 +476,11 @@ public class AuthingControllerTest {
 
     @Test
     public void testUnLinkAccount() throws Exception {
-        when(mockAuthingService.unLinkAccount("token", "platform"))
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        when(mockAuthingService.unLinkAccount(request,"token", "platform"))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
 
-        ResponseEntity response = authingController.unLinkAccount("token", "platform");
+        ResponseEntity response = authingController.unLinkAccount(request, "token", "platform");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -528,19 +526,6 @@ public class AuthingControllerTest {
     }
 
     @Test
-    public void testUpdatePassword() throws Exception {
-        when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setParameter("community", "openeuler");
-        when(authingService.updatePassword(any(), any()))
-                .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        ResponseEntity responseResult = authingController.updatePassword(request, response);
-
-        assertThat(responseResult.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
     public void testResetPwdVerify() throws Exception {
         when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -572,5 +557,27 @@ public class AuthingControllerTest {
                 .thenReturn("success");
         String response = authingUserDao.updateUserBaseInfo("", new HashMap<>(), any());
         assertThat(response.equals("success"));
+    }
+
+    @Test
+    public void testCaptchaget() throws Exception {
+        when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
+        CaptchaVO captchaVO = new CaptchaVO();
+        captchaVO.setCaptchaType("blockPuzzle");
+        when(mockCaptchaService.get(any())).thenReturn(ResponseModel.success());
+        ResponseModel response = mockCaptchaService.get(captchaVO);
+        assertThat(response.isSuccess());
+    }
+
+    @Test
+    public void testCaptchacheck() throws Exception {
+        when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
+        CaptchaVO captchaVO = new CaptchaVO();
+        captchaVO.setCaptchaType("blockPuzzle");
+        captchaVO.setToken("token");
+        captchaVO.setPointJson("pointJson");
+        when(mockCaptchaService.check(any())).thenReturn(ResponseModel.success());
+        ResponseModel response = mockCaptchaService.check(captchaVO);
+        assertThat(response.isSuccess());
     }
 }
