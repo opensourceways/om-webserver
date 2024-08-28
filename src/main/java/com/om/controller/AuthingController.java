@@ -11,6 +11,7 @@
 
 package com.om.controller;
 
+import com.anji.captcha.model.common.RepCodeEnum;
 import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
@@ -19,6 +20,7 @@ import com.om.result.Constant;
 import com.om.service.AuthingService;
 import com.om.service.UserCenterServiceContext;
 import com.om.service.inter.UserCenterServiceInter;
+import com.om.utils.ClientIPUtil;
 import com.om.utils.HttpClientUtils;
 import com.om.aop.RequestLimitRedis;
 import com.om.authing.AuthingUserToken;
@@ -69,8 +71,7 @@ public class AuthingController {
      * @return 返回远程主机的 IP 地址或者主机名
      */
     public static String getRemoteId(HttpServletRequest request) {
-        String xfwd = request.getHeader("X-Forwarded-For");
-        String ip = getRemoteIpFromXfwd(xfwd);
+        String ip = ClientIPUtil.getClientIpAddress(request);
         String ua = request.getHeader("user-agent");
         if (StringUtils.isNotBlank(ip)) {
             return ip + ua;
@@ -78,20 +79,6 @@ public class AuthingController {
         return request.getRemoteAddr() + ua;
     }
 
-
-    /**
-     * 从 X-Forwarded-For 头部信息中获取远程客户端 IP 地址.
-     *
-     * @param xfwd 包含 X-Forwarded-For 头部信息的字符串
-     * @return 返回解析后的远程客户端 IP 地址
-     */
-    private static String getRemoteIpFromXfwd(String xfwd) {
-        if (StringUtils.isNotBlank(xfwd)) {
-            String[] ipList = xfwd.split(",");
-            return StringUtils.trim(ipList[0]);
-        }
-        return null;
-    }
 
     /**
      * 处理获取验证码请求的方法.
@@ -102,9 +89,14 @@ public class AuthingController {
      */
     @RequestLimitRedis(period = 20, count = 14)
     @RequestMapping(value = "/captcha/get", method = RequestMethod.POST)
-    public ResponseModel captchaGet(@RequestBody CaptchaVO data, HttpServletRequest request) {
-        data.setBrowserInfo(getRemoteId(request));
-        return captchaService.get(data);
+    public ResponseModel captchaGet(@RequestBody Map<String, String> data, HttpServletRequest request) {
+        CaptchaVO captchaVO = new CaptchaVO();
+        if (!"blockPuzzle".equals(data.get("captchaType"))) {
+            return ResponseModel.errorMsg(RepCodeEnum.ERROR);
+        }
+        captchaVO.setCaptchaType(data.get("captchaType"));
+        captchaVO.setBrowserInfo(getRemoteId(request));
+        return captchaService.get(captchaVO);
     }
 
     /**
@@ -116,9 +108,16 @@ public class AuthingController {
      */
     @RequestLimitRedis
     @RequestMapping(value = "/captcha/check", method = RequestMethod.POST)
-    public ResponseModel captchaCheck(@RequestBody CaptchaVO data, HttpServletRequest request) {
-        data.setBrowserInfo(getRemoteId(request));
-        return captchaService.check(data);
+    public ResponseModel captchaCheck(@RequestBody Map<String, String> data, HttpServletRequest request) {
+        CaptchaVO captchaVO = new CaptchaVO();
+        if (!"blockPuzzle".equals(data.get("captchaType"))) {
+            return ResponseModel.errorMsg(RepCodeEnum.ERROR);
+        }
+        captchaVO.setCaptchaType(data.get("captchaType"));
+        captchaVO.setPointJson(data.get("pointJson"));
+        captchaVO.setToken(data.get("token"));
+        captchaVO.setBrowserInfo(getRemoteId(request));
+        return captchaService.check(captchaVO);
     }
 
     /**
@@ -450,6 +449,7 @@ public class AuthingController {
     /**
      * 解除账号链接的方法.
      *
+     * @param servletRequest 请求入参
      * @param token 包含令牌的 Cookie 值（可选）
      * @param platform 平台信息
      * @return 返回 ResponseEntity 对象
@@ -457,9 +457,10 @@ public class AuthingController {
     @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/unlink/account", method = RequestMethod.GET)
-    public ResponseEntity unLinkAccount(@CookieValue(value = "_Y_G_", required = false) String token,
+    public ResponseEntity unLinkAccount(HttpServletRequest servletRequest,
+                                        @CookieValue(value = "_Y_G_", required = false) String token,
                                         @RequestParam(value = "platform") String platform) {
-        return authingService.unLinkAccount(token, platform);
+        return authingService.unLinkAccount(servletRequest, token, platform);
     }
 
     /**
@@ -513,21 +514,6 @@ public class AuthingController {
     public ResponseEntity getPublicKey(HttpServletRequest request) {
         UserCenterServiceInter service = getServiceImpl(request);
         return service.getPublicKey();
-    }
-
-    /**
-     * 更新密码的方法.
-     *
-     * @param servletRequest HTTP 请求对象
-     * @param servletResponse HTTP 响应对象
-     * @return 返回 ResponseEntity 对象
-     */
-    @RequestLimitRedis
-    @AuthingUserToken
-    @RequestMapping(value = "/update/password", method = RequestMethod.POST)
-    public ResponseEntity updatePassword(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.updatePassword(servletRequest, servletResponse);
     }
 
     /**

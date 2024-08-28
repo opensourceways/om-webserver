@@ -101,6 +101,9 @@ ENV MALLOC_ARENA_MAX=4
 
 EXPOSE 8080
 
+ENV SOURCE= \
+    TARGET=
+
 USER om-webserver
 
 CMD java --add-opens java.base/java.util=ALL-UNNAMED \
