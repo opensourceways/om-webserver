@@ -80,6 +80,12 @@ public class AuthingUserDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthingUserDao.class);
 
     /**
+     * authing后缀.
+     */
+    @Value("${authing.client.suffix:}")
+    private String authingSuffix;
+
+    /**
      * Authing 用户池 ID.
      */
     @Value("${authing.userPoolId}")
@@ -249,7 +255,7 @@ public class AuthingUserDao {
     @Value("${community}")
     private String community;
 
-    // -- temporary (解决gitee多身份源解绑问题) -- TODO
+    // -- temporary (解决gitee多身份源解绑问题)
     /**
      * 临时外部身份提供者 IDs.
      */
@@ -267,7 +273,7 @@ public class AuthingUserDao {
      */
     @Value("${temp.users}")
     private String users;
-    // -- temporary -- TODO
+    // -- temporary
 
     /**
      * Authing 用户管理客户端实例.
@@ -942,42 +948,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 使用访问令牌更新用户密码.
-     *
-     * @param token 访问令牌
-     * @param oldPwd 旧密码
-     * @param newPwd 新密码
-     * @param userIp 用户ip
-     * @return 如果成功更新密码则返回消息提示，否则返回 null
-     */
-    public String updatePassword(String token, String oldPwd, String newPwd, String userIp) {
-        String msg = MessageCodeConfig.E00053.getMsgZh();
-        try {
-            Object[] appUserInfo = getAppUserInfo(token);
-            String appId = appUserInfo[0].toString();
-            User user = (User) appUserInfo[1];
-
-            String body = String.format("{\"newPassword\": \"%s\","
-                    + "\"oldPassword\": \"%s\","
-                    + "\"passwordEncryptType\": \"rsa\"}", newPwd, oldPwd);
-            HttpResponse<JsonNode> response = authPost("/update-password", appId, user.getToken(), body);
-            JSONObject resObj = response.getBody().getObject();
-            if (resObj.getInt("statusCode") != 200) {
-                msg = AuthingRespConvert.convertMsg(resObj, msg);
-                LogUtil.createLogs(user.getId(), "update password", "user",
-                        "The user update password", userIp, "failed");
-            } else {
-                msg = Constant.SUCCESS;
-                LogUtil.createLogs(user.getId(), "update password", "user",
-                        "The user update password", userIp, "success");
-            }
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-        }
-        return msg;
-    }
-
-    /**
      * 重置密码并验证用户邮箱.
      *
      * @param appId 应用程序 ID
@@ -1131,7 +1101,7 @@ public class AuthingUserDao {
         AuthenticationClient appClient = null;
         Application app = getAppById(appId);
         if (app != null) {
-            String appHost = "https://" + app.getIdentifier() + ".authing.cn";
+            String appHost = "https://" + app.getIdentifier() + authingSuffix;
             appClient = new AuthenticationClient(appId, appHost);
             appClient.setSecret(app.getSecret());
         } else {
@@ -1357,11 +1327,12 @@ public class AuthingUserDao {
     /**
      * 使用令牌解除与特定平台的账户绑定.
      *
+     * @param ip 用户ip
      * @param token 访问令牌
      * @param platform 要解除链接的平台
      * @return 返回解除账户链接操作的结果消息
      */
-    public String unLinkAccount(String token, String platform) {
+    public String unLinkAccount(String token, String platform, String ip) {
         String msg = "解绑三方账号失败";
         String identifier;
         String extIdpId;
@@ -1399,15 +1370,19 @@ public class AuthingUserDao {
                 return "请先绑定邮箱";
             }
 
-            // -- temporary (解决gitee多身份源解绑问题) -- TODO
+            // -- temporary (解决gitee多身份源解绑问题)
             List<String> userIds = Stream.of(users.split(";")).toList();
             if (platform.toLowerCase().equals("gitee") && userIds.contains(us.getId())) {
                 if (unLinkAccountTemp(us, identifiers, extIdpIds)) {
+                    LogUtil.createLogs(us.getId(), "unlink account", "user",
+                            "The user unlink account", ip, "success");
                     return "success";
                 } else {
+                    LogUtil.createLogs(us.getId(), "unlink account", "user",
+                            "The user unlink account", ip, "failed");
                     return msg;
                 }
-            } // -- temporary -- TODO
+            } // -- temporary --
 
             String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", identifier, extIdpId);
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV2 + "/users/identity/unlinkByUser")
@@ -1418,6 +1393,11 @@ public class AuthingUserDao {
                     .asJson();
             if (response.getBody().getObject().getInt("code") == 200) {
                 msg = "success";
+                LogUtil.createLogs(us.getId(), "unlink account", "user",
+                        "The user unlink account", ip, "success");
+            } else {
+                LogUtil.createLogs(us.getId(), "unlink account", "user",
+                        "The user unlink account", ip, "failed");
             }
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
