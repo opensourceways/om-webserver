@@ -369,6 +369,24 @@ public class AuthingController {
     }
 
     /**
+     * 合并账号.
+     *
+     * @param servletRequest 请求体
+     * @param servletResponse 响应体
+     * @param token 会话信息
+     * @return 合并后用户登录信息
+     */
+    @RequestLimitRedis
+    @AuthingUserToken
+    @RequestMapping(value = "/merge/user", method = RequestMethod.POST)
+    public ResponseEntity mergeUser(HttpServletRequest servletRequest,
+                                   HttpServletResponse servletResponse,
+                                   @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.mergeUser(servletRequest, servletResponse, token);
+    }
+
+    /**
      * 处理删除用户请求的方法.
      *
      * @param httpServletRequest HTTP 请求对象

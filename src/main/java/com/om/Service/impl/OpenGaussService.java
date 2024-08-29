@@ -644,6 +644,19 @@ public class OpenGaussService implements UserCenterServiceInter {
     }
 
     /**
+     * 合并账号.
+     *
+     * @param servletRequest 请求体
+     * @param servletResponse 响应体
+     * @param token token
+     * @return 返回值
+     */
+    public ResponseEntity mergeUser(HttpServletRequest servletRequest,
+                                    HttpServletResponse servletResponse, String token) {
+        return null;
+    }
+
+    /**
      * 注销方法.
      *
      * @param servletRequest  HTTP请求对象
