@@ -20,6 +20,7 @@ import cn.authing.core.types.UdfDataType;
 import cn.authing.core.types.UserDefinedDataInput;
 import cn.authing.core.types.UserDefinedField;
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONObject;
 import jakarta.annotation.PostConstruct;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -33,6 +34,9 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.ArrayList;
 import java.util.stream.Collectors;
 
 
@@ -135,17 +139,33 @@ public class PrivacyHistoryService {
             }
             // 头插法加入历史记录。
             privacyAll = privacyContent + ";" + privacyAll;
-            // 去重。
-            List<String> newList = Arrays.stream(privacyAll.split(";")).distinct()
-                    .filter(StringUtils::isNotBlank).collect(Collectors.toList());
-            // 保留最新20个签署记录。
-            newList = newList.subList(0, Math.min(newList.size(), HISTORY_MAX_NUMBER));
+            // 使用 LinkedHashMap 保持顺序并去重
+            List<String> newList = Arrays.asList(privacyAll.split(";"));
+            List<JSONObject> newJson = new ArrayList<>();
+            for (String s : newList) {
+                try {
+                    newJson.add(JSONObject.parse(s));
+                } catch (Exception e) {
+                    LOGGER.error("wrong format privacy history {}", e.getMessage());
+                }
+            }
+            Map<String, JSONObject> unique = new LinkedHashMap<>();
+            for (JSONObject json : newJson) {
+                unique.putIfAbsent(json.getString("privacyVersion") + " " + json.getString("opt"), json);
+            }
+            List<JSONObject> result = new ArrayList<>(unique.values());
 
+            // 保留最新50个版本的签署或撤销记录。
+            result = result.subList(0, Math.min(result.size(), HISTORY_MAX_NUMBER));
+            // 转为字符串存储。
+            newList = result.stream().map(item -> item.toJSONString()).collect(Collectors.toList());
             String newPrivacy = String.join(";", newList);
             // 封装入参保存
             managementClient.udf().setUdvBatch(UdfTargetType.USER, userId, Collections
                     .singletonList(new UserDefinedDataInput((PRIVACY_HISTORY_COLUMN_PREFIX + "_" + community),
                             newPrivacy))).execute();
+        } catch (RuntimeException ex) {
+            LOGGER.error("PrivacyHistory save fail {}", ex.getMessage());
         } catch (Exception e) {
             LOGGER.error("PrivacyHistory save fail {}", e.getMessage());
         }
