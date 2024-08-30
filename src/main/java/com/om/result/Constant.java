@@ -251,11 +251,6 @@ public final class Constant {
     public static final String RESET_PASSWORD_SUFFIX = "_reset_password";
 
     /**
-     * OneID Token键名.
-     */
-    public static final String ONEID_TOKEN_KEY = "Oneid-Token";
-
-    /**
      * ID Token前缀.
      */
     public static final String ID_TOKEN_PREFIX = "idToken_";
