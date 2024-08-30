@@ -474,10 +474,14 @@ public class AuthingService implements UserCenterServiceInter {
         LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
         // 限制一分钟登录失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
+            LogUtil.createLogs(account, "user login", "login",
+                    "The user login", ip, "failed");
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, limitUtil.loginFail(failCounter));
         }
         // 多次失败需要图片验证码
         if (limitUtil.isNeedCaptcha(failCounter).get(Constant.NEED_CAPTCHA_VERIFICATION) && !isSuccess) {
+            LogUtil.createLogs(account, "user login", "login",
+                    "The user login", ip, "failed");
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, limitUtil.loginFail(failCounter));
         }
         if (StringUtils.isNotBlank(password)) {
@@ -485,6 +489,8 @@ public class AuthingService implements UserCenterServiceInter {
                 password = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(password));
             } catch (Exception e) {
                 LOGGER.error("Hex to Base64 fail. " + e.getMessage());
+                LogUtil.createLogs(account, "user login", "login",
+                        "The user login", ip, "failed");
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
         }
@@ -496,6 +502,8 @@ public class AuthingService implements UserCenterServiceInter {
         User user;
         // 判断传入隐私版本号合法
         if (MessageCodeConfig.E00037.getMsgZh().equals(loginRes)) {
+            LogUtil.createLogs(account, "user login", "login",
+                    "The user login", ip, "failed");
             return result(HttpStatus.UNAUTHORIZED, MessageCodeConfig.E00037, null, null);
         }
         if (loginRes instanceof JSONObject) {
@@ -503,8 +511,6 @@ public class AuthingService implements UserCenterServiceInter {
             idToken = userObj.getString("id_token");
             userId = JWT.decode(idToken).getSubject();
             user = authingUserDao.getUser(userId);
-            LogUtil.createLogs(userId, "user login", "login",
-                    "The user login", ip, "success");
         } else {
             LogUtil.createLogs(account, "user login", "login",
                     "The user login", ip, "failed");
@@ -529,12 +535,20 @@ public class AuthingService implements UserCenterServiceInter {
         if (Objects.isNull(userName)) {
             userName = "";
         }
+        try {
+            idToken = encryptionService.encrypt(idToken);
+        } catch (Exception e) {
+            LOGGER.error("encry id_token failed {}", e.getMessage());
+            LogUtil.createLogs(account, "user login", "login",
+                    "The user login", ip, "failed");
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, userName,
                 permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
 
         String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(userId).toString();
         int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
-        redisDao.addList(loginKey, EncryptionService.getSha256Str(idToken), expireSeconds);
+        redisDao.addList(loginKey, idToken, expireSeconds);
         long listSize = redisDao.getListSize(loginKey);
         if (listSize > maxLoginNum) {
             redisDao.removeListTail(loginKey, maxLoginNum);
@@ -550,6 +564,8 @@ public class AuthingService implements UserCenterServiceInter {
         userData.put("email_exist", StringUtils.isNotBlank(user.getEmail()));
         userData.put("phone_exist", StringUtils.isNotBlank(user.getPhone()));
         userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
+        LogUtil.createLogs(userId, "user login", "login",
+                "The user login", ip, "success");
         return result(HttpStatus.OK, "success", userData);
     }
 
@@ -666,6 +682,7 @@ public class AuthingService implements UserCenterServiceInter {
      */
     @Override
     public ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
+        String userId = "";
         try {
             String redirectUri = servletRequest.getHeader("Referer");
             String headerToken = servletRequest.getHeader("token");
@@ -673,19 +690,20 @@ public class AuthingService implements UserCenterServiceInter {
             String idTokenKey = "idToken_" + md5Token;
             token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
-            String userId = decode.getAudience().get(0);
+            userId = decode.getAudience().get(0);
             String appId = decode.getClaim("client_id").asString();
             // 验证回调是否匹配
             ResponseEntity responseEntity = logoutRedirectUrisMatch(appId, redirectUri);
             if (responseEntity.getStatusCode().value() != 200) {
+                LogUtil.createLogs(userId, "logout", "login",
+                        "The user logout", ClientIPUtil.getClientIpAddress(servletRequest), "failed");
                 return result(HttpStatus.NOT_FOUND, "redirect_uri not found in the app", null);
             }
             String idToken = (String) redisDao.get(idTokenKey);
-            idToken = encryptionService.privateDecrypt(idToken);
             if (StringUtils.isNotBlank(idToken)) {
                 String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER)
                         .append(userId).toString();
-                redisDao.removeListValue(loginKey, EncryptionService.getSha256Str(idToken));
+                redisDao.removeListValue(loginKey, idToken);
             }
             // 退出登录，删除cookie，删除idToken
             String cookieTokenName = env.getProperty("cookie.token.name");
@@ -707,6 +725,8 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            LogUtil.createLogs(userId, "logout", "login",
+                    "The user logout", ClientIPUtil.getClientIpAddress(servletRequest), "failed");
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
@@ -779,10 +799,13 @@ public class AuthingService implements UserCenterServiceInter {
     public ResponseEntity tokenApply(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
                                      String code, String permission, String redirectUrl) {
+        String userId = "";
         try {
             String appId = httpServletRequest.getParameter("client_id");
             // 校验appId
             if (authingUserDao.getAppById(appId) == null) {
+                LogUtil.createLogs(userId, "user login", "login", "The user third party login",
+                        ClientIPUtil.getClientIpAddress(httpServletRequest), "failed");
                 return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
             }
             // 将URL中的中文转码，因为@RequestParam会自动解码，而我们需要未解码的参数
@@ -797,9 +820,11 @@ public class AuthingService implements UserCenterServiceInter {
             // 通过code获取access_token，再通过access_token获取用户
             Map user = authingUserDao.getUserInfoByAccessToken(appId, code, url);
             if (user == null) {
+                LogUtil.createLogs(userId, "user login", "login", "The user third party login",
+                        ClientIPUtil.getClientIpAddress(httpServletRequest), "failed");
                 return result(HttpStatus.UNAUTHORIZED, "user not found", null);
             }
-            String userId = user.get("sub").toString();
+            userId = user.get("sub").toString();
             String idToken = user.get("id_token").toString();
             String picture = user.get("picture").toString();
             String userName = (String) user.get("username");
@@ -817,6 +842,7 @@ public class AuthingService implements UserCenterServiceInter {
             if (Objects.isNull(userName)) {
                 userName = "";
             }
+            idToken = encryptionService.encrypt(idToken);
             // 生成token
             String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, userName,
                     permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
@@ -824,7 +850,7 @@ public class AuthingService implements UserCenterServiceInter {
             String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER)
                     .append(userId).toString();
             int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
-            redisDao.addList(loginKey, EncryptionService.getSha256Str(idToken), expireSeconds);
+            redisDao.addList(loginKey, idToken, expireSeconds);
             long listSize = redisDao.getListSize(loginKey);
             if (listSize > maxLoginNum) {
                 redisDao.removeListTail(loginKey, maxLoginNum);
@@ -855,6 +881,8 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            LogUtil.createLogs(userId, "user login", "login", "The user third party login",
+                    ClientIPUtil.getClientIpAddress(httpServletRequest), "failed");
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
