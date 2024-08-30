@@ -12,7 +12,7 @@
 package com.om.utils;
 
 import com.om.dao.RedisDao;
-import com.om.modules.LoginFailCounter;
+import com.om.modules.OperateFailCounter;
 import com.om.result.Constant;
 
 import org.slf4j.Logger;
@@ -49,9 +49,9 @@ public class LimitUtil {
      * @param account 账户信息
      * @return LoginFailCounter 对象
      */
-    public LoginFailCounter initLoginFailCounter(String account) {
+    public OperateFailCounter initLoginFailCounter(String account) {
         String loginFailAccountCountKey = account + Constant.LOGIN_COUNT;
-        return new LoginFailCounter()
+        return new OperateFailCounter()
                 .setAccount(account)
                 .setAccountKey(loginFailAccountCountKey)
                 .setAccountCount(redisDao.getLoginErrorCount(loginFailAccountCountKey))
@@ -62,12 +62,30 @@ public class LimitUtil {
     }
 
     /**
+     * 初始化绑定失败计数器.
+     *
+     * @param account 账户信息
+     * @return LoginFailCounter 对象
+     */
+    public OperateFailCounter initBindFailCounter(String account) {
+        String loginFailAccountCountKey = account + Constant.BIND_FAILED_COUNT;
+        return new OperateFailCounter()
+                .setAccount(account)
+                .setAccountKey(loginFailAccountCountKey)
+                .setAccountCount(redisDao.getLoginErrorCount(loginFailAccountCountKey))
+                .setLimitCount(Integer.parseInt(env.getProperty(
+                        "bind.error.limit.count", Constant.LOGIN_ERROR_LIMIT)))
+                .setLimitSeconds(Long.parseLong(env.getProperty(
+                        "bind.error.limit.seconds", Constant.DEFAULT_EXPIRE_SECOND)));
+    }
+
+    /**
      * 检查是否需要验证码.
      *
      * @param failCounter 登录失败计数器
      * @return 包含是否需要验证码信息的 HashMap
      */
-    public HashMap<String, Boolean> isNeedCaptcha(LoginFailCounter failCounter) {
+    public HashMap<String, Boolean> isNeedCaptcha(OperateFailCounter failCounter) {
         HashMap<String, Boolean> data = new HashMap<>();
         data.put(Constant.NEED_CAPTCHA_VERIFICATION, false);
         int needCaptchaLimit =
@@ -85,7 +103,7 @@ public class LimitUtil {
      * @param failCounter 登录失败计数器
      * @return 包含登录失败信息的 Map
      */
-    public Map<String, Boolean> loginFail(LoginFailCounter failCounter) {
+    public Map<String, Boolean> loginFail(OperateFailCounter failCounter) {
         failCounter.setAccountCount(failCounter.getAccountCount() + 1);
         redisDao.set(failCounter.getAccountKey(), String.valueOf(failCounter.getAccountCount()),
                 failCounter.getLimitSeconds());
@@ -96,5 +114,21 @@ public class LimitUtil {
         }
 
         return isNeedCaptcha(failCounter);
+    }
+
+    /**
+     * 处理登录失败事件.
+     *
+     * @param failCounter 登录失败计数器
+     */
+    public void operateFail(OperateFailCounter failCounter) {
+        failCounter.setAccountCount(failCounter.getAccountCount() + 1);
+        redisDao.set(failCounter.getAccountKey(), String.valueOf(failCounter.getAccountCount()),
+                failCounter.getLimitSeconds());
+
+        if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
+            LOGGER.info(String.format("Account %s is locked until %s seconds later",
+                    failCounter.getAccount(), failCounter.getLimitSeconds()));
+        }
     }
 }

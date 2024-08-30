@@ -87,25 +87,6 @@ public class AuthingControllerTest {
     }
 
     @Test
-    public void testAccountExists() throws Exception {
-        when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
-        HashMap<String, Object> res = new HashMap<>();
-        res.put("code", 0);
-        res.put("data", null);
-        res.put("msg", null);
-        ResponseEntity<HashMap<String, Object>> responseEntity =
-                new ResponseEntity<>(JSON.parseObject(
-                        HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), HttpStatus.OK);
-        when(authingService.accountExists(any(HttpServletRequest.class), any(HttpServletResponse.class))).thenReturn(responseEntity);
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setParameter("community", "openeuler");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        ResponseEntity responseResult = authingController.accountExists(request, response);
-
-        assertThat(responseResult.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
     public void testSendCodeV3() throws Exception {
         when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
         when(mockCaptchaService.verification(any(CaptchaVO.class))).thenReturn(new ResponseModel(RepCodeEnum.SUCCESS));
@@ -298,19 +279,6 @@ public class AuthingControllerTest {
     }
 
     @Test
-    public void testRefreshUser() throws Exception {
-        when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setParameter("community", "openeuler");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        when(authingService.refreshUser(any(), any(), any(String.class)))
-                .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
-        ResponseEntity responseResult = authingController.refreshUser(request, response, "");
-
-        assertThat(responseResult.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
     public void testGetUser() throws Exception {
         when(mockAuthingService.authingUserPermission("token"))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
@@ -373,10 +341,11 @@ public class AuthingControllerTest {
     @Test
     public void testSendCode() throws Exception {
         when(mockCaptchaService.verification(any(CaptchaVO.class))).thenReturn(new ResponseModel(RepCodeEnum.SUCCESS));
-        when(mockAuthingService.sendCode(any(), any(), any(), any(Boolean.class)))
+        when(mockAuthingService.sendCode(any(), any(), any(), any(), any(Boolean.class)))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
-
-        ResponseEntity response = authingController.sendCode("token", "account", "channel", "dfs");
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        ResponseEntity response = authingController.sendCode(request, "token", "account",
+                "channel", "dfs");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -384,10 +353,10 @@ public class AuthingControllerTest {
     @Test
     public void testSendCode_CaptchaServiceReturnsError() throws Exception {
         when(mockCaptchaService.verification(any(CaptchaVO.class))).thenReturn(new ResponseModel(RepCodeEnum.SUCCESS));
-        when(mockAuthingService.sendCode(any(), any(), any(), any(Boolean.class)))
+        when(mockAuthingService.sendCode(any(), any(), any(), any(), any(Boolean.class)))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.BAD_REQUEST));
-
-        ResponseEntity response = authingController.sendCode("token", "account", "channel", "dfs");
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        ResponseEntity response = authingController.sendCode(request, "token", "account", "channel", "dfs");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }

@@ -59,7 +59,10 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.TimeZone;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -78,6 +81,18 @@ public class AuthingUserDao {
      * 日志记录器实例，用于记录 AuthingUserDao 类的日志信息.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthingUserDao.class);
+
+    /**
+     * 昵称正则.
+     */
+    private static final String NICKNAME_REG = "^[a-zA-Z\u4e00-\u9fa5]"
+            + "[0-9a-zA-Z_\\-\u4e00-\u9fa5]{1,18}[0-9a-zA-Z\u4e00-\u9fa5]$";
+
+    /**
+     * 公司名正则.
+     */
+    private static final String COMPANYNAME_REG = "^[0-9a-zA-Z\\u4e00-\\u9fa5]"
+            + "[0-9a-zA-Z,\\.&\\(\\)（）\\s\\u4e00-\\u9fa5]{0,98}[0-9a-zA-Z\\.\\u4e00-\\u9fa5]$";
 
     /**
      * authing后缀.
@@ -482,7 +497,7 @@ public class AuthingUserDao {
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
                         + "\"profile\":{\"email\":\"%s\", \"givenName\":\"%s\"},"
-                        + "\"options\":{\"passwordEncryptType\":\"rsa\","
+                        + "\"options\":{\"passwordEncryptType\":\"sm2\","
                         + " \"emailPassCodeForInformationCompletion\":\"%s\"}}",
                 username, password, email, privacyHistoryService
                         .createPrivacyVersions(oneidPrivacyVersion, true), code);
@@ -506,7 +521,7 @@ public class AuthingUserDao {
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
                         + "\"profile\":{\"phone\":\"%s\", \"phoneCountryCode\":\"%s\", \"givenName\":\"%s\"},"
-                        + "\"options\":{\"passwordEncryptType\":\"rsa\", "
+                        + "\"options\":{\"passwordEncryptType\":\"sm2\", "
                         + "\"phonePassCodeForInformationCompletion\":\"%s\"}}",
                 username, password, phone, phoneCountryCode,
                 privacyHistoryService.createPrivacyVersions(oneidPrivacyVersion, true), code);
@@ -591,7 +606,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"sm2\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 email, password, app.getId(), app.getSecret());
         return login(app.getId(), body);
@@ -615,7 +630,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"sm2\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 phone, password, app.getId(), app.getSecret());
         return login(app.getId(), body);
@@ -637,7 +652,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"sm2\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 username, password, app.getId(), app.getSecret());
         return login(app.getId(), body);
@@ -682,6 +697,10 @@ public class AuthingUserDao {
      */
     public Map getUserInfoByAccessToken(String appId, String code, String redirectUrl) {
         try {
+            if (StringUtils.isBlank(code) || code.length() > 64 || !code.matches("[a-zA-Z0-9_-]+")) {
+                LOGGER.error("token apply code param invalid");
+                return null;
+            }
             AuthenticationClient authentication = authingAppSync.getAppClientById(appId);
 
             // code换access_token
@@ -936,7 +955,7 @@ public class AuthingUserDao {
             HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/system").asJson();
             if (response.getStatus() == 200) {
                 JSONObject resObj = response.getBody().getObject();
-                resObj.remove("sm2");
+                resObj.remove("rsa");
                 resObj.remove("version");
                 resObj.remove("publicIps");
                 msg = resObj.toString();
@@ -993,7 +1012,7 @@ public class AuthingUserDao {
         try {
             String body = String.format("{\"passwordResetToken\": \"%s\","
                     + "\"password\": \"%s\","
-                    + "\"passwordEncryptType\": \"rsa\"}", pwdResetToken, newPwd);
+                    + "\"passwordEncryptType\": \"sm2\"}", pwdResetToken, newPwd);
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/reset-password")
                     .header("Content-Type", "application/json").body(body).asJson();
             JSONObject resObj = response.getBody().getObject();
@@ -1018,28 +1037,32 @@ public class AuthingUserDao {
      */
     public String updateAccount(String token, String oldAccount, String oldCode,
                                 String account, String code, String type, String userIp) {
+        String userId = "";
         try {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User us = (User) appUserInfo[1];
+            userId = us.getId();
             AuthenticationClient authentication = initUserAuthentication(appId, us);
             switch (type.toLowerCase()) {
                 case "email":
                     authentication.updateEmail(account, code, oldAccount, oldCode).execute();
-                    LogUtil.createLogs(us.getId(), "update email", "user",
+                    LogUtil.createLogs(userId, "update email", "user",
                             "The user update email", userIp, "success");
                     break;
                 case "phone":
                     updatePhoneWithAuthingCode(oldAccount, oldCode, account, code, appId, us.getToken());
-                    LogUtil.createLogs(us.getId(), "update phone", "user",
+                    LogUtil.createLogs(userId, "update phone", "user",
                             "The user update phone", userIp, "success");
                     break;
                 default:
-                    LogUtil.createLogs(us.getId(), "update account", "user",
+                    LogUtil.createLogs(userId, "update account", "user",
                             "The user update account", userIp, "failed");
                     return "false";
             }
         } catch (Exception e) {
+            LogUtil.createLogs(userId, "update account", "user",
+                    "The user update account", userIp, "failed");
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return e.getMessage();
         }
@@ -1448,11 +1471,21 @@ public class AuthingUserDao {
      */
     public String updateUserBaseInfo(String token, Map<String, Object> map, String userIp) throws ServerErrorException {
         String msg = "success";
+        String userId = "";
         try {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User user = (User) appUserInfo[1];
-
+            userId = user.getId();
+            String oldPrevious = getPrivacyVersionWithCommunity(user.getGivenName());
+            // 防止未签署隐私协议就更改用户信息
+            if (!oneidPrivacyVersion.equals(oldPrevious)) {
+                for (String key : map.keySet()) {
+                    if (!StringUtils.equals("oneidprivacyaccepted", key.toLowerCase())) {
+                        return MessageCodeConfig.E0007.getMsgZh();
+                    }
+                }
+            }
             UpdateUserInput updateUserInput = new UpdateUserInput();
 
             for (Map.Entry<String, Object> entry : map.entrySet()) {
@@ -1460,9 +1493,17 @@ public class AuthingUserDao {
                 String inputValue = entry.getValue() == null ? "" : entry.getValue().toString();
                 switch (item.toLowerCase()) {
                     case "nickname":
+                        if (StringUtils.isNotBlank(inputValue) && (inputValue.length() < 3 || inputValue.length() > 20
+                                || !inputValue.matches(NICKNAME_REG))) {
+                            return MessageCodeConfig.E0007.getMsgZh();
+                        }
                         updateUserInput.withNickname(inputValue);
                         break;
                     case "company":
+                        if (StringUtils.isNotBlank(inputValue) && (inputValue.length() < 2 || inputValue.length() > 100
+                                || !inputValue.matches(COMPANYNAME_REG))) {
+                            return MessageCodeConfig.E0007.getMsgZh();
+                        }
                         updateUserInput.withCompany(inputValue);
                         break;
                     case "username":
@@ -1487,18 +1528,14 @@ public class AuthingUserDao {
                             LogUtil.createLogs(user.getId(), "accept privacy", "user",
                                     "User accept privacy version:" + inputValue + ",appVersion:" + appVersion,
                                     userIp, "success");
-                            // 签署新的隐私协议时，保存旧的到历史隐私记录
-                            String previous = getPrivacyVersionWithCommunity(user.getGivenName());
-                            if (StringUtils.isNotEmpty(previous) && !"revoked".equals(previous)) {
-                                privacyHistoryService.savePrivacyHistory(previous, user.getId());
-                            }
+                            // 签署新的隐私协议时，先保存撤销的到历史隐私记录
+                            saveHistory(user, null);
+                            // 再保存新的隐私协议以及签署时间。
+                            saveHistory(user, inputValue);
                         }
                         if ("revoked".equals(inputValue)) {
-                            // 取消签署的隐私协议时，也保存取消前的到历史隐私记录。
-                            String previous = getPrivacyVersionWithCommunity(user.getGivenName());
-                            if (StringUtils.isNotEmpty(previous) && !"revoked".equals(previous)) {
-                                privacyHistoryService.savePrivacyHistory(previous, user.getId());
-                            }
+                            // 取消签署的隐私协议时，也保存撤销到历史隐私记录。
+                            saveHistory(user, null);
                             updateUserInput.withGivenName(privacyHistoryService
                                     .updatePrivacyVersions(user.getGivenName(), "revoked"));
                             if (StringUtils.isNotBlank(user.getId())) {
@@ -1520,10 +1557,44 @@ public class AuthingUserDao {
             return msg;
         } catch (ServerErrorException e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            LogUtil.createLogs(userId, "update baseInfo", "user",
+                    "User update baseInfo", userIp, "failed");
             throw e;
         } catch (Exception ex) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
+            LogUtil.createLogs(userId, "update baseInfo", "user",
+                    "User update baseInfo", userIp, "failed");
             return MessageCodeConfig.E0007.getMsgZh();
+        }
+    }
+
+    private void saveHistory(User user, String newPrivacy) {
+        String content;
+        String type;
+        String opt;
+        // 根据传参判断保存的为签署还是撤销
+        if (newPrivacy == null) {
+            // 保存撤销记录
+            content = getPrivacyVersionWithCommunity(user.getGivenName());
+            type = "revokeTime";
+            opt = "revoke";
+        } else {
+            // 保存签署记录
+            content = newPrivacy;
+            type = "acceptTime";
+            opt = "accept";
+        }
+        if (StringUtils.isNotEmpty(content) && !"revoked".equals(content)) {
+            Date date = new Date();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            sdf.setTimeZone(TimeZone.getTimeZone("GMT+8:00"));
+            String nowTime = sdf.format(date);
+            JSONObject json = new JSONObject();
+            json.put("appVersion", appVersion);
+            json.put("privacyVersion", content);
+            json.put("opt", opt);
+            json.put(type, nowTime);
+            privacyHistoryService.savePrivacyHistory(json.toString(), user.getId());
         }
     }
 
@@ -1543,6 +1614,7 @@ public class AuthingUserDao {
             if (updateUser == null) {
                 return false;
             }
+            saveHistory(user, null);
             LOGGER.info(String.format("User %s cancel privacy consent version %s for app version %s",
                     user.getId(), oneidPrivacyVersion, appVersion));
             return true;
@@ -1804,6 +1876,9 @@ public class AuthingUserDao {
             if (phone.startsWith(countryCode)) {
                 phoneCountryCode = countryCode;
             }
+        }
+        if (phone.startsWith("+") && !phone.startsWith(phoneCountryCode)) {
+            phoneCountryCode = "";
         }
         return phoneCountryCode;
     }

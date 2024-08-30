@@ -147,7 +147,7 @@ public enum MessageCodeConfig {
     /**
      * 错误代码 E00030: 失败次数过多，请稍后重试.
      */
-    E00030("E00030", "Too many failures, Please try again later", "失败次数过多，请稍后重试"),
+    E00030("E00030", "Too many failures, Please try again in 1 hour", "失败次数过多，请1小时后重试"),
     /**
      * 错误代码 E00031: 新邮箱与已绑定邮箱相同.
      */
@@ -313,7 +313,12 @@ public enum MessageCodeConfig {
     /**
      * 错误代码 E00067: 请先绑定手机号.
      */
-    E00067("E00067", "Please bind the phone number first", "请先绑定手机号");
+    E00067("E00067", "Please bind the phone number first", "请先绑定手机号"),
+
+    /**
+     * 仅支持中国区手机号.
+     */
+    E00068("E00068", "Only supports mobile phone numbers in China", "仅支持中国区手机号");
 
     /**
      * 消息代码.
@@ -405,7 +410,7 @@ public enum MessageCodeConfig {
         map.put("mobile number every day exceeds the upper limit", E00028);
         map.put("手机号每天发送的验证次数超过上限", E00028);
         map.put("仅登录、注册和重置密码使用", E00029);
-        map.put("失败次数过多，请稍后重试", E00030);
+        map.put("失败次数过多，请1小时后重试", E00030);
         map.put("新邮箱与已绑定邮箱相同", E00031);
         map.put("新手机号与已绑定手机号相同", E00032);
         map.put("用户名唯一，不可修改", E00033);
@@ -449,6 +454,7 @@ public enum MessageCodeConfig {
         map.put("已绑定邮箱", E00016);
         map.put("[openMind] username invalid", E00066);
         map.put("Please bind the phone number first", E00067);
+        map.put("Only supports mobile phone numbers in China", E00068);
 
         return map;
     }
