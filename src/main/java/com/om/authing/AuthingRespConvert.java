@@ -40,6 +40,11 @@ public final class AuthingRespConvert {
     private static final String FIELD_CONFLICT = "duplicate key value violates unique";
 
     /**
+     * 更新邮箱时，邮箱和原本邮箱不一致.
+     */
+    private static final String EMAIL_CONFLICT = "修改邮箱必须验证之前的邮箱";
+
+    /**
      * 只能能对外展示的Authing错误信息.
      */
     private static final Map<Integer, String> API_CODE_MAP = Collections.unmodifiableMap(
@@ -81,6 +86,7 @@ public final class AuthingRespConvert {
                     put(2038, "填写的旧手机与实际手机不匹配");
                     put(2058, "强制重置密码（需要验证旧密码）");
                     put(2059, "密码重复设置");
+                    put(2080, "该邮箱 1 分钟内已发送过验证码，请稍后再试");
                     put(2100, "注册过于频繁，请稍候再试");
                     put(2200, "该邮箱已被绑定");
                     put(2203, "原始密码错误");
@@ -102,6 +108,7 @@ public final class AuthingRespConvert {
                     put(2345, "AD 无法使用此密码进行登录，请修改密码或联系管理员");
                     put(2346, "AD 当前账户已被锁定，请自助解锁或联系管理员");
                     put(2347, "AD 操作失败，非子叶节点");
+                    put(4004, "该手机号 1 分钟内已发送过验证码，请稍后再试");
                     put(2120008, "用户已停用或不是此租户成员");
                     put(2130010, "用户无权限登录此租户");
                     put(3103, "发送邮件错误，未知错误");
@@ -146,6 +153,9 @@ public final class AuthingRespConvert {
         }
         if (msg.startsWith(FIELD_CONFLICT)) {
             conMsg = MessageCodeConfig.E0004.getMsgZh();
+        }
+        if (msg.startsWith(EMAIL_CONFLICT)) {
+            conMsg = MessageCodeConfig.E00012.getMsgZh();
         }
         return conMsg;
     }

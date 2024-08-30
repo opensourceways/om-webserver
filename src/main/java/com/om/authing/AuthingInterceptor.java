@@ -21,18 +21,12 @@ import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
 import com.om.service.JwtTokenCreateService;
-import com.om.utils.EncryptionService;
 import com.om.utils.HttpClientUtils;
 import com.om.utils.LogUtil;
 import com.om.utils.ClientIPUtil;
 import com.om.utils.RSAUtil;
 import com.om.token.ClientSessionManager;
-import com.om.token.ManageToken;
 
-import kong.unirest.HttpResponse;
-import kong.unirest.JsonNode;
-import kong.unirest.Unirest;
-import kong.unirest.UnirestException;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,11 +62,6 @@ import java.util.stream.Collectors;
  */
 public class AuthingInterceptor implements HandlerInterceptor {
     /**
-     * 鉴权自身的接口.
-     */
-    private static final String LOCAL_VERIFY_TOKEN_URI = "/oneid/verify/token";
-
-    /**
      * 登出接口.
      */
     private static final String LOGOUT_URI = "/oneid/logout";
@@ -107,16 +96,16 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private ClientSessionManager clientSessionManager;
 
     /**
-     * 注入加密服务.
-     */
-    @Autowired
-    private EncryptionService encryptionService;
-
-    /**
      * Authing Token 的基础密码.
      */
     @Value("${authing.token.base.password}")
     private String authingTokenBasePassword;
+
+    /**
+     * 基础密码：session Token.
+     */
+    @Value("${authing.token.session.password}")
+    private String authingTokenSessionPassword;
 
     /**
      * RSA 加密算法使用的 Authing 私钥.
@@ -153,12 +142,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
      */
     @Value("${oneid.privacy.version}")
     private String oneidPrivacyVersion;
-
-    /**
-     * 三方鉴权接口.
-     */
-    @Value("${thirdService.verifyToken.url: }")
-    private String thirdVerifyUrl;
 
     /**
      * 存储域名与安全性标志之间的映射关系.
@@ -216,19 +199,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        if (!verifyThirdToken(httpServletRequest, httpServletResponse)) {
-            tokenError(httpServletRequest, httpServletResponse, "unauthorized");
-            return false;
-        }
-
-        // get if manageToken present
-        ManageToken manageToken = method.getAnnotation(ManageToken.class);
-
         // 校验header中的token
         String headerJwtToken = httpServletRequest.getHeader("token");
-        if (manageToken != null && manageToken.required()) {
-            headerJwtToken = httpServletRequest.getHeader("user-token");
-        }
         String headJwtTokenMd5 = verifyHeaderToken(headerJwtToken);
         String userIp = ClientIPUtil.getClientIpAddress(httpServletRequest);
         if (headJwtTokenMd5.equals("unauthorized") || headJwtTokenMd5.equals("token expires")) {
@@ -241,7 +213,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
             }
             return false;
         }
-
         // 校验domain
         String verifyDomainMsg = verifyDomain(httpServletRequest);
         if (!verifyDomainMsg.equals("success")) {
@@ -306,11 +277,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
             }
         }
 
-        // skip refresh if manageToken present
-        if (manageToken != null && manageToken.required()) {
-            return true;
-        }
-
         // 每次交互刷新token
         String refreshMsg = refreshToken(httpServletRequest, httpServletResponse, verifyToken, userId, claims);
         if (!Constant.SUCCESS.equals(refreshMsg)) {
@@ -332,12 +298,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(userId).toString();
         String tokenKey = Constant.ID_TOKEN_PREFIX + verifyToken;
         String idToken = (String) redisDao.get(tokenKey);
-        try {
-            idToken = encryptionService.privateDecrypt(idToken);
-        } catch (Exception e) {
-            LOGGER.error("idToken decrypt error {}", e.getMessage());
-        }
-        if (!redisDao.containListValue(loginKey, EncryptionService.getSha256Str(idToken))) {
+        if (!redisDao.containListValue(loginKey, idToken)) {
             return false;
         }
         int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
@@ -414,7 +375,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             }
 
             // token 签名密码验证
-            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(permission + authingTokenBasePassword)).build();
+            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(permission + authingTokenSessionPassword)).build();
             jwtVerifier.verify(token);
         } catch (RuntimeException e) {
             LOGGER.error("Internal Server RuntimeException" + e.getMessage());
@@ -492,18 +453,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
                                 String verifyToken, String userId, Map<String, Claim> claimMap) {
         String oldTokenKey = Constant.ID_TOKEN_PREFIX + verifyToken;
         String idToken = (String) redisDao.get(oldTokenKey);
-        String idTokenDecry = null;
-        try {
-            idTokenDecry = encryptionService.privateDecrypt(idToken);
-        } catch (Exception e) {
-            LOGGER.error("idToken encrypt error {}", e.getMessage());
-        }
 
-        if (idTokenDecry == null) {
+        if (idToken == null) {
             return Constant.TOKEN_EXPIRES;
         }
         // headToken刷新token
-        String[] tokens = jwtTokenCreateService.refreshAuthingUserToken(request, idTokenDecry, userId, claimMap);
+        String[] tokens = jwtTokenCreateService.refreshAuthingUserToken(request, idToken, userId, claimMap);
 
         // 刷新cookie
         int tokenExpire = Integer.parseInt(
@@ -549,47 +504,5 @@ public class AuthingInterceptor implements HandlerInterceptor {
         clientSessionManager.deleteCookieInConfig(httpServletResponse);
 
         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
-    }
-
-    /**
-     * 三方鉴权.
-     *
-     * @param request 请求体
-     * @param response 响应体
-     * @return 是否成功
-     */
-    private boolean verifyThirdToken(HttpServletRequest request, HttpServletResponse response) {
-        if (StringUtils.isBlank(thirdVerifyUrl)) {
-            return true;
-        }
-        String uri = request.getRequestURI();
-        if (LOCAL_VERIFY_TOKEN_URI.equals(uri)) {
-            return true;
-        }
-        try {
-            String headerToken = request.getHeader("Csrf-Token");
-            String cookie = request.getHeader("Cookie");
-            HttpResponse<JsonNode> restResponse = Unirest.get(thirdVerifyUrl)
-                    .header("Content-Type", "application/json")
-                    .header("Csrf-Token", headerToken)
-                    .header("Cookie", cookie).asJson();
-            if (restResponse.getStatus() == 401) {
-                return false;
-            }
-            if (restResponse.getStatus() == 200) {
-                List<String> setCookies = restResponse.getHeaders().get("Set-Cookie");
-                if (setCookies != null) {
-                    for (String setCookie : setCookies) {
-                        response.addHeader("Set-Cookie", setCookie);
-                    }
-                }
-            }
-        } catch (UnirestException e) {
-            LOGGER.error("get third service token verify failed {}", e.getMessage());
-        } catch (Exception e) {
-            LOGGER.error("get third service token verify failed {}", e.getMessage());
-        }
-
-        return true;
     }
 }

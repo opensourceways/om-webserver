@@ -137,7 +137,6 @@ public class AuthingUtil {
             res.put("identity", "github");
             res.put("login_name", githubLogin);
             res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "username"));
-            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("github", res);
         } else if (originConnId.equals(env.getProperty("enterprise.connId.gitee"))) {
             res.put("identity", "gitee");
@@ -149,7 +148,6 @@ public class AuthingUtil {
                 res.put("login_name", jsonObjStringValue(userInfoInIdpObj, "name"));
                 res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "username"));
             }
-            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("gitee", res);
         } else if (originConnId.equals(env.getProperty("enterprise.connId.openatom"))) {
             String phone = jsonObjStringValue(userInfoInIdpObj, "phone");
@@ -158,14 +156,12 @@ public class AuthingUtil {
             res.put("identity", "openatom");
             res.put("login_name", name);
             res.put("user_name", name);
-            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("openatom", res);
         } else if (originConnId.equals(env.getProperty("social.connId.wechat"))) {
             String name = jsonObjStringValue(userInfoInIdpObj, "nickname");
             res.put("identity", "wechat");
             res.put("login_name", name);
             res.put("user_name", name);
-            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("wechat", res);
         }
     }
@@ -246,41 +242,5 @@ public class AuthingUtil {
         } catch (Exception ignored) {
         }
         return cookie;
-    }
-
-    /**
-     * 解析oidc支持的scope.
-     *
-     * @return scope map
-     */
-    public HashMap<String, String> oidcScopeAuthingMapping() {
-        String[] mappings = env.getProperty("oidc.scope.authing.mapping", "").split(",");
-        HashMap<String, String> authingMapping = new HashMap<>();
-        for (String mapping : mappings) {
-            if (StringUtils.isBlank(mapping)) {
-                continue;
-            }
-            String[] split = mapping.split(":");
-            authingMapping.put(split[0], split[1]);
-        }
-        return authingMapping;
-    }
-
-    /**
-     * 解析oidc支持的scope.
-     *
-     * @return 其他的scope map
-     */
-    public HashMap<String, String[]> getOidcScopesOther() {
-        String[] others = env.getProperty("oidc.scope.other", "").split(";");
-        HashMap<String, String[]> otherMap = new HashMap<>();
-        for (String other : others) {
-            if (StringUtils.isBlank(other)) {
-                continue;
-            }
-            String[] split = other.split("->");
-            otherMap.put(split[0], split[1].split(","));
-        }
-        return otherMap;
     }
 }
