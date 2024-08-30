@@ -87,25 +87,6 @@ public class AuthingControllerTest {
     }
 
     @Test
-    public void testAccountExists() throws Exception {
-        when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
-        HashMap<String, Object> res = new HashMap<>();
-        res.put("code", 0);
-        res.put("data", null);
-        res.put("msg", null);
-        ResponseEntity<HashMap<String, Object>> responseEntity =
-                new ResponseEntity<>(JSON.parseObject(
-                        HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), HttpStatus.OK);
-        when(authingService.accountExists(any(HttpServletRequest.class), any(HttpServletResponse.class))).thenReturn(responseEntity);
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setParameter("community", "openeuler");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        ResponseEntity responseResult = authingController.accountExists(request, response);
-
-        assertThat(responseResult.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
     public void testSendCodeV3() throws Exception {
         when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
         when(mockCaptchaService.verification(any(CaptchaVO.class))).thenReturn(new ResponseModel(RepCodeEnum.SUCCESS));

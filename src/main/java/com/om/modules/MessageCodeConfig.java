@@ -313,7 +313,12 @@ public enum MessageCodeConfig {
     /**
      * 错误代码 E00067: 请先绑定手机号.
      */
-    E00067("E00067", "Please bind the phone number first", "请先绑定手机号");
+    E00067("E00067", "Please bind the phone number first", "请先绑定手机号"),
+
+    /**
+     * 仅支持中国区手机号.
+     */
+    E00068("E00068", "Only supports mobile phone numbers in China", "仅支持中国区手机号");
 
     /**
      * 消息代码.
@@ -449,6 +454,7 @@ public enum MessageCodeConfig {
         map.put("已绑定邮箱", E00016);
         map.put("[openMind] username invalid", E00066);
         map.put("Please bind the phone number first", E00067);
+        map.put("Only supports mobile phone numbers in China", E00068);
 
         return map;
     }

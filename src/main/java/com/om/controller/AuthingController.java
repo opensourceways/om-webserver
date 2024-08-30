@@ -121,20 +121,6 @@ public class AuthingController {
     }
 
     /**
-     * 检查账户是否存在的方法.
-     *
-     * @param servletRequest HTTP 请求对象
-     * @param servletResponse HTTP 响应对象
-     * @return 返回 ResponseEntity 对象
-     */
-    @RequestLimitRedis
-    @RequestMapping(value = "/account/exists", method = RequestMethod.GET)
-    public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.accountExists(servletRequest, servletResponse);
-    }
-
-    /**
      * 发送验证码版本3的方法.
      *
      * @param servletRequest HTTP 请求对象

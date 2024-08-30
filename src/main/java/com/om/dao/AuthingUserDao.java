@@ -80,6 +80,18 @@ public class AuthingUserDao {
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthingUserDao.class);
 
     /**
+     * 昵称正则.
+     */
+    private static final String NICKNAME_REG = "^[a-zA-Z\u4e00-\u9fa5]"
+            + "[0-9a-zA-Z_\\-\u4e00-\u9fa5]{1,18}[0-9a-zA-Z\u4e00-\u9fa5]$";
+
+    /**
+     * 公司名正则.
+     */
+    private static final String COMPANYNAME_REG = "^[0-9a-zA-Z\\u4e00-\\u9fa5]"
+            + "[0-9a-zA-Z,\\.&\\(\\)（）\\s\\u4e00-\\u9fa5]{0,98}[0-9a-zA-Z\\.\\u4e00-\\u9fa5]$";
+
+    /**
      * authing后缀.
      */
     @Value("${authing.client.suffix:}")
@@ -682,6 +694,10 @@ public class AuthingUserDao {
      */
     public Map getUserInfoByAccessToken(String appId, String code, String redirectUrl) {
         try {
+            if (StringUtils.isBlank(code) || !code.matches("[a-zA-Z0-9]+")) {
+                LOGGER.error("token apply code param invalid");
+                return null;
+            }
             AuthenticationClient authentication = authingAppSync.getAppClientById(appId);
 
             // code换access_token
@@ -1018,28 +1034,32 @@ public class AuthingUserDao {
      */
     public String updateAccount(String token, String oldAccount, String oldCode,
                                 String account, String code, String type, String userIp) {
+        String userId = "";
         try {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User us = (User) appUserInfo[1];
+            userId = us.getId();
             AuthenticationClient authentication = initUserAuthentication(appId, us);
             switch (type.toLowerCase()) {
                 case "email":
                     authentication.updateEmail(account, code, oldAccount, oldCode).execute();
-                    LogUtil.createLogs(us.getId(), "update email", "user",
+                    LogUtil.createLogs(userId, "update email", "user",
                             "The user update email", userIp, "success");
                     break;
                 case "phone":
                     updatePhoneWithAuthingCode(oldAccount, oldCode, account, code, appId, us.getToken());
-                    LogUtil.createLogs(us.getId(), "update phone", "user",
+                    LogUtil.createLogs(userId, "update phone", "user",
                             "The user update phone", userIp, "success");
                     break;
                 default:
-                    LogUtil.createLogs(us.getId(), "update account", "user",
+                    LogUtil.createLogs(userId, "update account", "user",
                             "The user update account", userIp, "failed");
                     return "false";
             }
         } catch (Exception e) {
+            LogUtil.createLogs(userId, "update account", "user",
+                    "The user update account", userIp, "failed");
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return e.getMessage();
         }
@@ -1452,7 +1472,15 @@ public class AuthingUserDao {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User user = (User) appUserInfo[1];
-
+            String oldPrevious = getPrivacyVersionWithCommunity(user.getGivenName());
+            // 防止未签署隐私协议就更改用户信息
+            if (!oneidPrivacyVersion.equals(oldPrevious)) {
+                for (String key : map.keySet()) {
+                    if (!StringUtils.equals("oneidprivacyaccepted", key.toLowerCase())) {
+                        return MessageCodeConfig.E0007.getMsgZh();
+                    }
+                }
+            }
             UpdateUserInput updateUserInput = new UpdateUserInput();
 
             for (Map.Entry<String, Object> entry : map.entrySet()) {
@@ -1460,9 +1488,17 @@ public class AuthingUserDao {
                 String inputValue = entry.getValue() == null ? "" : entry.getValue().toString();
                 switch (item.toLowerCase()) {
                     case "nickname":
+                        if (StringUtils.isBlank(inputValue) || inputValue.length() < 3 || inputValue.length() > 20
+                                || !inputValue.matches(NICKNAME_REG)) {
+                            return MessageCodeConfig.E0007.getMsgZh();
+                        }
                         updateUserInput.withNickname(inputValue);
                         break;
                     case "company":
+                        if (StringUtils.isBlank(inputValue) || inputValue.length() < 2 || inputValue.length() > 100
+                                || !inputValue.matches(COMPANYNAME_REG)) {
+                            return MessageCodeConfig.E0007.getMsgZh();
+                        }
                         updateUserInput.withCompany(inputValue);
                         break;
                     case "username":
