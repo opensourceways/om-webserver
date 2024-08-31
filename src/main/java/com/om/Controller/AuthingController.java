@@ -17,6 +17,7 @@ import com.anji.captcha.service.CaptchaService;
 import com.om.Result.Constant;
 import com.om.Service.AuthingService;
 import com.om.Service.OidcService;
+import com.om.Service.SendMessageService;
 import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.HttpClientUtils;
@@ -68,6 +69,12 @@ public class AuthingController {
      */
     @Autowired
     private OidcService oidcService;
+
+    /**
+     * 发送短信服务.
+     */
+    @Autowired
+    private SendMessageService sendMessageService;
 
     /**
      * 处理获取验证码请求的方法.
@@ -640,5 +647,18 @@ public class AuthingController {
             return response.isSuccess();
         }
         return false;
+    }
+
+    /**
+     * 发送短信的方法.
+     *
+     * @param map 短信入参对象字符串
+     * @param servletRequest HTTP 请求对象
+     * @return 返回 ResponseEntity 对象
+     */
+    @RequestLimitRedis
+    @RequestMapping(value = "/sendMessage", method = RequestMethod.POST)
+    public Object sendMessage(@RequestBody String map, HttpServletRequest servletRequest) throws Exception {
+        return sendMessageService.getMessage(map, servletRequest);
     }
 }
