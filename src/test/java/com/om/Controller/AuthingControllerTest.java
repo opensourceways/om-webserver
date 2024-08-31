@@ -20,6 +20,7 @@ import com.om.Dao.AuthingUserDao;
 import com.om.Result.Constant;
 import com.om.Service.AuthingService;
 import com.om.Service.OidcService;
+import com.om.Service.SendMessageService;
 import com.om.Service.UserCenterServiceContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -60,6 +61,9 @@ public class AuthingControllerTest {
 
     @Mock
     private AuthingUserDao authingUserDao;
+
+    @Mock
+    private SendMessageService sendMessageService;
 
     @MockBean
     private CaptchaService mockCaptchaService;
@@ -601,6 +605,16 @@ public class AuthingControllerTest {
         when(authingUserDao.updateUserBaseInfo(any(String.class), any()))
                 .thenReturn("success");
         String response = authingUserDao.updateUserBaseInfo("", new HashMap<>());
+        assertThat(response.equals("success"));
+    }
+
+    @Test
+    public void testSendMessage() throws Exception {
+        when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
+        when(sendMessageService.getMessage(any(String.class), any()))
+                .thenReturn("success");
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        Object response = sendMessageService.getMessage("", request);
         assertThat(response.equals("success"));
     }
 }
