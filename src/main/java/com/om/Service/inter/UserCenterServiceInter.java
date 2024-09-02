@@ -79,6 +79,17 @@ public interface UserCenterServiceInter {
                                           HttpServletResponse servletResponse, String token);
 
     /**
+     * 合并账号.
+     *
+     * @param servletRequest 请求体
+     * @param servletResponse 响应体
+     * @param token token
+     * @return 返回值
+     */
+    ResponseEntity mergeUser(HttpServletRequest servletRequest,
+                                    HttpServletResponse servletResponse, String token);
+
+    /**
      * 注销方法.
      *
      * @param servletRequest  HTTP请求对象
