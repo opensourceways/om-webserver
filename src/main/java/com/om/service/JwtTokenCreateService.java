@@ -18,7 +18,6 @@ import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
 import com.om.utils.CodeUtil;
-import com.om.utils.EncryptionService;
 import com.om.utils.RSAUtil;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
@@ -48,12 +47,6 @@ public class JwtTokenCreateService {
     private RedisDao redisDao;
 
     /**
-     * 注入加密类.
-     */
-    @Autowired
-    private EncryptionService encryptionService;
-
-    /**
      * 注入 CodeUtil 依赖.
      */
     @Autowired
@@ -72,28 +65,16 @@ public class JwtTokenCreateService {
     private String authingTokenBasePassword;
 
     /**
-     * 基础密码：OIDC Token.
+     * 基础密码：session Token.
      */
-    @Value("${oidc.token.base.password}")
-    private String oidcTokenBasePassword;
+    @Value("${authing.token.session.password}")
+    private String authingTokenSessionPassword;
 
     /**
      * RSA公钥：Authing.
      */
     @Value("${rsa.authing.publicKey}")
     private String rsaAuthingPublicKey;
-
-    /**
-     * 基础密码：Token.
-     */
-    @Value("${token.base.password}")
-    private String tokenBasePassword;
-
-    /**
-     * 过期时间（秒）：Token.
-     */
-    @Value("${token.expire.seconds}")
-    private String tokenExpireSeconds;
 
     /**
      * OneID隐私版本.
@@ -144,7 +125,6 @@ public class JwtTokenCreateService {
                 .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .sign(Algorithm.HMAC256(authingTokenBasePassword));
         String verifyToken = DigestUtils.md5DigestAsHex(headToken.getBytes(StandardCharsets.UTF_8));
-        idToken = encryptionService.publicEncrypt(idToken);
         redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
         String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes(StandardCharsets.UTF_8));
 
@@ -158,7 +138,7 @@ public class JwtTokenCreateService {
                 .withClaim("verifyToken", verifyToken)
                 .withClaim("client_id", appId)
                 .withClaim("oneidPrivacyAccepted", oneidPrivacyVersionAccept)
-                .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));
+                .sign(Algorithm.HMAC256(permission + authingTokenSessionPassword));
         try {
             RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
             return new String[]{RSAUtil.publicEncrypt(token, publicKey), headToken};
@@ -193,40 +173,6 @@ public class JwtTokenCreateService {
     }
 
     /**
-     * 生成 OIDC 令牌.
-     *
-     * @param userId        用户ID
-     * @param issuer        颁发者
-     * @param scope         范围
-     * @param expireSeconds 过期时间（秒）
-     * @param expireAt      过期时间点
-     * @return OIDC 令牌字符串
-     */
-    public String oidcToken(String userId, String issuer, String scope, long expireSeconds, Date expireAt) {
-        // 过期时间
-        LocalDateTime nowDate = LocalDateTime.now();
-        Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
-        LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
-        expireAt = expireAt != null ? expireAt : Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
-
-        String token = JWT.create()
-                .withIssuer(issuer) //签名
-                .withAudience(userId) //谁接受签名
-                .withIssuedAt(issuedAt) //生成签名的时间
-                .withExpiresAt(expireAt) //过期时间
-                .withClaim("scope", scope)
-                .sign(Algorithm.HMAC256(userId + oidcTokenBasePassword));
-
-        try {
-            RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
-            return RSAUtil.publicEncrypt(token, publicKey);
-        } catch (Exception e) {
-            System.out.println("RSA Encrypt error");
-            return token;
-        }
-    }
-
-    /**
      * 获取应用管理员令牌.
      *
      * @param appId       应用ID
@@ -248,33 +194,5 @@ public class JwtTokenCreateService {
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(expireAt) //过期时间
                 .sign(Algorithm.HMAC256(appSecret + authingTokenBasePassword));
-    }
-
-    /**
-     * 生成重置密码令牌.
-     *
-     * @param account       账号信息
-     * @param expireSeconds 过期时间（秒）
-     * @return 重置密码令牌字符串
-     */
-    public String resetPasswordToken(String account, long expireSeconds) {
-        LocalDateTime nowDate = LocalDateTime.now();
-        Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
-        LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
-        Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
-
-        String token = JWT.create()
-                .withAudience(account)
-                .withIssuedAt(issuedAt)
-                .withExpiresAt(expireAt)
-                .sign(Algorithm.HMAC256(account + tokenBasePassword));
-
-        try {
-            RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
-            return RSAUtil.publicEncrypt(token, publicKey);
-        } catch (Exception e) {
-            System.out.println("RSA Encrypt error");
-            return token;
-        }
     }
 }

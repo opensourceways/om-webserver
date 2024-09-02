@@ -115,7 +115,6 @@ public class AuthingInterceptorTest {
                 String.class, String.class);
         method.setAccessible(true);
         when(mockRedisDao.containListValue(any(), any())).thenReturn(true);
-        when(mockEncryption.privateDecrypt(any())).thenReturn("idToken");
         method.invoke(authingInterceptorUnderTest, "verifyToken", "userId");
 
     }
