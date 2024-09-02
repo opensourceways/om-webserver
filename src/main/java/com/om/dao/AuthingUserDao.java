@@ -1452,7 +1452,15 @@ public class AuthingUserDao {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User user = (User) appUserInfo[1];
-
+            String oldPrevious = getPrivacyVersionWithCommunity(user.getGivenName());
+            // 防止未签署隐私协议就更改用户信息
+            if (!oneidPrivacyVersion.equals(oldPrevious)) {
+                for (String key : map.keySet()) {
+                    if (!StringUtils.equals("oneidprivacyaccepted", key.toLowerCase())) {
+                        return MessageCodeConfig.E0007.getMsgZh();
+                    }
+                }
+            }
             UpdateUserInput updateUserInput = new UpdateUserInput();
 
             for (Map.Entry<String, Object> entry : map.entrySet()) {
