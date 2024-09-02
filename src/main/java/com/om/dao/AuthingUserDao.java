@@ -59,7 +59,10 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.TimeZone;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -1523,18 +1526,14 @@ public class AuthingUserDao {
                             LogUtil.createLogs(user.getId(), "accept privacy", "user",
                                     "User accept privacy version:" + inputValue + ",appVersion:" + appVersion,
                                     userIp, "success");
-                            // 签署新的隐私协议时，保存旧的到历史隐私记录
-                            String previous = getPrivacyVersionWithCommunity(user.getGivenName());
-                            if (StringUtils.isNotEmpty(previous) && !"revoked".equals(previous)) {
-                                privacyHistoryService.savePrivacyHistory(previous, user.getId());
-                            }
+                            // 签署新的隐私协议时，先保存撤销的到历史隐私记录
+                            saveHistory(user, null);
+                            // 再保存新的隐私协议以及签署时间。
+                            saveHistory(user, inputValue);
                         }
                         if ("revoked".equals(inputValue)) {
-                            // 取消签署的隐私协议时，也保存取消前的到历史隐私记录。
-                            String previous = getPrivacyVersionWithCommunity(user.getGivenName());
-                            if (StringUtils.isNotEmpty(previous) && !"revoked".equals(previous)) {
-                                privacyHistoryService.savePrivacyHistory(previous, user.getId());
-                            }
+                            // 取消签署的隐私协议时，也保存撤销到历史隐私记录。
+                            saveHistory(user, null);
                             updateUserInput.withGivenName(privacyHistoryService
                                     .updatePrivacyVersions(user.getGivenName(), "revoked"));
                             if (StringUtils.isNotBlank(user.getId())) {
@@ -1563,6 +1562,36 @@ public class AuthingUserDao {
         }
     }
 
+    private void saveHistory(User user, String newPrivacy) {
+        String content;
+        String type;
+        String opt;
+        // 根据传参判断保存的为签署还是撤销
+        if (newPrivacy == null) {
+            // 保存撤销记录
+            content = getPrivacyVersionWithCommunity(user.getGivenName());
+            type = "revokeTime";
+            opt = "revoke";
+        } else {
+            // 保存签署记录
+            content = newPrivacy;
+            type = "acceptTime";
+            opt = "accept";
+        }
+        if (StringUtils.isNotEmpty(content) && !"revoked".equals(content)) {
+            Date date = new Date();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            sdf.setTimeZone(TimeZone.getTimeZone("GMT+8:00"));
+            String nowTime = sdf.format(date);
+            JSONObject json = new JSONObject();
+            json.put("appVersion", appVersion);
+            json.put("privacyVersion", content);
+            json.put("opt", opt);
+            json.put(type, nowTime);
+            privacyHistoryService.savePrivacyHistory(json.toString(), user.getId());
+        }
+    }
+
     /**
      * 撤销用户隐私设置.
      *
@@ -1579,6 +1608,7 @@ public class AuthingUserDao {
             if (updateUser == null) {
                 return false;
             }
+            saveHistory(user, null);
             LOGGER.info(String.format("User %s cancel privacy consent version %s for app version %s",
                     user.getId(), oneidPrivacyVersion, appVersion));
             return true;
