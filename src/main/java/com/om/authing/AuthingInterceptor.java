@@ -21,13 +21,11 @@ import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
 import com.om.service.JwtTokenCreateService;
-import com.om.utils.EncryptionService;
 import com.om.utils.HttpClientUtils;
 import com.om.utils.LogUtil;
 import com.om.utils.ClientIPUtil;
 import com.om.utils.RSAUtil;
 import com.om.token.ClientSessionManager;
-import com.om.token.ManageToken;
 
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -96,12 +94,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
      */
     @Autowired
     private ClientSessionManager clientSessionManager;
-
-    /**
-     * 注入加密服务.
-     */
-    @Autowired
-    private EncryptionService encryptionService;
 
     /**
      * Authing Token 的基础密码.
@@ -207,14 +199,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        // get if manageToken present
-        ManageToken manageToken = method.getAnnotation(ManageToken.class);
-
         // 校验header中的token
         String headerJwtToken = httpServletRequest.getHeader("token");
-        if (manageToken != null && manageToken.required()) {
-            headerJwtToken = httpServletRequest.getHeader("user-token");
-        }
         String headJwtTokenMd5 = verifyHeaderToken(headerJwtToken);
         String userIp = ClientIPUtil.getClientIpAddress(httpServletRequest);
         if (headJwtTokenMd5.equals("unauthorized") || headJwtTokenMd5.equals("token expires")) {
@@ -290,11 +276,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
                 tokenError(httpServletRequest, httpServletResponse, "unauthorized");
                 return false;
             }
-        }
-
-        // skip refresh if manageToken present
-        if (manageToken != null && manageToken.required()) {
-            return true;
         }
 
         // 每次交互刷新token
