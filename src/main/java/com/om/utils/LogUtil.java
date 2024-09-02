@@ -182,7 +182,7 @@ public final class LogUtil {
      * @param result 操作结果
      */
     public static void createLogs(String userId, String type, String module, String detail, String ip, String result) {
-        LOGGER.info(String.format("(Client ip:%s, User id:%s, Module:%s, Type:%s) Detail:%s.--->Result:%s.",
+        LOGGER.info(String.format("(Client ip:%s, User:%s, Module:%s, Type:%s) Detail:%s.--->Result:%s.",
                 ip, userId, module, type, detail, result));
     }
 }
