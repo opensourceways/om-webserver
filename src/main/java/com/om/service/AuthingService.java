@@ -422,10 +422,8 @@ public class AuthingService implements UserCenterServiceInter {
 
         if (StringUtils.isNotBlank(password)) {
             // 密码登录
-            try {
-                password = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(password));
-            } catch (Exception e) {
-                LOGGER.error("Hex to Base64 fail. " + e.getMessage());
+            if (!isPasswdParmValid(password)) {
+                LOGGER.error("password is invalid");
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
             msg = accountType.equals(Constant.EMAIL_TYPE)
@@ -511,13 +509,9 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, limitUtil.loginFail(failCounter));
         }
         if (StringUtils.isNotBlank(password)) {
-            try {
-                password = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(password));
-            } catch (Exception e) {
-                LOGGER.error("Hex to Base64 fail. " + e.getMessage());
-                LogUtil.createLogs(account, "user login", "login",
-                        "The user login", ip, "failed");
-                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, limitUtil.loginFail(failCounter));
+            if (!isPasswdParmValid(password)) {
+                LOGGER.error("password is invalid");
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null, limitUtil.loginFail(failCounter));
             }
         }
         // 登录成功返回用户token
@@ -841,7 +835,7 @@ public class AuthingService implements UserCenterServiceInter {
                                      String code, String permission, String redirectUrl) {
         String userId = "";
         try {
-            if (isPermissionParmValid(permission)) {
+            if (!isPermissionParmValid(permission)) {
                 return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
             }
             String appId = httpServletRequest.getParameter("client_id");
@@ -1395,7 +1389,10 @@ public class AuthingService implements UserCenterServiceInter {
             if (StringUtils.isBlank(newPwd)) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
             }
-            newPwd = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(newPwd));
+            if (!isPasswdParmValid(newPwd)) {
+                LOGGER.error("password is invalid");
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
+            }
             String tokenKey = Constant.REDIS_PREFIX_RESET_PASSWD + pwdResetToken;
             String userId = (String) redisDao.get(tokenKey);
             if (StringUtils.isBlank(userId)) {
@@ -1561,7 +1558,7 @@ public class AuthingService implements UserCenterServiceInter {
                         : authingUserDao.loginByPhonePwd(app, account, password);
             } else { // 用户名登录
                 // 用户名校验
-                if (isUserNameParmValid(account)) {
+                if (!isUserNameParmValid(account)) {
                     return MessageCodeConfig.E00052.getMsgZh();
                 }
                 msg = authingUserDao.loginByUsernamePwd(app, account, password);
@@ -1627,8 +1624,16 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
+    private boolean isPasswdParmValid(String passWord) {
+        if (StringUtils.isNotBlank(passWord) && passWord.length() < 500
+                && passWord.matches(Constant.NORMAL_STR_REGEX)) {
+            return true;
+        }
+        return false;
+    }
+
     private boolean isCodeParmValid(String code) {
-        if (StringUtils.isNotBlank(code) && code.matches("[a-zA-Z0-9]+")) {
+        if (StringUtils.isNotBlank(code) && code.length() < 10 && code.matches(Constant.NORMAL_STR_REGEX)) {
             return true;
         }
         return false;
@@ -1636,7 +1641,7 @@ public class AuthingService implements UserCenterServiceInter {
 
     private boolean isPermissionParmValid(String permission) {
         if (StringUtils.isNotBlank(permission) && permission.length() < 100
-                && permission.matches("[a-zA-Z0-9]+")) {
+                && permission.matches(Constant.NORMAL_STR_REGEX)) {
             return true;
         }
         return false;
