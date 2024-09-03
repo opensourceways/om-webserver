@@ -205,12 +205,4 @@ public interface UserCenterServiceInter {
      * @return ResponseEntity 响应实体
      */
     ResponseEntity appVerify(String appId, String redirect);
-
-    /**
-     * 检测token.
-     *
-     * @param token token
-     * @return token中用户信息
-     */
-    ResponseEntity verifyToken(String token);
 }

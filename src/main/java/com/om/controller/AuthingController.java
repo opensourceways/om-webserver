@@ -129,7 +129,7 @@ public class AuthingController {
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
-    @RequestMapping(value = {"/captcha/sendCode", "/v3/sendCode"}, method = RequestMethod.GET)
+    @RequestMapping(value = "/captcha/sendCode", method = RequestMethod.GET)
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                      @RequestParam("captchaVerification") String captchaVerification) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
@@ -229,22 +229,6 @@ public class AuthingController {
                                       @CookieValue(value = "_Y_G_", required = false) String token) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.refreshUser(servletRequest, servletResponse, token);
-    }
-
-    /**
-     * 检测登录状态.
-     *
-     * @param servletRequest request
-     * @param token token信息
-     * @return 解析的用户信息
-     */
-    @RequestLimitRedis
-    @AuthingUserToken
-    @RequestMapping(value = "/verify/token", method = RequestMethod.GET)
-    public ResponseEntity verifyToken(HttpServletRequest servletRequest,
-                                      @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.verifyToken(token);
     }
 
     /**

@@ -697,7 +697,7 @@ public class AuthingUserDao {
      */
     public Map getUserInfoByAccessToken(String appId, String code, String redirectUrl) {
         try {
-            if (StringUtils.isBlank(code) || !code.matches("[a-zA-Z0-9]+")) {
+            if (StringUtils.isBlank(code) || code.length() > 64 || !code.matches("[a-zA-Z0-9_-]+")) {
                 LOGGER.error("token apply code param invalid");
                 return null;
             }
@@ -955,7 +955,7 @@ public class AuthingUserDao {
             HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/system").asJson();
             if (response.getStatus() == 200) {
                 JSONObject resObj = response.getBody().getObject();
-                resObj.remove("sm2");
+                resObj.remove("rsa");
                 resObj.remove("version");
                 resObj.remove("publicIps");
                 msg = resObj.toString();
