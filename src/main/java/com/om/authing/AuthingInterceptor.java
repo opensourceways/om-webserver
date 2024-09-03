@@ -33,7 +33,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -213,15 +212,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
                         userIp, "auto logout");
             }
             return false;
-        }
-        // 校验用户名
-        if (!httpServletRequest.getRequestURI().equals(BASEINFO_URI)) {
-            DecodedJWT jtd = JWT.decode(headerJwtToken);
-            List<String> audiences = jtd.getAudience();
-            if (CollectionUtils.isEmpty(audiences) || StringUtils.isEmpty(audiences.get(0))) {
-                tokenError(httpServletRequest, httpServletResponse, "unset username");
-                return false;
-            }
         }
         // 校验domain
         String verifyDomainMsg = verifyDomain(httpServletRequest);
