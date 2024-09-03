@@ -214,15 +214,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
             }
             return false;
         }
-        // 校验用户名
-        if (!httpServletRequest.getRequestURI().equals(BASEINFO_URI)) {
-            DecodedJWT jtd = JWT.decode(headerJwtToken);
-            List<String> audiences = jtd.getAudience();
-            if (CollectionUtils.isEmpty(audiences) || StringUtils.isEmpty(audiences.get(0))) {
-                tokenError(httpServletRequest, httpServletResponse, "unset username");
-                return false;
-            }
-        }
         // 校验domain
         String verifyDomainMsg = verifyDomain(httpServletRequest);
         if (!verifyDomainMsg.equals("success")) {
