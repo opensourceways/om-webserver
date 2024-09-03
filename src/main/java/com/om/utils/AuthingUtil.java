@@ -243,40 +243,4 @@ public class AuthingUtil {
         }
         return cookie;
     }
-
-    /**
-     * 解析oidc支持的scope.
-     *
-     * @return scope map
-     */
-    public HashMap<String, String> oidcScopeAuthingMapping() {
-        String[] mappings = env.getProperty("oidc.scope.authing.mapping", "").split(",");
-        HashMap<String, String> authingMapping = new HashMap<>();
-        for (String mapping : mappings) {
-            if (StringUtils.isBlank(mapping)) {
-                continue;
-            }
-            String[] split = mapping.split(":");
-            authingMapping.put(split[0], split[1]);
-        }
-        return authingMapping;
-    }
-
-    /**
-     * 解析oidc支持的scope.
-     *
-     * @return 其他的scope map
-     */
-    public HashMap<String, String[]> getOidcScopesOther() {
-        String[] others = env.getProperty("oidc.scope.other", "").split(";");
-        HashMap<String, String[]> otherMap = new HashMap<>();
-        for (String other : others) {
-            if (StringUtils.isBlank(other)) {
-                continue;
-            }
-            String[] split = other.split("->");
-            otherMap.put(split[0], split[1].split(","));
-        }
-        return otherMap;
-    }
 }
