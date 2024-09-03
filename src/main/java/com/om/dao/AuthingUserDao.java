@@ -497,7 +497,7 @@ public class AuthingUserDao {
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
                         + "\"profile\":{\"email\":\"%s\", \"givenName\":\"%s\"},"
-                        + "\"options\":{\"passwordEncryptType\":\"rsa\","
+                        + "\"options\":{\"passwordEncryptType\":\"sm2\","
                         + " \"emailPassCodeForInformationCompletion\":\"%s\"}}",
                 username, password, email, privacyHistoryService
                         .createPrivacyVersions(oneidPrivacyVersion, true), code);
@@ -521,7 +521,7 @@ public class AuthingUserDao {
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
                         + "\"profile\":{\"phone\":\"%s\", \"phoneCountryCode\":\"%s\", \"givenName\":\"%s\"},"
-                        + "\"options\":{\"passwordEncryptType\":\"rsa\", "
+                        + "\"options\":{\"passwordEncryptType\":\"sm2\", "
                         + "\"phonePassCodeForInformationCompletion\":\"%s\"}}",
                 username, password, phone, phoneCountryCode,
                 privacyHistoryService.createPrivacyVersions(oneidPrivacyVersion, true), code);
@@ -606,7 +606,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"sm2\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 email, password, app.getId(), app.getSecret());
         return login(app.getId(), body);
@@ -630,7 +630,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"sm2\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 phone, password, app.getId(), app.getSecret());
         return login(app.getId(), body);
@@ -652,7 +652,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"sm2\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 username, password, app.getId(), app.getSecret());
         return login(app.getId(), body);
@@ -1012,7 +1012,7 @@ public class AuthingUserDao {
         try {
             String body = String.format("{\"passwordResetToken\": \"%s\","
                     + "\"password\": \"%s\","
-                    + "\"passwordEncryptType\": \"rsa\"}", pwdResetToken, newPwd);
+                    + "\"passwordEncryptType\": \"sm2\"}", pwdResetToken, newPwd);
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/reset-password")
                     .header("Content-Type", "application/json").body(body).asJson();
             JSONObject resObj = response.getBody().getObject();
