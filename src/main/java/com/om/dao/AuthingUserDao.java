@@ -1871,6 +1871,9 @@ public class AuthingUserDao {
                 phoneCountryCode = countryCode;
             }
         }
+        if (phone.startsWith("+") && !phone.startsWith(phoneCountryCode)) {
+            phoneCountryCode = "";
+        }
         return phoneCountryCode;
     }
 
