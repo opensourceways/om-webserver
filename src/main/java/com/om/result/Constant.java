@@ -85,6 +85,11 @@ public final class Constant {
     public static final String OPEN_MIND_USERNAME_REGEX = "^[a-zA-Z]([-_.]([a-zA-Z0-9])|[a-zA-Z0-9])+$";
 
     /**
+     * 字母或数字.
+     */
+    public static final String NORMAL_STR_REGEX = "[a-zA-Z0-9]+";
+
+    /**
      * openmind用户名最小长度.
      */
     public static final int OPEN_MIND_USERNAME_MIN = 3;
