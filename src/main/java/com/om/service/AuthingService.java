@@ -795,31 +795,6 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     /**
-     * 检测token.
-     *
-     * @param token token
-     * @return token中用户信息
-     */
-    @Override
-    public ResponseEntity verifyToken(String token) {
-        if (StringUtils.isBlank(token)) {
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-        try {
-            token = authingUtil.rsaDecryptToken(token);
-            DecodedJWT decode = JWT.decode(token);
-            String userId = decode.getAudience().get(0);
-            // 返回结果
-            HashMap<String, Object> userData = new HashMap<>();
-            userData.put("userId", userId);
-            return result(HttpStatus.OK, "success", userData);
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-    }
-
-    /**
      * 申请令牌方法.
      *
      * @param httpServletRequest HTTP请求对象
