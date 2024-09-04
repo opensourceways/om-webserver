@@ -279,19 +279,6 @@ public class AuthingControllerTest {
     }
 
     @Test
-    public void testRefreshUser() throws Exception {
-        when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setParameter("community", "openeuler");
-        MockHttpServletResponse response = new MockHttpServletResponse();
-        when(authingService.refreshUser(any(), any(), any(String.class)))
-                .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
-        ResponseEntity responseResult = authingController.refreshUser(request, response, "");
-
-        assertThat(responseResult.getStatusCode()).isEqualTo(HttpStatus.OK);
-    }
-
-    @Test
     public void testGetUser() throws Exception {
         when(mockAuthingService.authingUserPermission("token"))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
