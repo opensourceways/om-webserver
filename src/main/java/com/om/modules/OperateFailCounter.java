@@ -19,7 +19,7 @@ import lombok.experimental.Accessors;
  */
 @Data
 @Accessors(chain = true)
-public class LoginFailCounter {
+public class OperateFailCounter {
     /**
      * 账号信息.
      */
