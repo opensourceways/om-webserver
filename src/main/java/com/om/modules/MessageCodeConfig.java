@@ -147,7 +147,7 @@ public enum MessageCodeConfig {
     /**
      * 错误代码 E00030: 失败次数过多，请稍后重试.
      */
-    E00030("E00030", "Too many failures, Please try again later", "失败次数过多，请稍后重试"),
+    E00030("E00030", "Too many failures, Please try again in 1 hour", "失败次数过多，请1小时后重试"),
     /**
      * 错误代码 E00031: 新邮箱与已绑定邮箱相同.
      */
@@ -410,7 +410,7 @@ public enum MessageCodeConfig {
         map.put("mobile number every day exceeds the upper limit", E00028);
         map.put("手机号每天发送的验证次数超过上限", E00028);
         map.put("仅登录、注册和重置密码使用", E00029);
-        map.put("失败次数过多，请稍后重试", E00030);
+        map.put("失败次数过多，请1小时后重试", E00030);
         map.put("新邮箱与已绑定邮箱相同", E00031);
         map.put("新手机号与已绑定手机号相同", E00032);
         map.put("用户名唯一，不可修改", E00033);

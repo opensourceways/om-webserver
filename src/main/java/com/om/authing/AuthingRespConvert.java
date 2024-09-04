@@ -40,6 +40,11 @@ public final class AuthingRespConvert {
     private static final String FIELD_CONFLICT = "duplicate key value violates unique";
 
     /**
+     * 更新邮箱时，邮箱和原本邮箱不一致.
+     */
+    private static final String EMAIL_CONFLICT = "修改邮箱必须验证之前的邮箱";
+
+    /**
      * 只能能对外展示的Authing错误信息.
      */
     private static final Map<Integer, String> API_CODE_MAP = Collections.unmodifiableMap(
@@ -148,6 +153,9 @@ public final class AuthingRespConvert {
         }
         if (msg.startsWith(FIELD_CONFLICT)) {
             conMsg = MessageCodeConfig.E0004.getMsgZh();
+        }
+        if (msg.startsWith(EMAIL_CONFLICT)) {
+            conMsg = MessageCodeConfig.E00012.getMsgZh();
         }
         return conMsg;
     }
