@@ -1471,10 +1471,12 @@ public class AuthingUserDao {
      */
     public String updateUserBaseInfo(String token, Map<String, Object> map, String userIp) throws ServerErrorException {
         String msg = "success";
+        String userId = "";
         try {
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User user = (User) appUserInfo[1];
+            userId = user.getId();
             String oldPrevious = getPrivacyVersionWithCommunity(user.getGivenName());
             // 防止未签署隐私协议就更改用户信息
             if (!oneidPrivacyVersion.equals(oldPrevious)) {
@@ -1555,9 +1557,13 @@ public class AuthingUserDao {
             return msg;
         } catch (ServerErrorException e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            LogUtil.createLogs(userId, "update baseInfo", "user",
+                    "User update baseInfo", userIp, "failed");
             throw e;
         } catch (Exception ex) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
+            LogUtil.createLogs(userId, "update baseInfo", "user",
+                    "User update baseInfo", userIp, "failed");
             return MessageCodeConfig.E0007.getMsgZh();
         }
     }

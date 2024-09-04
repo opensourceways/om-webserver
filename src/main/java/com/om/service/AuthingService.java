@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.dao.AuthingUserDao;
 import com.om.dao.RedisDao;
-import com.om.modules.LoginFailCounter;
+import com.om.modules.OperateFailCounter;
 import com.om.modules.MessageCodeConfig;
 import com.om.modules.ServerErrorException;
 import com.om.modules.authing.AuthingAppSync;
@@ -58,6 +58,7 @@ import org.springframework.web.util.HtmlUtils;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -362,8 +363,12 @@ public class AuthingService implements UserCenterServiceInter {
         }
         redisDao.set(redisKey, "code", 60L);
         if (!msg.equals("success")) {
+            LogUtil.createLogs(account, "send code", "code",
+                    "The user sends code", ClientIPUtil.getClientIpAddress(servletRequest), "failed");
             return result(HttpStatus.BAD_REQUEST, null, msg, null);
         } else {
+            LogUtil.createLogs(account, "send code", "code",
+                    "The user sends code", ClientIPUtil.getClientIpAddress(servletRequest), "success");
             return result(HttpStatus.OK, "success", null);
         }
     }
@@ -467,7 +472,7 @@ public class AuthingService implements UserCenterServiceInter {
         if (StringUtils.isEmpty(account)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
-        LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
+        OperateFailCounter failCounter = limitUtil.initLoginFailCounter(account);
         return result(HttpStatus.OK, Constant.SUCCESS, limitUtil.isNeedCaptcha(failCounter));
     }
 
@@ -494,22 +499,23 @@ public class AuthingService implements UserCenterServiceInter {
         if (!isPermissionParmValid(permission)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
-        LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
-        // 限制一分钟登录失败次数
+        OperateFailCounter failCounter = limitUtil.initLoginFailCounter(account);
+        // 限制一小时登录失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
             LogUtil.createLogs(account, "user login", "login",
-                    "The user login", ip, "failed");
-            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, limitUtil.loginFail(failCounter));
+                    "The user login too many failures", ip, "failed");
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, null);
         }
         // 多次失败需要图片验证码
         if (limitUtil.isNeedCaptcha(failCounter).get(Constant.NEED_CAPTCHA_VERIFICATION) && !isSuccess) {
             LogUtil.createLogs(account, "user login", "login",
-                    "The user login", ip, "failed");
+                    "The user login wrong pic code", ip, "failed");
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, limitUtil.loginFail(failCounter));
         }
         if (StringUtils.isNotBlank(password)) {
             if (!isPasswdParmValid(password)) {
-                LOGGER.error("password is invalid");
+                LogUtil.createLogs(account, "user login", "login",
+                        "The user login", ip, "failed");
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null, limitUtil.loginFail(failCounter));
             }
         }
@@ -544,9 +550,9 @@ public class AuthingService implements UserCenterServiceInter {
                 user.getGivenName());
         // 同意隐私版本更新为前端传入的最新版本
         if (!oneidPrivacyVersionAccept.equals(oneidPrivacy)) {
-          if (privacyHistoryService.updatePrivacy(userId, oneidPrivacy)) {
-              oneidPrivacyVersionAccept = oneidPrivacy;
-          }
+            if (privacyHistoryService.updatePrivacy(userId, oneidPrivacy)) {
+                oneidPrivacyVersionAccept = oneidPrivacy;
+            }
         }
 
         // 生成token
@@ -933,12 +939,13 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity deleteUser(HttpServletRequest servletRequest,
                                      HttpServletResponse servletResponse, String token) {
+        String userId = "";
+        String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
         try {
             token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
-            String userId = decode.getAudience().get(0);
+            userId = decode.getAudience().get(0);
             String photo = authingUserDao.getUser(userId).getPhoto();
-            String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
             //用户注销
             if (authingUserDao.deleteUserById(userId)) {
                 LogUtil.createLogs(userId, "delete account", "user",
@@ -951,8 +958,13 @@ public class AuthingService implements UserCenterServiceInter {
             }
         } catch (RuntimeException e) {
             LOGGER.error("Internal Server RuntimeException." + e.getMessage());
+            LogUtil.createLogs(userId, "delete account", "user",
+                    "The user delete account", userIp, "failed");
             return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
         } catch (Exception e) {
+            LOGGER.error("delete account failed {}", e.getMessage());
+            LogUtil.createLogs(userId, "delete account", "user",
+                    "The user delete account", userIp, "failed");
             return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
         }
     }
@@ -960,13 +972,15 @@ public class AuthingService implements UserCenterServiceInter {
     /**
      * 发送验证码方法.
      *
+     * @param request HTTP 请求对象
      * @param token     认证令牌
      * @param account   账号
      * @param channel   通道
      * @param isSuccess 是否成功标识
      * @return ResponseEntity 响应实体
      */
-    public ResponseEntity sendCode(String token, String account, String channel, boolean isSuccess) {
+    public ResponseEntity sendCode(HttpServletRequest request, String token, String account,
+                                   String channel, boolean isSuccess) {
         // 图片验证码二次校验
         if (!isSuccess) {
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
@@ -982,6 +996,9 @@ public class AuthingService implements UserCenterServiceInter {
         String redisKey = account.toLowerCase() + "_sendcode";
         String codeOld = (String) redisDao.get(redisKey);
         if (codeOld != null) {
+            LogUtil.createLogs(account, "send code", "code",
+                    "Verification code has been sent within a minute",
+                    ClientIPUtil.getClientIpAddress(request), "failed");
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
         }
         String msg;
@@ -989,11 +1006,17 @@ public class AuthingService implements UserCenterServiceInter {
         if (Constant.PHONE_TYPE.equals(accountType) && !"+86".equals(authingUserDao.getPhoneCountryCode(account))) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00068, null, null);
         }
+        String userId = "";
         try {
             token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String appId = decode.getClaim("client_id").asString();
-            String userId = decode.getAudience().get(0);
+            userId = decode.getAudience().get(0);
+            OperateFailCounter failCounter = limitUtil.initBindFailCounter(userId);
+            // 限制一小时失败次数
+            if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, null);
+            }
             User user = authingUserDao.getUser(userId);
             String emailInDb = user.getEmail();
             if (accountType.equals("email")
@@ -1009,14 +1032,22 @@ public class AuthingService implements UserCenterServiceInter {
             }
         } catch (RuntimeException e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn(), e.getMessage());
+            LogUtil.createLogs(userId, "send code", "code",
+                    "The user sends code", ClientIPUtil.getClientIpAddress(request), "failed");
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
         } catch (Exception e) {
+            LogUtil.createLogs(userId, "send code", "code",
+                    "The user sends code", ClientIPUtil.getClientIpAddress(request), "failed");
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0008.getMsgZh(), null);
         }
         redisDao.set(redisKey, "code", 60L);
         if (!msg.equals("success")) {
+            LogUtil.createLogs(userId, "send code", "code",
+                    "The user sends code", ClientIPUtil.getClientIpAddress(request), "failed");
             return result(HttpStatus.BAD_REQUEST, null, msg, null);
         } else {
+            LogUtil.createLogs(userId, "send code", "code",
+                    "The user sends code", ClientIPUtil.getClientIpAddress(request), "success");
             return result(HttpStatus.OK, "success", null);
         }
     }
@@ -1084,8 +1115,16 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E00012.getMsgZh(), null);
         }
         String res = sendSelfDistributedCode(account, accountType, "CodeUnbind");
-        return res.equals("success") ? result(HttpStatus.OK, "success", null)
-                : result(HttpStatus.BAD_REQUEST, null, res, null);
+
+        if (res.equals("success")) {
+            LogUtil.createLogs(account, "send code", "code",
+                    "The user sends unbind code", ClientIPUtil.getClientIpAddress(servletRequest), "success");
+            return result(HttpStatus.OK, "success", null);
+        } else {
+            LogUtil.createLogs(account, "send code", "code",
+                    "The user sends unbind code", ClientIPUtil.getClientIpAddress(servletRequest), "failed");
+            return result(HttpStatus.BAD_REQUEST, null, res, null);
+        }
     }
 
     /**
@@ -1106,6 +1145,19 @@ public class AuthingService implements UserCenterServiceInter {
         String code = servletRequest.getParameter("code");
         String accountType = servletRequest.getParameter("account_type");
         String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
+        String userId = "";
+        try {
+            String decodeToken = authingUtil.rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(decodeToken);
+            userId = decode.getAudience().get(0);
+        } catch (InvalidKeySpecException e) {
+            LOGGER.error("decode token failed {}", e.getMessage());
+            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+        } catch (Exception e) {
+            LOGGER.error("decode token failed {}", e.getMessage());
+            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+        }
+
         if (StringUtils.isBlank(oldAccount) || StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
         }
@@ -1114,6 +1166,9 @@ public class AuthingService implements UserCenterServiceInter {
         }
         if (Constant.PHONE_TYPE.equals(accountType) && !"+86".equals(authingUserDao.getPhoneCountryCode(account))) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00068, null, null);
+        }
+        if (!accountType.equals(getAccountType(oldAccount)) || !accountType.equals(getAccountType(account))) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
         //账号格式校验
         if ((!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX))
@@ -1125,7 +1180,17 @@ public class AuthingService implements UserCenterServiceInter {
         } else if (accountType.toLowerCase().equals("phone") && oldAccount.equals(account)) {
             return result(HttpStatus.BAD_REQUEST, null, "新手机号与已绑定手机号相同", null);
         }
+        OperateFailCounter failCounter = limitUtil.initBindFailCounter(userId);
+        // 限制一小时失败次数
+        if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, null);
+        }
         String res = authingUserDao.updateAccount(token, oldAccount, oldCode, account, code, accountType, userIp);
+        if (!"true".equals(res)) {
+            limitUtil.operateFail(failCounter);
+        } else {
+            redisDao.remove(userId + Constant.BIND_FAILED_COUNT);
+        }
         return message(res);
     }
 
@@ -1146,6 +1211,9 @@ public class AuthingService implements UserCenterServiceInter {
         String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
         if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+        }
+        if (!accountType.equals(getAccountType(account))) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
         account = getAbsoluteAccount(account);
         String redisKeyPrefix = account;
@@ -1168,8 +1236,12 @@ public class AuthingService implements UserCenterServiceInter {
         String res = authingUserDao.unbindAccount(token, account, accountType, userIp);
         if (res.equals("unbind success")) {
             redisDao.remove(redisKey);
+            LogUtil.createLogs(account, "unbind account", "unbind",
+                    "The user unbind account", ClientIPUtil.getClientIpAddress(servletRequest), "success");
             return result(HttpStatus.OK, res, null);
         }
+        LogUtil.createLogs(account, "unbind account", "unbind",
+                "The user unbind account", ClientIPUtil.getClientIpAddress(servletRequest), "failed");
         return result(HttpStatus.BAD_REQUEST, null, res, null);
     }
 
@@ -1188,6 +1260,18 @@ public class AuthingService implements UserCenterServiceInter {
         String code = servletRequest.getParameter("code");
         String accountType = servletRequest.getParameter("account_type");
         String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
+        String userId = "";
+        try {
+            String decodeToken = authingUtil.rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(decodeToken);
+            userId = decode.getAudience().get(0);
+        } catch (InvalidKeySpecException e) {
+            LOGGER.error("decode token failed {}", e.getMessage());
+            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+        } catch (Exception e) {
+            LOGGER.error("decode token failed {}", e.getMessage());
+            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+        }
         if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
         }
@@ -1199,10 +1283,24 @@ public class AuthingService implements UserCenterServiceInter {
         if (!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
+        if (!accountType.equals(getAccountType(account))) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
         if (Constant.PHONE_TYPE.equals(accountType) && !"+86".equals(authingUserDao.getPhoneCountryCode(account))) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00068, null, null);
         }
-        return message(authingUserDao.bindAccount(token, account, code, accountType, userIp));
+        OperateFailCounter failCounter = limitUtil.initBindFailCounter(userId);
+        // 限制一小时失败次数
+        if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, null);
+        }
+        String res = authingUserDao.bindAccount(token, account, code, accountType, userIp);
+        if (!"true".equals(res)) {
+            limitUtil.operateFail(failCounter);
+        } else {
+            redisDao.remove(userId + Constant.BIND_FAILED_COUNT);
+        }
+        return message(res);
     }
 
     /**

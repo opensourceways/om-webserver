@@ -299,6 +299,7 @@ public class AuthingController {
     /**
      * 发送验证码的方法.
      *
+     * @param httpServletRequest HTTP 请求对象
      * @param account 账号信息
      * @param channel 通道信息
      * @param token 包含令牌的 Cookie 值（可选）
@@ -308,11 +309,12 @@ public class AuthingController {
     @RequestLimitRedis
     @AuthingUserToken
     @RequestMapping(value = "/sendcode", method = RequestMethod.GET)
-    public ResponseEntity sendCode(@RequestParam(value = "account") String account,
+    public ResponseEntity sendCode(HttpServletRequest httpServletRequest,
+                                   @RequestParam(value = "account") String account,
                                    @RequestParam(value = "channel") String channel,
                                    @CookieValue(value = "_Y_G_", required = false) String token,
                                    @RequestParam("captchaVerification") String captchaVerification) {
-        return authingService.sendCode(token, account, channel, verifyCaptcha(captchaVerification));
+        return authingService.sendCode(httpServletRequest, token, account, channel, verifyCaptcha(captchaVerification));
     }
 
     /**
