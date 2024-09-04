@@ -231,6 +231,11 @@ public final class Constant {
     public static final String LOGIN_COUNT = "loginCount";
 
     /**
+     * LOGIN_COUNT: 绑定计数.
+     */
+    public static final String BIND_FAILED_COUNT = "bindFailedCount";
+
+    /**
      * 发送验证码标识.
      */
     public static final String SEND_CODE = "_sendCode_";
