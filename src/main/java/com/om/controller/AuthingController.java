@@ -215,23 +215,6 @@ public class AuthingController {
     }
 
     /**
-     * 处理刷新用户请求的方法.
-     *
-     * @param servletRequest HTTP 请求对象
-     * @param servletResponse HTTP 响应对象
-     * @param token 包含令牌的 Cookie 值（可选）
-     * @return 返回 ResponseEntity 对象
-     */
-    @RequestLimitRedis
-    @AuthingUserToken
-    @RequestMapping(value = "/user/refresh", method = RequestMethod.GET)
-    public ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-                                      @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.refreshUser(servletRequest, servletResponse, token);
-    }
-
-    /**
      * 获取用户信息的方法.
      *
      * @param token 包含令牌的 Cookie 值（可选）
