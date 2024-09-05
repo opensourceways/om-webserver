@@ -20,6 +20,8 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
+import java.security.DrbgParameters;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 
@@ -82,7 +84,12 @@ public class EncryptionService {
             throw new IllegalArgumentException("无效的密钥长度（必须是32字节）");
         }
         secretKeySpec = new SecretKeySpec(keyBytes, aesKey);
-        secureRandom = new SecureRandom();
+        try {
+            secureRandom = SecureRandom.getInstance("DRBG",
+                    DrbgParameters.instantiation(256, DrbgParameters.Capability.RESEED_ONLY, null));
+        } catch (NoSuchAlgorithmException e) {
+            LOGGER.error("init secureRandom failed {}", e.getMessage());
+        }
     }
 
     /**
