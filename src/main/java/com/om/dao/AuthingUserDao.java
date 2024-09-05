@@ -1493,15 +1493,15 @@ public class AuthingUserDao {
                 String inputValue = entry.getValue() == null ? "" : entry.getValue().toString();
                 switch (item.toLowerCase()) {
                     case "nickname":
-                        if (StringUtils.isBlank(inputValue) || inputValue.length() < 3 || inputValue.length() > 20
-                                || !inputValue.matches(NICKNAME_REG)) {
+                        if (StringUtils.isNotBlank(inputValue) && (inputValue.length() < 3 || inputValue.length() > 20
+                                || !inputValue.matches(NICKNAME_REG))) {
                             return MessageCodeConfig.E0007.getMsgZh();
                         }
                         updateUserInput.withNickname(inputValue);
                         break;
                     case "company":
-                        if (StringUtils.isBlank(inputValue) || inputValue.length() < 2 || inputValue.length() > 100
-                                || !inputValue.matches(COMPANYNAME_REG)) {
+                        if (StringUtils.isNotBlank(inputValue) && (inputValue.length() < 2 || inputValue.length() > 100
+                                || !inputValue.matches(COMPANYNAME_REG))) {
                             return MessageCodeConfig.E0007.getMsgZh();
                         }
                         updateUserInput.withCompany(inputValue);
