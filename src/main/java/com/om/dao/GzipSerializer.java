@@ -35,6 +35,12 @@ class GzipSerializer implements RedisSerializer<Object> {
      * 缓冲区大小常量.
      */
     public static final int BUFFER_SIZE = 4096;
+
+    /**
+     * 最大解压大小.
+     */
+    private static final int MAX_ZIP_DATA_SIZE = 1024 * 1024 * 5;
+
     /**
      * 这里组合方式，使用到了一个序列化器.
      */
@@ -88,8 +94,13 @@ class GzipSerializer implements RedisSerializer<Object> {
             gzip = new GZIPInputStream(bis);
             byte[] buff = new byte[BUFFER_SIZE];
             int n;
+            int dataSizeSum = 0;
             // 先解压
             while ((n = gzip.read(buff, 0, BUFFER_SIZE)) > 0) {
+                dataSizeSum += n;
+                if (dataSizeSum > MAX_ZIP_DATA_SIZE) {
+                    throw new SerializationException("Gzip deserizelie error, data too large");
+                }
                 bos.write(buff, 0, n);
             }
             // 再反序列化
