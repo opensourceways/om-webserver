@@ -496,21 +496,23 @@ public class AuthingService implements UserCenterServiceInter {
         String oneidPrivacy = (String) getBodyPara(body, "oneidPrivacyAccepted");
         String ip = ClientIPUtil.getClientIpAddress(servletRequest);
         account = getAbsoluteAccount(account);
-        if (!isPermissionParmValid(permission)) {
+        if (!isPermissionParmValid(permission) || StringUtils.isBlank(account)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
         OperateFailCounter failCounter = limitUtil.initLoginFailCounter(account);
         // 限制一小时登录失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
-            LogUtil.createLogs(account, "user login", "login",
-                    "The user login too many failures", ip, "failed");
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, null);
         }
         // 多次失败需要图片验证码
         if (limitUtil.isNeedCaptcha(failCounter).get(Constant.NEED_CAPTCHA_VERIFICATION) && !isSuccess) {
-            LogUtil.createLogs(account, "user login", "login",
-                    "The user login wrong pic code", ip, "failed");
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, limitUtil.loginFail(failCounter));
+        }
+        String accountType = getAccountType(account);
+        if (!"email".equals(accountType) && !"phone".equals(accountType) && !isUserNameParmValid(account)) {
+            // 用户名不符合规则，不记录，防止日志注入
+            LOGGER.error("user name invalid");
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null, limitUtil.loginFail(failCounter));
         }
         if (StringUtils.isNotBlank(password)) {
             if (!isPasswdParmValid(password)) {
@@ -992,6 +994,14 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
         account = getAbsoluteAccount(account);
+        String msg;
+        String accountType = getAccountType(account);
+        if (!accountType.equals("email") || !accountType.equals("phone")) {
+            return result(HttpStatus.BAD_REQUEST, null, accountType, null);
+        }
+        if (Constant.PHONE_TYPE.equals(accountType) && !"+86".equals(authingUserDao.getPhoneCountryCode(account))) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00068, null, null);
+        }
         // 限制1分钟只能发送一次
         String redisKey = account.toLowerCase() + "_sendcode";
         String codeOld = (String) redisDao.get(redisKey);
@@ -1000,11 +1010,6 @@ public class AuthingService implements UserCenterServiceInter {
                     "Verification code has been sent within a minute",
                     ClientIPUtil.getClientIpAddress(request), "failed");
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0009.getMsgZh(), null);
-        }
-        String msg;
-        String accountType = getAccountType(account);
-        if (Constant.PHONE_TYPE.equals(accountType) && !"+86".equals(authingUserDao.getPhoneCountryCode(account))) {
-            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00068, null, null);
         }
         String userId = "";
         try {
@@ -1102,6 +1107,9 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
         }
         if (StringUtils.isAnyBlank(account, accountType)) {
+            return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E00012.getMsgZh(), null);
+        }
+        if (!accountType.equals(getAccountType(account))) {
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E00012.getMsgZh(), null);
         }
         if ("phone".equals(accountType)) {
@@ -1212,7 +1220,7 @@ public class AuthingService implements UserCenterServiceInter {
         if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
         }
-        if (!accountType.equals(getAccountType(account))) {
+        if (!accountType.equals(getAccountType(account)) || !accountType.equals("phone")) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
         account = getAbsoluteAccount(account);
