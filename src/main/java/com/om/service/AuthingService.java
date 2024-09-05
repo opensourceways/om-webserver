@@ -996,7 +996,7 @@ public class AuthingService implements UserCenterServiceInter {
         account = getAbsoluteAccount(account);
         String msg;
         String accountType = getAccountType(account);
-        if (!accountType.equals("email") || !accountType.equals("phone")) {
+        if (!accountType.equals("email") && !accountType.equals("phone")) {
             return result(HttpStatus.BAD_REQUEST, null, accountType, null);
         }
         if (Constant.PHONE_TYPE.equals(accountType) && !"+86".equals(authingUserDao.getPhoneCountryCode(account))) {
