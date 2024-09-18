@@ -12,6 +12,7 @@
 package com.om.Service;
 
 import cn.authing.core.types.Application;
+import cn.authing.core.types.Identity;
 import cn.authing.core.types.User;
 import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
@@ -19,6 +20,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.Dao.AuthingManagerDao;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.LoginFailCounter;
@@ -62,6 +64,7 @@ import org.springframework.web.util.HtmlUtils;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -134,6 +137,12 @@ public class AuthingService implements UserCenterServiceInter {
      */
     @Autowired
     private ClientSessionManager clientSessionManager;
+
+    /**
+     * Authing的管理面接口.
+     */
+    @Autowired
+    private AuthingManagerDao authingManagerDao;
 
     /**
      * 退出APP线程池.
@@ -584,6 +593,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("username", username);
             userData.put("email", email);
             userData.put("phone", phone);
+            userData.put("phone_exist", StringUtils.isNotBlank(phone));
             userData.put("aigcPrivacyAccepted", aigcPrivacyAccepted);
             userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
             return result(HttpStatus.OK, "success", userData);
@@ -1531,6 +1541,133 @@ public class AuthingService implements UserCenterServiceInter {
             LOGGER.error(e.getMessage());
             return "";
         }
+    }
+
+    /**
+     * 合并仅有一个三方绑定的用户到手机号对应账号.
+     *
+     * @param servletRequest 请求体
+     * @param servletResponse 响应体
+     * @param token token
+     * @return 合并后用户登录信息
+     */
+    @Override
+    public ResponseEntity mergeUser(HttpServletRequest servletRequest,
+                                    HttpServletResponse servletResponse, String token) {
+        try {
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+            String appId = (String) getBodyPara(body, "client_id");
+            String account = (String) getBodyPara(body, "account");
+            String code = (String) getBodyPara(body, "code");
+            if (!Constant.PHONE_TYPE.equals(getAccountType(account))) {
+                return result(HttpStatus.BAD_REQUEST, null, "", null);
+            }
+            // 登录成功返回用户token
+            Object loginRes = login(appId, account, code, null);
+            // 获取用户信息
+            String newIdToken;
+            String newUserId = "";
+            User newuser = null;
+            if (loginRes instanceof JSONObject) {
+                JSONObject userObj = (JSONObject) loginRes;
+                newIdToken = userObj.getString("id_token");
+                newUserId = JWT.decode(newIdToken).getSubject();
+                newuser = authingUserDao.getUser(newUserId);
+            } else if (MessageCodeConfig.E0002.getMsgZh().equals(loginRes)
+                    || MessageCodeConfig.E00026.getMsgZh().equals(loginRes)) {
+                return result(HttpStatus.BAD_REQUEST, null, (String) loginRes, null);
+            } else {
+                LOGGER.error("merge users failed {}", loginRes);
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+            }
+
+            String currentUserId = authingUtil.getUserIdFromToken(token);
+            User currentUser = authingUserDao.getUser(currentUserId);
+            if (currentUser == null) {
+                LOGGER.error("user is null");
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00071, null, null);
+            }
+            if (currentUser.getIdentities() == null || currentUser.getIdentities().size() != 1) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00068, null, null);
+            }
+            Identity currentIdentity = currentUser.getIdentities().get(0);
+            if (currentIdentity == null) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00069, null, null);
+            }
+            if (StringUtils.isAnyBlank(currentIdentity.getUserIdInIdp(), currentIdentity.getUserPoolId(),
+                    currentIdentity.getExtIdpId())) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00069, null, null);
+            }
+
+            if (hasSameIdentityType(newuser.getIdentities(), currentIdentity)) {
+                LOGGER.error("[merge users] phone user has been bind");
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00070, null, null);
+            }
+
+            if (!authingManagerDao.removeIdentity(currentIdentity)) {
+                LOGGER.error("[merge users] remove identity failed");
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00071, null, null);
+            }
+
+            if (!authingManagerDao.bindIdentity(newUserId, currentIdentity)) {
+                authingManagerDao.bindIdentity(currentUserId, currentIdentity);
+                LOGGER.error("[merge users] bind identity failed");
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00071, null, null);
+            }
+            authingUserDao.deleteUserById(currentUserId);
+
+            // 登录成功解除登录失败次数限制
+            redisDao.remove(account + Constant.LOGIN_COUNT);
+            // 获取是否同意隐私
+            String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(
+                    newuser.getGivenName());
+            // 生成token
+            String userName = newuser.getUsername();
+            if (Objects.isNull(userName)) {
+                userName = "";
+            }
+            String[] tokens = jwtTokenCreateService.authingUserToken(appId, newUserId, userName,
+                    "", "", newIdToken, oneidPrivacyVersionAccept);
+
+            String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(newUserId).toString();
+            int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
+            redisDao.addList(loginKey, newIdToken, expireSeconds);
+            long listSize = redisDao.getListSize(loginKey);
+            if (listSize > maxLoginNum) {
+                redisDao.removeListTail(loginKey, maxLoginNum);
+            }
+
+            // 写cookie
+            setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
+            // 返回结果
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("token", tokens[1]);
+            userData.put("photo", newuser.getPhoto());
+            userData.put("username", newuser.getUsername());
+            userData.put("email_exist", StringUtils.isNotBlank(newuser.getEmail()));
+            userData.put("phone_exist", StringUtils.isNotBlank(newuser.getPhone()));
+            userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
+            return result(HttpStatus.OK, "success", userData);
+        } catch (InvalidKeySpecException e) {
+            LOGGER.error("[merge users] merge users failed {}", e.getMessage());
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        } catch (Exception e) {
+            LOGGER.error("[merge users] merge users failed {}", e.getMessage());
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+    }
+
+
+    private boolean hasSameIdentityType(List<Identity> newIdentities, Identity currentIdentity) {
+        if (CollectionUtils.isEmpty(newIdentities) || currentIdentity == null) {
+            return false;
+        }
+        for (Identity identity : newIdentities) {
+            if (StringUtils.equals(identity.getExtIdpId(), currentIdentity.getExtIdpId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void logoutAllSessions(String userId, HttpServletRequest request, HttpServletResponse response) {
