@@ -1099,7 +1099,7 @@ public class AuthingService implements UserCenterServiceInter {
         String code = (String) getBodyPara(body, "code");
         String accountType = (String) getBodyPara(body, "account_type");
         if (StringUtils.isBlank(oldAccount) || StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
-            return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
         //账号格式校验
         if ((!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX))
@@ -1107,9 +1107,9 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
         if (accountType.toLowerCase().equals("email") && oldAccount.equals(account)) {
-            return result(HttpStatus.BAD_REQUEST, null, "新邮箱与已绑定邮箱相同", null);
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00031, null, null);
         } else if (accountType.toLowerCase().equals("phone") && oldAccount.equals(account)) {
-            return result(HttpStatus.BAD_REQUEST, null, "新手机号与已绑定手机号相同", null);
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00032, null, null);
         }
         String res = authingUserDao.updateAccount(token, oldAccount, oldCode, account, code, accountType);
         return message(res);
