@@ -1283,6 +1283,20 @@ public class OpenGaussService implements UserCenterServiceInter {
         return result(HttpStatus.BAD_REQUEST, null, "回调地址与配置不符", null);
     }
 
+    /**
+     * 合并账号.
+     *
+     * @param servletRequest 请求体
+     * @param servletResponse 响应体
+     * @param token token
+     * @return 返回值
+     */
+    @Override
+    public ResponseEntity mergeUser(HttpServletRequest servletRequest,
+                                    HttpServletResponse servletResponse, String token) {
+        return null;
+    }
+
     private String getAccountType(String account) {
         String accountTypeError = "请输入正确的手机号或者邮箱";
         if (StringUtils.isBlank(account)) {
