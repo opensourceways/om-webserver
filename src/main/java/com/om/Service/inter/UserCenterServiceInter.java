@@ -154,6 +154,28 @@ public interface UserCenterServiceInter {
     ResponseEntity updateAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 
     /**
+     * 更新账户信息方法.
+     *
+     * @param servletRequest  HTTP请求对象
+     * @param servletResponse HTTP响应对象
+     * @param token           令牌
+     * @return ResponseEntity 响应实体
+     */
+    ResponseEntity updateAccountPost(HttpServletRequest servletRequest,
+                                     HttpServletResponse servletResponse, String token);
+
+    /**
+     * 直接更新账号信息.
+     *
+     * @param servletRequest  HTTP请求对象
+     * @param servletResponse HTTP响应对象
+     * @param token           令牌
+     * @return ResponseEntity 响应实体
+     */
+    ResponseEntity updateAccountInfo(HttpServletRequest servletRequest,
+                                     HttpServletResponse servletResponse, String token);
+
+    /**
      * 解绑账户方法.
      *
      * @param servletRequest  HTTP请求对象

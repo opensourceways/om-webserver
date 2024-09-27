@@ -194,6 +194,42 @@ public class ManagerController {
         return oneIdManageService.revokePrivacy(body.getUserId());
     }
 
+    /**
+     * 处理更新账号信息请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
+    @RequestLimitRedis(period = 1, count = 1000)
+    @ManageToken
+    @AuthingUserToken
+    @RequestMapping(value = "/update/account", method = RequestMethod.POST)
+    public ResponseEntity updateAccount(HttpServletRequest servletRequest,
+                                        HttpServletResponse servletResponse,
+                                        @CookieValue(value = "_Y_G_", required = false) String token) {
+        return authingService.updateAccountPost(servletRequest, servletResponse, token);
+    }
+
+    /**
+     * 直接更新账号信息.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
+    @RequestLimitRedis(period = 1, count = 1000)
+    @ManageToken
+    @AuthingUserToken
+    @RequestMapping(value = "/update/accountInfo", method = RequestMethod.POST)
+    public ResponseEntity updateAccountInfo(HttpServletRequest servletRequest,
+                                            HttpServletResponse servletResponse,
+                                            @CookieValue(value = "_Y_G_", required = false) String token) {
+        return authingService.updateAccountInfo(servletRequest, servletResponse, token);
+    }
+
     private boolean verifyCaptcha(String captchaVerification) {
         CaptchaVO captchaVO = new CaptchaVO();
         captchaVO.setCaptchaVerification(captchaVerification);
