@@ -706,29 +706,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 执行用户注销操作.
-     *
-     * @param appId   应用程序 ID
-     * @param idToken ID 令牌
-     * @param userId  用户 ID
-     * @return 返回注销操作是否成功的布尔值，成功为 true，失败为 false
-     */
-    public boolean logout(String appId, String idToken, String userId) {
-        try {
-            HttpResponse<JsonNode> response = Unirest
-                    .get(String.format(authingApiHost + "/logout?appId=%s&userId=%s", appId, userId))
-                    .header("Authorization", idToken)
-                    .header("x-authing-userpool-id", userPoolId)
-                    .asJson();
-            int code = response.getBody().getObject().getInt("code");
-            return code == 200;
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return false;
-        }
-    }
-
-    /**
      * 根据用户ID获取用户基本信息.
      *
      * @param userId 用户ID
@@ -1065,6 +1042,40 @@ public class AuthingUserDao {
                 default:
                     return "false";
             }
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return e.getMessage();
+        }
+        return "true";
+    }
+
+    /**
+     * 使用访问令牌更新账户信息.
+     *
+     * @param token 访问令牌
+     * @param account 新账户信息
+     * @param type 类型
+     * @return 如果成功更新账户信息则返回消息提示，否则返回 null
+     */
+    public String updateAccountInfo(String token, String account, String type) {
+        try {
+            RSAPrivateKey privateKey = RSAUtil.getPrivateKey(rsaAuthingPrivateKey);
+            String dectoken = RSAUtil.privateDecrypt(token, privateKey);
+            DecodedJWT decode = JWT.decode(dectoken);
+            String userId = decode.getAudience().get(0);
+            UpdateUserInput updateUserInput = new UpdateUserInput();
+
+            switch (type.toLowerCase()) {
+                case "email":
+                    updateUserInput.withEmail(account);
+                    break;
+                case "phone":
+                    updateUserInput.withPhone(account);
+                    break;
+                default:
+                    return "false";
+            }
+            managementClient.users().update(userId, updateUserInput).execute();
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return e.getMessage();
