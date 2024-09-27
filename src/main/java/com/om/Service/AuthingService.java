@@ -1092,6 +1092,65 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     /**
+     * 更新账户信息方法.
+     *
+     * @param servletRequest  HTTP请求对象
+     * @param servletResponse HTTP响应对象
+     * @param token           令牌
+     * @return ResponseEntity 响应实体
+     */
+    @Override
+    public ResponseEntity updateAccountPost(HttpServletRequest servletRequest,
+                                            HttpServletResponse servletResponse, String token) {
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String oldAccount = (String) getBodyPara(body, "oldaccount");
+        String oldCode = (String) getBodyPara(body, "oldcode");
+        String account = (String) getBodyPara(body, "account");
+        String code = (String) getBodyPara(body, "code");
+        String accountType = (String) getBodyPara(body, "account_type");
+        if (StringUtils.isBlank(oldAccount) || StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+        //账号格式校验
+        if ((!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX))
+                || (!oldAccount.matches(Constant.PHONEREGEX) && !oldAccount.matches(Constant.EMAILREGEX))) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+        if (accountType.toLowerCase().equals("email") && oldAccount.equals(account)) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00031, null, null);
+        } else if (accountType.toLowerCase().equals("phone") && oldAccount.equals(account)) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00032, null, null);
+        }
+        String res = authingUserDao.updateAccount(token, oldAccount, oldCode, account, code, accountType);
+        return message(res);
+    }
+
+    /**
+     * 更新账户信息方法，无需验证码.
+     *
+     * @param servletRequest  HTTP请求对象
+     * @param servletResponse HTTP响应对象
+     * @param token           令牌
+     * @return ResponseEntity 响应实体
+     */
+    @Override
+    public ResponseEntity updateAccountInfo(HttpServletRequest servletRequest,
+                                            HttpServletResponse servletResponse, String token) {
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String account = (String) getBodyPara(body, "account");
+        String accountType = (String) getBodyPara(body, "account_type");
+        if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+        //账号格式校验
+        if (!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX)) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+        String res = authingUserDao.updateAccountInfo(token, account, accountType);
+        return message(res);
+    }
+
+    /**
      * 解绑账户方法.
      *
      * @param servletRequest  HTTP请求对象
