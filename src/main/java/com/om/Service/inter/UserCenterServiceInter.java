@@ -222,4 +222,15 @@ public interface UserCenterServiceInter {
      * @return token中用户信息
      */
     ResponseEntity verifyToken(String token);
+
+    /**
+     * 合并账号.
+     *
+     * @param servletRequest 请求体
+     * @param servletResponse 响应体
+     * @param token token
+     * @return 返回值
+     */
+    ResponseEntity mergeUser(HttpServletRequest servletRequest,
+                             HttpServletResponse servletResponse, String token);
 }
