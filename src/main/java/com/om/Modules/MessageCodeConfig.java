@@ -313,7 +313,31 @@ public enum MessageCodeConfig {
     /**
      * 错误代码 E00067: 请先绑定手机号.
      */
-    E00067("E00067", "Please bind the phone number first", "请先绑定手机号");
+    E00067("E00067", "Please bind the phone number first", "请先绑定手机号"),
+
+    /**
+     * 错误代码 E00068: 当前用户绑定的三方账号不止一个，不支持重新绑定.
+     */
+    E00068("E00068", "The current user is bound to more than one third-party account, "
+            + "and binding to existing accounts is not supported",
+            "当前用户绑定的三方账号不止一个，不支持绑定已有账号"),
+
+    /**
+     * 错误代码 E00069: 账号异常，不支持绑定绑定已有账号.
+     */
+    E00069("E00069", "The account is abnormal and binding to existing accounts is not supported",
+                   "账号异常，不支持绑定已有账号"),
+
+    /**
+     * 错误代码 E00070: 该账号已绑定其他三方账号，请解绑后重试.
+     */
+    E00070("E00070", "This account has been bound to other third-party accounts. Please unbind and try again",
+            "该账号已绑定其他三方账号，请解绑后重试"),
+
+    /**
+     * 错误代码 E00071: 绑定已有账号失败.
+     */
+    E00071("E00071", "Failed to bind existing account", "绑定已有账号失败");
 
     /**
      * 消息代码.
