@@ -23,6 +23,7 @@ import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import redis.clients.jedis.JedisPoolConfig;
 
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 import java.io.FileInputStream;
@@ -101,6 +102,12 @@ public class RedisConfiguration {
     private Integer maxPool;
 
     /**
+     * TLS cipher.
+     */
+    @Value("${redis-global.ssl.cipher: }")
+    private String[] enabledCipherSuites;
+
+    /**
      * Configures a RedisConnectionFactory bean with the provided JedisClientConfiguration.
      *
      * @param clientConfiguration The JedisClientConfiguration for configuring the Redis connection.
@@ -130,6 +137,10 @@ public class RedisConfiguration {
 
         if (isSSL) {
             configurationBuilder.useSsl().sslSocketFactory(getTrustStoreSslSocketFactory());
+            // 指定要使用的算法套件
+            SSLParameters sslParams = new SSLParameters();
+            sslParams.setCipherSuites(enabledCipherSuites);
+            configurationBuilder.useSsl().sslParameters(sslParams);
         }
 
         configurationBuilder.usePooling().poolConfig(redisPoolConfig());
