@@ -219,11 +219,8 @@ public class AuthingUtil {
      */
     public Cookie getCookie(HttpServletRequest request, String cookieName) {
         Cookie cookie = null;
-        try {
-            Cookie[] cookies = request.getCookies();
-            cookie = getCookie(cookies, cookieName);
-        } catch (Exception ignored) {
-        }
+        Cookie[] cookies = request.getCookies();
+        cookie = getCookie(cookies, cookieName);
         return cookie;
     }
 
@@ -236,11 +233,11 @@ public class AuthingUtil {
      */
     private Cookie getCookie(Cookie[] cookies, String cookieName) {
         Cookie cookie = null;
-        try {
-            cookie = Arrays.stream(cookies).filter(cookieEle ->
-                    cookieEle.getName().equals(cookieName)).findFirst().orElse(null);
-        } catch (Exception ignored) {
+        if (cookies == null) {
+            return cookie;
         }
+        cookie = Arrays.stream(cookies).filter(cookieEle ->
+                cookieEle.getName().equals(cookieName)).findFirst().orElse(null);
         return cookie;
     }
 }
