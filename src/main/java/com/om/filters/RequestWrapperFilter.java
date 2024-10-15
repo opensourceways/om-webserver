@@ -52,7 +52,7 @@ public class RequestWrapperFilter implements Filter {
         if (request instanceof HttpServletRequest) {
             requestWrapper = new RequestWrapper((HttpServletRequest) request);
         }
-        if (null == requestWrapper) {
+        if (requestWrapper == null) {
             chain.doFilter(request, response);
         } else {
             chain.doFilter(requestWrapper, response);
