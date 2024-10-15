@@ -15,6 +15,8 @@ import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 import java.io.BufferedReader;
@@ -33,6 +35,11 @@ import java.util.Map;
  * 2、重写getInputStream方法，每次都从body读数据
  */
 public class RequestWrapper extends HttpServletRequestWrapper {
+    /**
+     * 静态变量: LOGGER - 日志记录器.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(RequestWrapper.class);
+
     /**
      * 存储请求body数据.
      */
@@ -73,8 +80,8 @@ public class RequestWrapper extends HttpServletRequestWrapper {
             if (reader != null) {
                 try {
                     reader.close();
-                } catch (IOException ignored) {
-
+                } catch (IOException e) {
+                    LOGGER.error("close reader stream failed {}", e.getMessage());
                 }
             }
         }
