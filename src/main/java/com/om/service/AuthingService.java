@@ -1477,7 +1477,8 @@ public class AuthingService implements UserCenterServiceInter {
                 }
                 return result(HttpStatus.OK, Constant.SUCCESS, resetToken.getString("passwordResetToken"));
             }
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            LOGGER.error("verify reset password failed {}", e.getMessage());
         }
         return result(HttpStatus.BAD_REQUEST, null, msg.toString(), null);
     }
@@ -1521,7 +1522,8 @@ public class AuthingService implements UserCenterServiceInter {
             }
             return resetMsg.equals(Constant.SUCCESS) ? result(HttpStatus.OK, Constant.SUCCESS, null)
                     : result(HttpStatus.BAD_REQUEST, null, resetMsg, null);
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            LOGGER.error("reset password failed {}", e.getMessage());
         }
         return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
     }
