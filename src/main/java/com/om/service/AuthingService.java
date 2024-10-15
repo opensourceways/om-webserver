@@ -192,6 +192,12 @@ public class AuthingService implements UserCenterServiceInter {
     private String rsaAuthingPrivateKey;
 
     /**
+     * 应用程序版本号.
+     */
+    @Value("${app.version:1.0}")
+    private String appVersion;
+
+    /**
      * CodeUtil赋值.
      *
      * @param codeUtil CodeUtil实例
@@ -430,6 +436,9 @@ public class AuthingService implements UserCenterServiceInter {
                     "The user register no privacy", ip, "fail");
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
+        LogUtil.createLogs(username, "accept privacy", "user",
+                "User accept privacy version:" + acceptPrivacyVersion + ",appVersion:" + appVersion,
+                ip, "success");
 
         if (!isCodeParmValid(code)) {
             LOGGER.error("param code invalid");
