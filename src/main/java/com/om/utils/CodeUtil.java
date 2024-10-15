@@ -218,7 +218,7 @@ public class CodeUtil {
      */
     public String buildSmsBody(String sender, String receiver, String templateId, String templateParas,
                                String statusCallBack, String signature) {
-        if (null == sender || null == receiver || null == templateId || sender.isEmpty() || receiver.isEmpty()
+        if (sender == null || receiver == null || templateId == null || sender.isEmpty() || receiver.isEmpty()
                 || templateId.isEmpty()) {
             System.out.println("buildRequestBody(): sender, receiver or templateId is null.");
             return null;
@@ -228,13 +228,13 @@ public class CodeUtil {
         map.put("from", sender);
         map.put("to", receiver);
         map.put("templateId", templateId);
-        if (null != templateParas && !templateParas.isEmpty()) {
+        if (templateParas != null && !templateParas.isEmpty()) {
             map.put("templateParas", templateParas);
         }
-        if (null != statusCallBack && !statusCallBack.isEmpty()) {
+        if (statusCallBack != null && !statusCallBack.isEmpty()) {
             map.put("statusCallback", statusCallBack);
         }
-        if (null != signature && !signature.isEmpty()) {
+        if (signature != null && !signature.isEmpty()) {
             map.put("signature", signature);
         }
 
@@ -262,7 +262,7 @@ public class CodeUtil {
      * @return 短信发送请求header
      */
     public String buildWsseHeader(String appKey, String appSecret) throws NoSuchAlgorithmException {
-        if (null == appKey || null == appSecret || appKey.isEmpty() || appSecret.isEmpty()) {
+        if (appKey == null || appSecret == null || appKey.isEmpty() || appSecret.isEmpty()) {
             LOGGER.error("buildWsseHeader(): appKey or appSecret is null.");
             return null;
         }
