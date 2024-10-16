@@ -104,7 +104,7 @@ public class AuthingControllerTest {
         when(authingService.sendCodeV3(any(HttpServletRequest.class),
                 any(HttpServletResponse.class), any(Boolean.class))).thenReturn(responseEntity);
 
-        ResponseEntity responseResult = authingController.sendCodeV3(request, response, "");
+        ResponseEntity responseResult = authingController.sendCodeV3(request, response);
 
         // Verify the results
         assertThat(responseResult.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -128,7 +128,7 @@ public class AuthingControllerTest {
         when(authingService.sendCodeV3(any(HttpServletRequest.class),
                 any(HttpServletResponse.class), any(Boolean.class))).thenReturn(responseEntity);
 
-        ResponseEntity responseResult = authingController.sendCodeV3(request, response, "");
+        ResponseEntity responseResult = authingController.sendCodeV3(request, response);
 
         assertThat(responseResult.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -344,8 +344,7 @@ public class AuthingControllerTest {
         when(mockAuthingService.sendCode(any(), any(), any(), any(), any(Boolean.class)))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
         MockHttpServletRequest request = new MockHttpServletRequest();
-        ResponseEntity response = authingController.sendCode(request, "token", "account",
-                "channel", "dfs");
+        ResponseEntity response = authingController.sendCode(request, "token");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
@@ -356,7 +355,7 @@ public class AuthingControllerTest {
         when(mockAuthingService.sendCode(any(), any(), any(), any(), any(Boolean.class)))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.BAD_REQUEST));
         MockHttpServletRequest request = new MockHttpServletRequest();
-        ResponseEntity response = authingController.sendCode(request, "token", "account", "channel", "dfs");
+        ResponseEntity response = authingController.sendCode(request, "token");
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
