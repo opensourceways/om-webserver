@@ -125,14 +125,14 @@ public class AuthingController {
      *
      * @param servletRequest HTTP 请求对象
      * @param servletResponse HTTP 响应对象
-     * @param captchaVerification 验证码验证信息
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
-    @RequestMapping(value = "/captcha/sendCode", method = RequestMethod.GET)
-    public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
-                                     @RequestParam("captchaVerification") String captchaVerification) {
+    @RequestMapping(value = "/captcha/sendCode", method = RequestMethod.POST)
+    public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String captchaVerification = (String) body.getOrDefault("captchaVerification", null);
         return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
@@ -300,20 +300,18 @@ public class AuthingController {
      * 发送验证码的方法.
      *
      * @param httpServletRequest HTTP 请求对象
-     * @param account 账号信息
-     * @param channel 通道信息
      * @param token 包含令牌的 Cookie 值（可选）
-     * @param captchaVerification 验证码验证信息
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
     @AuthingUserToken
-    @RequestMapping(value = "/sendcode", method = RequestMethod.GET)
+    @RequestMapping(value = "/sendcode", method = RequestMethod.POST)
     public ResponseEntity sendCode(HttpServletRequest httpServletRequest,
-                                   @RequestParam(value = "account") String account,
-                                   @RequestParam(value = "channel") String channel,
-                                   @CookieValue(value = "_Y_G_", required = false) String token,
-                                   @RequestParam("captchaVerification") String captchaVerification) {
+                                   @CookieValue(value = "_Y_G_", required = false) String token) {
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(httpServletRequest);
+        String captchaVerification = (String) body.getOrDefault("captchaVerification", null);
+        String channel = (String) body.getOrDefault("channel", null);
+        String account = (String) body.getOrDefault("account", null);
         return authingService.sendCode(httpServletRequest, token, account, channel, verifyCaptcha(captchaVerification));
     }
 
@@ -326,11 +324,12 @@ public class AuthingController {
      */
     @RequestLimitRedis
     @AuthingUserToken
-    @RequestMapping(value = "/sendcode/unbind", method = RequestMethod.GET)
+    @RequestMapping(value = "/sendcode/unbind", method = RequestMethod.POST)
     public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest,
                                          HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
-        String captchaVerification = servletRequest.getParameter("captchaVerification");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String captchaVerification = (String) body.getOrDefault("captchaVerification", null);
         return service.sendCodeUnbind(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
@@ -344,7 +343,7 @@ public class AuthingController {
      */
     @RequestLimitRedis
     @AuthingUserToken
-    @RequestMapping(value = "/update/account", method = RequestMethod.GET)
+    @RequestMapping(value = "/update/account", method = RequestMethod.POST)
     public ResponseEntity updateAccount(HttpServletRequest servletRequest,
                                         HttpServletResponse servletResponse,
                                         @CookieValue(value = "_Y_G_", required = false) String token) {
@@ -362,7 +361,7 @@ public class AuthingController {
      */
     @RequestLimitRedis
     @AuthingUserToken
-    @RequestMapping(value = "/unbind/account", method = RequestMethod.GET)
+    @RequestMapping(value = "/unbind/account", method = RequestMethod.POST)
     public ResponseEntity unbindAccount(HttpServletRequest servletRequest,
                                         HttpServletResponse servletResponse,
                                         @CookieValue(value = "_Y_G_", required = false) String token) {
@@ -380,7 +379,7 @@ public class AuthingController {
      */
     @RequestLimitRedis
     @AuthingUserToken
-    @RequestMapping(value = "/bind/account", method = RequestMethod.GET)
+    @RequestMapping(value = "/bind/account", method = RequestMethod.POST)
     public ResponseEntity bindAccount(HttpServletRequest servletRequest,
                                       HttpServletResponse servletResponse,
                                       @CookieValue(value = "_Y_G_", required = false) String token) {
