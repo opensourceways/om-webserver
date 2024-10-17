@@ -319,10 +319,11 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest,
                                      HttpServletResponse servletResponse, boolean isSuccess) {
-        String account = servletRequest.getParameter("account");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String account = (String) getBodyPara(body, "account");
         account = getAbsoluteAccount(account);
-        String channel = servletRequest.getParameter("channel");
-        String appId = servletRequest.getParameter("client_id");
+        String channel = (String) getBodyPara(body, "channel");
+        String appId = (String) getBodyPara(body, "client_id");
         // 验证码二次校验
         if (!isSuccess) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, null);
@@ -1130,9 +1131,11 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest,
                                          HttpServletResponse servletResponse, boolean isSuccess) {
-        String account = servletRequest.getParameter("account");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String account = (String) getBodyPara(body, "account");
+        String accountType = (String) getBodyPara(body, "account_type");
         account = getAbsoluteAccount(account);
-        String accountType = servletRequest.getParameter("account_type");
+
         // 图片验证码二次校验
         if (!isSuccess) {
             return result(HttpStatus.BAD_REQUEST, null, MessageCodeConfig.E0002.getMsgZh(), null);
@@ -1179,12 +1182,14 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity updateAccount(HttpServletRequest servletRequest,
                                         HttpServletResponse servletResponse, String token) {
-        String oldAccount = servletRequest.getParameter("oldaccount");
-        String oldCode = servletRequest.getParameter("oldcode");
-        String account = servletRequest.getParameter("account");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String oldAccount = (String) getBodyPara(body, "oldaccount");
+        String oldCode = (String) getBodyPara(body, "oldcode");
+        String account = (String) getBodyPara(body, "account");
         account = getAbsoluteAccount(account);
-        String code = servletRequest.getParameter("code");
-        String accountType = servletRequest.getParameter("account_type");
+        String code = (String) getBodyPara(body, "code");
+        String accountType = (String) getBodyPara(body, "account_type");
+
         String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
         String userId = "";
         try {
@@ -1246,9 +1251,11 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity unbindAccount(HttpServletRequest servletRequest,
                                         HttpServletResponse servletResponse, String token) {
-        String account = servletRequest.getParameter("account");
-        String code = servletRequest.getParameter("code");
-        String accountType = servletRequest.getParameter("account_type");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String account = (String) getBodyPara(body, "account");
+        String code = (String) getBodyPara(body, "code");
+        String accountType = (String) getBodyPara(body, "account_type");
+
         String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
         if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
             return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
@@ -1303,9 +1310,11 @@ public class AuthingService implements UserCenterServiceInter {
     @Override
     public ResponseEntity bindAccount(HttpServletRequest servletRequest,
                                       HttpServletResponse servletResponse, String token) {
-        String account = servletRequest.getParameter("account");
-        String code = servletRequest.getParameter("code");
-        String accountType = servletRequest.getParameter("account_type");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String account = (String) getBodyPara(body, "account");
+        String code = (String) getBodyPara(body, "code");
+        String accountType = (String) getBodyPara(body, "account_type");
+
         String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
         String userId = "";
         try {
