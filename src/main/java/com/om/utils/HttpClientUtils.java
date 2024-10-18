@@ -28,9 +28,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.modules.MessageCodeConfig;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.conn.ConnectionKeepAliveStrategy;
-import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
@@ -52,21 +49,6 @@ public final class HttpClientUtils implements Serializable {
      * 静态连接池管理器.
      */
     private static PoolingHttpClientConnectionManager connectionManager;
-
-    /**
-     * 自定义连接保持策略.
-     */
-    private static ConnectionKeepAliveStrategy myStrategy;
-
-    /**
-     * 凭据提供者.
-     */
-    private static CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-
-    /**
-     * 可关闭的 HTTP 客户端.
-     */
-    private static CloseableHttpClient client;
 
     /**
      * 获取可关闭的 HTTP 客户端实例.

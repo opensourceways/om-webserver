@@ -39,7 +39,6 @@ import com.om.result.Constant;
 import com.om.utils.CommonUtil;
 import com.om.utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
-import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1599,32 +1598,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 撤销用户隐私设置.
-     *
-     * @param userId 用户ID
-     * @return 如果成功撤销用户隐私设置则返回 true，否则返回 false
-     */
-    public boolean revokePrivacy(String userId) {
-        try {
-            // get user
-            User user = managementClient.users().detail(userId, false, false).execute();
-            UpdateUserInput input = new UpdateUserInput();
-            input.withGivenName(privacyHistoryService.updatePrivacyVersions(user.getGivenName(), "revoked"));
-            User updateUser = managementClient.users().update(userId, input).execute();
-            if (updateUser == null) {
-                return false;
-            }
-            saveHistory(user, null);
-            LOGGER.info(String.format("User %s cancel privacy consent version %s for app version %s",
-                    user.getId(), oneidPrivacyVersion, appVersion));
-            return true;
-        } catch (Exception e) {
-            LOGGER.error(e.getMessage());
-            return false;
-        }
-    }
-
-    /**
      * 使用访问令牌更新用户照片.
      *
      * @param token 访问令牌
@@ -1762,35 +1735,6 @@ public class AuthingUserDao {
         }
 
         return msg;
-    }
-
-    /**
-     * 获取用户可访问的应用程序列表.
-     *
-     * @param userId 用户ID
-     * @return 包含用户可访问的应用程序名称的列表
-     */
-    public List<String> userAccessibleApps(String userId) {
-        ArrayList<String> appIds = new ArrayList<>();
-        try {
-            String token = getUser(userId).getToken();
-            HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/get-my-accessible-apps")
-                    .header("Authorization", token)
-                    .header("x-authing-userpool-id", userPoolId)
-                    .asJson();
-            if (response.getStatus() == 200) {
-                JSONArray data = response.getBody().getObject().getJSONArray("data");
-                for (Object item : data) {
-                    if (item instanceof JSONObject) {
-                        JSONObject app = (JSONObject) item;
-                        appIds.add(app.getString("appId"));
-                    }
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-        }
-        return appIds;
     }
 
     private List<String> getUsernameReserved() {
