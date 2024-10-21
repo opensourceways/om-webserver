@@ -182,7 +182,23 @@ public final class LogUtil {
      * @param result 操作结果
      */
     public static void createLogs(String userId, String type, String module, String detail, String ip, String result) {
+        StringBuilder account = new StringBuilder();
+        if (StringUtils.isNotBlank(userId)) {
+            if (userId.matches((Constant.PHONEREGEX))) {
+                account.append(userId.charAt(0)).append("****").append(userId.charAt(userId.length() - 1));
+            } else if (userId.matches(Constant.EMAILREGEX)) {
+                int atIndex = userId.indexOf('@');
+                if (atIndex > 1) {
+                    account.append(userId.charAt(0)).append("****").append(userId.charAt(atIndex - 1))
+                            .append(userId.substring(atIndex));
+                } else {
+                    account.append(userId);
+                }
+            } else {
+                account.append(userId);
+            }
+        }
         LOGGER.info(String.format("(Client ip:%s, User:%s, Module:%s, Type:%s) Detail:%s.--->Result:%s.",
-                ip, userId, module, type, detail, result));
+                ip, account.toString(), module, type, detail, result));
     }
 }
