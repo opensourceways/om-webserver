@@ -19,6 +19,7 @@ import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +30,8 @@ import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 
 import com.om.Utils.AuthingUtil;
+import com.om.Utils.HttpClientUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
@@ -43,6 +46,7 @@ import org.springframework.util.DigestUtils;
 import org.springframework.web.util.HtmlUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -92,6 +96,11 @@ public class OneIdManageService {
     @Autowired
     private ObjectMapper objectMapper;
 
+    /**
+     * 在线用户管理.
+     */
+    @Autowired
+    private OnlineUserManager onlineUserManager;
 
     /**
      * 使用 @Autowired 注解注入authingUtil.
@@ -318,6 +327,37 @@ public class OneIdManageService {
         } catch (Exception e) {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
+    }
+
+    /**
+     * 子服务注册信息到账号.
+     *
+     * @param servletRequest 响应体
+     * @param token 会话信息
+     * @return 是否注册成功
+     */
+    public ResponseEntity registerService(HttpServletRequest servletRequest, String token) {
+        try {
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+            String logoutUri = (String) getBodyPara(body, "logout_uri");
+            String rsaDecToken = authingUtil.rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(rsaDecToken);
+            String userId = decode.getAudience().get(0);
+            String headToken = decode.getClaim("verifyToken").asString();
+            String idToken = (String) redisDao.get("idToken_" + headToken);
+            onlineUserManager.addServiceLogoutUrl(userId, idToken, logoutUri);
+            return authingService.result(HttpStatus.OK, MessageCodeConfig.S0001, null, null);
+        } catch (InvalidKeySpecException e) {
+            LOGGER.error("[merge users] merge users failed {}", e.getMessage());
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        } catch (Exception e) {
+            LOGGER.error("[merge users] merge users failed {}", e.getMessage());
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+    }
+
+    private Object getBodyPara(Map<String, Object> body, String paraName) {
+        return body.getOrDefault(paraName, null);
     }
 
     /**

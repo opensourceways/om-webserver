@@ -17,13 +17,11 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Service.JwtTokenCreateService;
-import com.om.Service.bean.OnlineUserInfo;
+import com.om.Service.OnlineUserManager;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
 import com.om.token.ClientSessionManager;
@@ -39,7 +37,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -98,6 +95,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private ClientSessionManager clientSessionManager;
 
     /**
+     * 已登录用户管理.
+     */
+    @Autowired
+    private OnlineUserManager onlineUserManager;
+
+    /**
      * Authing Token 的基础密码.
      */
     @Value("${authing.token.base.password}")
@@ -144,11 +147,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
      */
     @Value("${thirdService.verifyToken.url: }")
     private String thirdVerifyUrl;
-
-    /**
-     * ObjectMapper实例.
-     */
-    private ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * 存储域名与安全性标志之间的映射关系.
@@ -287,7 +285,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return false;
         }
         // 校验登录状态
-        if (!isLoginNormal(verifyToken, userId)) {
+        if (!onlineUserManager.isLoginNormal(verifyToken, userId)) {
             tokenError(httpServletRequest, httpServletResponse, "unauthorized");
             return false;
         }
@@ -304,46 +302,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        return true;
-    }
-
-    /**
-     * 校验登录状态.
-     *
-     * @param verifyToken token
-     * @param userId 用户id
-     * @return 是否处于登录
-     */
-    private boolean isLoginNormal(String verifyToken, String userId) {
-        String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(userId).toString();
-        String tokenKey = Constant.ID_TOKEN_PREFIX + verifyToken;
-        String idToken = (String) redisDao.get(tokenKey);
-        List<String> onlineUsers = redisDao.getListValue(loginKey);
-        if (CollectionUtils.isEmpty(onlineUsers)) {
-            return false;
-        }
-        boolean isContain = false;
-        try {
-            for (String userJson : onlineUsers) {
-                OnlineUserInfo onlineUserInfo = new OnlineUserInfo();
-                if (userJson.startsWith("{")) {
-                    onlineUserInfo = objectMapper.readValue(userJson, OnlineUserInfo.class);
-                } else {
-                    onlineUserInfo.setIdToken(userJson);
-                }
-                if (StringUtils.equals(idToken, onlineUserInfo.getIdToken())) {
-                    isContain = true;
-                    break;
-                }
-            }
-        } catch (JsonProcessingException e) {
-            LOGGER.error("parse json failed {}", e.getMessage());
-        }
-        if (!isContain) {
-            return false;
-        }
-        int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
-        redisDao.setKeyExpire(loginKey, expireSeconds);
         return true;
     }
 

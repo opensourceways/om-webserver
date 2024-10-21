@@ -14,7 +14,6 @@ package com.om.authing;
 import com.om.Dao.RedisDao;
 import com.om.Service.JwtTokenCreateService;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;

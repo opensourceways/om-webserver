@@ -230,6 +230,22 @@ public class ManagerController {
         return authingService.updateAccountInfo(servletRequest, servletResponse, token);
     }
 
+    /**
+     * 将子服务注册到账号.
+     *
+     * @param servletRequest 响应体
+     * @param token 会话信息
+     * @return 返回 ResponseEntity 对象
+     */
+    @RequestLimitRedis(period = 1, count = 1000)
+    @ManageToken
+    @AuthingUserToken
+    @RequestMapping(value = "/service/register", method = RequestMethod.POST)
+    public ResponseEntity registerService(HttpServletRequest servletRequest,
+                                          @CookieValue(value = "_Y_G_", required = false) String token) {
+        return oneIdManageService.registerService(servletRequest, token);
+    }
+
     private boolean verifyCaptcha(String captchaVerification) {
         CaptchaVO captchaVO = new CaptchaVO();
         captchaVO.setCaptchaVerification(captchaVerification);
