@@ -29,7 +29,6 @@ import com.om.Modules.ServerErrorException;
 import com.om.Modules.authing.AuthingAppSync;
 import com.om.Result.Constant;
 import com.om.Result.Result;
-import com.om.Service.bean.OnlineUserInfo;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.AuthingUtil;
 import com.om.Utils.CodeUtil;
@@ -41,8 +40,6 @@ import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import kong.unirest.HttpResponse;
-import kong.unirest.Unirest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.apache.commons.codec.binary.Hex;
@@ -71,11 +68,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -145,10 +137,10 @@ public class AuthingService implements UserCenterServiceInter {
     private AuthingManagerDao authingManagerDao;
 
     /**
-     * 退出APP线程池.
+     * 在线用户管理.
      */
-    private static final ExecutorService LOGOUT_EXE = new ThreadPoolExecutor(4, 5,
-            60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(10000));
+    @Autowired
+    private OnlineUserManager onlineUserManager;
 
     /**
      * 静态变量: LOGGER - 日志记录器.
@@ -506,13 +498,7 @@ public class AuthingService implements UserCenterServiceInter {
         String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, userName,
                 permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
 
-        String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(userId).toString();
-        int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
-        redisDao.addList(loginKey, idToken, expireSeconds);
-        long listSize = redisDao.getListSize(loginKey);
-        if (listSize > maxLoginNum) {
-            redisDao.removeListTail(loginKey, maxLoginNum);
-        }
+        onlineUserManager.limitLoginNum(userId, idToken, maxLoginNum);
 
         // 写cookie
         setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
@@ -672,9 +658,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
             String idToken = (String) redisDao.get(idTokenKey);
             if (StringUtils.isNotBlank(idToken)) {
-                String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER)
-                        .append(userId).toString();
-                removeOnlineUser(loginKey, idToken);
+                onlineUserManager.removeSession(userId, idToken);
             }
             // 退出登录，删除cookie，删除idToken
             String cookieTokenName = env.getProperty("cookie.token.name");
@@ -695,50 +679,6 @@ public class AuthingService implements UserCenterServiceInter {
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-    }
-
-    private void removeOnlineUser(String loginKey, String idToken) {
-        try {
-            List<String> userList = redisDao.getListValue(loginKey);
-            if (CollectionUtils.isEmpty(userList)) {
-                return;
-            }
-            for (String userJson : userList) {
-                OnlineUserInfo onlineUserInfo = new OnlineUserInfo();
-                if (userJson.startsWith("{")) {
-                    onlineUserInfo = objectMapper.readValue(userJson, OnlineUserInfo.class);
-                } else {
-                    onlineUserInfo.setIdToken(userJson);
-                }
-                if (StringUtils.equals(idToken, onlineUserInfo.getIdToken())) {
-                    logoutApps(idToken, onlineUserInfo.getLogoutUrls());
-                    redisDao.removeListValue(loginKey, userJson);
-                    break;
-                }
-            }
-        } catch (JsonProcessingException e) {
-            LOGGER.error("parse json failed {}", e.getMessage());
-        }
-    }
-
-    private void logoutApps(String idToken, Set<String> logoutUrls) {
-        if (CollectionUtils.isEmpty(logoutUrls)) {
-            return;
-        }
-        for (String logoutUrl : logoutUrls) {
-            LOGOUT_EXE.submit(() -> {
-                try {
-                    HttpResponse<kong.unirest.JsonNode> response = Unirest.get(logoutUrl)
-                            .header("Authorization", idToken)
-                            .asJson();
-                    if (response.getStatus() != 200) {
-                        LOGGER.error("logout app failed {} {}", logoutUrl, response.getStatus());
-                    }
-                } catch (Exception e) {
-                    LOGGER.error("logout app failed {} {}", logoutUrl, e.getMessage());
-                }
-            });
         }
     }
 
@@ -856,14 +796,7 @@ public class AuthingService implements UserCenterServiceInter {
             String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, userName,
                     permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
 
-            String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER)
-                    .append(userId).toString();
-            int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
-            redisDao.addList(loginKey, idToken, expireSeconds);
-            long listSize = redisDao.getListSize(loginKey);
-            if (listSize > maxLoginNum) {
-                redisDao.removeListTail(loginKey, maxLoginNum);
-            }
+            onlineUserManager.limitLoginNum(userId, idToken, maxLoginNum);
 
             String token = tokens[0];
             String verifyToken = tokens[1];
@@ -871,6 +804,7 @@ public class AuthingService implements UserCenterServiceInter {
             String verifyTokenName = env.getProperty("cookie.verify.token.name");
             String cookieTokenName = env.getProperty("cookie.token.name");
             String maxAgeTemp = env.getProperty("authing.cookie.max.age");
+            int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
 
             int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : expireSeconds;
             HttpClientUtils.setCookie(httpServletRequest, servletResponse,
@@ -1689,13 +1623,7 @@ public class AuthingService implements UserCenterServiceInter {
             String[] tokens = jwtTokenCreateService.authingUserToken(appId, newUserId, userName,
                     "", "", newIdToken, oneidPrivacyVersionAccept);
 
-            String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(newUserId).toString();
-            int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
-            redisDao.addList(loginKey, newIdToken, expireSeconds);
-            long listSize = redisDao.getListSize(loginKey);
-            if (listSize > maxLoginNum) {
-                redisDao.removeListTail(loginKey, maxLoginNum);
-            }
+            onlineUserManager.limitLoginNum(newUserId, newIdToken, maxLoginNum);
 
             // 写cookie
             setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
@@ -1717,7 +1645,6 @@ public class AuthingService implements UserCenterServiceInter {
         }
     }
 
-
     private boolean hasSameIdentityType(List<Identity> newIdentities, Identity currentIdentity) {
         if (CollectionUtils.isEmpty(newIdentities) || currentIdentity == null) {
             return false;
@@ -1737,10 +1664,6 @@ public class AuthingService implements UserCenterServiceInter {
                 verifyTokenName, null, false, 0, "/", domain2secure);
         HttpClientUtils.setCookie(request, response,
                 cookieTokenName, null, true, 0, "/", domain2secure);
-        if (StringUtils.isNotBlank(userId)) {
-            String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER)
-                    .append(userId).toString();
-            redisDao.remove(loginKey);
-        }
+        onlineUserManager.removeAllSessions(userId);
     }
 }

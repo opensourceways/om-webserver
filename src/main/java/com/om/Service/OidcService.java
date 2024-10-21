@@ -15,7 +15,6 @@ import cn.authing.core.types.Application;
 import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
@@ -23,7 +22,6 @@ import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
-import com.om.Service.bean.OnlineUserInfo;
 import com.om.Utils.AuthingUtil;
 import com.om.Utils.CodeUtil;
 import jakarta.annotation.PostConstruct;
@@ -41,7 +39,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.util.HtmlUtils;
 
@@ -58,7 +55,6 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -129,6 +125,12 @@ public class OidcService {
      */
     @Autowired
     private AuthingUtil authingUtil;
+
+    /**
+     * 在线用户管理.
+     */
+    @Autowired
+    private OnlineUserManager onlineUserManager;
 
     /**
      * 静态变量: 实例社区信息.
@@ -737,33 +739,10 @@ public class OidcService {
             if (!StringUtils.equals(redirectDomain, logoutDomain)) {
                 return;
             }
-            String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(userId).toString();
-            List<String> userList = redisDao.getListValue(loginKey);
-            if (CollectionUtils.isEmpty(userList)) {
-                return;
-            }
 
-            for (int i = 0; i < userList.size(); i++) {
-                OnlineUserInfo onlineUserInfo = new OnlineUserInfo();
-                String userJson = userList.get(i);
-                if (userJson.startsWith("{")) {
-                    onlineUserInfo = objectMapper.readValue(userJson, OnlineUserInfo.class);
-                } else {
-                    onlineUserInfo.setIdToken(userJson);
-                }
-                if (onlineUserInfo.getLogoutUrls() == null) {
-                    onlineUserInfo.setLogoutUrls(new HashSet<>());
-                }
-                if (StringUtils.equals(idToken, onlineUserInfo.getIdToken())) {
-                    onlineUserInfo.getLogoutUrls().add(logoutUrl);
-                    redisDao.updateListValue(loginKey, i, objectMapper.writeValueAsString(onlineUserInfo));
-                    break;
-                }
-            }
+            onlineUserManager.addServiceLogoutUrl(userId, idToken, logoutUrl);
         } catch (MalformedURLException e) {
             LOGGER.error("add oidc logout url failed {}", e.getMessage());
-        } catch (JsonProcessingException e) {
-            LOGGER.error("add oidc logout url parse json failed {}", e.getMessage());
         } catch (Exception e) {
             LOGGER.error("add oidc logout url failed {}", e.getMessage());
         }
