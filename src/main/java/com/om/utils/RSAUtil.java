@@ -35,7 +35,6 @@ import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-
 @Component
 public class RSAUtil implements Serializable {
     /**
@@ -47,7 +46,6 @@ public class RSAUtil implements Serializable {
      * RSA算法.
      */
     private static String rsaAlgorithm;
-
 
     /**
      * 设置密钥算法.
@@ -86,7 +84,6 @@ public class RSAUtil implements Serializable {
     public static void setRsaAlgorithmStaticMethod(String rsaAlgorithm) {
         RSAUtil.rsaAlgorithm = rsaAlgorithm;
     }
-
 
     /**
      * 随机生成密钥对(公钥和私钥).
@@ -182,7 +179,6 @@ public class RSAUtil implements Serializable {
         return new String(rsaSplitCodec(cipher, Cipher.DECRYPT_MODE,
                 Base64.decodeBase64(data), privateKey.getModulus().bitLength()), StandardCharsets.UTF_8);
     }
-
 
     /**
      * 私钥加密.

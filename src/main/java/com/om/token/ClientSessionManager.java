@@ -69,7 +69,4 @@ public class ClientSessionManager {
             deleteCookie(servletResponse, cookieName, null);
         }
     }
-
-
-
 }
