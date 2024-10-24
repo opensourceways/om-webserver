@@ -186,12 +186,6 @@ public class AuthingService implements UserCenterServiceInter {
     private Integer maxLoginNum;
 
     /**
-     * authing token RSA key.
-     */
-    @Value("${rsa.authing.privateKey}")
-    private String rsaAuthingPrivateKey;
-
-    /**
      * 应用程序版本号.
      */
     @Value("${app.version:1.0}")
@@ -276,36 +270,6 @@ public class AuthingService implements UserCenterServiceInter {
         setResult(new Result());
         setOneidPrivacyVersion(env.getProperty("oneid.privacy.version", ""));
         setInstanceCommunity(env.getProperty("community", ""));
-    }
-
-    /**
-     * 检查账户是否存在的方法.
-     *
-     * @param servletRequest  HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @return ResponseEntity 响应实体
-     */
-    @Override
-    public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
-        String userName = servletRequest.getParameter("username");
-        String appId = servletRequest.getParameter("client_id");
-        // 校验appId
-        if (authingUserDao.getAppById(appId) == null) {
-            return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
-        }
-        try {
-            // 用户名校验
-            if (StringUtils.isBlank(userName)) {
-                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
-            }
-            if (authingUserDao.isUserExists(appId, userName, "username")) {
-                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00019, null, null);
-            }
-        } catch (ServerErrorException e) {
-            return result(HttpStatus.INTERNAL_SERVER_ERROR,
-                    MessageCodeConfig.E00048, MessageCodeConfig.E00048.getMsgZh(), null);
-        }
-        return result(HttpStatus.OK, "success", null);
     }
 
     /**
@@ -798,36 +762,6 @@ public class AuthingService implements UserCenterServiceInter {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             LogUtil.createLogs(userId, "logout", "login",
                     "The user logout", ClientIPUtil.getClientIpAddress(servletRequest), "failed");
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-    }
-
-    /**
-     * 刷新用户信息的方法.
-     *
-     * @param servletRequest  HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @param token           令牌
-     * @return ResponseEntity 响应实体
-     */
-    @Override
-    public ResponseEntity refreshUser(HttpServletRequest servletRequest,
-                                      HttpServletResponse servletResponse, String token) {
-        try {
-            token = authingUtil.rsaDecryptToken(token);
-            DecodedJWT decode = JWT.decode(token);
-            String userId = decode.getAudience().get(0);
-            // 获取用户
-            User user = authingUserDao.getUser(userId);
-            String photo = user.getPhoto();
-            String username = user.getUsername();
-            // 返回结果
-            HashMap<String, Object> userData = new HashMap<>();
-            userData.put("photo", photo);
-            userData.put("username", username);
-            return result(HttpStatus.OK, "success", userData);
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }

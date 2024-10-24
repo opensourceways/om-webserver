@@ -171,28 +171,4 @@ public class JwtTokenCreateService {
         String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
         return authingUserToken(appId, userId, username, permission, inputPermission, idToken, oneidPrivacyVersion);
     }
-
-    /**
-     * 获取应用管理员令牌.
-     *
-     * @param appId       应用ID
-     * @param appSecret   应用密钥
-     * @param tokenExpire 令牌过期时间
-     * @return 应用管理员令牌字符串
-     */
-    public String getAppManagerToken(String appId, String appSecret,
-                                     long tokenExpire) {
-        LocalDateTime nowDate = LocalDateTime.now();
-
-        Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
-
-        LocalDateTime expireDate = nowDate.plusSeconds(tokenExpire);
-        Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
-
-        return JWT.create()
-                .withAudience(appId) //谁接受签名
-                .withIssuedAt(issuedAt) //生成签名的时间
-                .withExpiresAt(expireAt) //过期时间
-                .sign(Algorithm.HMAC256(appSecret + authingTokenBasePassword));
-    }
 }

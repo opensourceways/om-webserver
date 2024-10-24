@@ -28,15 +28,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.modules.MessageCodeConfig;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.conn.ConnectionKeepAliveStrategy;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 public final class HttpClientUtils implements Serializable {
     private HttpClientUtils() {
@@ -47,35 +40,6 @@ public final class HttpClientUtils implements Serializable {
      * 日志记录器实例，用于记录 HttpClientUtils 类的日志信息.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(HttpClientUtils.class);
-
-    /**
-     * 静态连接池管理器.
-     */
-    private static PoolingHttpClientConnectionManager connectionManager;
-
-    /**
-     * 自定义连接保持策略.
-     */
-    private static ConnectionKeepAliveStrategy myStrategy;
-
-    /**
-     * 凭据提供者.
-     */
-    private static CredentialsProvider credentialsProvider = new BasicCredentialsProvider();
-
-    /**
-     * 可关闭的 HTTP 客户端.
-     */
-    private static CloseableHttpClient client;
-
-    /**
-     * 获取可关闭的 HTTP 客户端实例.
-     *
-     * @return CloseableHttpClient 对象
-     */
-    public static CloseableHttpClient getClient() {
-        return HttpClients.custom().setConnectionManager(connectionManager).build();
-    }
 
     /**
      * 获取配置的 Cookie 信息并存储在HashMap中.
@@ -157,29 +121,6 @@ public final class HttpClientUtils implements Serializable {
         cookie.setMaxAge(maxAge);
         cookie.setPath(path);
         servletResponse.addCookie(cookie);
-    }
-
-    /**
-     * 删除指定域名和路径下的 Cookie.
-     *
-     * @param servletResponse HTTP响应对象
-     * @param domainStr       域名字符串
-     * @param name            Cookie名称
-     * @param path            路径
-     */
-    public static void deleteCookie(HttpServletResponse servletResponse, String domainStr, String name, String path) {
-        String[] domains = domainStr == null ? new String[]{} : domainStr.split(";");
-        if (StringUtils.isBlank(path)) {
-            path = "/";
-        }
-
-        for (String domain : domains) {
-            Cookie cookie = new Cookie(name, "");
-            cookie.setMaxAge(0);
-            cookie.setPath(path);
-            cookie.setDomain(domain);
-            servletResponse.addCookie(cookie);
-        }
     }
 
     /**

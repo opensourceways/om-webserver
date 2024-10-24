@@ -79,7 +79,6 @@ public class AuthingController {
         return request.getRemoteAddr() + ua;
     }
 
-
     /**
      * 处理获取验证码请求的方法.
      *

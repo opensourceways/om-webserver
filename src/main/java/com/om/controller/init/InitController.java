@@ -13,8 +13,6 @@ package com.om.controller.init;
 
 import com.om.utils.LogUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -27,11 +25,6 @@ import com.om.utils.CommonUtil;
  */
 @RestController
 public class InitController implements ApplicationRunner {
-    /**
-     * 日志记录器实例，用于记录初始化控制器类的日志信息.
-     */
-    private static final Logger LOG = LoggerFactory.getLogger(InitController.class);
-
     /**
      * redis路径.
      */
