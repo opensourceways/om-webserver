@@ -15,11 +15,11 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 /**
- * 登录失败计数器类.
+ * 操作计数器类.
  */
 @Data
 @Accessors(chain = true)
-public class OperateFailCounter {
+public class OperateCounter {
     /**
      * 账号信息.
      */

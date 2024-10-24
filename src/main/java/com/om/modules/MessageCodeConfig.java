@@ -318,7 +318,12 @@ public enum MessageCodeConfig {
     /**
      * 仅支持中国区手机号.
      */
-    E00068("E00068", "Only supports mobile phone numbers in China", "仅支持中国区手机号");
+    E00068("E00068", "Only supports mobile phone numbers in China", "仅支持中国区手机号"),
+
+    /**
+     * 错误代码 E00069: 注册次数过多，请稍后重试.
+     */
+    E00069("E00069", "Too many registrations, please try again in 5 hours", "注册次数过多，请5小时后重试");
 
     /**
      * 消息代码.

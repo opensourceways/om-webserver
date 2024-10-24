@@ -12,7 +12,7 @@
 package com.om.utils;
 
 import com.om.dao.RedisDao;
-import com.om.modules.OperateFailCounter;
+import com.om.modules.OperateCounter;
 import com.om.result.Constant;
 
 import org.slf4j.Logger;
@@ -20,7 +20,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
+import org.springframework.util.DigestUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -49,9 +51,9 @@ public class LimitUtil {
      * @param account 账户信息
      * @return LoginFailCounter 对象
      */
-    public OperateFailCounter initLoginFailCounter(String account) {
+    public OperateCounter initLoginFailCounter(String account) {
         String loginFailAccountCountKey = account + Constant.LOGIN_COUNT;
-        return new OperateFailCounter()
+        return new OperateCounter()
                 .setAccount(account)
                 .setAccountKey(loginFailAccountCountKey)
                 .setAccountCount(redisDao.getLoginErrorCount(loginFailAccountCountKey))
@@ -67,9 +69,9 @@ public class LimitUtil {
      * @param account 账户信息
      * @return LoginFailCounter 对象
      */
-    public OperateFailCounter initBindFailCounter(String account) {
+    public OperateCounter initBindFailCounter(String account) {
         String loginFailAccountCountKey = account + Constant.BIND_FAILED_COUNT;
-        return new OperateFailCounter()
+        return new OperateCounter()
                 .setAccount(account)
                 .setAccountKey(loginFailAccountCountKey)
                 .setAccountCount(redisDao.getLoginErrorCount(loginFailAccountCountKey))
@@ -80,12 +82,31 @@ public class LimitUtil {
     }
 
     /**
+     * 初始化注册次数计数器.
+     *
+     * @param account 账户信息
+     * @return LoginFailCounter 对象
+     */
+    public OperateCounter initRegisterCounter(String account) {
+        String md5Account = DigestUtils.md5DigestAsHex(account.getBytes(StandardCharsets.UTF_8));
+        String registerAccountCountKey = md5Account + Constant.REGISTER_COUNT;
+        return new OperateCounter()
+                .setAccount(md5Account)
+                .setAccountKey(registerAccountCountKey)
+                .setAccountCount(redisDao.getLoginErrorCount(registerAccountCountKey))
+                .setLimitCount(Integer.parseInt(env.getProperty(
+                        "register.limit.count", Constant.REGISTER_COUNT_LIMIT)))
+                .setLimitSeconds(Long.parseLong(env.getProperty(
+                        "register.limit.seconds", Constant.REGISTER_COUNT_EXPIRE_SECOND)));
+    }
+
+    /**
      * 检查是否需要验证码.
      *
      * @param failCounter 登录失败计数器
      * @return 包含是否需要验证码信息的 HashMap
      */
-    public HashMap<String, Boolean> isNeedCaptcha(OperateFailCounter failCounter) {
+    public HashMap<String, Boolean> isNeedCaptcha(OperateCounter failCounter) {
         HashMap<String, Boolean> data = new HashMap<>();
         data.put(Constant.NEED_CAPTCHA_VERIFICATION, false);
         int needCaptchaLimit =
@@ -103,7 +124,7 @@ public class LimitUtil {
      * @param failCounter 登录失败计数器
      * @return 包含登录失败信息的 Map
      */
-    public Map<String, Boolean> loginFail(OperateFailCounter failCounter) {
+    public Map<String, Boolean> loginFail(OperateCounter failCounter) {
         failCounter.setAccountCount(failCounter.getAccountCount() + 1);
         redisDao.set(failCounter.getAccountKey(), String.valueOf(failCounter.getAccountCount()),
                 failCounter.getLimitSeconds());
@@ -121,7 +142,7 @@ public class LimitUtil {
      *
      * @param failCounter 登录失败计数器
      */
-    public void operateFail(OperateFailCounter failCounter) {
+    public void operateFail(OperateCounter failCounter) {
         failCounter.setAccountCount(failCounter.getAccountCount() + 1);
         redisDao.set(failCounter.getAccountKey(), String.valueOf(failCounter.getAccountCount()),
                 failCounter.getLimitSeconds());
@@ -129,6 +150,22 @@ public class LimitUtil {
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
             LOGGER.info(String.format("Account %s is locked until %s seconds later",
                     failCounter.getAccount(), failCounter.getLimitSeconds()));
+        }
+    }
+
+    /**
+     * 处理注册事件.
+     *
+     * @param registerCounter 注册计数器
+     */
+    public void registerAccount(OperateCounter registerCounter) {
+        registerCounter.setAccountCount(registerCounter.getAccountCount() + 1);
+        redisDao.set(registerCounter.getAccountKey(), String.valueOf(registerCounter.getAccountCount()),
+                registerCounter.getLimitSeconds());
+
+        if (registerCounter.getAccountCount() >= registerCounter.getLimitCount()) {
+            LOGGER.info(String.format("Account %s is locked register until %s seconds later",
+                    registerCounter.getAccount(), registerCounter.getLimitSeconds()));
         }
     }
 }

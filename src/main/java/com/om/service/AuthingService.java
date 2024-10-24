@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.dao.AuthingUserDao;
 import com.om.dao.RedisDao;
-import com.om.modules.OperateFailCounter;
+import com.om.modules.OperateCounter;
 import com.om.modules.MessageCodeConfig;
 import com.om.modules.ServerErrorException;
 import com.om.modules.authing.AuthingAppSync;
@@ -411,7 +411,11 @@ public class AuthingService implements UserCenterServiceInter {
                     "The user register", ip, "fail");
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
-
+        OperateCounter registerCounter = limitUtil.initRegisterCounter(account);
+        // 限制5小时注册次数
+        if (registerCounter.getAccountCount() >= registerCounter.getLimitCount()) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00069, null, null);
+        }
         if (StringUtils.isNotBlank(password)) {
             // 密码登录
             if (!isPasswdParmValid(password)) {
@@ -443,6 +447,9 @@ public class AuthingService implements UserCenterServiceInter {
         } else {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
+        if (Constant.SUCCESS.equals(msg)) {
+            limitUtil.registerAccount(registerCounter);
+        }
         return msg.equals(Constant.SUCCESS) ? result(HttpStatus.OK, Constant.SUCCESS, null)
                 : result(HttpStatus.BAD_REQUEST, null, msg, null);
     }
@@ -460,7 +467,7 @@ public class AuthingService implements UserCenterServiceInter {
         if (StringUtils.isEmpty(account)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
-        OperateFailCounter failCounter = limitUtil.initLoginFailCounter(account);
+        OperateCounter failCounter = limitUtil.initLoginFailCounter(account);
         return result(HttpStatus.OK, Constant.SUCCESS, limitUtil.isNeedCaptcha(failCounter));
     }
 
@@ -487,7 +494,7 @@ public class AuthingService implements UserCenterServiceInter {
         if (!isPermissionParmValid(permission) || StringUtils.isBlank(account)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
-        OperateFailCounter failCounter = limitUtil.initLoginFailCounter(account);
+        OperateCounter failCounter = limitUtil.initLoginFailCounter(account);
         // 限制一小时登录失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
             LogUtil.createLogs("anonymous", "user login", "login",
@@ -983,7 +990,7 @@ public class AuthingService implements UserCenterServiceInter {
             DecodedJWT decode = JWT.decode(token);
             String appId = decode.getClaim("client_id").asString();
             userId = decode.getAudience().get(0);
-            OperateFailCounter failCounter = limitUtil.initBindFailCounter(userId);
+            OperateCounter failCounter = limitUtil.initBindFailCounter(userId);
             // 限制一小时失败次数
             if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, null);
@@ -1160,7 +1167,7 @@ public class AuthingService implements UserCenterServiceInter {
         } else if (accountType.toLowerCase().equals("phone") && oldAccount.equals(account)) {
             return result(HttpStatus.BAD_REQUEST, null, "新手机号与已绑定手机号相同", null);
         }
-        OperateFailCounter failCounter = limitUtil.initBindFailCounter(userId);
+        OperateCounter failCounter = limitUtil.initBindFailCounter(userId);
         // 限制一小时失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, null);
@@ -1279,7 +1286,7 @@ public class AuthingService implements UserCenterServiceInter {
         if (Constant.PHONE_TYPE.equals(accountType) && !"+86".equals(authingUserDao.getPhoneCountryCode(account))) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00068, null, null);
         }
-        OperateFailCounter failCounter = limitUtil.initBindFailCounter(userId);
+        OperateCounter failCounter = limitUtil.initBindFailCounter(userId);
         // 限制一小时失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, null);

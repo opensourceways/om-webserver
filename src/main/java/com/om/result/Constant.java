@@ -156,14 +156,29 @@ public final class Constant {
     public static final String LOGIN_ERROR_LIMIT = "6";
 
     /**
+     * 注册次数限制为5次.
+     */
+    public static final String REGISTER_COUNT_LIMIT = "5";
+
+    /**
+     * 注册次数限制默认过期时间为5小时.
+     */
+    public static final String REGISTER_COUNT_EXPIRE_SECOND = "18000";
+
+    /**
      * LOGIN_COUNT: 登录计数.
      */
     public static final String LOGIN_COUNT = "loginCount";
 
     /**
-     * LOGIN_COUNT: 绑定计数.
+     * BIND_FAILED_COUNT: 绑定计数.
      */
     public static final String BIND_FAILED_COUNT = "bindFailedCount";
+
+    /**
+     * 注册计数.
+     */
+    public static final String REGISTER_COUNT = "registerCount";
 
     /**
      * ID Token前缀.
