@@ -49,15 +49,6 @@ public interface UserCenterServiceInter {
                               HttpServletResponse servletResponse, boolean isSuccess);
 
     /**
-     * 检查账户是否存在的方法.
-     *
-     * @param servletRequest  HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @return ResponseEntity 响应实体
-     */
-    ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
-
-    /**
      * 登录方法.
      *
      * @param servletRequest  HTTP请求对象
@@ -87,16 +78,6 @@ public interface UserCenterServiceInter {
      * @return ResponseEntity 响应实体
      */
     ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
-
-    /**
-     * 刷新用户信息的方法.
-     *
-     * @param servletRequest  HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @param token           令牌
-     * @return ResponseEntity 响应实体
-     */
-    ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 
     /**
      * 删除用户方法.
