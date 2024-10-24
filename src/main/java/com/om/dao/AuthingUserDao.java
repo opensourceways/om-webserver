@@ -1438,7 +1438,7 @@ public class AuthingUserDao {
                                 redisDao.remove(loginKey);
                             }
                             LogUtil.createLogs(user.getId(), "cancel privacy", "user",
-                                    "User cancel privacy consent version:" + inputValue
+                                    "User cancel privacy consent version:" + oldPrevious
                                             + ",appVersion:" + appVersion, userIp, "success");
                         }
                         break;
