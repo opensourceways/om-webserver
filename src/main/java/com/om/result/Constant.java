@@ -29,42 +29,10 @@ public final class Constant {
     public static final Integer CONNECT_TIMEOUT = 10000;
 
     /**
-     * OPEN_EULER: openeuler.
-     */
-    public static final String OPEN_EULER = "openeuler";
-    /**
-     * OPEN_GAUSS: opengauss.
-     */
-    public static final String OPEN_GAUSS = "opengauss";
-
-    /**
      * openMind社区.
      */
     public static final String OPEN_MIND = "openmind";
-    /**
-     * OPEN_LOOK_ENG: openlookeng.
-     */
-    public static final String OPEN_LOOK_ENG = "openlookeng";
-    /**
-     * MIND_SPORE: mindspore.
-     */
-    public static final String MIND_SPORE = "mindspore";
-    /**
-     * INDIVIDUAL: individual.
-     */
-    public static final String INDIVIDUAL = "individual";
-    /**
-     * ORGANIZATION: organization.
-     */
-    public static final String ORGANIZATION = "organization";
-    /**
-     * ALL_ISSUE_CVE_STR: allIssueCveStr.
-     */
-    public static final String ALL_ISSUE_CVE_STR = "allIssueCveStr";
-    /**
-     * ALL_ISSUE_RESULT: allIssueResult.
-     */
-    public static final String ALL_ISSUE_RESULT = "allIssueResult";
+
     /**
      * 电话号码正则表达式，匹配以加号开头的数字.
      */
@@ -100,47 +68,9 @@ public final class Constant {
     public static final int OPEN_MIND_USERNAME_MAX = 40;
 
     /**
-     * 昵称正则表达式，匹配特定昵称格式.
-     */
-    public static final String NICKNAMEREGEX =
-            "^[a-zA-Z\\u4e00-\\u9fa5][0-9a-zA-Z_-\\u4e00-\\u9fa5]{1,18}[0-9a-zA-Z\\u4e00-\\u9fa5]$";
-
-    /**
-     * 公司名称正则表达式，匹配特定公司名称格式.
-     */
-    public static final String COMPANYNAMEREGEX =
-            "^[0-9a-zA-Z\\u4e00-\\u9fa5][0-9a-zA-Z,\\.&\\(\\)（）\\s\\u4e00-\\u9fa5]{0,98}[0-9a-zA-Z\\.\\u4e00-\\u9fa5]$";
-
-    /**
-     * 敏感信息正则表达式，用于匹配包含密码、密钥、令牌或代码等敏感信息的字符串.
-     */
-    public static final String FULL_SENSITIVE_REG = "^.*(password|secret|token|code).*$";
-
-    /**
-     * 部分敏感信息正则表达式，用于匹配包含账号等部分敏感信息的字符串.
-     */
-    public static final String HALF_SENSITIVE_REG = "^.*(account).*$";
-
-    /**
-     * 电话号码替换正则表达式，用于替换电话号码中的部分数字.
-     */
-    public static final String PHONE_REPLACE_REG = "(^\\d{3})\\d.*(\\d{4})";
-
-    /**
-     * 邮箱替换正则表达式，用于替换邮箱地址中的字符.
-     */
-    public static final String EMAIL_REPLACE_REG = "(^\\w)[^@]*(@.*$)";
-
-
-    /**
      * 默认过期秒数为60.
      */
     public static final String DEFAULT_EXPIRE_SECOND = "60";
-
-    /**
-     * OneID过期秒数为3000.
-     */
-    public static final String ONEID_EXPIRE_SECOND = "3000";
 
     /**
      * 认证中.
@@ -236,21 +166,6 @@ public final class Constant {
     public static final String BIND_FAILED_COUNT = "bindFailedCount";
 
     /**
-     * 发送验证码标识.
-     */
-    public static final String SEND_CODE = "_sendCode_";
-
-    /**
-     * 注册后缀.
-     */
-    public static final String REGISTER_SUFFIX = "_register";
-
-    /**
-     * 重置密码后缀.
-     */
-    public static final String RESET_PASSWORD_SUFFIX = "_reset_password";
-
-    /**
      * ID Token前缀.
      */
     public static final String ID_TOKEN_PREFIX = "idToken_";
@@ -276,11 +191,6 @@ public final class Constant {
     public static final int TOKEN_YG = 0;
 
     /**
-     * Token Y_G_标识.
-     */
-    public static final String TOKEN_Y_G = "_Y_G_";
-
-    /**
      * Token UT值为1.
      */
     public static final int TOKEN_UT = 1;
@@ -290,36 +200,10 @@ public final class Constant {
      */
     public static final String TOKEN_U_T = "_U_T_";
 
-
-    /**
-     * OneID用户合成路径.
-     */
-    public static final String ONEID_USER_C_PATH = "/composite-user";
-
-    /**
-     * OneID用户URD路径.
-     */
-    public static final String ONEID_USER_URD_PATH = "/composite-user/{account}";
-
-    /**
-     * OneID检查密码路径.
-     */
-    public static final String ONEID_CHECK_PASSWORD_PATH = "/auth/check-password/{account}";
-
-    /**
-     * OneID获取管理令牌路径.
-     */
-    public static final String ONEID_TOKEN_PATH = "/auth/get-management-token";
-
     /**
      * 不允许在照片中使用的字符集.
      */
     public static final String PHOTO_NOT_ALLOWED_CHARS = "\\,/,:,*,?,\",<,>,|";
-
-    /**
-     * 同意接受条款为0.
-     */
-    public static final String CONSENT_ACCEPT_TERM = "0";
 
     /**
      * 自动生成电子邮件后缀.
@@ -336,4 +220,3 @@ public final class Constant {
      */
     public static final String AUTHING_CHANNELS = "CHANNEL_BIND_EMAIL,CHANNEL_BIND_PHONE";
 }
-
