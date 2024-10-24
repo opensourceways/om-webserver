@@ -15,8 +15,6 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.modules.MessageCodeConfig;
 import com.om.service.AuthingService;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
@@ -35,7 +33,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Arrays;
 
 @Component
 public class AuthingUtil {
@@ -186,58 +183,5 @@ public class AuthingUtil {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
         }
         return res;
-    }
-
-    /**
-     * JSONObject获取单个node的值.
-     * @param jsonObj jsonObj
-     * @param nodeName nodeName
-     * @return object
-     */
-    public Object jsonObjObjectValue(JSONObject jsonObj, String nodeName) {
-        Object res = null;
-        try {
-            if (jsonObj.isNull(nodeName)) {
-                return res;
-            }
-            Object obj = jsonObj.get(nodeName);
-            if (obj != null) {
-                res = obj;
-            }
-        } catch (Exception ex) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
-        }
-        return res;
-    }
-
-    /**
-     * 获取cookie.
-     *
-     * @param request 请求体
-     * @param cookieName cookie名
-     * @return cookie
-     */
-    public Cookie getCookie(HttpServletRequest request, String cookieName) {
-        Cookie cookie = null;
-        Cookie[] cookies = request.getCookies();
-        cookie = getCookie(cookies, cookieName);
-        return cookie;
-    }
-
-    /**
-     * 获取cookie.
-     *
-     * @param cookies 所有cookie
-     * @param cookieName cookie名
-     * @return 返回的cookie
-     */
-    private Cookie getCookie(Cookie[] cookies, String cookieName) {
-        Cookie cookie = null;
-        if (cookies == null) {
-            return cookie;
-        }
-        cookie = Arrays.stream(cookies).filter(cookieEle ->
-                cookieEle.getName().equals(cookieName)).findFirst().orElse(null);
-        return cookie;
     }
 }

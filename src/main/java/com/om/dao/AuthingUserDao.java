@@ -39,7 +39,6 @@ import com.om.result.Constant;
 import com.om.utils.CommonUtil;
 import com.om.utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
-import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -235,12 +234,6 @@ public class AuthingUserDao {
     private String photoSuffix;
 
     /**
-     * Authing API 主机地址.
-     */
-    @Value("${authing.api.host}")
-    private String authingApiHost;
-
-    /**
      * Authing API v2 主机地址.
      */
     @Value("${authing.api.hostv2}")
@@ -270,7 +263,6 @@ public class AuthingUserDao {
     @Value("${community}")
     private String community;
 
-    // -- temporary (解决gitee多身份源解绑问题)
     /**
      * 临时外部身份提供者 IDs.
      */
@@ -288,7 +280,6 @@ public class AuthingUserDao {
      */
     @Value("${temp.users}")
     private String users;
-    // -- temporary
 
     /**
      * Authing 用户管理客户端实例.
@@ -439,8 +430,6 @@ public class AuthingUserDao {
         }
     }
 
-    // 邮箱验证码注册
-
     /**
      * 使用电子邮件验证码注册用户.
      *
@@ -457,8 +446,6 @@ public class AuthingUserDao {
                 email, code, username, privacyHistoryService.createPrivacyVersions(oneidPrivacyVersion, true));
         return register(appId, body);
     }
-
-    // 手机验证码注册
 
     /**
      * 使用手机验证码注册用户.
@@ -480,8 +467,6 @@ public class AuthingUserDao {
                         .createPrivacyVersions(oneidPrivacyVersion, true));
         return register(appId, body);
     }
-
-    // 邮箱验密码注册
 
     /**
      * 使用电子邮件和密码注册用户.
@@ -719,29 +704,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 执行用户注销操作.
-     *
-     * @param appId   应用程序 ID
-     * @param idToken ID 令牌
-     * @param userId  用户 ID
-     * @return 返回注销操作是否成功的布尔值，成功为 true，失败为 false
-     */
-    public boolean logout(String appId, String idToken, String userId) {
-        try {
-            HttpResponse<JsonNode> response = Unirest
-                    .get(String.format(authingApiHost + "/logout?appId=%s&userId=%s", appId, userId))
-                    .header("Authorization", idToken)
-                    .header("x-authing-userpool-id", userPoolId)
-                    .asJson();
-            int code = response.getBody().getObject().getInt("code");
-            return code == 200;
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return false;
-        }
-    }
-
-    /**
      * 根据用户ID获取用户基本信息.
      *
      * @param userId 用户ID
@@ -750,46 +712,6 @@ public class AuthingUserDao {
     public User getUser(String userId) {
         try {
             return managementClient.users().detail(userId, true, true).execute();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 使用v3管理员接口获取用户信息.
-     *
-     * @param userId     用户 ID
-     * @param userIdType 用户 ID 类型
-     * @return 返回包含用户信息的 JSONObject 对象，如果获取失败则返回 null
-     */
-    public JSONObject getUserV3(String userId, String userIdType) {
-        try {
-            String token = getManagementToken();
-            HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/get-user")
-                    .header("Authorization", token)
-                    .header("x-authing-userpool-id", userPoolId)
-                    .queryString("userId", userId)
-                    .queryString("userIdType", userIdType)
-                    .queryString("withIdentities", true)
-                    .asJson();
-            return response.getBody().getObject().getJSONObject("data");
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 通过用户名获取用户信息.
-     *
-     * @param username 用户名
-     * @return 返回包含用户信息的 JSONObject 对象，如果未找到用户则返回 null
-     */
-    public JSONObject getUserByName(String username) {
-        try {
-            User user = managementClient.users().find(new FindUserParam().withUsername(username)).execute();
-            return getUserById(user.getId());
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return null;
@@ -1132,33 +1054,6 @@ public class AuthingUserDao {
         }
         appClient.setCurrentUser(user);
         return appClient;
-    }
-
-    /**
-     * 绑定账户到认证客户端.
-     *
-     * @param authentication 认证客户端
-     * @param account 要绑定的账户信息
-     * @param code 验证码
-     * @param type 账户类型
-     * @return 如果成功绑定账户则返回消息提示，否则返回 null
-     */
-    public String bindAccount(AuthenticationClient authentication, String account, String code, String type) {
-        try {
-            switch (type.toLowerCase()) {
-                case "email":
-                    authentication.bindEmail(account, code).execute();
-                    break;
-                case "phone":
-                    authentication.bindPhone(account, code).execute();
-                    break;
-                default:
-                    return "false";
-            }
-        } catch (Exception e) {
-            return e.getMessage();
-        }
-        return "true";
     }
 
     /**
@@ -1599,32 +1494,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 撤销用户隐私设置.
-     *
-     * @param userId 用户ID
-     * @return 如果成功撤销用户隐私设置则返回 true，否则返回 false
-     */
-    public boolean revokePrivacy(String userId) {
-        try {
-            // get user
-            User user = managementClient.users().detail(userId, false, false).execute();
-            UpdateUserInput input = new UpdateUserInput();
-            input.withGivenName(privacyHistoryService.updatePrivacyVersions(user.getGivenName(), "revoked"));
-            User updateUser = managementClient.users().update(userId, input).execute();
-            if (updateUser == null) {
-                return false;
-            }
-            saveHistory(user, null);
-            LOGGER.info(String.format("User %s cancel privacy consent version %s for app version %s",
-                    user.getId(), oneidPrivacyVersion, appVersion));
-            return true;
-        } catch (Exception e) {
-            LOGGER.error(e.getMessage());
-            return false;
-        }
-    }
-
-    /**
      * 使用访问令牌更新用户照片.
      *
      * @param token 访问令牌
@@ -1762,35 +1631,6 @@ public class AuthingUserDao {
         }
 
         return msg;
-    }
-
-    /**
-     * 获取用户可访问的应用程序列表.
-     *
-     * @param userId 用户ID
-     * @return 包含用户可访问的应用程序名称的列表
-     */
-    public List<String> userAccessibleApps(String userId) {
-        ArrayList<String> appIds = new ArrayList<>();
-        try {
-            String token = getUser(userId).getToken();
-            HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/get-my-accessible-apps")
-                    .header("Authorization", token)
-                    .header("x-authing-userpool-id", userPoolId)
-                    .asJson();
-            if (response.getStatus() == 200) {
-                JSONArray data = response.getBody().getObject().getJSONArray("data");
-                for (Object item : data) {
-                    if (item instanceof JSONObject) {
-                        JSONObject app = (JSONObject) item;
-                        appIds.add(app.getString("appId"));
-                    }
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-        }
-        return appIds;
     }
 
     private List<String> getUsernameReserved() {

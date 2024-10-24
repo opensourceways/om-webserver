@@ -20,7 +20,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
@@ -129,26 +128,6 @@ public class CodeUtil {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return new String[]{code, String.valueOf(codeExpire), resMsg};
-    }
-
-    /**
-     * 发送简单的邮件.
-     *
-     * @param mailSender 邮箱服务
-     * @param from       发件邮箱
-     * @param to         收件邮箱
-     * @param title      标题
-     * @param content    内容
-     * @return 发送邮件结果
-     */
-    public String sendSimpleMail(JavaMailSender mailSender, String from, String to, String title, String content) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(from);
-        message.setTo(to);
-        message.setSubject(title);
-        message.setText(content);
-        mailSender.send(message);
-        return "send code success";
     }
 
     /**
@@ -315,26 +294,5 @@ public class CodeUtil {
         SecureRandom random = SecureRandom.getInstance("DRBG",
                 DrbgParameters.instantiation(256, Capability.RESEED_ONLY, null));
         return new BigInteger(160, random).toString(strLength);
-    }
-
-    /**
-     * 拦截器方法，根据渠道和用户是否存在执行相应操作.
-     *
-     * @param channel     渠道信息
-     * @param isUserExist 用户是否存在的标志
-     * @return 操作结果的字符串
-     */
-    public String interceptor(String channel, boolean isUserExist) {
-        if ((Constant.CHANNEL_REGISTER.equals(channel) || Constant.CHANNEL_REGISTER_BY_PASSWORD.equals(channel))
-                && isUserExist) {
-            return MessageCodeConfig.E00057.getMsgZh();
-        }
-
-        if ((Constant.CHANNEL_LOGIN.equals(channel) || Constant.CHANNEL_RESET_PASSWORD.equals(channel))
-                && !isUserExist) {
-            return MessageCodeConfig.E00034.getMsgZh();
-        }
-
-        return Constant.SUCCESS;
     }
 }
