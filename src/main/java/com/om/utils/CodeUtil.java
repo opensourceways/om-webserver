@@ -20,7 +20,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
-import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Component;
@@ -129,26 +128,6 @@ public class CodeUtil {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return new String[]{code, String.valueOf(codeExpire), resMsg};
-    }
-
-    /**
-     * 发送简单的邮件.
-     *
-     * @param mailSender 邮箱服务
-     * @param from       发件邮箱
-     * @param to         收件邮箱
-     * @param title      标题
-     * @param content    内容
-     * @return 发送邮件结果
-     */
-    public String sendSimpleMail(JavaMailSender mailSender, String from, String to, String title, String content) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(from);
-        message.setTo(to);
-        message.setSubject(title);
-        message.setText(content);
-        mailSender.send(message);
-        return "send code success";
     }
 
     /**

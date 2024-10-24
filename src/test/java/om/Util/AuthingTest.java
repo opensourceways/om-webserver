@@ -7,7 +7,6 @@ import org.junit.jupiter.params.shadow.com.univocity.parsers.csv.CsvWriterSettin
 
 import java.io.File;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.List;
 
 public class AuthingTest {
