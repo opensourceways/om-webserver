@@ -15,14 +15,14 @@ import com.om.dao.RedisDao;
 import com.om.modules.OperateCounter;
 import com.om.result.Constant;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
-import org.springframework.util.DigestUtils;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,6 +39,9 @@ public class LimitUtil {
      */
     @Autowired
     private Environment env;
+
+    @Value("${sha256.salt.account: }")
+    private String accountSalt;
 
     /**
      * 日志记录器，用于记录 LimitUtil 类的日志信息.
@@ -88,10 +91,13 @@ public class LimitUtil {
      * @return LoginFailCounter 对象
      */
     public OperateCounter initRegisterCounter(String account) {
-        String md5Account = DigestUtils.md5DigestAsHex(account.getBytes(StandardCharsets.UTF_8));
-        String registerAccountCountKey = md5Account + Constant.REGISTER_COUNT;
+        String encryptAccount = CommonUtil.encryptSha256(account, accountSalt);
+        if (StringUtils.isBlank(encryptAccount)) {
+            return null;
+        }
+        String registerAccountCountKey = encryptAccount + Constant.REGISTER_COUNT;
         return new OperateCounter()
-                .setAccount(md5Account)
+                .setAccount(encryptAccount)
                 .setAccountKey(registerAccountCountKey)
                 .setAccountCount(redisDao.getLoginErrorCount(registerAccountCountKey))
                 .setLimitCount(Integer.parseInt(env.getProperty(

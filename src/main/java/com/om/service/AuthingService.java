@@ -412,6 +412,11 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
         OperateCounter registerCounter = limitUtil.initRegisterCounter(account);
+        if (registerCounter == null) {
+            LogUtil.createLogs("anonymous", "user register", "register",
+                    "The user register", ip, "fail");
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
         // 限制5小时注册次数
         if (registerCounter.getAccountCount() >= registerCounter.getLimitCount()) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00069, null, null);
