@@ -100,7 +100,7 @@ public enum MessageCodeConfig {
     /**
      * 错误代码 E00019: 用户名已存在.
      */
-    E00019("E00019", "Username already exists", "用户名已存在"),
+    E00019("E00019", "Username is illegal", "用户名不合法"),
     /**
      * 错误代码 E00020: 手机号或者邮箱不能为空.
      */
