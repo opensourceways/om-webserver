@@ -18,6 +18,7 @@ import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
 import com.om.utils.CodeUtil;
+import com.om.utils.CommonUtil;
 import com.om.utils.RSAUtil;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
@@ -25,7 +26,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -82,6 +82,8 @@ public class JwtTokenCreateService {
     @Value("${oneid.privacy.version}")
     private String oneidPrivacyVersion;
 
+    @Value("${authing.token.sha256.salt: }")
+    private String tokenSalt;
 
     /**
      * 静态日志记录器，用于记录 JwtTokenCreateService 类的日志信息.
@@ -124,7 +126,7 @@ public class JwtTokenCreateService {
                 .withExpiresAt(headTokenExpireAt) //过期时间
                 .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .sign(Algorithm.HMAC256(authingTokenBasePassword));
-        String verifyToken = DigestUtils.md5DigestAsHex(headToken.getBytes(StandardCharsets.UTF_8));
+        String verifyToken = CommonUtil.encryptSha256(headToken, tokenSalt);
         redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
         String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes(StandardCharsets.UTF_8));
 

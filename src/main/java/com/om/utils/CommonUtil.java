@@ -16,6 +16,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Objects;
 
 import javax.imageio.ImageIO;
@@ -97,6 +100,36 @@ public final class CommonUtil {
             return file.delete();
         }
         return true;
+    }
+
+    /**
+     * sha256加密.
+     *
+     * @param data 数据
+     * @param salt 盐
+     * @return 加密后数据
+     * @throws NoSuchAlgorithmException 异常
+     */
+    public static String encryptSha256(String data, String salt) {
+        MessageDigest md = null;
+        try {
+            md = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            LOGGER.error("encryptSha256 failed {}", e.getMessage());
+            return null;
+        }
+        // 将盐值和数据拼接后进行哈希计算
+        String combinedData = data + salt;
+        byte[] hashBytes = md.digest(combinedData.getBytes(StandardCharsets.UTF_8));
+        StringBuilder hexString = new StringBuilder();
+        for (byte b : hashBytes) {
+            String hex = Integer.toHexString(0xff & b);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 
     private static byte[] check(byte[] bs) {

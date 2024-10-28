@@ -21,6 +21,7 @@ import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
 import com.om.service.JwtTokenCreateService;
+import com.om.utils.CommonUtil;
 import com.om.utils.HttpClientUtils;
 import com.om.utils.LogUtil;
 import com.om.utils.ClientIPUtil;
@@ -33,7 +34,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -143,6 +143,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
     @Value("${oneid.privacy.version}")
     private String oneidPrivacyVersion;
 
+    @Value("${authing.token.sha256.salt: }")
+    private String tokenSalt;
+
     /**
      * 存储域名与安全性标志之间的映射关系.
      */
@@ -201,11 +204,11 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
         // 校验header中的token
         String headerJwtToken = httpServletRequest.getHeader("token");
-        String headJwtTokenMd5 = verifyHeaderToken(headerJwtToken);
+        String headJwtTokenSha = verifyHeaderToken(headerJwtToken);
         String userIp = ClientIPUtil.getClientIpAddress(httpServletRequest);
-        if (headJwtTokenMd5.equals("unauthorized") || headJwtTokenMd5.equals("token expires")) {
-            tokenError(httpServletRequest, httpServletResponse, headJwtTokenMd5);
-            if (headJwtTokenMd5.equals("token expires")) {
+        if (headJwtTokenSha.equals("unauthorized") || headJwtTokenSha.equals("token expires")) {
+            tokenError(httpServletRequest, httpServletResponse, headJwtTokenSha);
+            if (headJwtTokenSha.equals("token expires")) {
                 DecodedJWT decode = JWT.decode(headerJwtToken);
                 String user = decode.getAudience().get(0);
                 LogUtil.createLogs(user, "token expire", "user", "The user's token expire",
@@ -260,7 +263,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return false;
         }
         // 校验token
-        String verifyTokenMsg = verifyToken(headJwtTokenMd5, token, verifyToken, expiresAt, permission, userIp, userId);
+        String verifyTokenMsg = verifyToken(headJwtTokenSha, token, verifyToken, expiresAt, permission, userIp, userId);
         if (!Constant.SUCCESS.equals(verifyTokenMsg)) {
             tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
             return false;
@@ -323,7 +326,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
      * 校验header中的token.
      *
      * @param headerToken header中的token
-     * @return 校验正确返回token的MD5值
+     * @return 校验正确返回token的sha256值
      */
     private String verifyHeaderToken(String headerToken) {
         try {
@@ -332,15 +335,15 @@ public class AuthingInterceptor implements HandlerInterceptor {
             }
 
             // 服务端校验headerToken是否有效
-            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes(StandardCharsets.UTF_8));
-            if (!redisDao.exists("idToken_" + md5Token)) {
+            String shaToken = CommonUtil.encryptSha256(headerToken, tokenSalt);
+            if (!redisDao.exists("idToken_" + shaToken)) {
                 return "token expires";
             }
 
             // token 签名密码验证
             JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(authingTokenBasePassword)).build();
             jwtVerifier.verify(headerToken);
-            return md5Token;
+            return shaToken;
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return "unauthorized";
@@ -469,7 +472,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
                 true, maxAge, "/", domain2secure);
         HttpClientUtils.setCookie(request, response, verifyTokenName, tokens[Constant.TOKEN_UT],
                 false, tokenExpire, "/", domain2secure);
-        String newVerifyToken = DigestUtils.md5DigestAsHex(tokens[Constant.TOKEN_UT].getBytes(StandardCharsets.UTF_8));
+        String newVerifyToken = CommonUtil.encryptSha256(tokens[Constant.TOKEN_UT], tokenSalt);
         redisDao.set(Constant.ID_TOKEN_PREFIX + newVerifyToken, idToken, (long) tokenExpire);
 
         // 旧token失效,保持一个短时间的有效性
