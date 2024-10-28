@@ -30,6 +30,7 @@ import com.om.result.Result;
 import com.om.service.inter.UserCenterServiceInter;
 import com.om.utils.AuthingUtil;
 import com.om.utils.CodeUtil;
+import com.om.utils.CommonUtil;
 import com.om.utils.HttpClientUtils;
 import com.om.utils.EncryptionService;
 import com.om.utils.LimitUtil;
@@ -51,13 +52,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
-import org.springframework.util.DigestUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.HtmlUtils;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -190,6 +189,9 @@ public class AuthingService implements UserCenterServiceInter {
      */
     @Value("${app.version:1.0}")
     private String appVersion;
+
+    @Value("${authing.token.sha256.salt: }")
+    private String tokenSalt;
 
     /**
      * CodeUtil赋值.
@@ -721,8 +723,8 @@ public class AuthingService implements UserCenterServiceInter {
         try {
             String redirectUri = servletRequest.getHeader("Referer");
             String headerToken = servletRequest.getHeader("token");
-            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes(StandardCharsets.UTF_8));
-            String idTokenKey = "idToken_" + md5Token;
+            String shaToken = CommonUtil.encryptSha256(headerToken, tokenSalt);
+            String idTokenKey = "idToken_" + shaToken;
             token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             userId = decode.getAudience().get(0);
@@ -1557,8 +1559,8 @@ public class AuthingService implements UserCenterServiceInter {
             authingUserDao.deleteObsObjectByUrl(photo);
             // 删除cookie，删除idToken
             String headerToken = httpServletRequest.getHeader("token");
-            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes(StandardCharsets.UTF_8));
-            String idTokenKey = "idToken_" + md5Token;
+            String shaToken = CommonUtil.encryptSha256(headerToken, tokenSalt);
+            String idTokenKey = "idToken_" + shaToken;
             redisDao.remove(idTokenKey);
             logoutAllSessions(userId, httpServletRequest, servletResponse);
         } catch (Exception e) {
