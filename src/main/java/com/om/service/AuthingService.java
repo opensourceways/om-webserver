@@ -457,7 +457,8 @@ public class AuthingService implements UserCenterServiceInter {
      */
     @Override
     public ResponseEntity captchaLogin(HttpServletRequest request) {
-        String account = request.getParameter("account");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
+        String account = (String) getBodyPara(body, "account");
         account = getAbsoluteAccount(account);
         if (StringUtils.isEmpty(account)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
