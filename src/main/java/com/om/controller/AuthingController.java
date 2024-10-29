@@ -142,7 +142,7 @@ public class AuthingController {
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
-    @RequestMapping(value = "/captcha/checkLogin", method = RequestMethod.GET)
+    @RequestMapping(value = "/captcha/checkLogin", method = RequestMethod.POST)
     public ResponseEntity captchaLogin(HttpServletRequest servletRequest) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.captchaLogin(servletRequest);
