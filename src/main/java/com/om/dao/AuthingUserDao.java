@@ -23,6 +23,7 @@ import cn.authing.core.types.User;
 import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.om.config.UnirestCustomTrustManager;
 import com.om.modules.authing.AuthingAppSync;
 import com.om.service.PrivacyHistoryService;
 import com.om.utils.LogUtil;
@@ -40,6 +41,9 @@ import com.om.utils.CommonUtil;
 import com.om.utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
 import kong.unirest.json.JSONObject;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,10 +56,12 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.annotation.PostConstruct;
 
 import javax.crypto.NoSuchPaddingException;
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.text.SimpleDateFormat;
@@ -282,6 +288,12 @@ public class AuthingUserDao {
     private String users;
 
     /**
+     * TLS cipher.
+     */
+    @Value("${unirest.ssl.cipher}")
+    private String[] enabledCipherSuites;
+
+    /**
      * Authing 用户管理客户端实例.
      */
     private static ManagementClient managementClient;
@@ -361,8 +373,33 @@ public class AuthingUserDao {
         setInitObsClient(new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint));
         setInitReservedUsernames(getUsernameReserved());
         photoSuffixes = Arrays.asList(photoSuffix.split(";"));
-        Unirest.config().reset();
-        Unirest.config().socketTimeout(Constant.SOCKET_TIMEOUT).connectTimeout(Constant.CONNECT_TIMEOUT);
+        initUnirestConf();
+    }
+
+    private void initUnirestConf() {
+        try {
+            Unirest.config().reset();
+            Unirest.config().socketTimeout(Constant.SOCKET_TIMEOUT).connectTimeout(Constant.CONNECT_TIMEOUT);
+
+            UnirestCustomTrustManager unirestCustomTrustManager = new UnirestCustomTrustManager();
+            SecureRandom secureRandom = SecureRandom.getInstanceStrong();
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, new javax.net.ssl.TrustManager[]{unirestCustomTrustManager}, secureRandom);
+            SSLConnectionSocketFactory sslConnectionSocketFactory = new SSLConnectionSocketFactory(sslContext,
+                    new String[] {"TLSv1.2"}, enabledCipherSuites,
+                    (hostName, session) -> {
+                        if (hostName.contains("authing")) {
+                            return true;
+                        }
+                        LOGGER.error("not authing certificate");
+                        return true;
+                    });
+            CloseableHttpClient httpClient = HttpClients.custom()
+                    .setSSLSocketFactory(sslConnectionSocketFactory).build();
+            Unirest.config().httpClient(httpClient);
+        } catch (Exception e) {
+            LOGGER.error("init unirest failed {}", e.getMessage());
+        }
     }
 
     /**
