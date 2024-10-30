@@ -120,6 +120,7 @@ public final class HttpClientUtils implements Serializable {
         cookie.setSecure(secure);
         cookie.setMaxAge(maxAge);
         cookie.setPath(path);
+        cookie.setAttribute("SameSite", "Lax");
         servletResponse.addCookie(cookie);
     }
 

@@ -65,7 +65,7 @@ public final class LogUtil {
      */
     public static void managementOperate(JoinPoint joinPoint, HttpServletRequest request,
                                          HttpServletResponse response, Object returnObject) {
-        if (URL_NO_LOG_WHITE_LIST.contains(request.getRequestURI())) {
+        if (URL_NO_LOG_WHITE_LIST.contains(CommonUtil.getSafeRequestUri(request))) {
             return;
         }
         ManagementLog log = new ManagementLog();
@@ -78,7 +78,7 @@ public final class LogUtil {
         log.setFunc(String.format("%s.%s",
                 joinPoint.getSignature().getDeclaringTypeName(), joinPoint.getSignature().getName()));
 
-        log.setRequestUrl(request.getRequestURI());
+        log.setRequestUrl(CommonUtil.getSafeRequestUri(request));
         log.setMethod(request.getMethod());
 
         log.setAppIP(ClientIPUtil.getClientIpAddress(request));
