@@ -270,7 +270,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         }
 
         // 是否接受隐私协议
-        String url = httpServletRequest.getRequestURI();
+        String url = CommonUtil.getSafeRequestUri(httpServletRequest);
         if (!isLoginNormal(verifyToken, userId)
                 || (!"unused".equals(oneidPrivacyVersion) && !BASEINFO_URI.equals(url)
                 && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept))) {

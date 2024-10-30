@@ -23,6 +23,7 @@ import java.util.Objects;
 
 import javax.imageio.ImageIO;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
@@ -130,6 +131,16 @@ public final class CommonUtil {
             hexString.append(hex);
         }
         return hexString.toString();
+    }
+
+    /**
+     * 获取调用接口路径（防uri鉴权绕过）.
+     *
+     * @param request 请求体
+     * @return uri
+     */
+    public static String getSafeRequestUri(HttpServletRequest request) {
+        return request.getServletPath() + (request.getPathInfo() != null ? request.getPathInfo() : "");
     }
 
     private static byte[] check(byte[] bs) {
