@@ -14,6 +14,7 @@ package com.om.aop;
 import com.om.modules.MessageCodeConfig;
 import com.om.result.Result;
 import com.om.utils.ClientIPUtil;
+import com.om.utils.CommonUtil;
 import com.om.utils.LogUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -105,7 +106,7 @@ public class RequestLimitRedisAspect {
 
         // 获取url
         String ip = ClientIPUtil.getClientIpAddress(request);
-        String uri = request.getRequestURI();
+        String uri = CommonUtil.getSafeRequestUri(request);
         String key = "req_limit:".concat(uri).concat(ip);
 
         ZSetOperations zSetOperations = redisTemplate.opsForZSet();
