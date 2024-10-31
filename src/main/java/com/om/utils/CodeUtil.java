@@ -199,7 +199,7 @@ public class CodeUtil {
                                String statusCallBack, String signature) {
         if (sender == null || receiver == null || templateId == null || sender.isEmpty() || receiver.isEmpty()
                 || templateId.isEmpty()) {
-            System.out.println("buildRequestBody(): sender, receiver or templateId is null.");
+            LOGGER.error("buildRequestBody(): sender, receiver or templateId is null.");
             return null;
         }
         HashMap<String, String> map = new HashMap<String, String>();
