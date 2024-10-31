@@ -41,6 +41,11 @@ public class AuthingUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthingService.class);
 
     /**
+     * 绑定多个同类型三方账号，账号名分隔符.
+     */
+    private static final String IDENTITY_NAME_SPLIT = "|";
+
+    /**
      * 获取自定义token中的user id.
      *
      * @param token
@@ -129,21 +134,35 @@ public class AuthingUtil {
             target = (Objects.isNull(target) ? "" : target);
             String githubLogin = jsonObjStringValue(userInfoInIdpObj, "profile").replace(target, "");
             res.put("identity", "github");
-            res.put("login_name", convertIdentityName(githubLogin));
-            res.put("user_name", convertIdentityName(jsonObjStringValue(userInfoInIdpObj, "username")));
+            String loginName = convertIdentityName(githubLogin);
+            String userName = convertIdentityName(jsonObjStringValue(userInfoInIdpObj, "username"));
+            if (map.containsKey("github")) {
+                loginName += IDENTITY_NAME_SPLIT + map.get("github").get("login_name");
+                userName += IDENTITY_NAME_SPLIT + map.get("github").get("user_name");
+            }
+            res.put("login_name", loginName);
+            res.put("user_name", userName);
             res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("github", res);
         } else if (extIdpId.equals(env.getProperty("enterprise.extIdpId.gitee"))) {
             res.put("identity", "gitee");
+            String loginName = "";
+            String userName = "";
             if (userInfoInIdpObj.has("customData")) {
                 String giteeLogin = userInfoInIdpObj.getJSONObject("customData").getString("giteeLogin");
-                res.put("login_name", convertIdentityName(giteeLogin));
-                res.put("user_name", convertIdentityName(userInfoInIdpObj
-                        .getJSONObject("customData").getString("giteeName")));
+                loginName = convertIdentityName(giteeLogin);
+                userName = convertIdentityName(userInfoInIdpObj
+                        .getJSONObject("customData").getString("giteeName"));
             } else {
-                res.put("login_name", convertIdentityName(jsonObjStringValue(userInfoInIdpObj, "name")));
-                res.put("user_name", convertIdentityName(jsonObjStringValue(userInfoInIdpObj, "username")));
+                loginName = convertIdentityName(jsonObjStringValue(userInfoInIdpObj, "name"));
+                userName = convertIdentityName(jsonObjStringValue(userInfoInIdpObj, "username"));
             }
+            if (map.containsKey("gitee")) {
+                loginName += IDENTITY_NAME_SPLIT + map.get("gitee").get("login_name");
+                userName += IDENTITY_NAME_SPLIT + map.get("gitee").get("user_name");
+            }
+            res.put("login_name", loginName);
+            res.put("user_name", userName);
             res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("gitee", res);
         } else if (extIdpId.equals(env.getProperty("enterprise.extIdpId.openatom"))) {
@@ -151,15 +170,27 @@ public class AuthingUtil {
             String email = jsonObjStringValue(userInfoInIdpObj, "email");
             String name = StringUtils.isNotBlank(email) ? email : phone;
             res.put("identity", "openatom");
-            res.put("login_name", convertIdentityName(name));
-            res.put("user_name", convertIdentityName(name));
+            String loginName = convertIdentityName(name);
+            String userName = convertIdentityName(name);
+            if (map.containsKey("openatom")) {
+                loginName += IDENTITY_NAME_SPLIT + map.get("openatom").get("login_name");
+                userName += IDENTITY_NAME_SPLIT + map.get("openatom").get("user_name");
+            }
+            res.put("login_name", loginName);
+            res.put("user_name", userName);
             res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("openatom", res);
         } else if (extIdpId.equals(env.getProperty("social.extIdpId.wechat"))) {
             String name = jsonObjStringValue(userInfoInIdpObj, "nickname");
             res.put("identity", "wechat");
-            res.put("login_name", convertIdentityName(name));
-            res.put("user_name", convertIdentityName(name));
+            String loginName = convertIdentityName(name);
+            String userName = convertIdentityName(name);
+            if (map.containsKey("wechat")) {
+                loginName += IDENTITY_NAME_SPLIT + map.get("wechat").get("login_name");
+                userName += IDENTITY_NAME_SPLIT + map.get("wechat").get("user_name");
+            }
+            res.put("login_name", loginName);
+            res.put("user_name", userName);
             res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("wechat", res);
         }
