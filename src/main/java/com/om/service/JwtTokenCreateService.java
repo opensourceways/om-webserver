@@ -145,7 +145,7 @@ public class JwtTokenCreateService {
             RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
             return new String[]{RSAUtil.publicEncrypt(token, publicKey), headToken};
         } catch (Exception e) {
-            System.out.println("RSA Encrypt error");
+            LOGGER.error("RSA Encrypt error {}", e.getMessage());
             return new String[]{token, headToken};
         }
     }
