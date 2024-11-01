@@ -62,6 +62,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -142,6 +143,11 @@ public class AuthingService implements UserCenterServiceInter {
      * 静态变量: LOGGER - 日志记录器.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthingService.class);
+
+    /**
+     * redirectUri正则.
+     */
+    private static Pattern redirectUrlPattern = Pattern.compile("[\\u4e00-\\u9fa5]+");
 
     /**
      * 静态变量: CodeUtil实例.
@@ -796,11 +802,10 @@ public class AuthingService implements UserCenterServiceInter {
             }
             // 将URL中的中文转码，因为@RequestParam会自动解码，而我们需要未解码的参数
             String url = redirectUrl;
-            Matcher matcher = Pattern.compile("[\\u4e00-\\u9fa5]+").matcher(redirectUrl);
+            Matcher matcher = redirectUrlPattern.matcher(redirectUrl);
             String tmp = "";
             while (matcher.find()) {
                 tmp = matcher.group();
-                System.out.println(tmp);
                 url = url.replaceAll(tmp, URLEncoder.encode(tmp, "UTF-8"));
             }
             // 通过code获取access_token，再通过access_token获取用户
@@ -957,7 +962,7 @@ public class AuthingService implements UserCenterServiceInter {
         if (StringUtils.isAnyBlank(account, channel, token)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
-        if (!Constant.AUTHING_CHANNELS.contains(channel.toUpperCase())) {
+        if (!Constant.AUTHING_CHANNELS.contains(channel.toUpperCase(Locale.ROOT))) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
         account = getAbsoluteAccount(account);

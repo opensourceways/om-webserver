@@ -67,6 +67,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Locale;
 import java.util.TimeZone;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -416,7 +417,7 @@ public class AuthingUserDao {
             String phoneCountryCode = getPhoneCountryCode(account);
             account = getPurePhone(account);
             String body = String.format("{\"phoneNumber\": \"%s\",\"channel\": \"%s\",\"phoneCountryCode\": \"%s\"}",
-                    account, channel.toUpperCase(), phoneCountryCode);
+                    account, channel.toUpperCase(Locale.ROOT), phoneCountryCode);
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/send-sms")
                     .header("x-authing-app-id", appId)
                     .header("Content-Type", "application/json")
@@ -447,7 +448,8 @@ public class AuthingUserDao {
     public String sendEmailCodeV3(String appId, String account, String channel) {
         String msg = "success";
         try {
-            String body = String.format("{\"email\": \"%s\",\"channel\": \"%s\"}", account, channel.toUpperCase());
+            String body = String.format("{\"email\": \"%s\",\"channel\": \"%s\"}",
+                    account, channel.toUpperCase(Locale.ROOT));
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/send-email")
                     .header("x-authing-app-id", appId)
                     .header("Content-Type", "application/json")
@@ -704,7 +706,7 @@ public class AuthingUserDao {
     public Application getAppById(String appId) {
         Application app = authingAppSync.getAppById(appId);
         if (app == null) {
-            LOGGER.error(String.format("Can't find app with id %s", appId));
+            LOGGER.error("Can't find app id");
         }
         return app;
     }
@@ -1145,19 +1147,19 @@ public class AuthingUserDao {
         if (codeTemp == null) {
             LogUtil.createLogs(userId, "bind email", "user",
                     "The user bind email", userIp, "failed");
-            throw new Exception("验证码无效或已过期");
+            throw new ServerErrorException("验证码无效或已过期");
         }
         if (!codeTemp.equals(code)) {
             LogUtil.createLogs(userId, "bind email", "user",
                     "The user bind email", userIp, "failed");
-            throw new Exception("验证码不正确");
+            throw new ServerErrorException("验证码不正确");
         }
 
         // check if email is bind to other account
         if (authentication.isUserExists(null, account, null, null).execute()) {
             LogUtil.createLogs(userId, "bind email", "user",
                     "The user bind email", userIp, "failed");
-            throw new Exception("该邮箱已被其它账户绑定");
+            throw new ServerErrorException("该邮箱已被其它账户绑定");
         }
 
         String res = updateEmailById(userId, account);
@@ -1169,7 +1171,7 @@ public class AuthingUserDao {
         } else {
             LogUtil.createLogs(userId, "bind email", "user",
                     "The user bind email", userIp, "failed");
-            throw new Exception("服务异常");
+            throw new ServerErrorException("服务异常");
         }
     }
 
@@ -1185,7 +1187,7 @@ public class AuthingUserDao {
         HttpResponse<JsonNode> response = authPost("/bind-phone", appId, token, body);
         JSONObject resObj = response.getBody().getObject();
         if (resObj.getInt("statusCode") != 200) {
-            throw new Exception(resObj.getString("message"));
+            throw new ServerErrorException(resObj.getString("message"));
         }
     }
 
@@ -1205,7 +1207,7 @@ public class AuthingUserDao {
         HttpResponse<JsonNode> response = authPost("/verify-update-phone-request", appId, token, body);
         JSONObject resObj = response.getBody().getObject();
         if (resObj.getInt("statusCode") != 200) {
-            throw new Exception(resObj.getString("message"));
+            throw new ServerErrorException(resObj.getString("message"));
         }
 
         Object reqObj = resObj.get("data");
@@ -1214,7 +1216,7 @@ public class AuthingUserDao {
             JSONObject req = (JSONObject) reqObj;
             reqToken = req.getString("updatePhoneToken");
         } else {
-            throw new Exception("服务异常");
+            throw new ServerErrorException("服务异常");
         }
         applyUpdatePhoneToken(appId, token, reqToken);
     }
@@ -1225,7 +1227,7 @@ public class AuthingUserDao {
         HttpResponse<JsonNode> response = authPost("/update-phone", appId, userToken, body);
         JSONObject resObj = response.getBody().getObject();
         if (resObj.getInt("statusCode") != 200) {
-            throw new Exception(resObj.getString("message"));
+            throw new ServerErrorException(resObj.getString("message"));
         }
     }
 
@@ -1553,11 +1555,11 @@ public class AuthingUserDao {
             // 重命名文件
             String fileName = file.getOriginalFilename();
             if (Objects.isNull(fileName)) {
-                throw new Exception("Filename is invalid");
+                throw new ServerErrorException("Filename is invalid");
             }
             for (String c : Constant.PHOTO_NOT_ALLOWED_CHARS.split(",")) {
                 if (fileName.contains(c)) {
-                    throw new Exception("Filename is invalid");
+                    throw new ServerErrorException("Filename is invalid");
                 }
             }
             String extension = fileName.substring(fileName.lastIndexOf("."));
@@ -1566,7 +1568,7 @@ public class AuthingUserDao {
             }
 
             if (!CommonUtil.isFileContentTypeValid(file)) {
-                throw new Exception("File content type is invalid");
+                throw new ServerErrorException("File content type is invalid");
             }
 
             String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
