@@ -15,18 +15,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
-import java.security.Key;
 import java.security.KeyFactory;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
-import java.util.HashMap;
-import java.util.Map;
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
 
@@ -83,33 +78,6 @@ public class RSAUtil implements Serializable {
      */
     public static void setRsaAlgorithmStaticMethod(String rsaAlgorithm) {
         RSAUtil.rsaAlgorithm = rsaAlgorithm;
-    }
-
-    /**
-     * 随机生成密钥对(公钥和私钥).
-     *
-     * @param keySize 密钥大小
-     * @return 包含公钥和私钥的映射
-     * @throws NoSuchAlgorithmException 当算法不存在时抛出异常
-     */
-    public static Map<String, String> createKeys(int keySize) throws NoSuchAlgorithmException {
-        //为RSA算法创建一个KeyPairGenerator对象
-        KeyPairGenerator kpg = KeyPairGenerator.getInstance(rsaAlgorithm);
-        //初始化KeyPairGenerator对象,密钥长度
-        kpg.initialize(keySize);
-        //生成密匙对
-        KeyPair keyPair = kpg.generateKeyPair();
-        //得到公钥
-        Key publicKey = keyPair.getPublic();
-        String publicKeyStr = Base64.encodeBase64URLSafeString(publicKey.getEncoded());
-        //得到私钥
-        Key privateKey = keyPair.getPrivate();
-        String privateKeyStr = Base64.encodeBase64URLSafeString(privateKey.getEncoded());
-
-        Map<String, String> keyPairMap = new HashMap<>();
-        keyPairMap.put("publicKey", publicKeyStr);
-        keyPairMap.put("privateKey", privateKeyStr);
-        return keyPairMap;
     }
 
     /**
@@ -178,42 +146,6 @@ public class RSAUtil implements Serializable {
         cipher.init(Cipher.DECRYPT_MODE, privateKey);
         return new String(rsaSplitCodec(cipher, Cipher.DECRYPT_MODE,
                 Base64.decodeBase64(data), privateKey.getModulus().bitLength()), StandardCharsets.UTF_8);
-    }
-
-    /**
-     * 私钥加密.
-     *
-     * @param data       明文
-     * @param privateKey 私钥
-     * @return 加密后的数据
-     * @throws NoSuchPaddingException   当填充方式不存在时抛出异常
-     * @throws NoSuchAlgorithmException 当算法不存在时抛出异常
-     * @throws InvalidKeyException      当密钥无效时抛出异常
-     */
-    public static String privateEncrypt(String data, RSAPrivateKey privateKey) throws NoSuchPaddingException,
-            NoSuchAlgorithmException, InvalidKeyException {
-        Cipher cipher = Cipher.getInstance(rsaAlgorithm);
-        cipher.init(Cipher.ENCRYPT_MODE, privateKey);
-        return Base64.encodeBase64URLSafeString(rsaSplitCodec(cipher, Cipher.ENCRYPT_MODE,
-                data.getBytes(StandardCharsets.UTF_8), privateKey.getModulus().bitLength()));
-    }
-
-    /**
-     * 公钥解密.
-     *
-     * @param data      密文
-     * @param publicKey 公钥
-     * @return 解密后的数据
-     * @throws NoSuchPaddingException   当填充方式不存在时抛出异常
-     * @throws NoSuchAlgorithmException 当算法不存在时抛出异常
-     * @throws InvalidKeyException      当密钥无效时抛出异常
-     */
-    public static String publicDecrypt(String data, RSAPublicKey publicKey) throws NoSuchPaddingException,
-            NoSuchAlgorithmException, InvalidKeyException {
-        Cipher cipher = Cipher.getInstance(rsaAlgorithm);
-        cipher.init(Cipher.DECRYPT_MODE, publicKey);
-        return new String(rsaSplitCodec(cipher, Cipher.DECRYPT_MODE,
-                Base64.decodeBase64(data), publicKey.getModulus().bitLength()), StandardCharsets.UTF_8);
     }
 
     /**

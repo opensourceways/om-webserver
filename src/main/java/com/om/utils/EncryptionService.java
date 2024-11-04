@@ -115,26 +115,4 @@ public class EncryptionService {
 
         return Base64.getEncoder().encodeToString(encryptedData);
     }
-
-    /**
-     * 解密.
-     *
-     * @param ciphertext 密文
-     * @return 解密后数据
-     * @throws Exception 异常
-     */
-    public String decrypt(String ciphertext) throws Exception {
-        byte[] decodedData = Base64.getDecoder().decode(ciphertext);
-
-        byte[] iv = new byte[GCM_IV_LENGTH];
-        System.arraycopy(decodedData, 0, iv, 0, iv.length);
-
-        Cipher cipher = Cipher.getInstance(aesAuthing);
-        GCMParameterSpec parameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH * 8, iv);
-        cipher.init(Cipher.DECRYPT_MODE, secretKeySpec, parameterSpec);
-
-        byte[] decryptedData = cipher.doFinal(decodedData, GCM_IV_LENGTH, decodedData.length - GCM_IV_LENGTH);
-
-        return new String(decryptedData, StandardCharsets.UTF_8);
-    }
 }
