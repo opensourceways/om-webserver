@@ -601,12 +601,16 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     private String getAbsoluteAccount(String account) {
-        String absoluteAccount = account;
         if (StringUtils.isBlank(account)) {
-            return absoluteAccount;
+            return account;
         }
+        String absoluteAccount = "";
         if (Constant.EMAIL_TYPE.equals(getAccountType(account))) {
             absoluteAccount = account.toLowerCase();
+        } else if (Constant.PHONE_TYPE.equals(getAccountType(account))) {
+            absoluteAccount = account.startsWith("+") ? account : ("+86" + account);
+        } else {
+            absoluteAccount = account;
         }
         return absoluteAccount;
     }
