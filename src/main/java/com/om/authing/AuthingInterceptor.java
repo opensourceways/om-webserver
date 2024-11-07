@@ -11,12 +11,14 @@
 
 package com.om.authing;
 
+import cn.authing.core.types.User;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.om.dao.AuthingUserDao;
 import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
@@ -94,6 +96,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
      */
     @Autowired
     private ClientSessionManager clientSessionManager;
+
+    /**
+     * 使用 @Autowired 注解注入 AuthingUserDao.
+     */
+    @Autowired
+    private AuthingUserDao authingUserDao;
 
     /**
      * Authing Token 的基础密码.
@@ -268,9 +276,22 @@ public class AuthingInterceptor implements HandlerInterceptor {
             tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
             return false;
         }
+        String url = CommonUtil.getSafeRequestUri(httpServletRequest);
+        List<String> audience = JWT.decode(headerJwtToken).getAudience();
+        String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
+        // 必须设置用户名
+        if (StringUtils.isBlank(username) && !BASEINFO_URI.equals(url)) {
+            User user = authingUserDao.getUser(userId);
+            if (user != null && com.anji.captcha.util.StringUtils.isNotBlank(user.getUsername())) {
+                username = user.getUsername();
+            }
+            if (StringUtils.isBlank(username)) {
+                tokenError(httpServletRequest, httpServletResponse, "unauthorized");
+                return false;
+            }
+        }
 
         // 是否接受隐私协议
-        String url = CommonUtil.getSafeRequestUri(httpServletRequest);
         if (!isLoginNormal(verifyToken, userId)
                 || (!"unused".equals(oneidPrivacyVersion) && !BASEINFO_URI.equals(url)
                 && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept))) {
