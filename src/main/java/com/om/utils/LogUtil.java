@@ -185,7 +185,7 @@ public final class LogUtil {
         StringBuilder account = new StringBuilder();
         if (StringUtils.isNotBlank(userId)) {
             if (userId.matches((Constant.PHONEREGEX))) {
-                account.append(userId.charAt(0)).append("****").append(userId.charAt(userId.length() - 1));
+                account.append("****").append(userId.substring(userId.length() - 4));
             } else if (userId.matches(Constant.EMAILREGEX)) {
                 int atIndex = userId.indexOf('@');
                 if (atIndex > 1) {
