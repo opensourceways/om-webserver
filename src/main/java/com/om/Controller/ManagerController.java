@@ -14,6 +14,9 @@ package com.om.Controller;
 import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
+import com.om.Controller.bean.request.PermissionInfo;
+import com.om.Controller.bean.request.ResourceInfo;
+import com.om.Controller.bean.request.NamespaceInfoPage;
 import com.om.Service.AuthingService;
 import com.om.Service.OneIdManageService;
 import com.om.Vo.User;
@@ -160,6 +163,58 @@ public class ManagerController {
             @RequestParam(value = "community", required = false) String community,
             @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.userPermissions(community, token);
+    }
+
+    /**
+     * 查询用户是否有权限.
+     *
+     * @param permissionInfo 请求体
+     * @return 是否有权限
+     */
+    @RequestLimitRedis(period = 1, count = 1000)
+    @ManageToken
+    @RequestMapping(value = "/u/checkPermission", method = RequestMethod.POST)
+    public ResponseEntity checkPermission(@RequestBody PermissionInfo permissionInfo) {
+        return authingService.checkPermission(permissionInfo);
+    }
+
+    /**
+     * 获取有权限的资源.
+     *
+     * @param permissionInfo 权限信息
+     * @return 权限资源
+     */
+    @RequestLimitRedis(period = 1, count = 1000)
+    @ManageToken
+    @RequestMapping(value = "/u/getResources", method = RequestMethod.POST)
+    public ResponseEntity getResources(@RequestBody PermissionInfo permissionInfo) {
+        return authingService.getResources(permissionInfo);
+    }
+
+    /**
+     * 获取权限分组下的资源列表.
+     *
+     * @param namespaceInfoPage 分页获取
+     * @return 资源列表
+     */
+    @RequestLimitRedis(period = 1, count = 1000)
+    @ManageToken
+    @RequestMapping(value = "/permission/allResources", method = RequestMethod.POST)
+    public ResponseEntity getAllResources(@RequestBody NamespaceInfoPage namespaceInfoPage) {
+        return authingService.getAllResources(namespaceInfoPage);
+    }
+
+    /**
+     * 获取某个资源的用户授权列表.
+     *
+     * @param resourceInfo 资源参数
+     * @return 用户授权列表
+     */
+    @RequestLimitRedis(period = 1, count = 1000)
+    @ManageToken
+    @RequestMapping(value = "/permission/resource/userList", method = RequestMethod.POST)
+    public ResponseEntity listUserOfResource(@RequestBody ResourceInfo resourceInfo) {
+        return authingService.listUserOfResource(resourceInfo);
     }
 
     /**

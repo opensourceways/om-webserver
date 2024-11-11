@@ -11,8 +11,31 @@
 
 package com.om.Dao;
 
+import cn.authing.core.http.HttpCall;
+import cn.authing.core.mgmt.ManagementClient;
+import cn.authing.core.types.AuthorizedResource;
+import cn.authing.core.types.AuthorizedTargetsParam;
+import cn.authing.core.types.FindUserParam;
+import cn.authing.core.types.IResourceResponse;
 import cn.authing.core.types.Identity;
+import cn.authing.core.types.PaginatedAuthorizedResources;
+import cn.authing.core.types.Pagination;
+import cn.authing.core.types.ResourcePermissionAssignment;
+import cn.authing.core.types.ResourceType;
+import cn.authing.core.types.RestfulResponse;
+import cn.authing.core.types.UpdateUserInput;
+import cn.authing.core.types.User;
+import com.alibaba.fastjson2.JSON;
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
+import com.om.Controller.bean.response.IdentityInfo;
+import com.om.Controller.bean.response.UserOfResourceInfo;
+import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
+import com.om.Service.PrivacyHistoryService;
+import com.om.Utils.AuthingUtil;
+import com.om.Utils.RSAUtil;
+import jakarta.annotation.PostConstruct;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
@@ -22,7 +45,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.CollectionUtils;
+
+import java.io.IOException;
+import java.security.interfaces.RSAPrivateKey;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.TimeZone;
+import java.util.stream.Collectors;
 
 /**
  * authing管理面接口.
@@ -50,6 +87,11 @@ public class AuthingManagerDao {
     private static final String LINK_IDENTITY_URI = "/link-identity";
 
     /**
+     * 允许的社区列表.
+     */
+    private List<String> allowedCommunity;
+
+    /**
      * token多冗余10分钟，防止临界情况.
      */
     private static final Integer TOKEN_REDUNDANT_TIME = 600;
@@ -73,10 +115,478 @@ public class AuthingManagerDao {
     private String authingApiHostV3;
 
     /**
+     * Authing 的 RSA 私钥.
+     */
+    @Value("${rsa.authing.privateKey}")
+    private String rsaAuthingPrivateKey;
+
+    /**
+     * OneID 隐私版本号.
+     */
+    @Value("${oneid.privacy.version}")
+    private String oneidPrivacyVersion;
+
+    /**
+     * 应用程序版本号.
+     */
+    @Value("${app.version:1.0}")
+    private String appVersion;
+
+    /**
+     * 社区名称.
+     */
+    @Value("${community}")
+    private String community;
+
+    /**
+     * Authing 用户管理客户端实例.
+     */
+    private static ManagementClient managementClient;
+
+    /**
      * Redis 数据访问对象.
      */
     @Autowired
     private RedisDao redisDao;
+
+    /**
+     * 使用 @Autowired 注解注入authingUtil.
+     */
+    @Autowired
+    private AuthingUtil authingUtil;
+
+    /**
+     * Spring 环境对象.
+     */
+    @Autowired
+    private Environment env;
+
+    /**
+     * 历史隐私记录保存类.
+     */
+    @Autowired
+    private PrivacyHistoryService privacyHistoryService;
+
+    /**
+     * 客户端实例赋值.
+     *
+     * @param managementClient 客户端实例
+     */
+    public static void setInitManagementClient(ManagementClient managementClient) {
+        AuthingManagerDao.managementClient = managementClient;
+    }
+
+    /**
+     * 在类实例化后立即执行的初始化方法.
+     */
+    @PostConstruct
+    public void init() {
+        setInitManagementClient(new ManagementClient(userPoolId, secret));
+        allowedCommunity = Arrays.asList(Constant.OPEN_EULER, Constant.MIND_SPORE, Constant.MODEL_FOUNDRY,
+                Constant.OPEN_UBMC);
+    }
+
+    /**
+     * 通过用户名获取用户ID.
+     *
+     * @param username 用户名
+     * @return 返回包含用户信息的 JSONObject 对象，如果未找到用户则返回 null
+     */
+    public User getUserByName(String username) {
+        try {
+            User user = managementClient.users().find(new FindUserParam().withUsername(username)).execute();
+            return user;
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 更新用户信息.
+     *
+     * @param userId 用户名
+     * @param updateUserInput 用户信息
+     * @throws IOException 异常
+     */
+    public void updateUserInfo(String userId, UpdateUserInput updateUserInput) throws IOException {
+        managementClient.users().update(userId, updateUserInput).execute();
+    }
+
+    /**
+     * 获取用户资源和操作权限.
+     *
+     * @param userId    用户 ID
+     * @param groupCode 用户组code
+     * @return 返回用户在指定用户组下的权限列表，作为一个字符串数组列表
+     */
+    public ArrayList<String> getUserPermission(String userId, String groupCode) {
+        ArrayList<String> pers = new ArrayList<>();
+        try {
+            PaginatedAuthorizedResources pars = managementClient
+                    .users()
+                    .listAuthorizedResources(userId, groupCode)
+                    .execute();
+            if (pars.getTotalCount() <= 0) {
+                return pers;
+            }
+            List<AuthorizedResource> ars = pars.getList();
+            for (AuthorizedResource ar : ars) {
+                List<String> actions = ar.getActions();
+                if (!CollectionUtils.isEmpty(actions)) {
+                    pers.addAll(actions);
+                }
+            }
+            return pers;
+        } catch (Exception e) {
+            return pers;
+        }
+    }
+
+    /**
+     * 使用访问令牌更新账户信息.
+     *
+     * @param token 访问令牌
+     * @param account 新账户信息
+     * @param type 类型
+     * @return 如果成功更新账户信息则返回消息提示，否则返回 null
+     */
+    public String updateAccountInfo(String token, String account, String type) {
+        try {
+            RSAPrivateKey privateKey = RSAUtil.getPrivateKey(rsaAuthingPrivateKey);
+            String dectoken = RSAUtil.privateDecrypt(token, privateKey);
+            DecodedJWT decode = JWT.decode(dectoken);
+            String userId = decode.getAudience().get(0);
+            UpdateUserInput updateUserInput = new UpdateUserInput();
+
+            switch (type.toLowerCase()) {
+                case "email":
+                    updateUserInput.withEmail(account);
+                    break;
+                case "phone":
+                    updateUserInput.withPhone(account);
+                    break;
+                default:
+                    return "false";
+            }
+            managementClient.users().update(userId, updateUserInput).execute();
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return e.getMessage();
+        }
+        return "true";
+    }
+
+    /**
+     * 将用户踢出系统.
+     *
+     * @param userId 用户ID
+     * @return 如果成功将用户踢出系统则返回 true，否则返回 false
+     */
+    public boolean kickUser(String userId) {
+        try {
+            List<String> userIds = new ArrayList<>();
+            userIds.add(userId);
+            return managementClient.users().kick(userIds).execute();
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 获取权限空间下所有资源.
+     *
+     * @param nameSpaceCode 权限空间
+     * @param page 分页
+     * @param limit 数量限制
+     * @return 资源列表
+     */
+    public List<String> listResources(String nameSpaceCode, Integer page, Integer limit) {
+        try {
+            HttpCall<RestfulResponse<Pagination<IResourceResponse>>, Pagination<IResourceResponse>> call =
+                    managementClient.acl().listResources(nameSpaceCode, ResourceType.DATA, limit, page);
+            Pagination<IResourceResponse> pageResponse = call.execute();
+            List<IResourceResponse> list = pageResponse.getList();
+            return list.stream().map(i -> i.getCode()).collect(Collectors.toList());
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 获取某个资源的具备权限的用户.
+     *
+     * @param nameSpaceCode 权限空间
+     * @param resource 资源
+     * @return 用户权限列表
+     */
+    public List<UserOfResourceInfo> listUserOfResource(String nameSpaceCode, String resource) {
+        try {
+            List<UserOfResourceInfo> resList = new ArrayList<>();
+            AuthorizedTargetsParam param =
+                    new AuthorizedTargetsParam(nameSpaceCode, ResourceType.DATA, resource);
+            List<ResourcePermissionAssignment> sourceList = managementClient.acl().getAuthorizedTargets(param)
+                    .execute().getList();
+            if (CollectionUtils.isEmpty(sourceList)) {
+                return resList;
+            }
+            List<String> userIds = sourceList.stream()
+                    .map(ResourcePermissionAssignment::getTargetIdentifier).collect(Collectors.toList());
+            List<User> users = managementClient.users().batch(userIds).execute();
+            HashMap<String, List<IdentityInfo>> identityBeanMap = new HashMap<>();
+            for (User user : users) {
+                identityBeanMap.put(user.getId(), authingUtil.parseUserIdentity(user.getIdentities()));
+            }
+            for (ResourcePermissionAssignment assignment : sourceList) {
+                String userId = assignment.getTargetIdentifier();
+                List<String> actions = assignment.getActions();
+                UserOfResourceInfo userOfResourceInfo = new UserOfResourceInfo();
+                userOfResourceInfo.setUserId(userId);
+                userOfResourceInfo.setActions(actions);
+                userOfResourceInfo.setIdentityInfos(identityBeanMap.get(userId));
+                resList.add(userOfResourceInfo);
+            }
+            return resList;
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 撤销用户隐私设置.
+     *
+     * @param userId 用户ID
+     * @return 如果成功撤销用户隐私设置则返回 true，否则返回 false
+     */
+    public boolean revokePrivacy(String userId) {
+        try {
+            // get user
+            User user = managementClient.users().detail(userId, false, false).execute();
+            UpdateUserInput input = new UpdateUserInput();
+            input.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
+            User updateUser = managementClient.users().update(userId, input).execute();
+            if (updateUser == null) {
+                return false;
+            }
+            saveHistory(user, null);
+            LOGGER.info(String.format("User %s cancel privacy consent version %s for app version %s",
+                    user.getId(), oneidPrivacyVersion, appVersion));
+            return true;
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 根据社区获取包含特定隐私版本号的隐私设置.
+     *
+     * @param privacyVersions 隐私版本号
+     * @return 返回包含特定隐私版本号的隐私设置
+     */
+    public String getPrivacyVersionWithCommunity(String privacyVersions) {
+        if (privacyVersions == null || !privacyVersions.contains(":")) {
+            return "";
+        }
+
+        try {
+            HashMap<String, String> privacys = JSON.parseObject(privacyVersions, HashMap.class);
+            String privacyAccept = privacys.get(community);
+            if (privacyAccept == null) {
+                return "";
+            } else {
+                return privacyAccept;
+            }
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage());
+            return "";
+        }
+    }
+
+    private void saveHistory(User user, String newPrivacy) {
+        String content;
+        String type;
+        String opt;
+        // 根据传参判断保存的为签署还是撤销
+        if (newPrivacy == null) {
+            // 保存撤销记录
+            content = getPrivacyVersionWithCommunity(user.getGivenName());
+            type = "revokeTime";
+            opt = "revoke";
+        } else {
+            // 保存签署记录
+            content = newPrivacy;
+            type = "acceptTime";
+            opt = "accept";
+        }
+        if (StringUtils.isNotEmpty(content) && !"revoked".equals(content)) {
+            Date date = new Date();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+            sdf.setTimeZone(TimeZone.getTimeZone("GMT+8:00"));
+            String nowTime = sdf.format(date);
+            JSONObject json = new JSONObject();
+            json.put("appVersion", appVersion);
+            json.put("privacyVersion", content);
+            json.put("opt", opt);
+            json.put(type, nowTime);
+            privacyHistoryService.savePrivacyHistory(json.toString(), user.getId());
+        }
+    }
+
+    private boolean isValidCommunity(String communityIns) {
+        for (String com : allowedCommunity) {
+            if (communityIns.startsWith(com)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * 更新隐私版本号.
+     *
+     * @param previous 先前的版本号
+     * @param version 新版本号
+     * @return 返回更新后的隐私版本号
+     */
+    public String updatePrivacyVersions(String previous, String version) {
+        if (!isValidCommunity(community)) {
+            return "";
+        }
+
+        if (StringUtils.isBlank(previous)) {
+            return createPrivacyVersions(version, false);
+        }
+
+        if (!previous.contains(":")) {
+            if ("unused".equals(previous)) {
+                return createPrivacyVersions(version, false);
+            } else {
+                HashMap<String, String> privacys = new HashMap<>();
+                privacys.put("openeuler", previous);
+                privacys.put(community, version);
+                return JSON.toJSONString(privacys);
+            }
+        } else {
+            try {
+                HashMap<String, String> privacys = JSON.parseObject(previous, HashMap.class);
+                privacys.put(community, version);
+                return JSON.toJSONString(privacys);
+            } catch (Exception e) {
+                LOGGER.error(e.getMessage());
+                return createPrivacyVersions(version, false);
+            }
+        }
+    }
+
+    /**
+     * 创建隐私版本号.
+     *
+     * @param version 版本号
+     * @param needSlash 是否需要斜杠
+     * @return 返回创建的隐私版本号
+     */
+    public String createPrivacyVersions(String version, Boolean needSlash) {
+        if (!isValidCommunity(community)) {
+            return "";
+        }
+
+        HashMap<String, String> privacys = new HashMap<>();
+        privacys.put(community, version);
+        if (needSlash) {
+            return JSON.toJSONString(privacys).replaceAll("\"", "\\\\\"");
+        } else {
+            return JSON.toJSONString(privacys);
+        }
+    }
+
+    /**
+     * 通过用户ID更新用户的电子邮件地址.
+     *
+     * @param userId 用户 ID
+     * @param email  要更新为的电子邮件地址
+     * @return 返回更新后的电子邮件地址，如果更新成功则返回新的电子邮件地址，否则返回null
+     */
+    public String updateEmailById(String userId, String email) {
+        try {
+            User res = managementClient.users().update(userId, new UpdateUserInput().withEmail(email)).execute();
+            return res.getEmail();
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * 根据邮箱查询用户id.
+     *
+     * @param email 电子邮箱
+     * @return 用户id
+     */
+    public String getUserIdByEmail(String email) {
+        try {
+            User user = managementClient.users().find(new FindUserParam().withEmail(email)).execute();
+            if (user == null) {
+                return null;
+            }
+            return user.getId();
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 根据手机号查询用户id.
+     *
+     * @param phone 手机号
+     * @return 用户id
+     */
+    public String getUserIdByPhone(String phone) {
+        try {
+            phone = getPurePhone(phone);
+            User user = managementClient.users().find(new FindUserParam().withPhone(phone)).execute();
+            if (user == null) {
+                return null;
+            }
+            return user.getId();
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 获取电话号码的纯净形式，去除任何非数字字符.
+     *
+     * @param phone 原始电话号码
+     * @return 返回经过处理后的纯净电话号码
+     */
+    public String getPurePhone(String phone) {
+        String[] countryCodes = env.getProperty("sms.international.countrys.code", "").split(",");
+        for (String countryCode : countryCodes) {
+            if (phone.startsWith(countryCode)) {
+                return phone.replace(countryCode, "");
+            }
+        }
+        return phone;
+    }
+
+    /**
+     * 根据用户ID获取用户基本信息.
+     *
+     * @param userId 用户ID
+     * @return 返回对应用户ID的用户对象，如果不存在则返回null
+     */
+    public User getUser(String userId) {
+        try {
+            return managementClient.users().detail(userId, true, true).execute();
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return null;
+        }
+    }
 
     private String getManagementToken() {
         String token = "";

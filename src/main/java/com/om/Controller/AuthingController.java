@@ -652,7 +652,8 @@ public class AuthingController {
                 (community == null
                         || community.toLowerCase().equals(Constant.ONEID_VERSION_V1)
                         || community.toLowerCase().equals(Constant.ONEID_VERSION_V2)
-                        || community.toLowerCase().equals(Constant.OPEN_MIND))
+                        || community.toLowerCase().equals(Constant.OPEN_MIND)
+                        || community.toLowerCase().equals(Constant.OPEN_UBMC))
                         ? Constant.AUTHING : community.toLowerCase();
         return userCenterServiceContext.getUserCenterService(serviceType);
     }

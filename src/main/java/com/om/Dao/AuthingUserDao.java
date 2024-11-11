@@ -12,12 +12,8 @@
 package com.om.Dao;
 
 import cn.authing.core.auth.AuthenticationClient;
-import cn.authing.core.mgmt.ManagementClient;
 
 import cn.authing.core.types.Application;
-import cn.authing.core.types.AuthorizedResource;
-import cn.authing.core.types.FindUserParam;
-import cn.authing.core.types.PaginatedAuthorizedResources;
 import cn.authing.core.types.UpdateUserInput;
 import cn.authing.core.types.User;
 import com.alibaba.fastjson2.JSON;
@@ -46,7 +42,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.annotation.PostConstruct;
@@ -216,12 +211,6 @@ public class AuthingUserDao {
     private String photoSuffix;
 
     /**
-     * Authing API 主机地址.
-     */
-    @Value("${authing.api.host}")
-    private String authingApiHost;
-
-    /**
      * Authing API v2 主机地址.
      */
     @Value("${authing.api.hostv2}")
@@ -278,11 +267,6 @@ public class AuthingUserDao {
     // -- temporary -- TODO
 
     /**
-     * Authing 用户管理客户端实例.
-     */
-    private static ManagementClient managementClient;
-
-    /**
      * OBS 客户端实例.
      */
     private static ObsClient obsClient;
@@ -327,13 +311,10 @@ public class AuthingUserDao {
     private PrivacyHistoryService privacyHistoryService;
 
     /**
-     * 客户端实例赋值.
-     *
-     * @param managementClient 客户端实例
+     * Authing的管理面接口.
      */
-    public static void setInitManagementClient(ManagementClient managementClient) {
-        AuthingUserDao.managementClient = managementClient;
-    }
+    @Autowired
+    private AuthingManagerDao authingManagerDao;
 
     /**
      * OBS客户端实例赋值.
@@ -358,13 +339,13 @@ public class AuthingUserDao {
      */
     @PostConstruct
     public void init() {
-        setInitManagementClient(new ManagementClient(userPoolId, secret));
         setInitObsClient(new ObsClient(datastatImgAk, datastatImgSk, datastatImgEndpoint));
         setInitReservedUsernames(getUsernameReserved());
         photoSuffixes = Arrays.asList(photoSuffix.split(";"));
         Unirest.config().reset();
         Unirest.config().socketTimeout(Constant.SOCKET_TIMEOUT).connectTimeout(Constant.CONNECT_TIMEOUT);
-        allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry");
+        allowedCommunity = Arrays.asList(Constant.OPEN_EULER, Constant.MIND_SPORE, Constant.MODEL_FOUNDRY,
+                Constant.OPEN_UBMC);
     }
 
     /**
@@ -706,21 +687,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 根据用户ID获取用户基本信息.
-     *
-     * @param userId 用户ID
-     * @return 返回对应用户ID的用户对象，如果不存在则返回null
-     */
-    public User getUser(String userId) {
-        try {
-            return managementClient.users().detail(userId, true, true).execute();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
      * 使用v3管理员接口获取用户信息.
      *
      * @param userId     用户 ID
@@ -752,47 +718,11 @@ public class AuthingUserDao {
      */
     public JSONObject getUserByName(String username) {
         try {
-            User user = managementClient.users().find(new FindUserParam().withUsername(username)).execute();
+            User user = authingManagerDao.getUserByName(username);
+            if (user == null) {
+                return null;
+            }
             return getUserById(user.getId());
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 根据邮箱查询用户id.
-     *
-     * @param email 电子邮箱
-     * @return 用户id
-     */
-    public String getUserIdByEmail(String email) {
-        try {
-            User user = managementClient.users().find(new FindUserParam().withEmail(email)).execute();
-            if (user == null) {
-                return null;
-            }
-            return user.getId();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 根据手机号查询用户id.
-     *
-     * @param phone 手机号
-     * @return 用户id
-     */
-    public String getUserIdByPhone(String phone) {
-        try {
-            phone = getPurePhone(phone);
-            User user = managementClient.users().find(new FindUserParam().withPhone(phone)).execute();
-            if (user == null) {
-                return null;
-            }
-            return user.getId();
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return null;
@@ -816,7 +746,7 @@ public class AuthingUserDao {
         DecodedJWT decode = JWT.decode(token);
         String userId = decode.getAudience().get(0);
         String appId = decode.getClaim("client_id").asString();
-        User user = getUser(userId);
+        User user = authingManagerDao.getUser(userId);
         return new Object[]{appId, user};
     }
 
@@ -841,23 +771,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 通过用户ID更新用户的电子邮件地址.
-     *
-     * @param userId 用户 ID
-     * @param email  要更新为的电子邮件地址
-     * @return 返回更新后的电子邮件地址，如果更新成功则返回新的电子邮件地址，否则返回null
-     */
-    public String updateEmailById(String userId, String email) {
-        try {
-            User res = managementClient.users().update(userId, new UpdateUserInput().withEmail(email)).execute();
-            return res.getEmail();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return "";
-        }
-    }
-
-    /**
      * 通过用户 ID 删除用户.
      *
      * @param userId 用户 ID
@@ -875,36 +788,6 @@ public class AuthingUserDao {
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return false;
-        }
-    }
-
-    /**
-     * 获取用户资源和操作权限.
-     *
-     * @param userId    用户 ID
-     * @param groupCode 用户组code
-     * @return 返回用户在指定用户组下的权限列表，作为一个字符串数组列表
-     */
-    public ArrayList<String> getUserPermission(String userId, String groupCode) {
-        ArrayList<String> pers = new ArrayList<>();
-        try {
-            PaginatedAuthorizedResources pars = managementClient
-                    .users()
-                    .listAuthorizedResources(userId, groupCode)
-                    .execute();
-            if (pars.getTotalCount() <= 0) {
-                return pers;
-            }
-            List<AuthorizedResource> ars = pars.getList();
-            for (AuthorizedResource ar : ars) {
-                List<String> actions = ar.getActions();
-                if (!CollectionUtils.isEmpty(actions)) {
-                    pers.addAll(actions);
-                }
-            }
-            return pers;
-        } catch (Exception e) {
-            return pers;
         }
     }
 
@@ -1042,40 +925,6 @@ public class AuthingUserDao {
                 default:
                     return "false";
             }
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return e.getMessage();
-        }
-        return "true";
-    }
-
-    /**
-     * 使用访问令牌更新账户信息.
-     *
-     * @param token 访问令牌
-     * @param account 新账户信息
-     * @param type 类型
-     * @return 如果成功更新账户信息则返回消息提示，否则返回 null
-     */
-    public String updateAccountInfo(String token, String account, String type) {
-        try {
-            RSAPrivateKey privateKey = RSAUtil.getPrivateKey(rsaAuthingPrivateKey);
-            String dectoken = RSAUtil.privateDecrypt(token, privateKey);
-            DecodedJWT decode = JWT.decode(dectoken);
-            String userId = decode.getAudience().get(0);
-            UpdateUserInput updateUserInput = new UpdateUserInput();
-
-            switch (type.toLowerCase()) {
-                case "email":
-                    updateUserInput.withEmail(account);
-                    break;
-                case "phone":
-                    updateUserInput.withPhone(account);
-                    break;
-                default:
-                    return "false";
-            }
-            managementClient.users().update(userId, updateUserInput).execute();
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return e.getMessage();
@@ -1224,7 +1073,7 @@ public class AuthingUserDao {
             throw new Exception("该邮箱已被其它账户绑定");
         }
 
-        String res = updateEmailById(userId, account);
+        String res = authingManagerDao.updateEmailById(userId, account);
 
         if (res.equals(account)) {
             redisDao.remove(redisKey);
@@ -1539,7 +1388,7 @@ public class AuthingUserDao {
                         break;
                 }
             }
-            managementClient.users().update(user.getId(), updateUserInput).execute();
+            authingManagerDao.updateUserInfo(user.getId(), updateUserInput);
             return msg;
         } catch (ServerErrorException e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
@@ -1577,32 +1426,6 @@ public class AuthingUserDao {
             json.put("opt", opt);
             json.put(type, nowTime);
             privacyHistoryService.savePrivacyHistory(json.toString(), user.getId());
-        }
-    }
-
-    /**
-     * 撤销用户隐私设置.
-     *
-     * @param userId 用户ID
-     * @return 如果成功撤销用户隐私设置则返回 true，否则返回 false
-     */
-    public boolean revokePrivacy(String userId) {
-        try {
-            // get user
-            User user = managementClient.users().detail(userId, false, false).execute();
-            UpdateUserInput input = new UpdateUserInput();
-            input.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
-            User updateUser = managementClient.users().update(userId, input).execute();
-            if (updateUser == null) {
-                return false;
-            }
-            saveHistory(user, null);
-            LOGGER.info(String.format("User %s cancel privacy consent version %s for app version %s",
-                    user.getId(), oneidPrivacyVersion, appVersion));
-            return true;
-        } catch (Exception e) {
-            LOGGER.error(e.getMessage());
-            return false;
         }
     }
 
@@ -1751,7 +1574,7 @@ public class AuthingUserDao {
     public List<String> userAccessibleApps(String userId) {
         ArrayList<String> appIds = new ArrayList<>();
         try {
-            String token = getUser(userId).getToken();
+            String token = authingManagerDao.getUser(userId).getToken();
             HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/get-my-accessible-apps")
                     .header("Authorization", token)
                     .header("x-authing-userpool-id", userPoolId)
@@ -1964,22 +1787,5 @@ public class AuthingUserDao {
             }
         }
         return false;
-    }
-
-    /**
-     * 将用户踢出系统.
-     *
-     * @param userId 用户ID
-     * @return 如果成功将用户踢出系统则返回 true，否则返回 false
-     */
-    public boolean kickUser(String userId) {
-        try {
-            List<String> userIds = new ArrayList<>();
-            userIds.add(userId);
-            return managementClient.users().kick(userIds).execute();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return false;
-        }
     }
 }
