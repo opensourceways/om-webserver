@@ -41,6 +41,12 @@ public final class Constant {
      * openMind社区.
      */
     public static final String OPEN_MIND = "openmind";
+
+    /**
+     * openUBMC社区.
+     */
+    public static final String OPEN_UBMC = "openubmc";
+
     /**
      * OPEN_LOOK_ENG: openlookeng.
      */
@@ -49,6 +55,12 @@ public final class Constant {
      * MIND_SPORE: mindspore.
      */
     public static final String MIND_SPORE = "mindspore";
+
+    /**
+     * openMind.
+     */
+    public static final String MODEL_FOUNDRY = "modelfoundry";
+
     /**
      * INDIVIDUAL: individual.
      */

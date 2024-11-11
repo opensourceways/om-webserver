@@ -20,6 +20,10 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.Controller.bean.request.PermissionInfo;
+import com.om.Controller.bean.request.ResourceInfo;
+import com.om.Controller.bean.request.NamespaceInfoPage;
+import com.om.Controller.bean.response.UserOfResourceInfo;
 import com.om.Dao.AuthingManagerDao;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
@@ -66,7 +70,9 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -487,7 +493,7 @@ public class AuthingService implements UserCenterServiceInter {
             JSONObject userObj = (JSONObject) loginRes;
             idToken = userObj.getString("id_token");
             userId = JWT.decode(idToken).getSubject();
-            user = authingUserDao.getUser(userId);
+            user = authingManagerDao.getUser(userId);
         } else {
             return result(HttpStatus.BAD_REQUEST, null, (String) loginRes, limitUtil.loginFail(failCounter));
         }
@@ -496,7 +502,7 @@ public class AuthingService implements UserCenterServiceInter {
         // 资源权限
         String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission, "");
         // 获取是否同意隐私
-        String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(
+        String oneidPrivacyVersionAccept = authingManagerDao.getPrivacyVersionWithCommunity(
                 user.getGivenName());
         // 生成token
         String userName = user.getUsername();
@@ -578,14 +584,14 @@ public class AuthingService implements UserCenterServiceInter {
             DecodedJWT decode = JWT.decode(authingUtil.rsaDecryptToken(token));
             String userId = decode.getAudience().get(0);
             // 获取用户
-            User user = authingUserDao.getUser(userId);
+            User user = authingManagerDao.getUser(userId);
             String photo = user.getPhoto();
             String username = user.getUsername();
             String email = user.getEmail();
             String phone = user.getPhone();
             String aigcPrivacyAccepted = Objects.equals(env.getProperty("aigc.privacy.version"),
                     user.getFormatted()) ? user.getFormatted() : "";
-            String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(
+            String oneidPrivacyVersionAccept = authingManagerDao.getPrivacyVersionWithCommunity(
                     user.getGivenName());
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
@@ -616,7 +622,8 @@ public class AuthingService implements UserCenterServiceInter {
             String userId = decode.getAudience().get(0);
             // 获取权限
             ArrayList<String> permissions = new ArrayList<>();
-            ArrayList<String> pers = authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
+            ArrayList<String> pers = authingManagerDao.getUserPermission(userId,
+                    env.getProperty("openeuler.groupCode"));
             for (String per : pers) {
                 String[] perList = per.split(":");
                 if (perList.length > 1) {
@@ -633,7 +640,7 @@ public class AuthingService implements UserCenterServiceInter {
                 authingUtil.authingUserIdentityIdp(obj, map);
             }
             // 获取用户
-            User user = authingUserDao.getUser(userId);
+            User user = authingManagerDao.getUser(userId);
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("permissions", permissions);
@@ -644,6 +651,113 @@ public class AuthingService implements UserCenterServiceInter {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
+    }
+
+    /**
+     * 查询是否具备权限.
+     *
+     * @param permissionInfo 权限实例
+     * @return 是否具备权限的结果
+     */
+    public ResponseEntity checkPermission(PermissionInfo permissionInfo) {
+        HashMap<String, Boolean> hasPermission = new HashMap<>();
+        hasPermission.put("hasPermission", false);
+        if (StringUtils.isAnyBlank(permissionInfo.getResource(),
+                permissionInfo.getUserId(), permissionInfo.getNamespaceCode())) {
+            return result(HttpStatus.OK, "success", hasPermission);
+        }
+        if (CollectionUtils.isEmpty(permissionInfo.getActions())) {
+            return result(HttpStatus.OK, "success", hasPermission);
+        }
+        ArrayList<String> pers = authingManagerDao.getUserPermission(permissionInfo.getUserId(),
+                permissionInfo.getNamespaceCode());
+        List<String> perActions = new ArrayList<>();
+        for (String per : pers) {
+            String[] perList = per.split(":");
+            if (perList.length > 1 && StringUtils.equals(permissionInfo.getResource(), perList[0])) {
+                perActions.add(perList[1]);
+            }
+        }
+        for (String action : permissionInfo.getActions()) {
+            if (!perActions.contains(action)) {
+                return result(HttpStatus.OK, "success", hasPermission);
+            }
+        }
+        hasPermission.put("hasPermission", true);
+        return result(HttpStatus.OK, "success", hasPermission);
+    }
+
+    /**
+     * 根据权限获取对应资源.
+     *
+     * @param permissionInfo 权限实例
+     * @return 资源列表
+     */
+    public ResponseEntity getResources(PermissionInfo permissionInfo) {
+        HashMap<String, Set<String>> perResourceMap = new HashMap<>();
+        Set<String> resources = new HashSet<>();
+        perResourceMap.put("resources", resources);
+        if (StringUtils.isAnyBlank(permissionInfo.getUserId(), permissionInfo.getNamespaceCode())) {
+            return result(HttpStatus.OK, "success", perResourceMap);
+        }
+
+        ArrayList<String> pers = authingManagerDao.getUserPermission(permissionInfo.getUserId(),
+                permissionInfo.getNamespaceCode());
+
+        HashMap<String, List<String>> authPermissionMap = new HashMap<>();
+        for (String per : pers) {
+            String[] perList = per.split(":");
+            if (perList.length > 1) {
+                authPermissionMap.putIfAbsent(perList[0], new ArrayList<>());
+                authPermissionMap.get(perList[0]).add(perList[1]);
+            }
+        }
+        if (CollectionUtils.isEmpty(permissionInfo.getActions())) {
+            resources.addAll(authPermissionMap.keySet());
+        } else {
+            for (String resource : authPermissionMap.keySet()) {
+                if (authPermissionMap.get(resource).containsAll(permissionInfo.getActions())) {
+                    resources.add(resource);
+                }
+            }
+        }
+        return result(HttpStatus.OK, "success", perResourceMap);
+    }
+
+    /**
+     * 获取权限空间下所有资源.
+     *
+     * @param namespaceInfoPage 分页查询
+     * @return 资源数据
+     */
+    public ResponseEntity getAllResources(NamespaceInfoPage namespaceInfoPage) {
+        String nameSpaceCode = namespaceInfoPage.getNamespaceCode();
+        Integer page = namespaceInfoPage.getPage();
+        Integer limit = namespaceInfoPage.getLimit();
+        if (StringUtils.isBlank(nameSpaceCode) || (page != null && page < 1)
+                || (limit != null && (limit < 1 || limit > 50))) {
+            return result(HttpStatus.OK, "unrecognized param", Collections.emptyList());
+        }
+
+        List<String> resourceCodeList = authingManagerDao.listResources(nameSpaceCode, page, limit);
+        return result(HttpStatus.OK, "success", Map.of("resources", resourceCodeList));
+    }
+
+    /**
+     * 获取资源下用户权限.
+     *
+     * @param resourceInfo 资源参数
+     * @return 用户权限列表
+     */
+    public ResponseEntity listUserOfResource(ResourceInfo resourceInfo) {
+        String nameSpaceCode = resourceInfo.getNamespaceCode();
+        String resource = resourceInfo.getResource();
+        if (StringUtils.isBlank(nameSpaceCode) || StringUtils.isBlank(resource)) {
+            return result(HttpStatus.OK, "unrecognized param", Collections.emptyList());
+        }
+
+        List<UserOfResourceInfo> userList = authingManagerDao.listUserOfResource(nameSpaceCode, resource);
+        return result(HttpStatus.OK, "success", Map.of("users", userList));
     }
 
     /**
@@ -686,7 +800,7 @@ public class AuthingService implements UserCenterServiceInter {
             clientSessionManager.deleteCookieInConfig(servletResponse);
             redisDao.remove(idTokenKey);
             // 下线用户
-            Boolean isLogout = authingUserDao.kickUser(userId);
+            Boolean isLogout = authingManagerDao.kickUser(userId);
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("is_logout", isLogout);
             userData.put("client_id", appId);
@@ -758,7 +872,7 @@ public class AuthingService implements UserCenterServiceInter {
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             // 获取用户
-            User user = authingUserDao.getUser(userId);
+            User user = authingManagerDao.getUser(userId);
             String photo = user.getPhoto();
             String username = user.getUsername();
             // 返回结果
@@ -845,7 +959,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
             // 获取隐私同意字段值
             String givenName = user.get("given_name") == null ? "" : user.get("given_name").toString();
-            String oneidPrivacyVersionAccept = authingUserDao
+            String oneidPrivacyVersionAccept = authingManagerDao
                     .getPrivacyVersionWithCommunity(givenName);
             // 资源权限
             String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission, "");
@@ -931,7 +1045,7 @@ public class AuthingService implements UserCenterServiceInter {
             token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
-            String photo = authingUserDao.getUser(userId).getPhoto();
+            String photo = authingManagerDao.getUser(userId).getPhoto();
             //用户注销
             return authingUserDao.deleteUserById(userId)
                     ? deleteUserAfter(servletRequest, servletResponse, userId, photo)
@@ -974,7 +1088,7 @@ public class AuthingService implements UserCenterServiceInter {
             DecodedJWT decode = JWT.decode(token);
             String appId = decode.getClaim("client_id").asString();
             String userId = decode.getAudience().get(0);
-            User user = authingUserDao.getUser(userId);
+            User user = authingManagerDao.getUser(userId);
             String emailInDb = user.getEmail();
             if (accountType.equals("email")
                     && StringUtils.isNotBlank(emailInDb)
@@ -1146,7 +1260,7 @@ public class AuthingService implements UserCenterServiceInter {
         if (!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
-        String res = authingUserDao.updateAccountInfo(token, account, accountType);
+        String res = authingManagerDao.updateAccountInfo(token, account, accountType);
         return message(res);
     }
 
@@ -1337,7 +1451,7 @@ public class AuthingService implements UserCenterServiceInter {
                 DecodedJWT decode = JWT.decode(token);
                 String userId = decode.getAudience().get(0);
                 logoutAllSessions(userId, servletRequest, servletResponse);
-                authingUserDao.kickUser(userId);
+                authingManagerDao.kickUser(userId);
                 return result(HttpStatus.OK, "success", null);
             }
         } catch (RuntimeException e) {
@@ -1372,10 +1486,10 @@ public class AuthingService implements UserCenterServiceInter {
             String userId = "";
             if (accountType.equals(Constant.EMAIL_TYPE)) {
                 msg = authingUserDao.resetPwdVerifyEmail(appId, account, code);
-                userId = authingUserDao.getUserIdByEmail(account);
+                userId = authingManagerDao.getUserIdByEmail(account);
             } else if (accountType.equals(Constant.PHONE_TYPE)) {
                 msg = authingUserDao.resetPwdVerifyPhone(appId, account, code);
-                userId = authingUserDao.getUserIdByPhone(account);
+                userId = authingManagerDao.getUserIdByPhone(account);
             } else {
                 return result(HttpStatus.BAD_REQUEST, null, accountType, null);
             }
@@ -1419,7 +1533,7 @@ public class AuthingService implements UserCenterServiceInter {
             String resetMsg = authingUserDao.resetPwd(pwdResetToken, newPwd);
             if (resetMsg.equals(Constant.SUCCESS)) {
                 logoutAllSessions(userId, servletRequest, servletResponse);
-                authingUserDao.kickUser(userId);
+                authingManagerDao.kickUser(userId);
             }
             return resetMsg.equals(Constant.SUCCESS) ? result(HttpStatus.OK, Constant.SUCCESS, null)
                     : result(HttpStatus.BAD_REQUEST, null, resetMsg, null);
@@ -1595,7 +1709,7 @@ public class AuthingService implements UserCenterServiceInter {
                 return "";
             }
             String email = username + Constant.AUTO_GEN_EMAIL_SUFFIX;
-            return authingUserDao.updateEmailById(userId, email);
+            return authingManagerDao.updateEmailById(userId, email);
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
             return "";
@@ -1631,7 +1745,7 @@ public class AuthingService implements UserCenterServiceInter {
                 JSONObject userObj = (JSONObject) loginRes;
                 newIdToken = userObj.getString("id_token");
                 newUserId = JWT.decode(newIdToken).getSubject();
-                newuser = authingUserDao.getUser(newUserId);
+                newuser = authingManagerDao.getUser(newUserId);
             } else if (MessageCodeConfig.E0002.getMsgZh().equals(loginRes)
                     || MessageCodeConfig.E00026.getMsgZh().equals(loginRes)) {
                 return result(HttpStatus.BAD_REQUEST, null, (String) loginRes, null);
@@ -1641,7 +1755,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
 
             String currentUserId = authingUtil.getUserIdFromToken(token);
-            User currentUser = authingUserDao.getUser(currentUserId);
+            User currentUser = authingManagerDao.getUser(currentUserId);
             if (currentUser == null) {
                 LOGGER.error("user is null");
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00071, null, null);
@@ -1679,7 +1793,7 @@ public class AuthingService implements UserCenterServiceInter {
             // 登录成功解除登录失败次数限制
             redisDao.remove(account + Constant.LOGIN_COUNT);
             // 获取是否同意隐私
-            String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(
+            String oneidPrivacyVersionAccept = authingManagerDao.getPrivacyVersionWithCommunity(
                     newuser.getGivenName());
             // 生成token
             String userName = newuser.getUsername();
