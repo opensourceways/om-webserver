@@ -11,9 +11,12 @@
 
 package com.om.service;
 
+import cn.authing.core.types.User;
+import com.anji.captcha.util.StringUtils;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.Claim;
+import com.om.dao.AuthingUserDao;
 import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
@@ -51,6 +54,12 @@ public class JwtTokenCreateService {
      */
     @Autowired
     private CodeUtil codeUtil;
+
+    /**
+     * 使用 @Autowired 注解注入 AuthingUserDao.
+     */
+    @Autowired
+    private AuthingUserDao authingUserDao;
 
     /**
      * 过期时间（秒）：Authing Token.
@@ -119,6 +128,13 @@ public class JwtTokenCreateService {
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
         Date headTokenExpireAt = Date.from(expireDate.atZone(ZoneId.systemDefault())
                 .toInstant().plusSeconds(expireSeconds));
+
+        if (StringUtils.isBlank(username)) {
+            User user = authingUserDao.getUser(userId);
+            if (user != null && StringUtils.isNotBlank(user.getUsername())) {
+                username = user.getUsername();
+            }
+        }
 
         String headToken = JWT.create()
                 .withAudience(username) //谁接受签名
