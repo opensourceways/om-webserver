@@ -124,7 +124,7 @@ public final class CommonUtil {
         byte[] hashBytes = md.digest(combinedData.getBytes(StandardCharsets.UTF_8));
         StringBuilder hexString = new StringBuilder();
         for (byte b : hashBytes) {
-            String hex = Integer.toHexString(0xff & b);
+            String hex = String.format("%02X", b);
             if (hex.length() == 1) {
                 hexString.append('0');
             }
