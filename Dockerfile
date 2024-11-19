@@ -55,6 +55,7 @@ RUN echo "umask 027" >> /home/om-webserver/.bashrc \
     && echo "set +o history" >> /home/om-webserver/.bashrc \
     && sed -i "s|HISTSIZE=1000|HISTSIZE=0|" /etc/profile \
     && sed -i "s|PASS_MAX_DAYS[ \t]*99999|PASS_MAX_DAYS 30|" /etc/login.defs \
+    && echo "ALWAYS_SET_PATH yes" >> /etc/login.defs \
     && sed -i '4,6d' /home/om-webserver/.bashrc
 
 RUN passwd -l om-webserver \
@@ -88,12 +89,10 @@ RUN rm -rf `find / -iname "*tcpdump*"` \
 RUN rm -rf /usr/bin/gdb* \
     && rm -rf /usr/share/gdb \
     && rm -rf /usr/share/gcc-10.3.1 \
-	&& yum remove gdb-gdbserver findutils passwd shadow -y \
+    && rm -f /usr/lib64/python3.9/pdb.py \
+    && yum remove gdb-gdbserver findutils passwd shadow -y \
     && yum clean all \
-    && chmod 600 -R /home/om-webserver/ \
-    && chmod 700 /home/om-webserver \
-    && chmod 500 -R /home/om-webserver/jdk-18.0.2.1+1-jre \
-    && chmod 500 -R /home/om-webserver/target
+    && chmod 500 -R /home/om-webserver/
 
 ENV JAVA_HOME=${WORKSPACE}/jdk-18.0.2.1+1-jre
 ENV PATH=${JAVA_HOME}/bin:$PATH
