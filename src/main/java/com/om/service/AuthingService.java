@@ -12,6 +12,7 @@
 package com.om.service;
 
 import cn.authing.core.types.Application;
+import cn.authing.core.types.Identity;
 import cn.authing.core.types.User;
 import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
@@ -19,6 +20,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.dao.AuthingManagerDao;
 import com.om.dao.AuthingUserDao;
 import com.om.dao.RedisDao;
 import com.om.modules.OperateFailCounter;
@@ -39,6 +41,7 @@ import com.om.utils.LogUtil;
 import com.om.authing.AuthingRespConvert;
 import com.om.token.ClientSessionManager;
 import jakarta.annotation.PostConstruct;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kong.unirest.json.JSONObject;
@@ -52,6 +55,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.HtmlUtils;
 
@@ -132,6 +136,12 @@ public class AuthingService implements UserCenterServiceInter {
      */
     @Autowired
     private ClientSessionManager clientSessionManager;
+
+    /**
+     * Authing的管理面接口.
+     */
+    @Autowired
+    private AuthingManagerDao authingManagerDao;
 
     /**
      * 注入隐私操作类.
@@ -278,6 +288,36 @@ public class AuthingService implements UserCenterServiceInter {
         setResult(new Result());
         setOneidPrivacyVersion(env.getProperty("oneid.privacy.version", ""));
         setInstanceCommunity(env.getProperty("community", ""));
+    }
+
+    /**
+     * 检查账户是否存在的方法.
+     *
+     * @param servletRequest  HTTP请求对象
+     * @param servletResponse HTTP响应对象
+     * @return ResponseEntity 响应实体
+     */
+    @Override
+    public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        String userName = servletRequest.getParameter("username");
+        String appId = servletRequest.getParameter("client_id");
+        // 校验appId
+        if (authingUserDao.getAppById(appId) == null) {
+            return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
+        }
+        try {
+            // 用户名校验
+            if (StringUtils.isBlank(userName)) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+            }
+            if (authingUserDao.isUserExists(appId, userName, "username")) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00019, null, null);
+            }
+        } catch (ServerErrorException e) {
+            return result(HttpStatus.INTERNAL_SERVER_ERROR,
+                    MessageCodeConfig.E00048, MessageCodeConfig.E00048.getMsgZh(), null);
+        }
+        return result(HttpStatus.OK, "success", null);
     }
 
     /**
@@ -775,6 +815,64 @@ public class AuthingService implements UserCenterServiceInter {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             LogUtil.createLogs(userId, "logout", "login",
                     "The user logout", ClientIPUtil.getClientIpAddress(servletRequest), "failed");
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+    }
+
+    /**
+     * 刷新用户信息的方法.
+     *
+     * @param servletRequest  HTTP请求对象
+     * @param servletResponse HTTP响应对象
+     * @param token           令牌
+     * @return ResponseEntity 响应实体
+     */
+    @Override
+    public ResponseEntity refreshUser(HttpServletRequest servletRequest,
+                                      HttpServletResponse servletResponse, String token) {
+        try {
+            token = authingUtil.rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(token);
+            String userId = decode.getAudience().get(0);
+            // 获取用户
+            User user = authingUserDao.getUser(userId);
+            String photo = user.getPhoto();
+            String username = user.getUsername();
+            // 返回结果
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("photo", photo);
+            userData.put("username", username);
+            return result(HttpStatus.OK, "success", userData);
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+    }
+
+    /**
+     * 检测token.
+     *
+     * @param token token
+     * @return token中用户信息
+     */
+    @Override
+    public ResponseEntity verifyToken(String token) {
+        if (StringUtils.isBlank(token)) {
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+        try {
+            token = authingUtil.rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(token);
+            String userId = decode.getAudience().get(0);
+            int expire = Integer.parseInt(env.getProperty("authing.token.expire.seconds",
+                    Constant.DEFAULT_EXPIRE_SECOND));
+            // 返回结果
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("userId", userId);
+            userData.put("tokenExpireInterval", expire);
+            return result(HttpStatus.OK, "success", userData);
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
@@ -1318,6 +1416,17 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     /**
+     * 绑定账户方法.
+     *
+     * @param token       第一个令牌
+     * @param secondtoken 第二个令牌
+     * @return ResponseEntity 响应实体
+     */
+    public ResponseEntity linkAccount(String token, String secondtoken) {
+        return message(authingUserDao.linkAccount(token, secondtoken));
+    }
+
+    /**
      * 解除账户绑定方法.
      *
      * @param servletRequest 请求入参
@@ -1392,6 +1501,41 @@ public class AuthingService implements UserCenterServiceInter {
         } catch (JsonProcessingException e) {
             return result(HttpStatus.INTERNAL_SERVER_ERROR, null, msg, null);
         }
+    }
+
+    /**
+     * 更新密码方法.
+     *
+     * @param servletRequest HTTP请求对象
+     * @param servletResponse HTTP响应对象
+     * @return ResponseEntity 响应实体
+     */
+    @Override
+    public ResponseEntity updatePassword(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        String msg = MessageCodeConfig.E00050.getMsgZh();
+        try {
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+            String oldPwd = (String) getBodyPara(body, "old_pwd");
+            String newPwd = (String) getBodyPara(body, "new_pwd");
+            if (StringUtils.isBlank(newPwd)) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
+            }
+            Cookie cookie = authingUtil.getCookie(servletRequest, env.getProperty("cookie.token.name"));
+            msg = authingUserDao.updatePassword(cookie.getValue(), oldPwd, newPwd);
+            if (msg.equals("success")) {
+                String token = authingUtil.rsaDecryptToken(cookie.getValue());
+                DecodedJWT decode = JWT.decode(token);
+                String userId = decode.getAudience().get(0);
+                logoutAllSessions(userId, servletRequest, servletResponse);
+                authingUserDao.kickUser(userId);
+                return result(HttpStatus.OK, "success", null);
+            }
+        } catch (RuntimeException e) {
+            LOGGER.error("update password failed {}", e.getMessage());
+        } catch (Exception e) {
+            LOGGER.error("update password failed {}", e.getMessage());
+        }
+        return result(HttpStatus.BAD_REQUEST, null, msg, null);
     }
 
     /**
@@ -1590,6 +1734,55 @@ public class AuthingService implements UserCenterServiceInter {
      * @param account 账号
      * @param code 验证码
      * @param password 密码
+     * @return 登录响应体
+     */
+    public Object login(String appId, String account, String code, String password) {
+        // code/password 同时传入报错
+        if ((StringUtils.isNotBlank(code) && StringUtils.isNotBlank(password))) {
+            return MessageCodeConfig.E00012.getMsgZh();
+        }
+        // 手机 or 邮箱判断
+        String accountType = "";
+        if (StringUtils.isNotBlank(account)) {
+            accountType = getAccountType(account);
+        }
+        // 校验appId
+        Application app = authingUserDao.getAppById(appId);
+        if (app == null) {
+            return MessageCodeConfig.E00047.getMsgZh();
+        }
+        // 登录
+        Object msg;
+        try {
+            if (accountType.equals(Constant.EMAIL_TYPE)) { // 邮箱登录
+                msg = StringUtils.isNotBlank(code)
+                        ? authingUserDao.loginByEmailCode(app, account, code)
+                        : authingUserDao.loginByEmailPwd(app, account, password);
+            } else if (accountType.equals(Constant.PHONE_TYPE)) { // 手机号登录
+                msg = StringUtils.isNotBlank(code)
+                        ? authingUserDao.loginByPhoneCode(app, account, code)
+                        : authingUserDao.loginByPhonePwd(app, account, password);
+            } else { // 用户名登录
+                // 用户名校验
+                if (StringUtils.isBlank(account)) {
+                    return MessageCodeConfig.E00012.getMsgZh();
+                }
+                msg = authingUserDao.loginByUsernamePwd(app, account, password);
+            }
+        } catch (ServerErrorException e) {
+            return MessageCodeConfig.E00048.getMsgZh();
+        }
+
+        return msg;
+    }
+
+    /**
+     * 登录authing.
+     *
+     * @param appId 应用id
+     * @param account 账号
+     * @param code 验证码
+     * @param password 密码
      * @param oneidPrivacy 隐私版本
      * @return 登录响应体
      */
@@ -1678,6 +1871,133 @@ public class AuthingService implements UserCenterServiceInter {
             LOGGER.error(e.getMessage());
             return "";
         }
+    }
+
+    /**
+     * 合并仅有一个三方绑定的用户到手机号对应账号.
+     *
+     * @param servletRequest 请求体
+     * @param servletResponse 响应体
+     * @param token token
+     * @return 合并后用户登录信息
+     */
+    @Override
+    public ResponseEntity mergeUser(HttpServletRequest servletRequest,
+                                    HttpServletResponse servletResponse, String token) {
+        try {
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+            String appId = (String) getBodyPara(body, "client_id");
+            String account = (String) getBodyPara(body, "account");
+            String code = (String) getBodyPara(body, "code");
+            if (!Constant.PHONE_TYPE.equals(getAccountType(account))) {
+                return result(HttpStatus.BAD_REQUEST, null, "", null);
+            }
+            // 登录成功返回用户token
+            Object loginRes = login(appId, account, code, null);
+            // 获取用户信息
+            String newIdToken;
+            String newUserId = "";
+            User newuser = null;
+            if (loginRes instanceof JSONObject) {
+                JSONObject userObj = (JSONObject) loginRes;
+                newIdToken = userObj.getString("id_token");
+                newUserId = JWT.decode(newIdToken).getSubject();
+                newuser = authingUserDao.getUser(newUserId);
+            } else if (MessageCodeConfig.E0002.getMsgZh().equals(loginRes)
+                    || MessageCodeConfig.E00026.getMsgZh().equals(loginRes)) {
+                return result(HttpStatus.BAD_REQUEST, null, (String) loginRes, null);
+            } else {
+                LOGGER.error("merge users failed {}", loginRes);
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+            }
+
+            String currentUserId = authingUtil.getUserIdFromToken(token);
+            User currentUser = authingUserDao.getUser(currentUserId);
+            if (currentUser == null) {
+                LOGGER.error("user is null");
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00071, null, null);
+            }
+            List<Identity> identities = currentUser.getIdentities();
+            if (identities == null || identities.size() != 1) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00068, null, null);
+            }
+            Identity currentIdentity = identities.get(0);
+            if (currentIdentity == null) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00069, null, null);
+            }
+            if (StringUtils.isAnyBlank(currentIdentity.getUserIdInIdp(), currentIdentity.getUserPoolId(),
+                    currentIdentity.getExtIdpId())) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00069, null, null);
+            }
+
+            if (hasSameIdentityType(newuser.getIdentities(), currentIdentity)) {
+                LOGGER.error("[merge users] phone user has been bind");
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00070, null, null);
+            }
+
+            if (!authingManagerDao.removeIdentity(currentIdentity)) {
+                LOGGER.error("[merge users] remove identity failed");
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00071, null, null);
+            }
+
+            if (!authingManagerDao.bindIdentity(newUserId, currentIdentity)) {
+                authingManagerDao.bindIdentity(currentUserId, currentIdentity);
+                LOGGER.error("[merge users] bind identity failed");
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00071, null, null);
+            }
+            authingUserDao.deleteUserById(currentUserId);
+
+            // 登录成功解除登录失败次数限制
+            redisDao.remove(account + Constant.LOGIN_COUNT);
+            // 获取是否同意隐私
+            String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(
+                    newuser.getGivenName());
+            // 生成token
+            String userName = newuser.getUsername();
+            if (Objects.isNull(userName)) {
+                userName = "";
+            }
+            String[] tokens = jwtTokenCreateService.authingUserToken(appId, newUserId, userName,
+                    "", "", newIdToken, oneidPrivacyVersionAccept);
+
+            String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(newUserId).toString();
+            int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
+            redisDao.addList(loginKey, newIdToken, expireSeconds);
+            long listSize = redisDao.getListSize(loginKey);
+            if (listSize > maxLoginNum) {
+                redisDao.removeListTail(loginKey, maxLoginNum);
+            }
+
+            // 写cookie
+            setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
+            // 返回结果
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("token", tokens[1]);
+            userData.put("photo", newuser.getPhoto());
+            userData.put("username", newuser.getUsername());
+            userData.put("email_exist", StringUtils.isNotBlank(newuser.getEmail()));
+            userData.put("phone_exist", StringUtils.isNotBlank(newuser.getPhone()));
+            userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
+            return result(HttpStatus.OK, "success", userData);
+        } catch (InvalidKeySpecException e) {
+            LOGGER.error("[merge users] merge users failed {}", e.getMessage());
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        } catch (Exception e) {
+            LOGGER.error("[merge users] merge users failed {}", e.getMessage());
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+    }
+
+    private boolean hasSameIdentityType(List<Identity> newIdentities, Identity currentIdentity) {
+        if (CollectionUtils.isEmpty(newIdentities) || currentIdentity == null) {
+            return false;
+        }
+        for (Identity identity : newIdentities) {
+            if (StringUtils.equals(identity.getExtIdpId(), currentIdentity.getExtIdpId())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
