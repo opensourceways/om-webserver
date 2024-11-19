@@ -182,6 +182,11 @@ public final class Constant {
     public static final String REDIS_PREFIX_RESET_PASSWD = "resetPassWdToken_";
 
     /**
+     * authing管理面token.
+     */
+    public static final String REDIS_KEY_AUTH_MANAGER_TOKEN = "authingManagerToken";
+
+    /**
      * Token过期.
      */
     public static final String TOKEN_EXPIRES = "token expires";

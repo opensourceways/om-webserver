@@ -318,7 +318,24 @@ public enum MessageCodeConfig {
     /**
      * 仅支持中国区手机号.
      */
-    E00068("E00068", "Only supports mobile phone numbers in China", "仅支持中国区手机号");
+    E00068("E00068", "Only supports mobile phone numbers in China", "仅支持中国区手机号"),
+
+    /**
+     * 错误代码 E00069: 账号异常，不支持绑定绑定已有账号.
+     */
+    E00069("E00069", "The account is abnormal and binding to existing accounts is not supported",
+                   "账号异常，不支持绑定已有账号"),
+
+    /**
+     * 错误代码 E00070: 该账号已绑定其他三方账号，请解绑后重试.
+     */
+    E00070("E00070", "This account has been bound to other third-party accounts. Please unbind and try again",
+            "该账号已绑定其他三方账号，请解绑后重试"),
+
+    /**
+     * 错误代码 E00071: 绑定已有账号失败.
+     */
+    E00071("E00071", "Failed to bind existing account", "绑定已有账号失败");
 
     /**
      * 消息代码.

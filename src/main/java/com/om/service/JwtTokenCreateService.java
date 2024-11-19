@@ -74,6 +74,12 @@ public class JwtTokenCreateService {
     private String authingTokenBasePassword;
 
     /**
+     * 基础密码：OIDC Token.
+     */
+    @Value("${oidc.token.base.password}")
+    private String oidcTokenBasePassword;
+
+    /**
      * 基础密码：session Token.
      */
     @Value("${authing.token.session.password}")
@@ -188,5 +194,39 @@ public class JwtTokenCreateService {
         List<String> audience = JWT.decode(headerJwtToken).getAudience();
         String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
         return authingUserToken(appId, userId, username, permission, inputPermission, idToken, oneidPrivacyVersion);
+    }
+
+    /**
+     * 生成 OIDC 令牌.
+     *
+     * @param userId        用户ID
+     * @param issuer        颁发者
+     * @param scope         范围
+     * @param expireSeconds 过期时间（秒）
+     * @param expireAt      过期时间点
+     * @return OIDC 令牌字符串
+     */
+    public String oidcToken(String userId, String issuer, String scope, long expireSeconds, Date expireAt) {
+        // 过期时间
+        LocalDateTime nowDate = LocalDateTime.now();
+        Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
+        LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
+        expireAt = expireAt != null ? expireAt : Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
+
+        String token = JWT.create()
+                .withIssuer(issuer) //签名
+                .withAudience(userId) //谁接受签名
+                .withIssuedAt(issuedAt) //生成签名的时间
+                .withExpiresAt(expireAt) //过期时间
+                .withClaim("scope", scope)
+                .sign(Algorithm.HMAC256(userId + oidcTokenBasePassword));
+
+        try {
+            RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
+            return RSAUtil.publicEncrypt(token, publicKey);
+        } catch (Exception e) {
+            System.out.println("RSA Encrypt error");
+            return token;
+        }
     }
 }

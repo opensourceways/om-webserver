@@ -40,6 +40,8 @@ import com.om.result.Constant;
 import com.om.utils.CommonUtil;
 import com.om.utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
+
+import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -928,6 +930,33 @@ public class AuthingUserDao {
     }
 
     /**
+     * 使用访问令牌更新用户密码.
+     *
+     * @param token 访问令牌
+     * @param oldPwd 旧密码
+     * @param newPwd 新密码
+     * @return 如果成功更新密码则返回消息提示，否则返回 null
+     */
+    public String updatePassword(String token, String oldPwd, String newPwd) {
+        String msg = MessageCodeConfig.E00053.getMsgZh();
+        try {
+            Object[] appUserInfo = getAppUserInfo(token);
+            String appId = appUserInfo[0].toString();
+            User user = (User) appUserInfo[1];
+
+            String body = String.format("{\"newPassword\": \"%s\","
+                    + "\"oldPassword\": \"%s\","
+                    + "\"passwordEncryptType\": \"rsa\"}", newPwd, oldPwd);
+            HttpResponse<JsonNode> response = authPost("/update-password", appId, user.getToken(), body);
+            JSONObject resObj = response.getBody().getObject();
+            msg = resObj.getInt("statusCode") != 200 ? AuthingRespConvert.convertMsg(resObj, msg) : Constant.SUCCESS;
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+        }
+        return msg;
+    }
+
+    /**
      * 重置密码并验证用户邮箱.
      *
      * @param appId 应用程序 ID
@@ -1279,6 +1308,28 @@ public class AuthingUserDao {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * 使用两个令牌绑定账户.
+     *
+     * @param token 第一个访问令牌
+     * @param secondToken 第二个访问令牌
+     * @return 返回绑定账户操作的结果消息
+     */
+    public String linkAccount(String token, String secondToken) {
+        try {
+            Object[] appUserInfo = getAppUserInfo(token);
+            String appId = appUserInfo[0].toString();
+            User us = (User) appUserInfo[1];
+            AuthenticationClient authentication = initUserAuthentication(appId, us);
+
+            authentication.linkAccount(token, secondToken).execute();
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return e.getMessage();
+        }
+        return "true";
     }
 
     /**
@@ -1670,6 +1721,35 @@ public class AuthingUserDao {
         }
 
         return msg;
+    }
+
+    /**
+     * 获取用户可访问的应用程序列表.
+     *
+     * @param userId 用户ID
+     * @return 包含用户可访问的应用程序名称的列表
+     */
+    public List<String> userAccessibleApps(String userId) {
+        ArrayList<String> appIds = new ArrayList<>();
+        try {
+            String token = getUser(userId).getToken();
+            HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/get-my-accessible-apps")
+                    .header("Authorization", token)
+                    .header("x-authing-userpool-id", userPoolId)
+                    .asJson();
+            if (response.getStatus() == 200) {
+                JSONArray data = response.getBody().getObject().getJSONArray("data");
+                for (Object item : data) {
+                    if (item instanceof JSONObject) {
+                        JSONObject app = (JSONObject) item;
+                        appIds.add(app.getString("appId"));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+        }
+        return appIds;
     }
 
     private List<String> getUsernameReserved() {
