@@ -27,6 +27,7 @@ import com.om.utils.HttpClientUtils;
 import com.om.aop.RequestLimitRedis;
 import com.om.authing.AuthingUserToken;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -39,6 +40,7 @@ import org.springframework.web.multipart.MultipartFile;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.nio.file.Files;
 import java.util.Map;
 
 
@@ -130,6 +132,14 @@ public class AuthingController {
         captchaVO.setPointJson(data.get("pointJson"));
         captchaVO.setToken(data.get("token"));
         captchaVO.setBrowserInfo(getRemoteId(request));
+
+        System.out.println("----------");
+        System.out.println(data.get("captchaType"));
+        System.out.println(data.get("pointJson"));
+        System.out.println(data.get("token"));
+        System.out.println(getRemoteId(request));
+        System.out.println("----------");
+
         return captchaService.check(captchaVO);
     }
 
