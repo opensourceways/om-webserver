@@ -151,6 +151,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
     @Value("${oneid.privacy.version}")
     private String oneidPrivacyVersion;
 
+    /**
+     * token的盐值.
+     */
     @Value("${authing.token.sha256.salt: }")
     private String tokenSalt;
 

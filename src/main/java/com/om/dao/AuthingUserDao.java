@@ -243,6 +243,11 @@ public class AuthingUserDao {
     private String photoSuffix;
 
     /**
+     * 允许的社区列表.
+     */
+    private List<String> allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry");;
+
+    /**
      * Authing API v2 主机地址.
      */
     @Value("${authing.api.hostv2}")
@@ -760,6 +765,46 @@ public class AuthingUserDao {
     }
 
     /**
+     * 使用v3管理员接口获取用户信息.
+     *
+     * @param userId     用户 ID
+     * @param userIdType 用户 ID 类型
+     * @return 返回包含用户信息的 JSONObject 对象，如果获取失败则返回 null
+     */
+    public JSONObject getUserV3(String userId, String userIdType) {
+        try {
+            String token = getManagementToken();
+            HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/get-user")
+                    .header("Authorization", token)
+                    .header("x-authing-userpool-id", userPoolId)
+                    .queryString("userId", userId)
+                    .queryString("userIdType", userIdType)
+                    .queryString("withIdentities", true)
+                    .asJson();
+            return response.getBody().getObject().getJSONObject("data");
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 通过用户名获取用户信息.
+     *
+     * @param username 用户名
+     * @return 返回包含用户信息的 JSONObject 对象，如果未找到用户则返回 null
+     */
+    public JSONObject getUserByName(String username) {
+        try {
+            User user = managementClient.users().find(new FindUserParam().withUsername(username)).execute();
+            return getUserById(user.getId());
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * 根据邮箱查询用户id.
      *
      * @param email 电子邮箱
@@ -1059,6 +1104,40 @@ public class AuthingUserDao {
         return "true";
     }
 
+     /**
+     * 使用访问令牌更新账户信息.
+     *
+     * @param token 访问令牌
+     * @param account 新账户信息
+     * @param type 类型
+     * @return 如果成功更新账户信息则返回消息提示，否则返回 null
+     */
+    public String updateAccountInfo(String token, String account, String type) {
+        try {
+            RSAPrivateKey privateKey = RSAUtil.getPrivateKey(rsaAuthingPrivateKey);
+            String dectoken = RSAUtil.privateDecrypt(token, privateKey);
+            DecodedJWT decode = JWT.decode(dectoken);
+            String userId = decode.getAudience().get(0);
+            UpdateUserInput updateUserInput = new UpdateUserInput();
+
+            switch (type.toLowerCase()) {
+                case "email":
+                    updateUserInput.withEmail(account);
+                    break;
+                case "phone":
+                    updateUserInput.withPhone(account);
+                    break;
+                default:
+                    return "false";
+            }
+            managementClient.users().update(userId, updateUserInput).execute();
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return e.getMessage();
+        }
+        return "true";
+    }
+
     /**
      * 使用访问令牌解绑账户.
      *
@@ -1122,6 +1201,33 @@ public class AuthingUserDao {
         }
         appClient.setCurrentUser(user);
         return appClient;
+    }
+
+    /**
+     * 绑定账户到认证客户端.
+     *
+     * @param authentication 认证客户端
+     * @param account 要绑定的账户信息
+     * @param code 验证码
+     * @param type 账户类型
+     * @return 如果成功绑定账户则返回消息提示，否则返回 null
+     */
+    public String bindAccount(AuthenticationClient authentication, String account, String code, String type) {
+        try {
+            switch (type.toLowerCase()) {
+                case "email":
+                    authentication.bindEmail(account, code).execute();
+                    break;
+                case "phone":
+                    authentication.bindPhone(account, code).execute();
+                    break;
+                default:
+                    return "false";
+            }
+        } catch (Exception e) {
+            return e.getMessage();
+        }
+        return "true";
     }
 
     /**
@@ -1584,6 +1690,32 @@ public class AuthingUserDao {
     }
 
     /**
+     * 撤销用户隐私设置.
+     *
+     * @param userId 用户ID
+     * @return 如果成功撤销用户隐私设置则返回 true，否则返回 false
+     */
+    public boolean revokePrivacy(String userId) {
+        try {
+            // get user
+            User user = managementClient.users().detail(userId, false, false).execute();
+            UpdateUserInput input = new UpdateUserInput();
+            input.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
+            User updateUser = managementClient.users().update(userId, input).execute();
+            if (updateUser == null) {
+                return false;
+            }
+            saveHistory(user, null);
+            LOGGER.info(String.format("User %s cancel privacy consent version %s for app version %s",
+                    user.getId(), oneidPrivacyVersion, appVersion));
+            return true;
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * 使用访问令牌更新用户照片.
      *
      * @param token 访问令牌
@@ -1859,6 +1991,64 @@ public class AuthingUserDao {
     }
 
     /**
+     * 创建隐私版本号.
+     *
+     * @param version 版本号
+     * @param needSlash 是否需要斜杠
+     * @return 返回创建的隐私版本号
+     */
+    public String createPrivacyVersions(String version, Boolean needSlash) {
+        if (!isValidCommunity(community)) {
+            return "";
+        }
+
+        HashMap<String, String> privacys = new HashMap<>();
+        privacys.put(community, version);
+        if (needSlash) {
+            return JSON.toJSONString(privacys).replaceAll("\"", "\\\\\"");
+        } else {
+            return JSON.toJSONString(privacys);
+        }
+    }
+
+    /**
+     * 更新隐私版本号.
+     *
+     * @param previous 先前的版本号
+     * @param version 新版本号
+     * @return 返回更新后的隐私版本号
+     */
+    public String updatePrivacyVersions(String previous, String version) {
+        if (!isValidCommunity(community)) {
+            return "";
+        }
+
+        if (StringUtils.isBlank(previous)) {
+            return createPrivacyVersions(version, false);
+        }
+
+        if (!previous.contains(":")) {
+            if ("unused".equals(previous)) {
+                return createPrivacyVersions(version, false);
+            } else {
+                HashMap<String, String> privacys = new HashMap<>();
+                privacys.put("openeuler", previous);
+                privacys.put(community, version);
+                return JSON.toJSONString(privacys);
+            }
+        } else {
+            try {
+                HashMap<String, String> privacys = JSON.parseObject(previous, HashMap.class);
+                privacys.put(community, version);
+                return JSON.toJSONString(privacys);
+            } catch (Exception e) {
+                LOGGER.error(e.getMessage());
+                return createPrivacyVersions(version, false);
+            }
+        }
+    }
+
+    /**
      * 根据社区获取包含特定隐私版本号的隐私设置.
      *
      * @param privacyVersions 隐私版本号
@@ -1881,6 +2071,15 @@ public class AuthingUserDao {
             LOGGER.error(e.getMessage());
             return "";
         }
+    }
+
+    private boolean isValidCommunity(String communityIns) {
+        for (String com : allowedCommunity) {
+            if (communityIns.startsWith(com)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
