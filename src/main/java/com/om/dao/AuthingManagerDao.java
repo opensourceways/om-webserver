@@ -80,6 +80,10 @@ public class AuthingManagerDao {
     @Autowired
     private RedisDao redisDao;
 
+    /**
+     * 获取管理面token.
+     * @return token.
+     */
     public String getManagementToken() {
         String token = "";
         try {

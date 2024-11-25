@@ -40,8 +40,8 @@ public final class Constant {
     /**
      * 邮箱正则表达式，匹配常见邮箱格式.
      */
-    public static final String EMAILREGEX = "^[A-Za-z0-9-._\\u4e00-\\u9fa5]{1,40}" +
-            "@[a-zA-Z0-9_-]{1,20}(\\.[a-zA-Z0-9_-]{1,20}){1,10}$";
+    public static final String EMAILREGEX = "^[A-Za-z0-9-._\\u4e00-\\u9fa5]{1,40}"
+            + "@[a-zA-Z0-9_-]{1,20}(\\.[a-zA-Z0-9_-]{1,20}){1,10}$";
 
     /**
      * 用户名正则表达式，匹配特定用户名格式.
