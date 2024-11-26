@@ -19,6 +19,7 @@ import com.anji.captcha.util.StringUtils;
 import com.om.result.Constant;
 import com.om.service.AuthingService;
 import com.om.service.OidcService;
+import com.om.service.OneIdManageService;
 import com.om.service.SendMessageService;
 import com.om.service.UserCenterServiceContext;
 import com.om.service.inter.UserCenterServiceInter;
@@ -61,6 +62,12 @@ public class AuthingController {
     private UserCenterServiceContext userCenterServiceContext;
 
     /**
+     * 管理者 service.
+     */
+    @Autowired
+    private OneIdManageService oneIdManageService;
+
+    /**
      * 验证码服务.
      */
     @Autowired
@@ -101,7 +108,7 @@ public class AuthingController {
      * @return 返回响应模型 ResponseModel
      */
     @RequestLimitRedis(period = 20, count = 14)
-    @RequestMapping(value = "/captcha/get", method = RequestMethod.POST)
+    @RequestMapping(value = "/captcha/get", method = {RequestMethod.POST, RequestMethod.GET})
     public ResponseModel captchaGet(@RequestBody Map<String, String> data, HttpServletRequest request) {
         CaptchaVO captchaVO = new CaptchaVO();
         if (!"blockPuzzle".equals(data.get("captchaType"))) {
@@ -120,7 +127,7 @@ public class AuthingController {
      * @return 返回响应模型 ResponseModel
      */
     @RequestLimitRedis
-    @RequestMapping(value = "/captcha/check", method = RequestMethod.POST)
+    @RequestMapping(value = "/captcha/check", method = {RequestMethod.POST, RequestMethod.GET})
     public ResponseModel captchaCheck(@RequestBody Map<String, String> data, HttpServletRequest request) {
         CaptchaVO captchaVO = new CaptchaVO();
         if (!"blockPuzzle".equals(data.get("captchaType"))) {
@@ -163,7 +170,7 @@ public class AuthingController {
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
-    @RequestMapping(value = {"/captcha/sendCode", "/v3/sendCode"}, method = RequestMethod.POST)
+    @RequestMapping(value = {"/captcha/sendCode", "/v3/sendCode"}, method = {RequestMethod.POST, RequestMethod.GET})
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
@@ -178,7 +185,7 @@ public class AuthingController {
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
-    @RequestMapping(value = "/captcha/checkLogin", method = RequestMethod.POST)
+    @RequestMapping(value = "/captcha/checkLogin", method = {RequestMethod.POST, RequestMethod.GET})
     public ResponseEntity captchaLogin(HttpServletRequest servletRequest) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.captchaLogin(servletRequest);
@@ -365,7 +372,7 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/user/permissions", method = RequestMethod.GET)
     public ResponseEntity userPermissions(@CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.userPermissions(token);
+        return oneIdManageService.userPermissions(token);
     }
 
     /**
@@ -402,8 +409,7 @@ public class AuthingController {
     public ResponseEntity userInfo(HttpServletRequest servletRequest,
                                    HttpServletResponse servletResponse,
                                    @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.personalCenterUserInfo(servletRequest, servletResponse, token);
+        return oneIdManageService.personalCenterUserInfo(servletRequest, servletResponse, token);
     }
 
     /**
@@ -420,8 +426,7 @@ public class AuthingController {
     public ResponseEntity deleteUser(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
                                      @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(httpServletRequest);
-        return service.deleteUser(httpServletRequest, servletResponse, token);
+        return oneIdManageService.deleteUser(httpServletRequest, servletResponse, token);
     }
 
     /**

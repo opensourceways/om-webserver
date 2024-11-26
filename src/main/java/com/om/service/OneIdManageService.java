@@ -14,11 +14,14 @@ package com.om.service;
 import cn.authing.core.auth.AuthenticationClient;
 import cn.authing.core.types.Application;
 import cn.authing.core.types.User;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,6 +32,10 @@ import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
 import com.om.utils.AuthingUtil;
+import com.om.utils.ClientIPUtil;
+import com.om.utils.CommonUtil;
+import com.om.utils.HttpClientUtils;
+import com.om.utils.LogUtil;
 
 import org.apache.commons.lang3.StringUtils;
 import kong.unirest.json.JSONObject;
@@ -44,6 +51,7 @@ import org.springframework.util.DigestUtils;
 import org.springframework.web.util.HtmlUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -74,6 +82,12 @@ public class OneIdManageService {
      */
     @Autowired
     private AuthingUserDao authingUserDao;
+
+    /**
+     * 管理面dao.
+     */
+    @Autowired
+    private AuthingManagerDao authingManagerDao;
 
     /**
      * 自动注入 RedisDao 对象.
@@ -117,6 +131,12 @@ public class OneIdManageService {
      */
     @Value("${social.extIdpId.github}")
     private String githubProviderId;
+
+    /**
+     * token的盐值.
+     */
+    @Value("${authing.token.sha256.salt: }")
+    private String tokenSalt;
 
     /**
      * 静态日志记录器，用于记录 OneIdManageService 类的日志信息.
@@ -172,7 +192,6 @@ public class OneIdManageService {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
-
     }
 
     /**
@@ -226,6 +245,97 @@ public class OneIdManageService {
             return authingService.result(HttpStatus.BAD_REQUEST, null, msg, null);
         } else {
             return result(HttpStatus.OK, "success", null);
+        }
+    }
+
+    /**
+     * 删除用户方法.
+     *
+     * @param servletRequest  HTTP请求对象
+     * @param servletResponse HTTP响应对象
+     * @param token           令牌
+     * @return ResponseEntity 响应实体
+     */
+    public ResponseEntity deleteUser(HttpServletRequest servletRequest,
+                                     HttpServletResponse servletResponse, String token) {
+        String userId = "";
+        String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
+        try {
+            token = authingUtil.rsaDecryptToken(token);
+            DecodedJWT decode = JWT.decode(token);
+            userId = decode.getAudience().get(0);
+            String photo = authingUserDao.getUser(userId).getPhoto();
+            //用户注销
+            if (authingManagerDao.deleteUserById(userId)) {
+                LogUtil.createLogs(userId, "delete account", "user",
+                        "The user delete account", userIp, "success");
+                return deleteUserAfter(servletRequest, servletResponse, userId, photo);
+            } else {
+                LogUtil.createLogs(userId, "delete account", "user",
+                        "The user delete account", userIp, "failed");
+                return authingService.result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
+            }
+        } catch (RuntimeException e) {
+            LOGGER.error("Internal Server RuntimeException." + e.getMessage());
+            LogUtil.createLogs(userId, "delete account", "user",
+                    "The user delete account", userIp, "failed");
+            return authingService.result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
+        } catch (Exception e) {
+            LOGGER.error("delete account failed {}", e.getMessage());
+            LogUtil.createLogs(userId, "delete account", "user",
+                    "The user delete account", userIp, "failed");
+            return authingService.result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
+        }
+    }
+
+    private ResponseEntity deleteUserAfter(HttpServletRequest httpServletRequest,
+                                           HttpServletResponse servletResponse,
+                                           String userId, String photo) {
+        try {
+            // 删除用户头像
+            authingUserDao.deleteObsObjectByUrl(photo);
+            // 删除cookie，删除idToken
+            String headerToken = httpServletRequest.getHeader("token");
+            String shaToken = CommonUtil.encryptSha256(headerToken, tokenSalt);
+            String idTokenKey = "idToken_" + shaToken;
+            redisDao.remove(idTokenKey);
+            authingService.logoutAllSessions(userId, httpServletRequest, servletResponse);
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+        }
+        return result(HttpStatus.OK, "delete user success", null);
+    }
+
+    /**
+     * 用户权限方法.
+     *
+     * @param token     令牌
+     * @return ResponseEntity 响应实体
+     */
+    public ResponseEntity userPermissions(String token) {
+        try {
+            DecodedJWT decode = JWT.decode(authingUtil.rsaDecryptToken(token));
+            String userId = decode.getAudience().get(0);
+            // 获取权限
+            ArrayList<String> permissions = new ArrayList<>();
+            ArrayList<String> pers = authingManagerDao.getUserPermission(userId,
+                    env.getProperty("openeuler.groupCode"));
+            for (String per : pers) {
+                String[] perList = per.split(":");
+                if (perList.length > 1) {
+                    permissions.add(perList[0] + perList[1]);
+                }
+            }
+            // 获取用户
+            User user = authingUserDao.getUser(userId);
+            // 返回结果
+            HashMap<String, Object> userData = new HashMap<>();
+            userData.put("permissions", permissions);
+            userData.put("username", user.getUsername());
+            return result(HttpStatus.OK, "success", userData);
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
 
@@ -324,6 +434,86 @@ public class OneIdManageService {
             }
         } catch (Exception e) {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+    }
+
+    /**
+     * 更新账户信息方法.
+     *
+     * @param servletRequest  HTTP请求对象
+     * @param servletResponse HTTP响应对象
+     * @param token           令牌
+     * @return ResponseEntity 响应实体
+     */
+    public ResponseEntity updateAccountPost(HttpServletRequest servletRequest,
+                                            HttpServletResponse servletResponse, String token) {
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String oldAccount = (String) authingService.getBodyPara(body, "oldaccount");
+        String oldCode = (String) authingService.getBodyPara(body, "oldcode");
+        String account = (String) authingService.getBodyPara(body, "account");
+        String code = (String) authingService.getBodyPara(body, "code");
+        String accountType = (String) authingService.getBodyPara(body, "account_type");
+        if (StringUtils.isBlank(oldAccount) || StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+        //账号格式校验
+        if ((!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX))
+                || (!oldAccount.matches(Constant.PHONEREGEX) && !oldAccount.matches(Constant.EMAILREGEX))) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+        if (accountType.toLowerCase().equals("email") && oldAccount.equals(account)) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00031, null, null);
+        } else if (accountType.toLowerCase().equals("phone") && oldAccount.equals(account)) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00032, null, null);
+        }
+        String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
+        String res = authingUserDao.updateAccount(token, oldAccount, oldCode, account, code, accountType, userIp);
+        return authingService.message(res);
+    }
+
+    /**
+     * 更新账户信息方法，无需验证码.
+     *
+     * @param servletRequest  HTTP请求对象
+     * @param servletResponse HTTP响应对象
+     * @param token           令牌
+     * @return ResponseEntity 响应实体
+     */
+    public ResponseEntity updateAccountInfo(HttpServletRequest servletRequest,
+                                            HttpServletResponse servletResponse, String token) {
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String account = (String) authingService.getBodyPara(body, "account");
+        String accountType = (String) authingService.getBodyPara(body, "account_type");
+        if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+        //账号格式校验
+        if (!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX)) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+        String res = authingUserDao.updateAccountInfo(token, account, accountType);
+        return authingService.message(res);
+    }
+
+    /**
+     * 个人中心用户信息方法.
+     *
+     * @param servletRequest  HTTP请求对象
+     * @param servletResponse HTTP响应对象
+     * @param token           令牌
+     * @return ResponseEntity 响应实体
+     */
+    public ResponseEntity personalCenterUserInfo(HttpServletRequest servletRequest,
+                                                 HttpServletResponse servletResponse, String token) {
+        try {
+            String userId = authingUtil.getUserIdFromToken(token);
+            JSONObject userObj = authingManagerDao.getUserById(userId);
+            HashMap<String, Object> userData = authingUtil.parseAuthingUser(userObj);
+            // 返回结果
+            return result(HttpStatus.OK, "success", userData);
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
         }
     }
 

@@ -68,17 +68,6 @@ public interface UserCenterServiceInter {
     ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse, boolean isSuccess);
 
     /**
-     * 个人中心用户信息方法.
-     *
-     * @param servletRequest  HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @param token           令牌
-     * @return ResponseEntity 响应实体
-     */
-    ResponseEntity personalCenterUserInfo(HttpServletRequest servletRequest,
-                                          HttpServletResponse servletResponse, String token);
-
-    /**
      * 注销方法.
      *
      * @param servletRequest  HTTP请求对象
@@ -97,16 +86,6 @@ public interface UserCenterServiceInter {
      * @return ResponseEntity 响应实体
      */
     ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
-
-    /**
-     * 删除用户方法.
-     *
-     * @param servletRequest  HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @param token           令牌
-     * @return ResponseEntity 响应实体
-     */
-    ResponseEntity deleteUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 
     /**
      * 更新用户基本信息方法.
@@ -152,28 +131,6 @@ public interface UserCenterServiceInter {
      * @return ResponseEntity 响应实体
      */
     ResponseEntity updateAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
-
-    /**
-     * 更新账户信息方法.
-     *
-     * @param servletRequest  HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @param token           令牌
-     * @return ResponseEntity 响应实体
-     */
-    ResponseEntity updateAccountPost(HttpServletRequest servletRequest,
-                                     HttpServletResponse servletResponse, String token);
-
-    /**
-     * 直接更新账号信息.
-     *
-     * @param servletRequest  HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @param token           令牌
-     * @return ResponseEntity 响应实体
-     */
-    ResponseEntity updateAccountInfo(HttpServletRequest servletRequest,
-                                     HttpServletResponse servletResponse, String token);
 
     /**
      * 解绑账户方法.
