@@ -22,6 +22,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.dao.AuthingManagerDao;
 import com.om.dao.AuthingUserDao;
 import com.om.dao.GitDao;
 import com.om.dao.RedisDao;
@@ -91,6 +92,12 @@ public class OneIdManageService {
      */
     @Autowired
     private ObjectMapper objectMapper;
+
+    /**
+     * 管理面 dao类.
+     */
+    @Autowired
+    private AuthingManagerDao managerDao;
 
 
     /**
@@ -289,22 +296,22 @@ public class OneIdManageService {
 
             JSONObject userInfo = null;
             if (StringUtils.isNotBlank(userId)) {
-                userInfo = authingUserDao.getUserById(userId);
+                userInfo = managerDao.getUserById(userId);
             }
             if (StringUtils.isNotBlank(username)) {
-                userInfo = authingUserDao.getUserByName(username);
+                userInfo = managerDao.getUserByName(username);
             }
             if (StringUtils.isNotBlank(giteeLogin)) {
                 String giteeId = gitDao.getGiteeUserIdByLogin(giteeLogin);
                 if (StringUtils.isNotBlank(giteeId)) {
-                    userInfo = authingUserDao.getUserV3(
+                    userInfo = managerDao.getUserV3(
                             giteeProviderId.concat(":").concat(giteeId), "identity");
                 }
             }
             if (StringUtils.isNotBlank(githubLogin)) {
                 String githubId = gitDao.getGithubUserIdByLogin(githubLogin);
                 if (StringUtils.isNotBlank(githubId)) {
-                    userInfo = authingUserDao.getUserV3(
+                    userInfo = managerDao.getUserV3(
                             githubProviderId.concat(":").concat(githubId), "identity");
                 }
             }

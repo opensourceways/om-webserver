@@ -743,7 +743,8 @@ public class AuthingService implements UserCenterServiceInter {
             String userId = decode.getAudience().get(0);
             // 获取权限
             ArrayList<String> permissions = new ArrayList<>();
-            ArrayList<String> pers = authingUserDao.getUserPermission(userId, env.getProperty("openeuler.groupCode"));
+            ArrayList<String> pers = authingManagerDao.getUserPermission(userId,
+                    env.getProperty("openeuler.groupCode"));
             for (String per : pers) {
                 String[] perList = per.split(":");
                 if (perList.length > 1) {
@@ -806,7 +807,7 @@ public class AuthingService implements UserCenterServiceInter {
             clientSessionManager.deleteCookieInConfig(servletResponse);
             redisDao.remove(idTokenKey);
             // 下线用户
-            Boolean isLogout = authingUserDao.kickUser(userId);
+            Boolean isLogout = authingManagerDao.kickUser(userId);
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("is_logout", isLogout);
             userData.put("client_id", appId);
@@ -996,7 +997,7 @@ public class AuthingService implements UserCenterServiceInter {
                                                  HttpServletResponse servletResponse, String token) {
         try {
             String userId = authingUtil.getUserIdFromToken(token);
-            JSONObject userObj = authingUserDao.getUserById(userId);
+            JSONObject userObj = authingManagerDao.getUserById(userId);
             HashMap<String, Object> userData = authingUtil.parseAuthingUser(userObj);
             // 返回结果
             return result(HttpStatus.OK, "success", userData);
@@ -1026,7 +1027,7 @@ public class AuthingService implements UserCenterServiceInter {
             userId = decode.getAudience().get(0);
             String photo = authingUserDao.getUser(userId).getPhoto();
             //用户注销
-            if (authingUserDao.deleteUserById(userId)) {
+            if (authingManagerDao.deleteUserById(userId)) {
                 LogUtil.createLogs(userId, "delete account", "user",
                         "The user delete account", userIp, "success");
                 return deleteUserAfter(servletRequest, servletResponse, userId, photo);
@@ -1590,7 +1591,7 @@ public class AuthingService implements UserCenterServiceInter {
                 DecodedJWT decode = JWT.decode(token);
                 String userId = decode.getAudience().get(0);
                 logoutAllSessions(userId, servletRequest, servletResponse);
-                authingUserDao.kickUser(userId);
+                authingManagerDao.kickUser(userId);
                 return result(HttpStatus.OK, "success", null);
             }
         } catch (RuntimeException e) {
@@ -1632,10 +1633,10 @@ public class AuthingService implements UserCenterServiceInter {
             String userId = "";
             if (accountType.equals(Constant.EMAIL_TYPE)) {
                 msg = authingUserDao.resetPwdVerifyEmail(appId, account, code);
-                userId = authingUserDao.getUserIdByEmail(account);
+                userId = authingManagerDao.getUserIdByEmail(account);
             } else if (accountType.equals(Constant.PHONE_TYPE)) {
                 msg = authingUserDao.resetPwdVerifyPhone(appId, account, code);
-                userId = authingUserDao.getUserIdByPhone(account);
+                userId = authingManagerDao.getUserIdByPhone(account);
             } else {
                 return result(HttpStatus.BAD_REQUEST, null, accountType, null);
             }
@@ -1686,7 +1687,7 @@ public class AuthingService implements UserCenterServiceInter {
                 logoutAllSessions(userId, servletRequest, servletResponse);
                 LogUtil.createLogs(userId, "reset password", "user",
                         "The user reset password", userIp, "success");
-                authingUserDao.kickUser(userId);
+                authingManagerDao.kickUser(userId);
             } else {
                 LogUtil.createLogs(userId, "reset password", "user",
                         "The user reset password", userIp, "failed");
@@ -1929,7 +1930,7 @@ public class AuthingService implements UserCenterServiceInter {
                 return "";
             }
             String email = username + Constant.AUTO_GEN_EMAIL_SUFFIX;
-            return authingUserDao.updateEmailById(userId, email);
+            return authingManagerDao.updateEmailById(userId, email);
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
             return "";
@@ -2008,7 +2009,7 @@ public class AuthingService implements UserCenterServiceInter {
                 LOGGER.error("[merge users] bind identity failed");
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00071, null, null);
             }
-            authingUserDao.deleteUserById(currentUserId);
+            authingManagerDao.deleteUserById(currentUserId);
 
             // 登录成功解除登录失败次数限制
             redisDao.remove(account + Constant.LOGIN_COUNT);

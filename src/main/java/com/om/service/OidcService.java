@@ -18,6 +18,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.dao.AuthingManagerDao;
 import com.om.dao.AuthingUserDao;
 import com.om.dao.QueryDao;
 import com.om.dao.RedisDao;
@@ -111,6 +112,12 @@ public class OidcService {
      */
     @Autowired
     private RedisDao redisDao;
+
+    /**
+     * 管理面 dao类.
+     */
+    @Autowired
+    private AuthingManagerDao managerDao;
 
     /**
      * 使用 @Autowired 注解注入 QueryDao.
@@ -410,7 +417,7 @@ public class OidcService {
                 return resultOidc(HttpStatus.BAD_REQUEST, "token invalid or expired", null);
             }
             // 获取用户
-            JSONObject userObj = authingUserDao.getUserById(userId);
+            JSONObject userObj = managerDao.getUserById(userId);
             // 根据scope获取用户信息 oidcScopeAuthingMapping(临时,字段映射)
             HashMap<String, Object> userData = new HashMap<>();
             HashMap<String, Object> addressMap = new HashMap<>();
@@ -487,7 +494,7 @@ public class OidcService {
             return giteeLogin;
         }
         try {
-            JSONArray identities = authingUserDao.getUserById(userId).getJSONArray("identities");
+            JSONArray identities = managerDao.getUserById(userId).getJSONArray("identities");
             for (Object identity : identities) {
                 JSONObject identityObj = (JSONObject) identity;
                 String originConnId = identityObj.getJSONArray("originConnIds").get(0).toString();
