@@ -15,9 +15,6 @@ import cn.authing.core.auth.AuthenticationClient;
 import cn.authing.core.mgmt.ManagementClient;
 
 import cn.authing.core.types.Application;
-import cn.authing.core.types.AuthorizedResource;
-import cn.authing.core.types.FindUserParam;
-import cn.authing.core.types.PaginatedAuthorizedResources;
 import cn.authing.core.types.UpdateUserInput;
 import cn.authing.core.types.User;
 import com.alibaba.fastjson2.JSON;
@@ -52,7 +49,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.annotation.PostConstruct;
@@ -338,6 +334,12 @@ public class AuthingUserDao {
      */
     @Autowired
     private AuthingAppSync authingAppSync;
+
+    /**
+     * 管理面 dao类.
+     */
+    @Autowired
+    private AuthingManagerDao managerDao;
 
     /**
      * 历史隐私记录保存类.
@@ -765,85 +767,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 使用v3管理员接口获取用户信息.
-     *
-     * @param userId     用户 ID
-     * @param userIdType 用户 ID 类型
-     * @return 返回包含用户信息的 JSONObject 对象，如果获取失败则返回 null
-     */
-    public JSONObject getUserV3(String userId, String userIdType) {
-        try {
-            String token = getManagementToken();
-            HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/get-user")
-                    .header("Authorization", token)
-                    .header("x-authing-userpool-id", userPoolId)
-                    .queryString("userId", userId)
-                    .queryString("userIdType", userIdType)
-                    .queryString("withIdentities", true)
-                    .asJson();
-            return response.getBody().getObject().getJSONObject("data");
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 通过用户名获取用户信息.
-     *
-     * @param username 用户名
-     * @return 返回包含用户信息的 JSONObject 对象，如果未找到用户则返回 null
-     */
-    public JSONObject getUserByName(String username) {
-        try {
-            User user = managementClient.users().find(new FindUserParam().withUsername(username)).execute();
-            return getUserById(user.getId());
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 根据邮箱查询用户id.
-     *
-     * @param email 电子邮箱
-     * @return 用户id
-     */
-    public String getUserIdByEmail(String email) {
-        try {
-            User user = managementClient.users().find(new FindUserParam().withEmail(email)).execute();
-            if (user == null) {
-                return null;
-            }
-            return user.getId();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 根据手机号查询用户id.
-     *
-     * @param phone 手机号
-     * @return 用户id
-     */
-    public String getUserIdByPhone(String phone) {
-        try {
-            phone = getPurePhone(phone);
-            User user = managementClient.users().find(new FindUserParam().withPhone(phone)).execute();
-            if (user == null) {
-                return null;
-            }
-            return user.getId();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
      * 通过令牌获取应用用户信息.
      *
      * @param token 用户令牌
@@ -862,94 +785,6 @@ public class AuthingUserDao {
         String appId = decode.getClaim("client_id").asString();
         User user = getUser(userId);
         return new Object[]{appId, user};
-    }
-
-    /**
-     * 根据用户 ID 获取用户详细信息.
-     *
-     * @param userId 用户 ID
-     * @return 返回包含用户信息的 JSONObject 对象，如果未找到用户则返回 null
-     */
-    public JSONObject getUserById(String userId) {
-        try {
-            String token = getManagementToken();
-            HttpResponse<JsonNode> response = Unirest.get(authingApiHostV2 + "/users/" + userId)
-                    .header("Authorization", token)
-                    .header("x-authing-userpool-id", userPoolId)
-                    .asJson();
-            return response.getBody().getObject().getJSONObject("data");
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 通过用户ID更新用户的电子邮件地址.
-     *
-     * @param userId 用户 ID
-     * @param email  要更新为的电子邮件地址
-     * @return 返回更新后的电子邮件地址，如果更新成功则返回新的电子邮件地址，否则返回null
-     */
-    public String updateEmailById(String userId, String email) {
-        try {
-            User res = managementClient.users().update(userId, new UpdateUserInput().withEmail(email)).execute();
-            return res.getEmail();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return "";
-        }
-    }
-
-    /**
-     * 通过用户 ID 删除用户.
-     *
-     * @param userId 用户 ID
-     * @return 如果成功删除用户则返回 true，否则返回 false
-     */
-    public boolean deleteUserById(String userId) {
-        try {
-            String token = getManagementToken();
-            HttpResponse<JsonNode> response = Unirest.delete(authingApiHostV2 + "/users/" + userId)
-                    .header("Authorization", token)
-                    .header("x-authing-userpool-id", userPoolId)
-                    .asJson();
-            int code = response.getBody().getObject().getInt("code");
-            return code == 200;
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * 获取用户资源和操作权限.
-     *
-     * @param userId    用户 ID
-     * @param groupCode 用户组code
-     * @return 返回用户在指定用户组下的权限列表，作为一个字符串数组列表
-     */
-    public ArrayList<String> getUserPermission(String userId, String groupCode) {
-        ArrayList<String> pers = new ArrayList<>();
-        try {
-            PaginatedAuthorizedResources pars = managementClient
-                    .users()
-                    .listAuthorizedResources(userId, groupCode)
-                    .execute();
-            if (pars.getTotalCount() <= 0) {
-                return pers;
-            }
-            List<AuthorizedResource> ars = pars.getList();
-            for (AuthorizedResource ar : ars) {
-                List<String> actions = ar.getActions();
-                if (!CollectionUtils.isEmpty(actions)) {
-                    pers.addAll(actions);
-                }
-            }
-            return pers;
-        } catch (Exception e) {
-            return pers;
-        }
     }
 
     /**
@@ -1297,7 +1132,7 @@ public class AuthingUserDao {
             throw new ServerErrorException("该邮箱已被其它账户绑定");
         }
 
-        String res = updateEmailById(userId, account);
+        String res = managerDao.updateEmailById(userId, account);
 
         if (res.equals(account)) {
             redisDao.remove(redisKey);
@@ -1805,20 +1640,6 @@ public class AuthingUserDao {
         }
     }
 
-    private String getManagementToken() {
-        try {
-            String body = String.format("{\"userPoolId\":\"%s\",\"secret\":\"%s\"}", userPoolId, secret);
-            HttpResponse<JsonNode> response = Unirest.post(authingApiHostV2 + "/userpools/access-token")
-                    .header("Content-Type", "application/json")
-                    .body(body)
-                    .asJson();
-            return response.getBody().getObject().get("accessToken").toString();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return "";
-        }
-    }
-
     /**
      * 检查用户名是否合规.
      *
@@ -2080,22 +1901,5 @@ public class AuthingUserDao {
             }
         }
         return false;
-    }
-
-    /**
-     * 将用户踢出系统.
-     *
-     * @param userId 用户ID
-     * @return 如果成功将用户踢出系统则返回 true，否则返回 false
-     */
-    public boolean kickUser(String userId) {
-        try {
-            List<String> userIds = new ArrayList<>();
-            userIds.add(userId);
-            return managementClient.users().kick(userIds).execute();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return false;
-        }
     }
 }
