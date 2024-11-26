@@ -19,6 +19,7 @@ import com.anji.captcha.service.CaptchaService;
 import com.om.dao.AuthingUserDao;
 import com.om.result.Constant;
 import com.om.service.AuthingService;
+import com.om.service.OneIdManageService;
 import com.om.service.UserCenterServiceContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -47,6 +48,9 @@ import static org.mockito.Mockito.when;
 public class AuthingControllerTest {
     @MockBean
     private AuthingService mockAuthingService;
+
+    @MockBean
+    private OneIdManageService oneIdManageService;
 
     @MockBean
     private UserCenterServiceContext mockUserCenterServiceContext;
@@ -289,7 +293,7 @@ public class AuthingControllerTest {
 
     @Test
     public void testUserPermissions() throws Exception {
-        when(mockAuthingService.userPermissions("token"))
+        when(oneIdManageService.userPermissions("token"))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
 
         ResponseEntity response = authingController.userPermissions("token");
@@ -316,7 +320,7 @@ public class AuthingControllerTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("community", "openeuler");
         MockHttpServletResponse response = new MockHttpServletResponse();
-        when(authingService.personalCenterUserInfo(any(), any(), any(String.class)))
+        when(oneIdManageService.personalCenterUserInfo(any(), any(), any(String.class)))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
 
         ResponseEntity responseResult = authingController.userInfo(request, response, "");
@@ -330,7 +334,7 @@ public class AuthingControllerTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("community", "openeuler");
         MockHttpServletResponse response = new MockHttpServletResponse();
-        when(authingService.deleteUser(any(), any(), any(String.class)))
+        when(oneIdManageService.deleteUser(any(), any(), any(String.class)))
                 .thenReturn(new ResponseEntity<>("body", HttpStatus.OK));
 
         ResponseEntity responseResult = authingController.deleteUser(request, response, "");

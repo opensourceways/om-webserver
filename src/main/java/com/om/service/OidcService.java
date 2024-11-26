@@ -475,6 +475,16 @@ public class OidcService {
                     userData.put(scope, addressMap);
                 }
             }
+            if (StringUtils.isBlank((String) userData.get("email"))) {
+                userData.put("email_verified", false);
+            } else {
+                userData.put("email_verified", true);
+            }
+            if (StringUtils.isBlank((String) userData.get("phone_number"))) {
+                userData.put("phone_number_verified", false);
+            } else {
+                userData.put("phone_number_verified", true);
+            }
             HashMap<String, Object> res = new HashMap<>();
             res.put("code", 200);
             res.put("data", userData);

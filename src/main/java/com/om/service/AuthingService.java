@@ -62,7 +62,6 @@ import org.springframework.web.util.HtmlUtils;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.security.spec.InvalidKeySpecException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -304,6 +303,8 @@ public class AuthingService implements UserCenterServiceInter {
     public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         String userName = servletRequest.getParameter("username");
         String appId = servletRequest.getParameter("client_id");
+        System.out.println("userName: " + userName);
+        System.out.println("appId: " + appId);
         // 校验appId
         if (authingUserDao.getAppById(appId) == null) {
             return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
@@ -339,6 +340,14 @@ public class AuthingService implements UserCenterServiceInter {
         account = getAbsoluteAccount(account);
         String channel = (String) getBodyPara(body, "channel");
         String appId = (String) getBodyPara(body, "client_id");
+
+        // 如果请求体里没有，尝试在请求参数里获取
+        if (StringUtils.isBlank(account) && StringUtils.isBlank(channel) && StringUtils.isBlank(appId)) {
+            account = servletRequest.getParameter("account");
+            channel = servletRequest.getParameter("channel");
+            appId = servletRequest.getParameter("client_id");
+        }
+
         // 验证码二次校验
         if (!isSuccess) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0002, null, null);
@@ -509,6 +518,12 @@ public class AuthingService implements UserCenterServiceInter {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
         String account = (String) getBodyPara(body, "account");
         account = getAbsoluteAccount(account);
+
+        // 如果请求体里没有，尝试在请求参数里获取
+        if (StringUtils.isBlank(account)) {
+            account = request.getParameter("account");
+        }
+
         if (StringUtils.isEmpty(account)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
@@ -724,39 +739,6 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("email", email);
             userData.put("phone", phone);
             userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
-            return result(HttpStatus.OK, "success", userData);
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-    }
-
-    /**
-     * 用户权限方法.
-     *
-     * @param token     令牌
-     * @return ResponseEntity 响应实体
-     */
-    public ResponseEntity userPermissions(String token) {
-        try {
-            DecodedJWT decode = JWT.decode(authingUtil.rsaDecryptToken(token));
-            String userId = decode.getAudience().get(0);
-            // 获取权限
-            ArrayList<String> permissions = new ArrayList<>();
-            ArrayList<String> pers = authingManagerDao.getUserPermission(userId,
-                    env.getProperty("openeuler.groupCode"));
-            for (String per : pers) {
-                String[] perList = per.split(":");
-                if (perList.length > 1) {
-                    permissions.add(perList[0] + perList[1]);
-                }
-            }
-            // 获取用户
-            User user = authingUserDao.getUser(userId);
-            // 返回结果
-            HashMap<String, Object> userData = new HashMap<>();
-            userData.put("permissions", permissions);
-            userData.put("username", user.getUsername());
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
@@ -981,71 +963,6 @@ public class AuthingService implements UserCenterServiceInter {
             LogUtil.createLogs(userId, "user login", "login", "The user third party login",
                     ClientIPUtil.getClientIpAddress(httpServletRequest), "failed");
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-    }
-
-    /**
-     * 个人中心用户信息方法.
-     *
-     * @param servletRequest  HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @param token           令牌
-     * @return ResponseEntity 响应实体
-     */
-    @Override
-    public ResponseEntity personalCenterUserInfo(HttpServletRequest servletRequest,
-                                                 HttpServletResponse servletResponse, String token) {
-        try {
-            String userId = authingUtil.getUserIdFromToken(token);
-            JSONObject userObj = authingManagerDao.getUserById(userId);
-            HashMap<String, Object> userData = authingUtil.parseAuthingUser(userObj);
-            // 返回结果
-            return result(HttpStatus.OK, "success", userData);
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-
-    }
-
-    /**
-     * 删除用户方法.
-     *
-     * @param servletRequest  HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @param token           令牌
-     * @return ResponseEntity 响应实体
-     */
-    @Override
-    public ResponseEntity deleteUser(HttpServletRequest servletRequest,
-                                     HttpServletResponse servletResponse, String token) {
-        String userId = "";
-        String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
-        try {
-            token = authingUtil.rsaDecryptToken(token);
-            DecodedJWT decode = JWT.decode(token);
-            userId = decode.getAudience().get(0);
-            String photo = authingUserDao.getUser(userId).getPhoto();
-            //用户注销
-            if (authingManagerDao.deleteUserById(userId)) {
-                LogUtil.createLogs(userId, "delete account", "user",
-                        "The user delete account", userIp, "success");
-                return deleteUserAfter(servletRequest, servletResponse, userId, photo);
-            } else {
-                LogUtil.createLogs(userId, "delete account", "user",
-                        "The user delete account", userIp, "failed");
-                return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
-            }
-        } catch (RuntimeException e) {
-            LOGGER.error("Internal Server RuntimeException." + e.getMessage());
-            LogUtil.createLogs(userId, "delete account", "user",
-                    "The user delete account", userIp, "failed");
-            return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
-        } catch (Exception e) {
-            LOGGER.error("delete account failed {}", e.getMessage());
-            LogUtil.createLogs(userId, "delete account", "user",
-                    "The user delete account", userIp, "failed");
-            return result(HttpStatus.UNAUTHORIZED, null, "注销用户失败", null);
         }
     }
 
@@ -1289,66 +1206,6 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     /**
-     * 更新账户信息方法.
-     *
-     * @param servletRequest  HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @param token           令牌
-     * @return ResponseEntity 响应实体
-     */
-    @Override
-    public ResponseEntity updateAccountPost(HttpServletRequest servletRequest,
-                                            HttpServletResponse servletResponse, String token) {
-        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
-        String oldAccount = (String) getBodyPara(body, "oldaccount");
-        String oldCode = (String) getBodyPara(body, "oldcode");
-        String account = (String) getBodyPara(body, "account");
-        String code = (String) getBodyPara(body, "code");
-        String accountType = (String) getBodyPara(body, "account_type");
-        if (StringUtils.isBlank(oldAccount) || StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
-            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
-        }
-        //账号格式校验
-        if ((!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX))
-                || (!oldAccount.matches(Constant.PHONEREGEX) && !oldAccount.matches(Constant.EMAILREGEX))) {
-            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
-        }
-        if (accountType.toLowerCase().equals("email") && oldAccount.equals(account)) {
-            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00031, null, null);
-        } else if (accountType.toLowerCase().equals("phone") && oldAccount.equals(account)) {
-            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00032, null, null);
-        }
-        String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
-        String res = authingUserDao.updateAccount(token, oldAccount, oldCode, account, code, accountType, userIp);
-        return message(res);
-    }
-
-    /**
-     * 更新账户信息方法，无需验证码.
-     *
-     * @param servletRequest  HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @param token           令牌
-     * @return ResponseEntity 响应实体
-     */
-    @Override
-    public ResponseEntity updateAccountInfo(HttpServletRequest servletRequest,
-                                            HttpServletResponse servletResponse, String token) {
-        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
-        String account = (String) getBodyPara(body, "account");
-        String accountType = (String) getBodyPara(body, "account_type");
-        if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
-            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
-        }
-        //账号格式校验
-        if (!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX)) {
-            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
-        }
-        String res = authingUserDao.updateAccountInfo(token, account, accountType);
-        return message(res);
-    }
-
-    /**
      * 解绑账户方法.
      *
      * @param servletRequest  HTTP请求对象
@@ -1422,6 +1279,13 @@ public class AuthingService implements UserCenterServiceInter {
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
         String accountType = (String) getBodyPara(body, "account_type");
+
+        // 如果请求体里没有，尝试在请求参数里获取
+        if (StringUtils.isBlank(account) && StringUtils.isBlank(code) && StringUtils.isBlank(accountType)) {
+            account = servletRequest.getParameter("account");
+            code = servletRequest.getParameter("code");
+            accountType = servletRequest.getParameter("account_type");
+        }
 
         String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
         String userId = "";
@@ -1700,7 +1564,15 @@ public class AuthingService implements UserCenterServiceInter {
         return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
     }
 
-    private ResponseEntity result(HttpStatus status, String msg, Object data) {
+    /**
+     * 构建响应实体方法.
+     *
+     * @param status  HTTP状态
+     * @param msg     消息
+     * @param data    数据对象
+     * @return ResponseEntity 响应实体
+     */
+    public ResponseEntity result(HttpStatus status, String msg, Object data) {
         HashMap<String, Object> res = new HashMap<>();
         res.put("code", status.value());
         res.put("data", data);
@@ -1766,28 +1638,15 @@ public class AuthingService implements UserCenterServiceInter {
     public String getAccountType(String account) {
         return account.matches(Constant.EMAILREGEX) ? "email"
                 : (account.matches(Constant.PHONEREGEX) ? "phone" : "请输入正确的手机号或者邮箱");
-
     }
 
-    private ResponseEntity deleteUserAfter(HttpServletRequest httpServletRequest,
-                                           HttpServletResponse servletResponse,
-                                           String userId, String photo) {
-        try {
-            // 删除用户头像
-            authingUserDao.deleteObsObjectByUrl(photo);
-            // 删除cookie，删除idToken
-            String headerToken = httpServletRequest.getHeader("token");
-            String shaToken = CommonUtil.encryptSha256(headerToken, tokenSalt);
-            String idTokenKey = "idToken_" + shaToken;
-            redisDao.remove(idTokenKey);
-            logoutAllSessions(userId, httpServletRequest, servletResponse);
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-        }
-        return result(HttpStatus.OK, "delete user success", null);
-    }
-
-    private Object getBodyPara(Map<String, Object> body, String paraName) {
+    /**
+     * 获取请求体参数对应内容.
+     * @param body 请求体.
+     * @param paraName 请求体参数.
+     * @return 请求体参数内容.
+     */
+    public Object getBodyPara(Map<String, Object> body, String paraName) {
         return body.getOrDefault(paraName, null);
     }
 
@@ -1836,7 +1695,6 @@ public class AuthingService implements UserCenterServiceInter {
         } catch (ServerErrorException e) {
             return MessageCodeConfig.E00048.getMsgZh();
         }
-
         return msg;
     }
 

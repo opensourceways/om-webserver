@@ -159,7 +159,7 @@ public class ManagerController {
     public ResponseEntity getUserPermissions(
             @RequestParam(value = "community", required = false) String community,
             @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.userPermissions(token);
+        return oneIdManageService.userPermissions(token);
     }
 
     /**
@@ -178,7 +178,7 @@ public class ManagerController {
             HttpServletRequest servletRequest,
             HttpServletResponse servletResponse,
             @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.personalCenterUserInfo(servletRequest, servletResponse, token);
+        return oneIdManageService.personalCenterUserInfo(servletRequest, servletResponse, token);
     }
 
     /**
@@ -209,7 +209,7 @@ public class ManagerController {
     public ResponseEntity updateAccount(HttpServletRequest servletRequest,
                                         HttpServletResponse servletResponse,
                                         @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.updateAccountPost(servletRequest, servletResponse, token);
+        return oneIdManageService.updateAccountPost(servletRequest, servletResponse, token);
     }
 
     /**
@@ -227,7 +227,7 @@ public class ManagerController {
     public ResponseEntity updateAccountInfo(HttpServletRequest servletRequest,
                                             HttpServletResponse servletResponse,
                                             @CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.updateAccountInfo(servletRequest, servletResponse, token);
+        return oneIdManageService.updateAccountInfo(servletRequest, servletResponse, token);
     }
 
     private boolean verifyCaptcha(String captchaVerification) {

@@ -19,6 +19,7 @@ import com.anji.captcha.util.StringUtils;
 import com.om.result.Constant;
 import com.om.service.AuthingService;
 import com.om.service.OidcService;
+import com.om.service.OneIdManageService;
 import com.om.service.SendMessageService;
 import com.om.service.UserCenterServiceContext;
 import com.om.service.inter.UserCenterServiceInter;
@@ -59,6 +60,12 @@ public class AuthingController {
      */
     @Autowired
     private UserCenterServiceContext userCenterServiceContext;
+
+    /**
+     * 管理者 service.
+     */
+    @Autowired
+    private OneIdManageService oneIdManageService;
 
     /**
      * 验证码服务.
@@ -156,18 +163,34 @@ public class AuthingController {
     }
 
     /**
-     * 发送验证码版本3的方法.
+     * 发送验证码版本3的方法 POST请求.
      *
      * @param servletRequest HTTP 请求对象
      * @param servletResponse HTTP 响应对象
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
-    @RequestMapping(value = {"/captcha/sendCode", "/v3/sendCode"}, method = RequestMethod.POST)
+    @RequestMapping(value = {"/captcha/sendCode"}, method = RequestMethod.POST)
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
         String captchaVerification = (String) body.getOrDefault("captchaVerification", null);
+        return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
+    }
+
+    /**
+     * 发送验证码版本3的方法 GET请求.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param captchaVerification 验证码验证信息
+     * @return 返回 ResponseEntity 对象
+     */
+    @RequestLimitRedis
+    @RequestMapping(value = {"/captcha/sendCode", "/v3/sendCode"}, method = RequestMethod.GET)
+    public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
+                                     @RequestParam("captchaVerification") String captchaVerification) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
@@ -178,7 +201,7 @@ public class AuthingController {
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
-    @RequestMapping(value = "/captcha/checkLogin", method = RequestMethod.POST)
+    @RequestMapping(value = "/captcha/checkLogin", method = {RequestMethod.POST, RequestMethod.GET})
     public ResponseEntity captchaLogin(HttpServletRequest servletRequest) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.captchaLogin(servletRequest);
@@ -365,7 +388,7 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/user/permissions", method = RequestMethod.GET)
     public ResponseEntity userPermissions(@CookieValue(value = "_Y_G_", required = false) String token) {
-        return authingService.userPermissions(token);
+        return oneIdManageService.userPermissions(token);
     }
 
     /**
@@ -402,8 +425,7 @@ public class AuthingController {
     public ResponseEntity userInfo(HttpServletRequest servletRequest,
                                    HttpServletResponse servletResponse,
                                    @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.personalCenterUserInfo(servletRequest, servletResponse, token);
+        return oneIdManageService.personalCenterUserInfo(servletRequest, servletResponse, token);
     }
 
     /**
@@ -420,8 +442,7 @@ public class AuthingController {
     public ResponseEntity deleteUser(HttpServletRequest httpServletRequest,
                                      HttpServletResponse servletResponse,
                                      @CookieValue(value = "_Y_G_", required = false) String token) {
-        UserCenterServiceInter service = getServiceImpl(httpServletRequest);
-        return service.deleteUser(httpServletRequest, servletResponse, token);
+        return oneIdManageService.deleteUser(httpServletRequest, servletResponse, token);
     }
 
     /**
@@ -509,6 +530,24 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/bind/account", method = RequestMethod.POST)
     public ResponseEntity bindAccount(HttpServletRequest servletRequest,
+                                      HttpServletResponse servletResponse,
+                                      @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.bindAccount(servletRequest, servletResponse, token);
+    }
+
+    /**
+     * 处理绑定账号请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
+    @RequestLimitRedis
+    @AuthingUserToken
+    @RequestMapping(value = "/bind/account", method = RequestMethod.GET)
+    public ResponseEntity bindAccountWithGet(HttpServletRequest servletRequest,
                                       HttpServletResponse servletResponse,
                                       @CookieValue(value = "_Y_G_", required = false) String token) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
