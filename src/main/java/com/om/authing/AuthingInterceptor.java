@@ -76,7 +76,18 @@ public class AuthingInterceptor implements HandlerInterceptor {
     @Value("${cookie.token.secures}")
     private String cookieSecures;
 
+    /**
+     * OneID 隐私政策版本号.
+     */
+    @Value("${oneid.privacy.version}")
+    private String oneidPrivacyVersion;
+
     private static HashMap<String, Boolean> domain2secure;
+
+    /**
+     * 更新隐私接口.
+     */
+    private static final String BASEINFO_URI = "/oneid/update/baseInfo";
 
     private static final Logger logger =  LoggerFactory.getLogger(AuthingInterceptor.class);
 
@@ -142,6 +153,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         String permission;
         String verifyToken;
         Map<String, Claim> claims;
+        String oneidPrivacyVersionAccept = "";
         try {
             DecodedJWT decode = JWT.decode(token);
             userId = decode.getAudience().get(0);
@@ -149,6 +161,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
             expiresAt = decode.getExpiresAt();
             claims = decode.getClaims();
             String permissionTemp = claims.get("permission").asString();
+            if (claims.containsKey("oneidPrivacyAccepted")) {
+                oneidPrivacyVersionAccept = claims.get("oneidPrivacyAccepted").asString();
+            }
             permission = new String(Base64.getDecoder().decode(permissionTemp.getBytes()));
             verifyToken = claims.get("verifyToken").asString();
         } catch (JWTDecodeException j) {
@@ -162,10 +177,18 @@ public class AuthingInterceptor implements HandlerInterceptor {
             tokenError(httpServletRequest, httpServletResponse, verifyDomainMsg);
             return false;
         }
-
-        if (httpServletRequest.getRequestURI().equals("/oneid/logout")) {
+        String url = httpServletRequest.getRequestURI();
+        if ("/oneid/logout".equals(url)) {
             return true;
         }
+
+        // 是否接受隐私协议
+        if (!"unused".equals(oneidPrivacyVersion) && !BASEINFO_URI.equals(url)
+                && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept)) {
+                tokenError(httpServletRequest, httpServletResponse, "unauthorized");
+                return false;
+        }
+
 
         // 每次交互刷新token
         String refreshMsg = refreshToken(httpServletRequest, httpServletResponse, verifyToken, userId, claims);

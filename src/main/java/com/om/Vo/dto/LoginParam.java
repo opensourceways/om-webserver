@@ -11,6 +11,7 @@ public class LoginParam {
     private String code;
     private String account;
     private String password;
+    private String oneidPrivacyAccepted;
 
     private String captchaVerification;
 }

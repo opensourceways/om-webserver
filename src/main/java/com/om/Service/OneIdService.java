@@ -3,12 +3,14 @@ package com.om.Service;
 import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
+import com.om.Dao.OneidDao;
 import com.om.Dao.RedisDao;
 import com.om.Dao.oneId.OneIdAppDao;
 import com.om.Dao.oneId.OneIdEntity;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Result.Result;
+import com.om.Utils.CommonUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.RSAUtil;
 import com.om.config.LoginConfig;
@@ -16,6 +18,7 @@ import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -54,6 +57,27 @@ public class OneIdService {
 
     @Autowired
     OneIdAppDao oneIdAppDao;
+
+    @Autowired
+    private OneidDao oneidDao;
+
+    /**
+     * 社区名称.
+     */
+    @Value("${community}")
+    private String localCommunity;
+
+    /**
+     * OneID 隐私政策版本号.
+     */
+    @Value("${oneid.privacy.version}")
+    private String oneidPrivacyVersion;
+
+    @Value("${opengauss.pool.key}")
+    private String poolId;
+
+    @Value("${opengauss.pool.secret}")
+    private String poolSecret;
 
     public String rsaDecryptToken(String token) throws InvalidKeySpecException, NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
         RSAPrivateKey privateKey = RSAUtil.getPrivateKey(LoginConfig.RAS_AUTHING_PRIVATE_KEY);
@@ -141,8 +165,21 @@ public class OneIdService {
     }
 
     public ResponseEntity<?> loginSuccessSetToken(OneIdEntity.User user, String idToken, String appId) {
+        String oneidPrivacyVersionAccept = CommonUtil.getPrivacyVersionWithCommunity(localCommunity,
+                user.getPrivacyVersion());
+        if (!oneidPrivacyVersion.equals(oneidPrivacyVersionAccept)) {
+            String userJsonStr = String.format("{\"privacyVersion\": \"%s\"}",
+                    CommonUtil.createPrivacyVersions(localCommunity, oneidPrivacyVersion, true));
+            JSONObject userUpdate = oneidDao.updateUser(poolId, poolSecret, user.getId(), userJsonStr);
+            if (userUpdate == null) {
+                logger.error("{} signed privacy policy {} failed", user.getUsername(), oneidPrivacyVersion);
+            } else {
+                logger.info("{} signed privacy policy {} success", user.getUsername(), oneidPrivacyVersion);
+            }
+        }
         // 生成token
-        Map<String, String> tokens = jwtTokenCreateService.authingUserToken(appId, user.getId(), user.getUsername(), "", "", idToken);
+        Map<String, String> tokens = jwtTokenCreateService.authingUserToken(appId, user.getId(), user.getUsername(),
+                "", "", idToken, oneidPrivacyVersion);
         String token = tokens.get(Constant.TOKEN_Y_G_);
         String verifyToken = tokens.get(Constant.TOKEN_U_T_);
 
@@ -160,6 +197,7 @@ public class OneIdService {
         userData.put("username", user.getUsername());
         userData.put("company", user.getCompany());
         userData.put("email_exist", StringUtils.hasText(user.getEmail()));
+        userData.put("oneidPrivacyAccepted", oneidPrivacyVersion);
 
         return Result.setResult(HttpStatus.OK, MessageCodeConfig.S0001, null, userData, null);
     }
