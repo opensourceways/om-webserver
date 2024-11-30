@@ -335,7 +335,7 @@ public class AuthingService implements UserCenterServiceInter {
 
         // 生成token
         Map<String, String> tokens = jwtTokenCreateService.authingUserToken(appId, userId,
-                user.getUsername(), permissionInfo, permission, idToken);
+                user.getUsername(), permissionInfo, permission, idToken, "");
 
         // 写cookie
         setCookieLogged(servletRequest, servletResponse,tokens.get(Constant.TOKEN_Y_G_), tokens.get(Constant.TOKEN_U_T_));
@@ -706,72 +706,6 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("photo", photo);
             userData.put("username", username);
             return result(HttpStatus.OK, "success", userData);
-        } catch (Exception e) {
-            logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
-            return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
-        }
-    }
-
-    public ResponseEntity tokenApply(HttpServletRequest httpServletRequest, HttpServletResponse servletResponse,
-                                     String community, String code, String permission, String redirectUrl) {
-        try {
-            String appId = httpServletRequest.getParameter("client_id");
-
-            // 校验appId
-            if (authingUserDao.initAppClient(appId) == null) {
-                return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
-            }
-
-            // 将URL中的中文转码，因为@RequestParam会自动解码，而我们需要未解码的参数
-            String url = redirectUrl;
-            Matcher matcher = Pattern.compile("[\\u4e00-\\u9fa5]+").matcher(redirectUrl);
-            String tmp = "";
-            while (matcher.find()) {
-                tmp = matcher.group();
-                System.out.println(tmp);
-                url = url.replaceAll(tmp, URLEncoder.encode(tmp, "UTF-8"));
-            }
-
-            // 通过code获取access_token，再通过access_token获取用户
-            Map user = authingUserDao.getUserInfoByAccessToken(appId, code, url);
-            if (user == null) {
-                return result(HttpStatus.UNAUTHORIZED, "user not found", null);
-            }
-
-            String userId = user.get("sub").toString();
-            String idToken = user.get("id_token").toString();
-            String picture = user.get("picture").toString();
-            String username = (String) user.get("username");
-            String email = (String) user.get("email");
-
-            // 资源权限
-            String permissionInfo = env.getProperty(Constant.ONEID_VERSION_V1 + "." + permission);
-
-            // 生成token
-            Map<String, String> tokens = jwtTokenCreateService.authingUserToken(appId, userId,
-                    username, permissionInfo, permission, idToken);
-            String token = tokens.get(Constant.TOKEN_Y_G_);
-            String verifyToken = tokens.get(Constant.TOKEN_U_T_);
-
-            // 写cookie
-            String verifyTokenName = env.getProperty("cookie.verify.token.name");
-            String cookieTokenName = env.getProperty("cookie.token.name");
-            String maxAgeTemp = env.getProperty("authing.cookie.max.age");
-            int expire = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
-            int maxAge = StringUtils.isNotBlank(maxAgeTemp) ? Integer.parseInt(maxAgeTemp) : expire;
-            HttpClientUtils.setCookie(httpServletRequest, servletResponse, cookieTokenName,
-                    token, true, maxAge, "/", domain2secure);
-            HttpClientUtils.setCookie(httpServletRequest, servletResponse, verifyTokenName,
-                    verifyToken, false, expire, "/", domain2secure);
-
-            // 返回结果
-            HashMap<String, Object> userData = new HashMap<>();
-            userData.put("token", verifyToken);
-            userData.put("photo", picture);
-            userData.put("username", username);
-            userData.put("email_exist", StringUtils.isNotBlank(email));
-            return result(HttpStatus.OK, "success", userData);
-
         } catch (Exception e) {
             logger.error(MessageCodeConfig.E00048.getMsgEn(), e);
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);

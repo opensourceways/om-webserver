@@ -11,7 +11,9 @@
 
 package com.om.Service.impl;
 
+import cn.authing.core.types.User;
 import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.Dao.AuthingUserDao;
@@ -26,6 +28,7 @@ import com.om.Result.Result;
 import com.om.Service.JwtTokenCreateService;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.CodeUtil;
+import com.om.Utils.CommonUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.LimitUtil;
 import com.om.Utils.RSAUtil;
@@ -37,6 +40,7 @@ import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -87,6 +91,18 @@ public class OpenGaussService implements UserCenterServiceInter {
     @Autowired
     JwtTokenCreateService jwtTokenCreateService;
 
+    /**
+     * 社区名称.
+     */
+    @Value("${community}")
+    private String localCommunity;
+
+    /**
+     * OneID隐私版本.
+     */
+    @Value("${oneid.privacy.version}")
+    private String oneidPrivacyVersion;
+
     private static HashMap<String, Boolean> domain2secure;
 
     private static CodeUtil codeUtil;
@@ -110,6 +126,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             add("nickname");
             add("company");
             add("username");
+            add("oneidPrivacyAccepted");
         }
     });
 
@@ -138,6 +155,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             String code = (String) getBodyPara(body, "code");
             String company = (String) getBodyPara(body, "company");
             String password = (String) getBodyPara(body, "password");
+            String acceptPrivacyVersion = (String) getBodyPara(body, "oneidPrivacyAccepted");
 
             // 限制一分钟内失败次数
             String registerErrorCountKey = account + "registerCount";
@@ -163,6 +181,12 @@ public class OpenGaussService implements UserCenterServiceInter {
                 return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00048, null, null, null);
             }
 
+            // 检查是否同意隐私政策
+            if (!"unused".equals(oneidPrivacyVersion) && !oneidPrivacyVersion.equals(acceptPrivacyVersion)) {
+                logger.error("oneidPrivacy param error.");
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+            }
+            userInfo.put("privacyVersion", CommonUtil.createPrivacyVersions(localCommunity, oneidPrivacyVersion, false));
             // 用户名校验
             if (StringUtils.isBlank(userName))
                 return result(HttpStatus.BAD_REQUEST, null, "用户名不能为空", null);
@@ -324,6 +348,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
         String password = (String) getBodyPara(body, "password");
+        String oneidPrivacy = (String) getBodyPara(body, "oneidPrivacyAccepted");
         LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
 
         // 限制一分钟登录失败次数
@@ -369,6 +394,11 @@ public class OpenGaussService implements UserCenterServiceInter {
         if (accountType.equals("email") || accountType.equals("phone")) {
             // todo 待调用oneid-server
             if (StringUtils.isBlank(password)) {
+                // 校验隐私协议
+                if (StringUtils.isEmpty(oneidPrivacy) || !oneidPrivacyVersion.equals(oneidPrivacy)) {
+                    logger.error("oneidPrivacy param error.");
+                    return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+                }
                 msg = oneidDao.loginByAccountCode(poolId, poolSecret, account, accountType, code, appId);
             } else {
                 msg = oneidDao.loginByPassword(poolId, poolSecret, account, accountType, password, appId);
@@ -386,12 +416,14 @@ public class OpenGaussService implements UserCenterServiceInter {
             redisDao.updateValue(redisKey, codeTemp + "_used", 0);
             return result(HttpStatus.BAD_REQUEST, null, (String) msg, limitUtil.loginFail(failCounter));
         }
-
+        String oneidPrivacyVersionAccept = CommonUtil.getPrivacyVersionWithCommunity(localCommunity,
+                user.getString("privacyVersion"));
         // 登录成功解除登录失败次数限制
         redisDao.remove(account + Constant.LOGIN_COUNT);
 
         // 生成token
-        Map<String, String> tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"), user.getString("username"), "", "", idToken);
+        Map<String, String> tokens = jwtTokenCreateService.authingUserToken(appId, user.getString("id"),
+                user.getString("username"), "", "", idToken, oneidPrivacyVersionAccept);
         String token = tokens.get(Constant.TOKEN_Y_G_);
         String verifyToken = tokens.get(Constant.TOKEN_U_T_);
 
@@ -412,6 +444,7 @@ public class OpenGaussService implements UserCenterServiceInter {
         userData.put("photo", jsonObjStringValue(user, "photo"));
         userData.put("username", jsonObjStringValue(user, "username"));
         userData.put("email_exist", !user.isNull("email"));
+        userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
 
         // 登录成功，验证码失效
         redisDao.updateValue(redisKey, codeTemp + "_used", 0);
@@ -577,9 +610,23 @@ public class OpenGaussService implements UserCenterServiceInter {
         try {
             DecodedJWT decode = JWT.decode(rsaDecryptToken(token));
             String userId = decode.getAudience().get(0);
-
+            Map<String, Claim> claims = decode.getClaims();
+            String oldPrivacyVersionAccept = claims.get("oneidPrivacyAccepted").asString();
             // 只允许修改 nickname 和 company
             map.entrySet().removeIf(entry -> !UPDATE_USER_ELEMENTS.contains(entry.getKey()));
+
+            String privacyAccepted = (String) map.getOrDefault("oneidPrivacyAccepted", null);
+            if (StringUtils.isBlank(privacyAccepted) && !oneidPrivacyVersion.equals(oldPrivacyVersionAccept)) {
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00062, null, null);
+            }
+            if (StringUtils.isNotBlank(privacyAccepted)) {
+                if (!oneidPrivacyVersion.equals(privacyAccepted) && !"revoked".equals(privacyAccepted)) {
+                    return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+                }
+                map.remove("oneidPrivacyAccepted");
+                map.put("privacyVersion", CommonUtil.createPrivacyVersions(localCommunity, privacyAccepted, false));
+            }
+
             String nickname = (String) map.getOrDefault("nickname", null);
             if (nickname != null && !nickname.equals("") && !nickname.matches(Constant.NICKNAMEREGEX)) {
                 String msg = "请输入3到20个字符。昵称只能由字母、数字、汉字或者下划线(_)组成。" +

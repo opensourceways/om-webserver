@@ -15,7 +15,6 @@ import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.om.Result.Constant;
-import com.om.Service.AuthingService;
 import com.om.Service.QueryService;
 import com.om.Service.UserCenterServiceContext;
 import com.om.Service.inter.LoginServiceInter;
@@ -40,9 +39,6 @@ import static com.anji.captcha.Controller.CaptchaController.getRemoteId;
 @RequestMapping(value = "/oneid")
 @RestController
 public class AuthingController {
-    @Autowired
-    AuthingService authingService;
-
     @Autowired
     QueryService queryService;
 

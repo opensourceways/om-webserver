@@ -67,6 +67,12 @@ public class JwtTokenCreateService {
     @Value("${token.expire.seconds}")
     private String tokenExpireSeconds;
 
+    /**
+     * OneID隐私版本.
+     */
+    @Value("${oneid.privacy.version}")
+    private String oneidPrivacyVersion;
+
     private static final Logger logger =  LoggerFactory.getLogger(JwtTokenCreateService.class);
 
     public String getToken(TokenUser user) {
@@ -94,7 +100,8 @@ public class JwtTokenCreateService {
     }
 
     @SneakyThrows
-    public Map<String, String> authingUserToken(String appId, String userId, String username, String permission, String inputPermission, String idToken) {
+    public Map<String, String> authingUserToken(String appId, String userId, String username, String permission,
+            String inputPermission, String idToken, String oneidPrivacyVersionAccept) {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -132,6 +139,7 @@ public class JwtTokenCreateService {
                 .withClaim("verifyToken", verifyToken)
                 .withClaim("permissionList", perStr.toString())
                 .withClaim("client_id", appId)
+                .withClaim("oneidPrivacyAccepted", oneidPrivacyVersionAccept)
                 .sign(Algorithm.HMAC256(permission + authingTokenBasePassword));
 
         HashMap<String, String> result = new HashMap<>();
@@ -159,7 +167,7 @@ public class JwtTokenCreateService {
         // 生成新的token和headToken
         List<String> audience = JWT.decode(headerJwtToken).getAudience();
         String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
-        return authingUserToken(appId, userId, username, permission, inputPermission, idToken);
+        return authingUserToken(appId, userId, username, permission, inputPermission, idToken, oneidPrivacyVersion);
     }
 
     public String oidcToken(String userId, String issuer, String scope, long expireSeconds, Date expireAt) {
