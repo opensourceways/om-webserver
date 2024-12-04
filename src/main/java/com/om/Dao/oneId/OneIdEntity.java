@@ -102,6 +102,8 @@ public class OneIdEntity {
 
         private String zoneinfo;
 
+        private String privacyVersion;
+
         private Timestamp createAt;
 
         private Timestamp updateAt;

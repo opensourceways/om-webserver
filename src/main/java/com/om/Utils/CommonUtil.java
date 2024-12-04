@@ -5,9 +5,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 
 import javax.imageio.ImageIO;
 
+import com.alibaba.fastjson2.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
@@ -52,6 +54,49 @@ public class CommonUtil {
             return file.delete();
         }
         return true;
+    }
+
+    /**
+     * 根据社区获取包含特定隐私版本号的隐私设置.
+     *
+     * @param community 社区
+     * @param privacyVersions 隐私版本号
+     * @return 返回包含特定隐私版本号的隐私设置
+     */
+    public static String getPrivacyVersionWithCommunity(String community, String privacyVersions) {
+        if (privacyVersions == null || !privacyVersions.contains(":")) {
+            return "";
+        }
+
+        try {
+            HashMap<String, String> privacys = JSON.parseObject(privacyVersions, HashMap.class);
+            String privacyAccept = privacys.get(community);
+            if (privacyAccept == null) {
+                return "";
+            } else {
+                return privacyAccept;
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+            return "";
+        }
+    }
+
+    /**
+     * 创建隐私版本号.
+     *
+     * @param version 版本号
+     * @param needSlash 是否需要斜杠
+     * @return 返回创建的隐私版本号
+     */
+    public static String createPrivacyVersions(String community, String version, Boolean needSlash) {
+        HashMap<String, String> privacys = new HashMap<>();
+        privacys.put(community, version);
+        if (needSlash) {
+            return JSON.toJSONString(privacys).replaceAll("\"", "\\\\\"");
+        } else {
+            return JSON.toJSONString(privacys);
+        }
     }
 
     private static byte[] check(byte[] bs) {

@@ -16,6 +16,7 @@ import com.om.Result.Constant;
 import com.om.Result.Result;
 import com.om.Service.OneIdService;
 import com.om.Service.inter.LoginServiceInter;
+import com.om.Utils.CommonUtil;
 import com.om.Utils.HS256Util;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.LimitUtil;
@@ -52,6 +53,18 @@ public class LoginServiceImplOneId implements LoginServiceInter {
 
     @Value("${opengauss.pool.secret}")
     private String poolSecret;
+
+    /**
+     * OneID隐私版本.
+     */
+    @Value("${oneid.privacy.version}")
+    private String oneidPrivacyVersion;
+
+    /**
+     * 社区名称.
+     */
+    @Value("${community}")
+    private String localCommunity;
 
     @Autowired
     OneIdService oneIdService;
@@ -127,6 +140,12 @@ public class LoginServiceImplOneId implements LoginServiceInter {
                 String password = Base64.encodeBase64String(Hex.decodeHex(loginParam.getPassword()));
                 user = oneIdUserDao.loginByPassword(loginParam.getAccount(), accountType, password);
             } else {
+                // 校验隐私协议
+                String oneidPrivacy = loginParam.getOneidPrivacyAccepted();
+                if (StringUtils.isEmpty(oneidPrivacy) || !oneidPrivacyVersion.equals(oneidPrivacy)) {
+                    logger.error("oneidPrivacy param error.");
+                    return Result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null, null);
+                }
                 // 验证码校验
                 MessageCodeConfig messageCodeConfig = oneIdService.checkCode(loginParam.getCode(), codeTemp);
 
@@ -231,12 +250,14 @@ public class LoginServiceImplOneId implements LoginServiceInter {
             if (user == null) {
                 return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00034, null, null, null);
             }
-
+            String oneidPrivacyVersionAccept = CommonUtil.getPrivacyVersionWithCommunity(localCommunity,
+                    user.getPrivacyVersion());
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("photo", user.getPhoto());
             userData.put("username", user.getUsername());
             userData.put("company", user.getCompany());
+            userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
 
             return Result.setResult(HttpStatus.OK, MessageCodeConfig.S0001, null, userData, null);
         } catch (Exception e) {
