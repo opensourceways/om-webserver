@@ -17,6 +17,7 @@ import cn.authing.core.types.User;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -47,6 +48,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
+import org.springframework.web.util.HtmlUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -166,7 +168,7 @@ public class OneIdManageService {
         try {
             String grantType = body.get("grant_type");
             if (StringUtils.isBlank(grantType)) {
-                return authingService.result(HttpStatus.BAD_REQUEST,
+                return result(HttpStatus.BAD_REQUEST,
                         "grant_type must be not blank", null);
             }
 
@@ -183,12 +185,12 @@ public class OneIdManageService {
                 String refreshToken = body.get("refresh_token");
                 return refreshToken(token, refreshToken);
             } else {
-                return authingService.result(HttpStatus.BAD_REQUEST,
+                return result(HttpStatus.BAD_REQUEST,
                         "grant_type must be token or refresh_token", null);
             }
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return authingService.result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
     }
 
@@ -242,7 +244,7 @@ public class OneIdManageService {
             redisDao.set(redisKey, "code", Long.parseLong(Constant.DEFAULT_EXPIRE_SECOND));
             return authingService.result(HttpStatus.BAD_REQUEST, null, msg, null);
         } else {
-            return authingService.result(HttpStatus.OK, "success", null);
+            return result(HttpStatus.OK, "success", null);
         }
     }
 
@@ -606,15 +608,15 @@ public class OneIdManageService {
     private ResponseEntity tokenApply(String appId, String appSecret) {
         try {
             if (!isAppCorrect(appId, appSecret)) {
-                return authingService.result(HttpStatus.BAD_REQUEST,
+                return result(HttpStatus.BAD_REQUEST,
                         "app id or secret error", null);
             }
 
             Map<String, Object> tokens = createTokens(appId, appSecret);
-            return authingService.result(HttpStatus.OK, "OK", tokens);
+            return result(HttpStatus.OK, "OK", tokens);
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return authingService.result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
     }
 
@@ -630,7 +632,7 @@ public class OneIdManageService {
             // 校验旧的token和refresh_token
             Object checkRes = checkTokens(oldToken, oldRefToken);
             if (!(checkRes instanceof JsonNode)) {
-                return authingService.result(HttpStatus.BAD_REQUEST, (String) checkRes, null);
+                return result(HttpStatus.BAD_REQUEST, (String) checkRes, null);
             }
             JsonNode tokenInfo = (JsonNode) checkRes;
 
@@ -640,10 +642,10 @@ public class OneIdManageService {
             Map<String, Object> newTokens = createTokens(appId, appSecret);
             redisDao.remove(oldToken);
 
-            return authingService.result(HttpStatus.OK, "OK", newTokens);
+            return result(HttpStatus.OK, "OK", newTokens);
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return authingService.result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
+            return result(HttpStatus.INTERNAL_SERVER_ERROR, MSG_DEFAULT, null);
         }
     }
 
@@ -691,5 +693,16 @@ public class OneIdManageService {
         String tokenStr = (String) redisDao.get(token);
         String tokenInfo = tokenStr.replace("token_info:", "");
         return objectMapper.readTree(tokenInfo);
+    }
+
+    private ResponseEntity result(HttpStatus status, String msg, Map<String, Object> claim) {
+        HashMap<String, Object> res = new HashMap<>();
+        res.put("status", status.value());
+        res.put("msg", msg);
+        if (claim != null) {
+            res.putAll(claim);
+        }
+        return new ResponseEntity<>(JSON.parseObject(
+                HtmlUtils.htmlUnescape(JSON.toJSONString(res)), HashMap.class), status);
     }
 }
