@@ -27,6 +27,8 @@ import com.om.result.Constant;
 import com.om.service.bean.OnlineUserInfo;
 import com.om.utils.AuthingUtil;
 import com.om.utils.CodeUtil;
+import com.om.utils.EncryptionService;
+
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -94,6 +96,12 @@ public class OidcService {
      */
     @Autowired
     private Environment env;
+
+    /**
+     * 注入加密服务.
+     */
+    @Autowired
+    private EncryptionService encryptionService;
 
     /**
      * authing服务.
@@ -343,6 +351,7 @@ public class OidcService {
             String userId = decode.getAudience().get(0);
             String headToken = decode.getClaim("verifyToken").asString();
             String idToken = (String) redisDao.get("idToken_" + headToken);
+            idToken = encryptionService.decrypt(idToken);
             List<String> accessibleApps = authingUserDao.userAccessibleApps(userId);
             if (!accessibleApps.contains(appId)) {
                 return resultOidc(HttpStatus.BAD_REQUEST, "No permission to login the application", null);
