@@ -26,9 +26,9 @@ public final class ClientIPUtil {
      */
     public static String getClientIpAddress(HttpServletRequest request) {
         // 获取请求主机IP地址,如果通过代理进来，则透过防火墙获取真实IP地址
-        String headerName = "x-forwarded-for";
+        String headerName = "X-Forwarded-For";
         String ip = request.getHeader(headerName);
-        if (null != ip && ip.length() != 0 && !"unknown".equalsIgnoreCase(ip)) {
+        if (ip != null && ip.length() != 0 && !"unknown".equalsIgnoreCase(ip)) {
             // 多次反向代理后会有多个IP值，第一个IP才是真实IP,它们按照英文逗号','分割
             if (ip.indexOf(",") != -1) {
                 ip = ip.split(",")[0];

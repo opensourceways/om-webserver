@@ -23,8 +23,10 @@ import com.om.Dao.QueryDao;
 import com.om.Dao.RedisDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
+import com.om.Service.bean.OidcLoginParam;
 import com.om.Service.bean.OnlineUserInfo;
 import com.om.Utils.AuthingUtil;
+import com.om.Utils.ClientIPUtil;
 import com.om.Utils.CodeUtil;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
@@ -214,6 +216,7 @@ public class OidcService {
      */
     public ResponseEntity oidcToken(HttpServletRequest servletRequest) {
         try {
+            String clientIp = ClientIPUtil.getClientIpAddress(servletRequest);
             Map<String, String[]> parameterMap = servletRequest.getParameterMap();
             String grantType = parameterMap.getOrDefault("grant_type", new String[]{""})[0];
             if (grantType.equals("authorization_code")) {
@@ -250,7 +253,9 @@ public class OidcService {
                 String account = parameterMap.getOrDefault("account", new String[]{""})[0];
                 String password = parameterMap.getOrDefault("password", new String[]{""})[0];
                 String scope = parameterMap.getOrDefault("scope", new String[]{""})[0];
-                return getOidcTokenByPassword(appId, appSecret, account, password, redirectUri, scope);
+                OidcLoginParam oidcLoginParam = new OidcLoginParam(appId, appSecret, account, password, redirectUri,
+                        scope, clientIp);
+                return getOidcTokenByPassword(oidcLoginParam);
             } else if (grantType.equals("refresh_token")) {
                 String refreshToken = parameterMap.getOrDefault("refresh_token", new String[]{""})[0];
                 return oidcRefreshToken(refreshToken);
@@ -518,32 +523,34 @@ public class OidcService {
         return userRelatedSigs;
     }
 
-    private ResponseEntity getOidcTokenByPassword(String appId, String appSecret, String account,
-                                                  String password, String redirectUri, String scope) {
+    private ResponseEntity getOidcTokenByPassword(OidcLoginParam oidcLoginParam) {
         try {
             // 参数校验
-            if (StringUtils.isBlank(appId) || StringUtils.isBlank(appSecret)) {
+            if (StringUtils.isBlank(oidcLoginParam.getAppId()) || StringUtils.isBlank(oidcLoginParam.getAppSecret())) {
                 return resultOidc(HttpStatus.BAD_REQUEST, "not found the app", null);
             }
-            if (StringUtils.isBlank(password) || StringUtils.isBlank(redirectUri)) {
+            if (StringUtils.isBlank(oidcLoginParam.getPassword())
+                    || StringUtils.isBlank(oidcLoginParam.getRedirectUri())) {
                 return resultOidc(HttpStatus.BAD_REQUEST,
                         "when grant_type is password, parameters must contain password、redirectUri", null);
             }
-            scope = StringUtils.isBlank(scope) ? "openid profile" : scope;
+            String scope = StringUtils.isBlank(oidcLoginParam.getScope()) ? "openid profile"
+                    : oidcLoginParam.getScope();
             // app密码校验
-            Application app = authingUserDao.getAppById(appId);
-            if (app == null || !app.getSecret().equals(appSecret)) {
+            Application app = authingUserDao.getAppById(oidcLoginParam.getAppId());
+            if (app == null || !app.getSecret().equals(oidcLoginParam.getAppSecret())) {
                 return resultOidc(HttpStatus.NOT_FOUND, "app invalid or secret error", null);
             }
             // 限制一分钟登录失败次数
-            String loginErrorCountKey = account + "loginCount";
+            String loginErrorCountKey = oidcLoginParam.getAccount() + "loginCount";
             Object v = redisDao.get(loginErrorCountKey);
             int loginErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
             if (loginErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6"))) {
                 return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, null);
             }
             // 用户密码校验
-            Object loginRes = authingService.login(appId, account, null, password);
+            Object loginRes = authingService.login(oidcLoginParam.getAppId(), oidcLoginParam.getAccount(), null,
+                    oidcLoginParam.getPassword(), oidcLoginParam.getClientIp());
             // 获取用户信息
             String userId;
             String idToken;
