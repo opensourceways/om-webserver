@@ -45,6 +45,8 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import kong.unirest.json.JSONObject;
+
+import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -478,6 +480,12 @@ public class AuthingService implements UserCenterServiceInter {
                 LOGGER.error("password is invalid");
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
+            try {
+                password = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(password));
+            } catch (Exception e) {
+                LOGGER.error("Hex to Base64 fail. " + e.getMessage());
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+            }
             msg = accountType.equals(Constant.EMAIL_TYPE)
                     ? authingUserDao.registerByEmailPwd(appId, account, password, username, code)
                     : authingUserDao.registerByPhonePwd(appId, account, password, username, code);
@@ -580,6 +588,13 @@ public class AuthingService implements UserCenterServiceInter {
                 LogUtil.createLogs(account, "user login", "login",
                         "The user login", ip, "failed");
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null, limitUtil.loginFail(failCounter));
+            }
+            // 压缩密码
+            try {
+                password = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(password));
+            } catch (Exception e) {
+                LOGGER.error("Hex to Base64 fail. " + e.getMessage());
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
         }
         // 登录成功返回用户token
@@ -1540,6 +1555,7 @@ public class AuthingService implements UserCenterServiceInter {
                 LOGGER.error("password is invalid");
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
             }
+            newPwd = org.apache.commons.codec.binary.Base64.encodeBase64String(Hex.decodeHex(newPwd));
             String tokenKey = Constant.REDIS_PREFIX_RESET_PASSWD + pwdResetToken;
             String userId = (String) redisDao.get(tokenKey);
             if (StringUtils.isBlank(userId)) {
@@ -1889,7 +1905,6 @@ public class AuthingService implements UserCenterServiceInter {
             if (listSize > maxLoginNum) {
                 redisDao.removeListTail(loginKey, maxLoginNum);
             }
-
             // 写cookie
             setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
             // 返回结果
