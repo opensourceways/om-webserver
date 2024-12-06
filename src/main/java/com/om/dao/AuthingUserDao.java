@@ -530,7 +530,7 @@ public class AuthingUserDao {
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
                         + "\"profile\":{\"email\":\"%s\", \"givenName\":\"%s\"},"
-                        + "\"options\":{\"passwordEncryptType\":\"sm2\","
+                        + "\"options\":{\"passwordEncryptType\":\"rsa\","
                         + " \"emailPassCodeForInformationCompletion\":\"%s\"}}",
                 username, password, email, privacyHistoryService
                         .createPrivacyVersions(oneidPrivacyVersion, true), code);
@@ -554,7 +554,7 @@ public class AuthingUserDao {
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
                         + "\"profile\":{\"phone\":\"%s\", \"phoneCountryCode\":\"%s\", \"givenName\":\"%s\"},"
-                        + "\"options\":{\"passwordEncryptType\":\"sm2\", "
+                        + "\"options\":{\"passwordEncryptType\":\"rsa\", "
                         + "\"phonePassCodeForInformationCompletion\":\"%s\"}}",
                 username, password, phone, phoneCountryCode,
                 privacyHistoryService.createPrivacyVersions(oneidPrivacyVersion, true), code);
@@ -639,7 +639,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"sm2\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 email, password, app.getId(), app.getSecret());
         return login(app.getId(), body);
@@ -663,7 +663,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"sm2\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 phone, password, app.getId(), app.getSecret());
         return login(app.getId(), body);
@@ -685,7 +685,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"sm2\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 username, password, app.getId(), app.getSecret());
         return login(app.getId(), body);
@@ -798,7 +798,7 @@ public class AuthingUserDao {
             HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/system").asJson();
             if (response.getStatus() == 200) {
                 JSONObject resObj = response.getBody().getObject();
-                resObj.remove("rsa");
+                resObj.remove("sm2");
                 resObj.remove("version");
                 resObj.remove("publicIps");
                 msg = resObj.toString();
@@ -882,7 +882,7 @@ public class AuthingUserDao {
         try {
             String body = String.format("{\"passwordResetToken\": \"%s\","
                     + "\"password\": \"%s\","
-                    + "\"passwordEncryptType\": \"sm2\"}", pwdResetToken, newPwd);
+                    + "\"passwordEncryptType\": \"rsa\"}", pwdResetToken, newPwd);
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/reset-password")
                     .header("Content-Type", "application/json").body(body).asJson();
             JSONObject resObj = response.getBody().getObject();
