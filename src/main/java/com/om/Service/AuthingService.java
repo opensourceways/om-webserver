@@ -808,6 +808,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("is_logout", isLogout);
             userData.put("client_id", appId);
             userData.put("redirect_uri", redirectUri);
+            userData.put("id_token", idToken);
             return result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
