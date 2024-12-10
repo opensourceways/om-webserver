@@ -22,6 +22,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.Dao.AuthingManagerDao;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.GitDao;
 import com.om.Dao.RedisDao;
@@ -98,6 +99,12 @@ public class OneIdManageService {
      */
     @Autowired
     private AuthingUtil authingUtil;
+
+    /**
+     * Authing的管理面接口.
+     */
+    @Autowired
+    private AuthingManagerDao authingManagerDao;
 
     /**
      * 从配置中获取企业Gitee提供者ID.
@@ -241,7 +248,7 @@ public class OneIdManageService {
 
         try {
             JsonNode jsonNode = getTokenInfo(token);
-            User user = authingUserDao.getUser(userId);
+            User user = authingManagerDao.getUser(userId);
             AuthenticationClient authentication =
                     authingUserDao.initUserAuthentication(jsonNode.get("app_id").asText(), user);
             String res = authingUserDao.bindAccount(authentication, account, code, accountType);
@@ -328,7 +335,7 @@ public class OneIdManageService {
      */
     public ResponseEntity revokePrivacy(String userId) {
         try {
-            if (authingUserDao.revokePrivacy(userId)) {
+            if (authingManagerDao.revokePrivacy(userId)) {
                 return authingService.result(HttpStatus.OK, MessageCodeConfig.S0001, null, null);
             }
 
