@@ -36,6 +36,7 @@ import com.om.Result.Result;
 import com.om.Service.bean.OnlineUserInfo;
 import com.om.Service.inter.UserCenterServiceInter;
 import com.om.Utils.AuthingUtil;
+import com.om.Utils.ClientIPUtil;
 import com.om.Utils.CodeUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.LimitUtil;
@@ -386,6 +387,7 @@ public class AuthingService implements UserCenterServiceInter {
         String password = (String) getBodyPara(body, "password");
         String acceptPrivacyVersion = (String) getBodyPara(body, "oneidPrivacyAccepted");
         String community = (String) getBodyPara(body, "community");
+        String clientIp = ClientIPUtil.getClientIpAddress(servletRequest);
         // 校验appId
         if (authingUserDao.getAppById(appId) == null) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00047, null, null);
@@ -419,13 +421,13 @@ public class AuthingService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
             msg = accountType.equals(Constant.EMAIL_TYPE)
-                    ? authingUserDao.registerByEmailPwd(appId, account, password, username, code)
-                    : authingUserDao.registerByPhonePwd(appId, account, password, username, code);
+                    ? authingUserDao.registerByEmailPwd(appId, account, password, username, code, clientIp)
+                    : authingUserDao.registerByPhonePwd(appId, account, password, username, code, clientIp);
         } else if (StringUtils.isNotBlank(code)) {
             // 验证码登录
             msg = accountType.equals(Constant.EMAIL_TYPE)
-                    ? authingUserDao.registerByEmailCode(appId, account, code, username)
-                    : authingUserDao.registerByPhoneCode(appId, account, code, username);
+                    ? authingUserDao.registerByEmailCode(appId, account, code, username, clientIp)
+                    : authingUserDao.registerByPhoneCode(appId, account, code, username, clientIp);
         } else {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
@@ -466,6 +468,7 @@ public class AuthingService implements UserCenterServiceInter {
         String account = (String) getBodyPara(body, "account");
         String code = (String) getBodyPara(body, "code");
         String password = (String) getBodyPara(body, "password");
+        String clientIp = ClientIPUtil.getClientIpAddress(servletRequest);
         LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
         // 限制一分钟登录失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
@@ -484,7 +487,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
         }
         // 登录成功返回用户token
-        Object loginRes = login(appId, account, code, password);
+        Object loginRes = login(appId, account, code, password, clientIp);
         // 获取用户信息
         String idToken;
         String userId;
@@ -1640,9 +1643,10 @@ public class AuthingService implements UserCenterServiceInter {
      * @param account 账号
      * @param code 验证码
      * @param password 密码
+     * @param clientIp 用户IP
      * @return 登录响应体
      */
-    public Object login(String appId, String account, String code, String password) {
+    public Object login(String appId, String account, String code, String password, String clientIp) {
         // code/password 同时传入报错
         if ((StringUtils.isNotBlank(code) && StringUtils.isNotBlank(password))) {
             return MessageCodeConfig.E00012.getMsgZh();
@@ -1662,18 +1666,18 @@ public class AuthingService implements UserCenterServiceInter {
         try {
             if (accountType.equals(Constant.EMAIL_TYPE)) { // 邮箱登录
                 msg = StringUtils.isNotBlank(code)
-                        ? authingUserDao.loginByEmailCode(app, account, code)
-                        : authingUserDao.loginByEmailPwd(app, account, password);
+                        ? authingUserDao.loginByEmailCode(app, account, code, clientIp)
+                        : authingUserDao.loginByEmailPwd(app, account, password, clientIp);
             } else if (accountType.equals(Constant.PHONE_TYPE)) { // 手机号登录
                 msg = StringUtils.isNotBlank(code)
-                        ? authingUserDao.loginByPhoneCode(app, account, code)
-                        : authingUserDao.loginByPhonePwd(app, account, password);
+                        ? authingUserDao.loginByPhoneCode(app, account, code, clientIp)
+                        : authingUserDao.loginByPhonePwd(app, account, password, clientIp);
             } else { // 用户名登录
                 // 用户名校验
                 if (StringUtils.isBlank(account)) {
                     return MessageCodeConfig.E00012.getMsgZh();
                 }
-                msg = authingUserDao.loginByUsernamePwd(app, account, password);
+                msg = authingUserDao.loginByUsernamePwd(app, account, password, clientIp);
             }
         } catch (ServerErrorException e) {
             return MessageCodeConfig.E00048.getMsgZh();
@@ -1732,11 +1736,12 @@ public class AuthingService implements UserCenterServiceInter {
             String appId = (String) getBodyPara(body, "client_id");
             String account = (String) getBodyPara(body, "account");
             String code = (String) getBodyPara(body, "code");
+            String clientIp = ClientIPUtil.getClientIpAddress(servletRequest);
             if (!Constant.PHONE_TYPE.equals(getAccountType(account))) {
                 return result(HttpStatus.BAD_REQUEST, null, "", null);
             }
             // 登录成功返回用户token
-            Object loginRes = login(appId, account, code, null);
+            Object loginRes = login(appId, account, code, null, clientIp);
             // 获取用户信息
             String newIdToken;
             String newUserId = "";

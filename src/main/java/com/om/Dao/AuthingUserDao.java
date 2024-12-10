@@ -246,7 +246,6 @@ public class AuthingUserDao {
     @Value("${community}")
     private String community;
 
-    // -- temporary (解决gitee多身份源解绑问题) -- TODO
     /**
      * 临时外部身份提供者 IDs.
      */
@@ -264,7 +263,6 @@ public class AuthingUserDao {
      */
     @Value("${temp.users}")
     private String users;
-    // -- temporary -- TODO
 
     /**
      * OBS 客户端实例.
@@ -422,13 +420,15 @@ public class AuthingUserDao {
      * @param email    电子邮件地址
      * @param code     邮件验证码
      * @param username 用户名
+     * @param clientIp 用户IP
      * @return 返回注册结果信息
      */
-    public String registerByEmailCode(String appId, String email, String code, String username) {
+    public String registerByEmailCode(String appId, String email, String code, String username, String clientIp) {
         String body = String.format("{\"connection\": \"PASSCODE\","
                         + "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},"
+                        + "\"options\": {\"clientIp\": \"%s\"},"
                         + "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}",
-                email, code, username, createPrivacyVersions(oneidPrivacyVersion, true));
+                email, code, clientIp, username, createPrivacyVersions(oneidPrivacyVersion, true));
         return register(appId, body);
     }
 
@@ -441,16 +441,18 @@ public class AuthingUserDao {
      * @param phone    手机号码
      * @param code     手机验证码
      * @param username 用户名
+     * @param clientIp 用户IP
      * @return 返回注册结果信息
      */
-    public String registerByPhoneCode(String appId, String phone, String code, String username) {
+    public String registerByPhoneCode(String appId, String phone, String code, String username, String clientIp) {
         String phoneCountryCode = getPhoneCountryCode(phone);
         phone = getPurePhone(phone);
 
         String body = String.format("{\"connection\": \"PASSCODE\","
                         + "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"},"
+                        + "\"options\": {\"clientIp\": \"%s\"},"
                         + "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}",
-                phone, code, phoneCountryCode, username, createPrivacyVersions(oneidPrivacyVersion, true));
+                phone, code, phoneCountryCode, clientIp, username, createPrivacyVersions(oneidPrivacyVersion, true));
         return register(appId, body);
     }
 
@@ -464,15 +466,17 @@ public class AuthingUserDao {
      * @param password 密码
      * @param username 用户名
      * @param code     验证码
+     * @param clientIp 用户IP
      * @return 返回注册结果信息
      */
-    public String registerByEmailPwd(String appId, String email, String password, String username, String code) {
+    public String registerByEmailPwd(String appId, String email, String password, String username, String code,
+                                     String clientIp) {
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
                         + "\"profile\":{\"email\":\"%s\", \"givenName\":\"%s\"},"
                         + "\"options\":{\"passwordEncryptType\":\"rsa\","
-                        + " \"emailPassCodeForInformationCompletion\":\"%s\"}}",
-                username, password, email, createPrivacyVersions(oneidPrivacyVersion, true), code);
+                        + " \"emailPassCodeForInformationCompletion\":\"%s\",\"clientIp\": \"%s\"}}",
+                username, password, email, createPrivacyVersions(oneidPrivacyVersion, true), code, clientIp);
         return register(appId, body);
     }
 
@@ -484,9 +488,11 @@ public class AuthingUserDao {
      * @param password 密码
      * @param username 用户名
      * @param code     验证码
+     * @param clientIp 用户IP
      * @return 返回注册结果信息
      */
-    public String registerByPhonePwd(String appId, String phone, String password, String username, String code) {
+    public String registerByPhonePwd(String appId, String phone, String password, String username, String code,
+                                     String clientIp) {
         String phoneCountryCode = getPhoneCountryCode(phone);
         phone = getPurePhone(phone);
 
@@ -494,9 +500,9 @@ public class AuthingUserDao {
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
                         + "\"profile\":{\"phone\":\"%s\", \"phoneCountryCode\":\"%s\", \"givenName\":\"%s\"},"
                         + "\"options\":{\"passwordEncryptType\":\"rsa\", "
-                        + "\"phonePassCodeForInformationCompletion\":\"%s\"}}",
+                        + "\"phonePassCodeForInformationCompletion\":\"%s\",\"clientIp\": \"%s\"}}",
                 username, password, phone, phoneCountryCode,
-                createPrivacyVersions(oneidPrivacyVersion, true), code);
+                createPrivacyVersions(oneidPrivacyVersion, true), code, clientIp);
         return register(appId, body);
     }
 
@@ -531,13 +537,15 @@ public class AuthingUserDao {
      * @param email 电子邮件地址
      * @param code  邮件验证码
      * @return 返回登录结果对象
+     * @param clientIp 用户IP
      * @throws ServerErrorException 服务器错误异常
      */
-    public Object loginByEmailCode(Application app, String email, String code) throws ServerErrorException {
+    public Object loginByEmailCode(Application app, String email, String code, String clientIp)
+            throws ServerErrorException {
         String body = String.format("{\"connection\": \"PASSCODE\","
-                + "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},"
-                + "\"options\": {\"autoRegister\": true},"
-                + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", email, code, app.getId(), app.getSecret());
+            + "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},"
+            + "\"options\": {\"autoRegister\": true,\"clientIp\": \"%s\"},"
+            + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}", email, code, clientIp, app.getId(), app.getSecret());
         return login(app.getId(), body);
     }
 
@@ -547,18 +555,20 @@ public class AuthingUserDao {
      * @param app   应用程序对象
      * @param phone 手机号码
      * @param code  手机验证码
+     * @param clientIp 用户IP
      * @return 返回登录结果对象
      * @throws ServerErrorException 服务器错误异常
      */
-    public Object loginByPhoneCode(Application app, String phone, String code) throws ServerErrorException {
+    public Object loginByPhoneCode(Application app, String phone, String code, String clientIp)
+            throws ServerErrorException {
         String phoneCountryCode = getPhoneCountryCode(phone);
         phone = getPurePhone(phone);
 
         String body = String.format("{\"connection\": \"PASSCODE\","
                         + "\"passCodePayload\": {\"phone\": \"%s\",\"passCode\": \"%s\",\"phoneCountryCode\": \"%s\"},"
-                        + "\"options\": {\"autoRegister\": true},"
+                        + "\"options\": {\"autoRegister\": true,\"clientIp\": \"%s\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
-                phone, code, phoneCountryCode, app.getId(), app.getSecret());
+                phone, code, phoneCountryCode, clientIp, app.getId(), app.getSecret());
         return login(app.getId(), body);
     }
 
@@ -568,19 +578,21 @@ public class AuthingUserDao {
      * @param app      应用程序对象
      * @param email    电子邮件地址
      * @param password 密码
+     * @param clientIp 用户IP
      * @return 返回登录结果对象
      * @throws ServerErrorException 服务器错误异常
      */
-    public Object loginByEmailPwd(Application app, String email, String password) throws ServerErrorException {
+    public Object loginByEmailPwd(Application app, String email, String password, String clientIp)
+            throws ServerErrorException {
         if (!isUserExists(app.getId(), email, "email")) {
             return MessageCodeConfig.E00052.getMsgZh();
         }
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"rsa\",\"clientIp\": \"%s\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
-                email, password, app.getId(), app.getSecret());
+                email, password, clientIp, app.getId(), app.getSecret());
         return login(app.getId(), body);
     }
 
@@ -590,10 +602,12 @@ public class AuthingUserDao {
      * @param app      应用程序对象
      * @param phone    手机号码
      * @param password 密码
+     * @param clientIp 用户IP
      * @return 返回登录结果对象
      * @throws ServerErrorException 服务器错误异常
      */
-    public Object loginByPhonePwd(Application app, String phone, String password) throws ServerErrorException {
+    public Object loginByPhonePwd(Application app, String phone, String password, String clientIp)
+            throws ServerErrorException {
         phone = getPurePhone(phone);
 
         if (!isUserExists(app.getId(), phone, "phone")) {
@@ -602,9 +616,9 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"rsa\",\"clientIp\": \"%s\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
-                phone, password, app.getId(), app.getSecret());
+                phone, password, clientIp, app.getId(), app.getSecret());
         return login(app.getId(), body);
     }
 
@@ -614,19 +628,21 @@ public class AuthingUserDao {
      * @param app      应用程序对象
      * @param username 用户名
      * @param password 密码
+     * @param clientIp 用户IP
      * @return 返回登录结果对象
      * @throws ServerErrorException 服务器错误异常
      */
-    public Object loginByUsernamePwd(Application app, String username, String password) throws ServerErrorException {
+    public Object loginByUsernamePwd(Application app, String username, String password, String clientIp)
+            throws ServerErrorException {
         if (!isUserExists(app.getId(), username, "username")) {
             return MessageCodeConfig.E00052.getMsgZh();
         }
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"rsa\",\"clientIp\": \"%s\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
-                username, password, app.getId(), app.getSecret());
+                username, password, clientIp, app.getId(), app.getSecret());
         return login(app.getId(), body);
     }
 
@@ -1255,8 +1271,7 @@ public class AuthingUserDao {
             } else if (StringUtils.isBlank(us.getEmail())) {
                 return "请先绑定邮箱";
             }
-
-            // -- temporary (解决gitee多身份源解绑问题) -- TODO
+            // -- temporary (解决gitee多身份源解绑问题)
             List<String> userIds = Stream.of(users.split(";")).toList();
             if (platform.toLowerCase().equals("gitee") && userIds.contains(us.getId())) {
                 if (unLinkAccountTemp(us, identifiers, extIdpIds)) {
@@ -1264,7 +1279,7 @@ public class AuthingUserDao {
                 } else {
                     return msg;
                 }
-            } // -- temporary -- TODO
+            }
 
             String body = String.format("{\"identifier\":\"%s\",\"extIdpId\":\"%s\"}", identifier, extIdpId);
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV2 + "/users/identity/unlinkByUser")
@@ -1765,7 +1780,6 @@ public class AuthingUserDao {
         if (privacyVersions == null || !privacyVersions.contains(":")) {
             return "";
         }
-
         try {
             HashMap<String, String> privacys = JSON.parseObject(privacyVersions, HashMap.class);
             String privacyAccept = privacys.get(community);
