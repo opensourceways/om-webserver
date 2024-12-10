@@ -53,6 +53,11 @@ public class AuthingUtil {
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthingService.class);
 
     /**
+     * 绑定多个同类型三方账号，账号名分隔符.
+     */
+    private static final String IDENTITY_NAME_SPLIT = "|";
+
+    /**
      * 获取自定义token中的user id.
      *
      * @param token
@@ -127,44 +132,84 @@ public class AuthingUtil {
      */
     public void authingUserIdentityIdp(JSONObject identityObj, HashMap<String, Map<String, Object>> map) {
         HashMap<String, Object> res = new HashMap<>();
-        JSONObject userInfoInIdpObj = identityObj.getJSONObject("userInfoInIdp");
+        JSONObject userInfoInIdpObj = identityObj;
+        // 三方账号直接合并到用户已有账号，无三方账号详细用户信息
+        if (identityObj.has("userInfoInIdp") && !identityObj.isNull("userInfoInIdp")) {
+            userInfoInIdpObj = identityObj.getJSONObject("userInfoInIdp");
+        }
         String userIdInIdp = identityObj.getString("userIdInIdp");
         res.put("userIdInIdp", userIdInIdp);
-        String originConnId = identityObj.getJSONArray("originConnIds").get(0).toString();
-        if (originConnId.equals(env.getProperty("social.connId.github"))) {
+        String extIdpId = identityObj.getString("extIdpId");
+
+        if (extIdpId.equals(env.getProperty("social.extIdpId.github"))) {
             String target = env.getProperty("github.users.api");
             target = (Objects.isNull(target) ? "" : target);
             String githubLogin = jsonObjStringValue(userInfoInIdpObj, "profile").replace(target, "");
             res.put("identity", "github");
-            res.put("login_name", githubLogin);
-            res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "username"));
+            String loginName = convertIdentityName(githubLogin);
+            String userName = convertIdentityName(jsonObjStringValue(userInfoInIdpObj, "username"));
+            if (map.containsKey("github")) {
+                loginName += IDENTITY_NAME_SPLIT + map.get("github").get("login_name");
+                userName += IDENTITY_NAME_SPLIT + map.get("github").get("user_name");
+            }
+            res.put("login_name", loginName);
+            res.put("user_name", userName);
+            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("github", res);
-        } else if (originConnId.equals(env.getProperty("enterprise.connId.gitee"))) {
+        } else if (extIdpId.equals(env.getProperty("enterprise.extIdpId.gitee"))) {
             res.put("identity", "gitee");
+            String loginName = "";
+            String userName = "";
             if (userInfoInIdpObj.has("customData")) {
                 String giteeLogin = userInfoInIdpObj.getJSONObject("customData").getString("giteeLogin");
-                res.put("login_name", giteeLogin);
-                res.put("user_name", userInfoInIdpObj.getJSONObject("customData").getString("giteeName"));
+                loginName = convertIdentityName(giteeLogin);
+                userName = convertIdentityName(userInfoInIdpObj
+                        .getJSONObject("customData").getString("giteeName"));
             } else {
-                res.put("login_name", jsonObjStringValue(userInfoInIdpObj, "name"));
-                res.put("user_name", jsonObjStringValue(userInfoInIdpObj, "username"));
+                loginName = convertIdentityName(jsonObjStringValue(userInfoInIdpObj, "name"));
+                userName = convertIdentityName(jsonObjStringValue(userInfoInIdpObj, "username"));
             }
+            if (map.containsKey("gitee")) {
+                loginName += IDENTITY_NAME_SPLIT + map.get("gitee").get("login_name");
+                userName += IDENTITY_NAME_SPLIT + map.get("gitee").get("user_name");
+            }
+            res.put("login_name", loginName);
+            res.put("user_name", userName);
+            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("gitee", res);
-        } else if (originConnId.equals(env.getProperty("enterprise.connId.openatom"))) {
+        } else if (extIdpId.equals(env.getProperty("enterprise.extIdpId.openatom"))) {
             String phone = jsonObjStringValue(userInfoInIdpObj, "phone");
             String email = jsonObjStringValue(userInfoInIdpObj, "email");
             String name = StringUtils.isNotBlank(email) ? email : phone;
             res.put("identity", "openatom");
-            res.put("login_name", name);
-            res.put("user_name", name);
+            String loginName = convertIdentityName(name);
+            String userName = convertIdentityName(name);
+            if (map.containsKey("openatom")) {
+                loginName += IDENTITY_NAME_SPLIT + map.get("openatom").get("login_name");
+                userName += IDENTITY_NAME_SPLIT + map.get("openatom").get("user_name");
+            }
+            res.put("login_name", loginName);
+            res.put("user_name", userName);
+            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("openatom", res);
-        } else if (originConnId.equals(env.getProperty("social.connId.wechat"))) {
+        } else if (extIdpId.equals(env.getProperty("social.extIdpId.wechat"))) {
             String name = jsonObjStringValue(userInfoInIdpObj, "nickname");
             res.put("identity", "wechat");
-            res.put("login_name", name);
-            res.put("user_name", name);
+            String loginName = convertIdentityName(name);
+            String userName = convertIdentityName(name);
+            if (map.containsKey("wechat")) {
+                loginName += IDENTITY_NAME_SPLIT + map.get("wechat").get("login_name");
+                userName += IDENTITY_NAME_SPLIT + map.get("wechat").get("user_name");
+            }
+            res.put("login_name", loginName);
+            res.put("user_name", userName);
+            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("wechat", res);
         }
+    }
+
+    private String convertIdentityName(String userName) {
+        return StringUtils.isBlank(userName) ? "_" : userName;
     }
 
     /**

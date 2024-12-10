@@ -38,6 +38,8 @@ import com.om.utils.HttpClientUtils;
 import com.om.utils.LogUtil;
 
 import org.apache.commons.lang3.StringUtils;
+
+import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -326,12 +328,22 @@ public class OneIdManageService {
                     permissions.add(perList[0] + perList[1]);
                 }
             }
+            //获取企业信息
+            ArrayList<String> companyNameList = new ArrayList<>();
+            JSONObject userObj = authingManagerDao.getUserById(userId);
+            HashMap<String, Map<String, Object>> map = new HashMap<>();
+            JSONArray jsonArray = userObj.getJSONArray("identities");
+            for (Object o : jsonArray) {
+                JSONObject obj = (JSONObject) o;
+                authingUtil.authingUserIdentityIdp(obj, map);
+            }
             // 获取用户
             User user = authingUserDao.getUser(userId);
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("permissions", permissions);
             userData.put("username", user.getUsername());
+            userData.put("companyList", companyNameList);
             return authingService.result(HttpStatus.OK, "success", userData);
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
