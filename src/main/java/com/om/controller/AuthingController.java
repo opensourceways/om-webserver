@@ -137,14 +137,6 @@ public class AuthingController {
         captchaVO.setPointJson(data.get("pointJson"));
         captchaVO.setToken(data.get("token"));
         captchaVO.setBrowserInfo(getRemoteId(request));
-
-        System.out.println("----------");
-        System.out.println(data.get("captchaType"));
-        System.out.println(data.get("pointJson"));
-        System.out.println(data.get("token"));
-        System.out.println(getRemoteId(request));
-        System.out.println("----------");
-
         return captchaService.check(captchaVO);
     }
 

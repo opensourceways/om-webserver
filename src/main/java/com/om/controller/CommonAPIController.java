@@ -50,7 +50,7 @@ public class CommonAPIController {
         return SERVICE_STATUS_NORMAL;
     }
 
-        /**
+    /**
      * 获取当前隐私协议版本.
      *
      * @return 隐私协议版本信息

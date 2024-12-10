@@ -305,8 +305,6 @@ public class AuthingService implements UserCenterServiceInter {
     public ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         String userName = servletRequest.getParameter("username");
         String appId = servletRequest.getParameter("client_id");
-        System.out.println("userName: " + userName);
-        System.out.println("appId: " + appId);
         // 校验appId
         if (authingUserDao.getAppById(appId) == null) {
             return result(HttpStatus.BAD_REQUEST, null, "应用不存在", null);
