@@ -83,7 +83,7 @@ public class AuthingController {
      * @param request HTTP 请求对象
      * @return 返回响应模型 ResponseModel
      */
-    @RequestLimitRedis(period = 20, count = 14)
+    @RequestLimitRedis
     @RequestMapping(value = "/captcha/get", method = RequestMethod.POST)
     public ResponseModel captchaGet(@RequestBody CaptchaVO data, HttpServletRequest request) {
         data.setBrowserInfo(getRemoteId(request));

@@ -239,6 +239,7 @@ public class AuthingManagerDao {
             }
             return pers;
         } catch (Exception e) {
+            LOGGER.error("get user permission failed {}", e.getMessage());
             return pers;
         }
     }
@@ -310,6 +311,7 @@ public class AuthingManagerDao {
             List<IResourceResponse> list = pageResponse.getList();
             return list.stream().map(i -> i.getCode()).collect(Collectors.toList());
         } catch (Exception e) {
+            LOGGER.error("get resource list failed {}", e.getMessage());
             return Collections.emptyList();
         }
     }
@@ -349,6 +351,7 @@ public class AuthingManagerDao {
             }
             return resList;
         } catch (Exception e) {
+            LOGGER.error("get user resources failed {}", e.getMessage());
             return Collections.emptyList();
         }
     }
@@ -374,7 +377,7 @@ public class AuthingManagerDao {
                     user.getId(), oneidPrivacyVersion, appVersion));
             return true;
         } catch (Exception e) {
-            LOGGER.error(e.getMessage());
+            LOGGER.error("revoke privacy failed {}", e.getMessage());
             return false;
         }
     }
@@ -399,7 +402,7 @@ public class AuthingManagerDao {
                 return privacyAccept;
             }
         } catch (Exception e) {
-            LOGGER.error(e.getMessage());
+            LOGGER.error("get privacy failed {}", e.getMessage());
             return "";
         }
     }
@@ -474,7 +477,7 @@ public class AuthingManagerDao {
                 privacys.put(community, version);
                 return JSON.toJSONString(privacys);
             } catch (Exception e) {
-                LOGGER.error(e.getMessage());
+                LOGGER.error("put privacy failed {}", e.getMessage());
                 return createPrivacyVersions(version, false);
             }
         }
