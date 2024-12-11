@@ -524,12 +524,10 @@ public class AuthingService implements UserCenterServiceInter {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
         String account = (String) getBodyPara(body, "account");
         account = getAbsoluteAccount(account);
-
         // 如果请求体里没有，尝试在请求参数里获取
         if (StringUtils.isBlank(account)) {
             account = request.getParameter("account");
         }
-
         if (StringUtils.isEmpty(account)) {
             return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
