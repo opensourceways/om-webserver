@@ -58,16 +58,6 @@ public interface UserCenterServiceInter {
     ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
     /**
-     * 登录方法.
-     *
-     * @param servletRequest  HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @param isSuccess       是否成功标识
-     * @return ResponseEntity 响应实体
-     */
-    ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse, boolean isSuccess);
-
-    /**
      * 注销方法.
      *
      * @param servletRequest  HTTP请求对象

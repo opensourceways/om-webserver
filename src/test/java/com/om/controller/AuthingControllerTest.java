@@ -19,6 +19,7 @@ import com.anji.captcha.service.CaptchaService;
 import com.om.dao.AuthingUserDao;
 import com.om.result.Constant;
 import com.om.service.AuthingService;
+import com.om.service.LoginService;
 import com.om.service.OneIdManageService;
 import com.om.service.UserCenterServiceContext;
 import jakarta.servlet.http.HttpServletRequest;
@@ -57,6 +58,9 @@ public class AuthingControllerTest {
 
     @Mock
     private AuthingService authingService;
+
+    @Mock
+    private LoginService loginService;
 
     @Mock
     private AuthingUserDao authingUserDao;
@@ -192,7 +196,7 @@ public class AuthingControllerTest {
 
         Map<String, Object> map = new HashMap<>();
         map.put("captchaVerification", "cap");
-        when(authingService.login(any(HttpServletRequest.class), any(), any(Boolean.class))).thenReturn(responseEntity);
+        when(loginService.login(any(HttpServletRequest.class), any(), any(Boolean.class))).thenReturn(responseEntity);
         when(mockCaptchaService.verification(any(CaptchaVO.class))).thenReturn(new ResponseModel(RepCodeEnum.SUCCESS));
         MockHttpServletResponse response = new MockHttpServletResponse();
         ResponseEntity login = authingController.login(request, response, map);
@@ -218,7 +222,7 @@ public class AuthingControllerTest {
         map.put("code", "code");
         map.put("captchaVerification", "cap");
         map.put("oneidPrivacyVersion", "privacyVersion");
-        when(authingService.login(any(HttpServletRequest.class), any(), any(Boolean.class))).thenReturn(responseEntity);
+        when(loginService.login(any(HttpServletRequest.class), any(), any(Boolean.class))).thenReturn(responseEntity);
         when(mockCaptchaService.verification(any(CaptchaVO.class))).thenReturn(new ResponseModel(RepCodeEnum.SUCCESS));
         MockHttpServletResponse response = new MockHttpServletResponse();
         ResponseEntity login = authingController.login(request, response, map);
@@ -242,7 +246,7 @@ public class AuthingControllerTest {
 
         Map<String, Object> map = new HashMap<>();
         map.put("captchaVerification", "cap");
-        when(authingService.login(any(HttpServletRequest.class), any(), any(Boolean.class))).thenReturn(responseEntity);
+        when(loginService.login(any(HttpServletRequest.class), any(), any(Boolean.class))).thenReturn(responseEntity);
         when(mockCaptchaService.verification(any(CaptchaVO.class))).thenReturn(new ResponseModel(RepCodeEnum.SUCCESS));
         MockHttpServletResponse response = new MockHttpServletResponse();
         ResponseEntity login = authingController.login(request, response, map);

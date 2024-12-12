@@ -18,6 +18,7 @@ import com.anji.captcha.service.CaptchaService;
 import com.anji.captcha.util.StringUtils;
 import com.om.result.Constant;
 import com.om.service.AuthingService;
+import com.om.service.LoginService;
 import com.om.service.OidcService;
 import com.om.service.OneIdManageService;
 import com.om.service.SendMessageService;
@@ -66,6 +67,12 @@ public class AuthingController {
      */
     @Autowired
     private OneIdManageService oneIdManageService;
+
+    /**
+     * 登录服务.
+     */
+    @Autowired
+    private LoginService loginService;
 
     /**
      * 验证码服务.
@@ -226,8 +233,8 @@ public class AuthingController {
     public ResponseEntity login(HttpServletRequest servletRequest,
                                 HttpServletResponse servletResponse,
                                 @RequestBody Map<String, Object> body) {
-        UserCenterServiceInter service = getServiceImpl(servletRequest);
-        return service.login(servletRequest, servletResponse, verifyCaptcha((String) body.get("captchaVerification")));
+        return loginService.login(servletRequest, servletResponse,
+                verifyCaptcha((String) body.get("captchaVerification")));
     }
 
     /**
@@ -457,6 +464,27 @@ public class AuthingController {
     }
 
     /**
+     * 发送验证码的方法,get.
+     *
+     * @param httpServletRequest 请求对象
+     * @param account 账号信息
+     * @param channel 通道信息
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @param captchaVerification 验证码验证信息
+     * @return 返回 ResponseEntity 对象
+     */
+    @RequestLimitRedis
+    @AuthingUserToken
+    @RequestMapping(value = "/sendcode", method = RequestMethod.GET)
+    public ResponseEntity sendCode(HttpServletRequest httpServletRequest,
+                                   @RequestParam(value = "account") String account,
+                                   @RequestParam(value = "channel") String channel,
+                                   @CookieValue(value = "_Y_G_", required = false) String token,
+                                   @RequestParam("captchaVerification") String captchaVerification) {
+        return authingService.sendCode(httpServletRequest, token, account, channel, verifyCaptcha(captchaVerification));
+    }
+
+    /**
      * 发送解绑验证码的方法.
      *
      * @param servletRequest HTTP 请求对象
@@ -471,6 +499,23 @@ public class AuthingController {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
         String captchaVerification = (String) body.getOrDefault("captchaVerification", null);
+        return service.sendCodeUnbind(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
+    }
+
+    /**
+     * 发送解绑验证码的方法,get请求.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @return 返回 ResponseEntity 对象
+     */
+    @RequestLimitRedis
+    @AuthingUserToken
+    @RequestMapping(value = "/sendcode/unbind", method = RequestMethod.GET)
+    public ResponseEntity sendCodeUnbindForGet(HttpServletRequest servletRequest,
+                                         HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        String captchaVerification = servletRequest.getParameter("captchaVerification");
         return service.sendCodeUnbind(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
@@ -493,6 +538,24 @@ public class AuthingController {
     }
 
     /**
+     * 处理更新账号信息请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
+    @RequestLimitRedis
+    @AuthingUserToken
+    @RequestMapping(value = "/update/account", method = RequestMethod.GET)
+    public ResponseEntity updateAccountForGet(HttpServletRequest servletRequest,
+                                        HttpServletResponse servletResponse,
+                                        @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.updateAccount(servletRequest, servletResponse, token);
+    }
+
+    /**
      * 处理解绑账号请求的方法.
      *
      * @param servletRequest HTTP 请求对象
@@ -504,6 +567,24 @@ public class AuthingController {
     @AuthingUserToken
     @RequestMapping(value = "/unbind/account", method = RequestMethod.POST)
     public ResponseEntity unbindAccount(HttpServletRequest servletRequest,
+                                        HttpServletResponse servletResponse,
+                                        @CookieValue(value = "_Y_G_", required = false) String token) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        return service.unbindAccount(servletRequest, servletResponse, token);
+    }
+
+    /**
+     * 处理解绑账号请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @return 返回 ResponseEntity 对象
+     */
+    @RequestLimitRedis
+    @AuthingUserToken
+    @RequestMapping(value = "/unbind/account", method = RequestMethod.GET)
+    public ResponseEntity unbindAccountForGet(HttpServletRequest servletRequest,
                                         HttpServletResponse servletResponse,
                                         @CookieValue(value = "_Y_G_", required = false) String token) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
