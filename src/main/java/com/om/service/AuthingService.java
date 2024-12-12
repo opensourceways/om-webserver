@@ -1837,19 +1837,8 @@ public class AuthingService implements UserCenterServiceInter {
      * @return 用户名合理则返回true，不合理返回false.
      */
     public boolean isUserNameParmValid(String userName) {
-        if (StringUtils.isBlank(userName)) {
+        if (StringUtils.isBlank(userName) || userName.length() > Constant.OPEN_MIND_USERNAME_MAX) {
             return false;
-        }
-        if (Constant.OPEN_MIND.equals(instanceCommunity)) {
-            if (userName.length() < Constant.OPEN_MIND_USERNAME_MIN
-                    || userName.length() > Constant.OPEN_MIND_USERNAME_MAX
-                    || !userName.matches(Constant.OPEN_MIND_USERNAME_REGEX)) {
-                return false;
-            }
-        } else {
-            if (!userName.matches(Constant.USERNAMEREGEX)) {
-                return false;
-            }
         }
         return true;
     }
