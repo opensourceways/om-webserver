@@ -29,6 +29,7 @@ import com.om.modules.ServerErrorException;
 import com.om.modules.authing.AuthingAppSync;
 import com.om.result.Constant;
 import com.om.result.Result;
+import com.om.service.bean.OnlineUserInfo;
 import com.om.service.inter.UserCenterServiceInter;
 import com.om.utils.AuthingUtil;
 import com.om.utils.CodeUtil;
@@ -44,6 +45,8 @@ import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import kong.unirest.HttpResponse;
+import kong.unirest.Unirest;
 import kong.unirest.json.JSONObject;
 
 import org.apache.commons.codec.binary.Hex;
@@ -70,6 +73,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -137,6 +145,12 @@ public class AuthingService implements UserCenterServiceInter {
      */
     @Autowired
     private ClientSessionManager clientSessionManager;
+
+    /**
+     * 退出APP线程池.
+     */
+    private static final ExecutorService LOGOUT_EXE = new ThreadPoolExecutor(4, 5,
+            60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(10000));
 
     /**
      * Authing的管理面接口.
@@ -662,7 +676,7 @@ public class AuthingService implements UserCenterServiceInter {
             if (StringUtils.isNotBlank(idToken)) {
                 String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER)
                         .append(userId).toString();
-                redisDao.removeListValue(loginKey, idToken);
+                removeOnlineUser(loginKey, idToken);
             }
             // 退出登录，删除cookie，删除idToken
             String cookieTokenName = env.getProperty("cookie.token.name");
@@ -687,6 +701,49 @@ public class AuthingService implements UserCenterServiceInter {
             LogUtil.createLogs(userId, "logout", "login",
                     "The user logout", ClientIPUtil.getClientIpAddress(servletRequest), "failed");
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+    }
+
+    private void removeOnlineUser(String loginKey, String idToken) {
+        try {
+            List<String> userList = redisDao.getListValue(loginKey);
+            if (CollectionUtils.isEmpty(userList)) {
+                return;
+            }
+            for (String userJson : userList) {
+                OnlineUserInfo onlineUserInfo = new OnlineUserInfo();
+                if (userJson.startsWith("{")) {
+                    onlineUserInfo = objectMapper.readValue(userJson, OnlineUserInfo.class);
+                } else {
+                    onlineUserInfo.setIdToken(userJson);
+                }
+                if (StringUtils.equals(idToken, onlineUserInfo.getIdToken())) {
+                    logoutApps(idToken, onlineUserInfo.getLogoutUrls());
+                    redisDao.removeListValue(loginKey, userJson);
+                    break;
+                }
+            }
+        } catch (JsonProcessingException e) {
+            LOGGER.error("parse json failed {}", e.getMessage());
+        }
+    }
+    private void logoutApps(String idToken, Set<String> logoutUrls) {
+        if (CollectionUtils.isEmpty(logoutUrls)) {
+            return;
+        }
+        for (String logoutUrl : logoutUrls) {
+            LOGOUT_EXE.submit(() -> {
+                try {
+                    HttpResponse<kong.unirest.JsonNode> response = Unirest.get(logoutUrl)
+                            .header("Authorization", idToken)
+                            .asJson();
+                    if (response.getStatus() != 200) {
+                        LOGGER.error("logout app failed {} {}", logoutUrl, response.getStatus());
+                    }
+                } catch (Exception e) {
+                    LOGGER.error("logout app failed {} {}", logoutUrl, e.getMessage());
+                }
+            });
         }
     }
 

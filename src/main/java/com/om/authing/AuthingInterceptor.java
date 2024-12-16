@@ -18,11 +18,14 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTDecodeException;
 import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.dao.AuthingUserDao;
 import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
 import com.om.service.JwtTokenCreateService;
+import com.om.service.bean.OnlineUserInfo;
 import com.om.utils.CommonUtil;
 import com.om.utils.HttpClientUtils;
 import com.om.utils.LogUtil;
@@ -37,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -167,6 +171,11 @@ public class AuthingInterceptor implements HandlerInterceptor {
      */
     @Value("${thirdService.verifyToken.url: }")
     private String thirdVerifyUrl;
+
+    /**
+     * ObjectMapper实例.
+     */
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * token的盐值.
@@ -360,7 +369,28 @@ public class AuthingInterceptor implements HandlerInterceptor {
         String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(userId).toString();
         String tokenKey = Constant.ID_TOKEN_PREFIX + verifyToken;
         String idToken = (String) redisDao.get(tokenKey);
-        if (!redisDao.containListValue(loginKey, idToken)) {
+        List<String> onlineUsers = redisDao.getListValue(loginKey);
+        if (CollectionUtils.isEmpty(onlineUsers)) {
+            return false;
+        }
+        boolean isContain = false;
+        try {
+            for (String userJson : onlineUsers) {
+                OnlineUserInfo onlineUserInfo = new OnlineUserInfo();
+                if (userJson.startsWith("{")) {
+                    onlineUserInfo = objectMapper.readValue(userJson, OnlineUserInfo.class);
+                } else {
+                    onlineUserInfo.setIdToken(userJson);
+                }
+                if (StringUtils.equals(idToken, onlineUserInfo.getIdToken())) {
+                    isContain = true;
+                    break;
+                }
+            }
+        } catch (JsonProcessingException e) {
+            LOGGER.error("parse json failed {}", e.getMessage());
+        }
+        if (!isContain) {
             return false;
         }
         int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
