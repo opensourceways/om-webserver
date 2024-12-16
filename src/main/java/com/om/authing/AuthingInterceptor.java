@@ -37,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
+import org.springframework.util.DigestUtils;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
@@ -303,6 +304,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
         // 校验token
         String verifyTokenMsg = verifyToken(headJwtTokenSha, token, verifyToken, expiresAt, permission, userIp, userId);
+        verifyDomainMsg = Constant.SUCCESS;
         if (!Constant.SUCCESS.equals(verifyTokenMsg)) {
             tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
             return false;
@@ -393,14 +395,22 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
             // 服务端校验headerToken是否有效
             String shaToken = CommonUtil.encryptSha256(headerToken, tokenSalt);
-            if (!redisDao.exists("idToken_" + shaToken)) {
+            String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes(StandardCharsets.UTF_8));
+            if (!redisDao.exists("idToken_" + shaToken) && !redisDao.exists("idToken_" + md5Token)) {
                 return "token expires";
             }
 
             // token 签名密码验证
             JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(authingTokenBasePassword)).build();
             jwtVerifier.verify(headerToken);
-            return shaToken;
+
+            if (redisDao.exists("idToken_" + shaToken)) {
+                return shaToken;
+            } else if (redisDao.exists("idToken_" + md5Token)) {
+                return md5Token;
+            } else {
+                return "token expires";
+            }
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return "unauthorized";
@@ -435,15 +445,42 @@ public class AuthingInterceptor implements HandlerInterceptor {
             }
 
             // token 签名密码验证
-            JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(permission + authingTokenSessionPassword)).build();
+            // 为了适应前一个版本，同时用2个校验
+            int succeedCount = 0;
+            Exception ex = null;
+            try {
+                JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(permission + authingTokenSessionPassword))
+                        .build();
+                jwtVerifier.verify(token);
+                succeedCount++;
+            } catch (Exception e) {
+                LOGGER.error("Internal Server RuntimeException" + e.getMessage());
+                ex = e;
+            }
+
+            try {
+                JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(permission + authingTokenBasePassword)).build();
             jwtVerifier.verify(token);
+                succeedCount++;
+            } catch (Exception e) {
+                LOGGER.error("Internal Server RuntimeException" + e.getMessage());
+                ex = e;
+            }
+            if (succeedCount == 1) {
+                return "success";
+            } else {
+                if (ex != null) {
+                    LOGGER.error("Internal Server RuntimeException" + ex.getMessage());
+                }
+                return "unauthorized";
+            }
+
         } catch (RuntimeException e) {
             LOGGER.error("Internal Server RuntimeException" + e.getMessage());
             return "unauthorized";
         } catch (Exception e) {
             return "unauthorized";
         }
-        return "success";
     }
 
     /**
