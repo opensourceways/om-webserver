@@ -239,11 +239,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        if (!verifyThirdToken(httpServletRequest, httpServletResponse)) {
-            tokenError(httpServletRequest, httpServletResponse, "unauthorized");
-            return false;
-        }
-
         // get if manageToken present
         ManageToken manageToken = method.getAnnotation(ManageToken.class);
 
@@ -313,7 +308,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
         // 校验token
         String verifyTokenMsg = verifyToken(headJwtTokenSha, token, verifyToken, expiresAt, permission, userIp, userId);
-        verifyDomainMsg = Constant.SUCCESS;
         if (!Constant.SUCCESS.equals(verifyTokenMsg)) {
             tokenError(httpServletRequest, httpServletResponse, verifyTokenMsg);
             return false;
@@ -426,7 +420,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
             // 服务端校验headerToken是否有效
             String shaToken = CommonUtil.encryptSha256(headerToken, tokenSalt);
             String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes(StandardCharsets.UTF_8));
-            if (!redisDao.exists("idToken_" + shaToken) && !redisDao.exists("idToken_" + md5Token)) {
+            boolean shaTokenExist = redisDao.exists("idToken_" + shaToken);
+            boolean md5TokenExist = redisDao.exists("idToken_" + md5Token);
+            if (!shaTokenExist && !md5TokenExist) {
                 return "token expires";
             }
 
@@ -434,9 +430,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
             JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(authingTokenBasePassword)).build();
             jwtVerifier.verify(headerToken);
 
-            if (redisDao.exists("idToken_" + shaToken)) {
+            if (shaTokenExist) {
                 return shaToken;
-            } else if (redisDao.exists("idToken_" + md5Token)) {
+            } else if (md5TokenExist) {
                 return md5Token;
             } else {
                 return "token expires";
@@ -475,36 +471,32 @@ public class AuthingInterceptor implements HandlerInterceptor {
             }
 
             // token 签名密码验证
-            // 为了适应前一个版本，同时用2个校验
-            int succeedCount = 0;
+            // 兼容上一个版本
+            boolean jwtVerifiered = false;
             Exception ex = null;
             try {
                 JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(permission + authingTokenSessionPassword))
                         .build();
                 jwtVerifier.verify(token);
-                succeedCount++;
+                jwtVerifiered = true;
             } catch (Exception e) {
-                LOGGER.error("Internal Server RuntimeException" + e.getMessage());
                 ex = e;
             }
-
+            if (jwtVerifiered) {
+                return "success";
+            }
             try {
                 JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(permission + authingTokenBasePassword)).build();
-            jwtVerifier.verify(token);
-                succeedCount++;
+                jwtVerifier.verify(token);
+                jwtVerifiered = true;
             } catch (Exception e) {
-                LOGGER.error("Internal Server RuntimeException" + e.getMessage());
                 ex = e;
             }
-            if (succeedCount == 1) {
+            if (jwtVerifiered) {
                 return "success";
             } else {
-                if (ex != null) {
-                    LOGGER.error("Internal Server RuntimeException" + ex.getMessage());
-                }
-                return "unauthorized";
+                throw ex;
             }
-
         } catch (RuntimeException e) {
             LOGGER.error("Internal Server RuntimeException" + e.getMessage());
             return "unauthorized";
@@ -631,47 +623,5 @@ public class AuthingInterceptor implements HandlerInterceptor {
         clientSessionManager.deleteCookieInConfig(httpServletResponse);
 
         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
-    }
-
-    /**
-     * 三方鉴权.
-     *
-     * @param request 请求体
-     * @param response 响应体
-     * @return 是否成功
-     */
-    private boolean verifyThirdToken(HttpServletRequest request, HttpServletResponse response) {
-        if (StringUtils.isBlank(thirdVerifyUrl)) {
-            return true;
-        }
-        String uri = request.getRequestURI();
-        if (LOCAL_VERIFY_TOKEN_URI.equals(uri)) {
-            return true;
-        }
-        try {
-            String headerToken = request.getHeader("Csrf-Token");
-            String cookie = request.getHeader("Cookie");
-            HttpResponse<JsonNode> restResponse = Unirest.get(thirdVerifyUrl)
-                    .header("Content-Type", "application/json")
-                    .header("Csrf-Token", headerToken)
-                    .header("Cookie", cookie).asJson();
-            if (restResponse.getStatus() == 401) {
-                return false;
-            }
-            if (restResponse.getStatus() == 200) {
-                List<String> setCookies = restResponse.getHeaders().get("Set-Cookie");
-                if (setCookies != null) {
-                    for (String setCookie : setCookies) {
-                        response.addHeader("Set-Cookie", setCookie);
-                    }
-                }
-            }
-        } catch (UnirestException e) {
-            LOGGER.error("get third service token verify failed {}", e.getMessage());
-        } catch (Exception e) {
-            LOGGER.error("get third service token verify failed {}", e.getMessage());
-        }
-
-        return true;
     }
 }

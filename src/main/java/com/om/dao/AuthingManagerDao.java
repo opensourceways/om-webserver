@@ -439,6 +439,7 @@ public class AuthingManagerDao {
             }
             return pers;
         } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return pers;
         }
     }

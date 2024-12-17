@@ -169,7 +169,7 @@ public class AuthingController {
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
-    @RequestMapping(value = {"/captcha/sendCode"}, method = RequestMethod.POST)
+    @RequestMapping(value = "/captcha/sendCode", method = RequestMethod.POST)
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);

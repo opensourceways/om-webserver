@@ -241,7 +241,7 @@ public class AuthingUserDao {
     /**
      * 允许的社区列表.
      */
-    private List<String> allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry");;
+    private List<String> allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry", "openubmc");
 
     /**
      * Authing API v2 主机地址.
@@ -1060,6 +1060,9 @@ public class AuthingUserDao {
                     return "false";
             }
         } catch (Exception e) {
+            LogUtil.createLogs(account, "bind account", "user",
+                    "The user bind account", "", "failed");
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return e.getMessage();
         }
         return "true";
@@ -1545,7 +1548,9 @@ public class AuthingUserDao {
                     user.getId(), oneidPrivacyVersion, appVersion));
             return true;
         } catch (Exception e) {
-            LOGGER.error(e.getMessage());
+            LogUtil.createLogs(null, "revoke privacy version", "user",
+                    "The user update privacy version", "", "failed");
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return false;
         }
     }
@@ -1863,7 +1868,9 @@ public class AuthingUserDao {
                 privacys.put(community, version);
                 return JSON.toJSONString(privacys);
             } catch (Exception e) {
-                LOGGER.error(e.getMessage());
+                LogUtil.createLogs(null, "update privacy version", "user",
+                    "The user update privacy version", "", "failed");
+                LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
                 return createPrivacyVersions(version, false);
             }
         }
