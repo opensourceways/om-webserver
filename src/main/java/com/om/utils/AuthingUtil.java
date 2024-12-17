@@ -140,7 +140,11 @@ public class AuthingUtil {
         String userIdInIdp = identityObj.getString("userIdInIdp");
         res.put("userIdInIdp", userIdInIdp);
         String extIdpId = identityObj.getString("extIdpId");
-
+        if (extIdpId == null) {
+            LogUtil.createLogs(null, "authing user identitiy idp", "user",
+                    "extIdpId is null", null, "failed");
+            return;
+        }
         if (extIdpId.equals(env.getProperty("social.extIdpId.github"))) {
             String target = env.getProperty("github.users.api");
             target = (Objects.isNull(target) ? "" : target);
@@ -205,6 +209,9 @@ public class AuthingUtil {
             res.put("user_name", userName);
             res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("wechat", res);
+        } else {
+            LogUtil.createLogs(null, "authing user identitiy idp", "user",
+                    "can not recognize extIdpId", null, "failed");
         }
     }
 
@@ -269,6 +276,8 @@ public class AuthingUtil {
             Cookie[] cookies = request.getCookies();
             cookie = getCookie(cookies, cookieName);
         } catch (Exception ignored) {
+            LogUtil.createLogs(null, "get cookie", "user",
+                    "The user get cookie", ClientIPUtil.getClientIpAddress(request), "failed");
         }
         return cookie;
     }
@@ -286,6 +295,8 @@ public class AuthingUtil {
             cookie = Arrays.stream(cookies).filter(cookieEle ->
                     cookieEle.getName().equals(cookieName)).findFirst().orElse(null);
         } catch (Exception ignored) {
+            LogUtil.createLogs(null, "get cookie", "user",
+                    "The user get cookie", null, "failed");
         }
         return cookie;
     }

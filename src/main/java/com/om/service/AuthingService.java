@@ -1414,7 +1414,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
             Cookie cookie = authingUtil.getCookie(servletRequest, env.getProperty("cookie.token.name"));
             msg = authingUserDao.updatePassword(cookie.getValue(), oldPwd, newPwd);
-            if (msg.equals("success")) {
+            if (Constant.SUCCESS.equals(msg)) {
                 String token = authingUtil.rsaDecryptToken(cookie.getValue());
                 DecodedJWT decode = JWT.decode(token);
                 String userId = decode.getAudience().get(0);

@@ -22,6 +22,7 @@ import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
 import com.om.utils.CodeUtil;
 import com.om.utils.CommonUtil;
+import com.om.utils.LogUtil;
 import com.om.utils.RSAUtil;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
@@ -228,6 +229,8 @@ public class JwtTokenCreateService {
             RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
             return RSAUtil.publicEncrypt(token, publicKey);
         } catch (Exception e) {
+            LogUtil.createLogs(userId, "oidc token", "user",
+                    "The user oidc token", null, "failed");
             System.out.println("RSA Encrypt error");
             return token;
         }

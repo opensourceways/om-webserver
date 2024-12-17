@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
@@ -214,7 +215,7 @@ public class AuthingManagerDao {
                     .body(body)
                     .asJson();
             JSONObject resObj = response.getBody().getObject();
-            if (resObj.getInt("statusCode") != 200) {
+            if (resObj.getInt("statusCode") != HttpStatus.OK.value()) {
                 LOGGER.error("bind identity failed {}", resObj.getString("message"));
                 return false;
             }

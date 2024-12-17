@@ -218,7 +218,7 @@ public class OneIdManageService {
         }
 
         // 限制1分钟只能发送一次
-        String redisKey = account.toLowerCase() + "_sendcode";
+        String redisKey = account.toLowerCase() + Constant.SEND_CODE;
         String codeOld = (String) redisDao.get(redisKey);
         if (codeOld != null) {
             return authingService.result(HttpStatus.BAD_REQUEST,

@@ -149,7 +149,7 @@ public class LoginService {
                     limitUtil.loginFail(failCounter));
         }
         String accountType = authingService.getAccountType(account);
-        if (!"email".equals(accountType) && !"phone".equals(accountType)
+        if (!Constant.EMAIL_TYPE.equals(accountType) && !Constant.PHONE_TYPE.equals(accountType)
                 && !authingService.isUserNameParmValid(account)) {
             // 用户名不符合规则，不记录，防止日志注入
             LOGGER.error("user name invalid");
@@ -272,7 +272,7 @@ public class LoginService {
             accountType = authingService.getAccountType(account);
         }
         if (StringUtils.isNotBlank(code)
-                && (accountType.equals(Constant.EMAIL_TYPE) || accountType.equals(Constant.PHONE_TYPE))) {
+                && (Constant.EMAIL_TYPE.equals(accountType) || Constant.PHONE_TYPE.equals(accountType))) {
             // 校验隐私协议
             if (StringUtils.isEmpty(oneidPrivacy) || !oneidPrivacyVersion.equals(oneidPrivacy)) {
                 return MessageCodeConfig.E00037.getMsgZh();
