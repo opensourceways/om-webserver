@@ -29,7 +29,6 @@ import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import jakarta.mail.internet.MimeMessage;
 
-import java.math.BigInteger;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.DrbgParameters;
@@ -60,6 +59,11 @@ public class CodeUtil {
      */
     private static final String WSSE_HEADER_FORMAT =
             "UsernameToken Username=\"%s\",PasswordDigest=\"%s\",Nonce=\"%s\",Created=\"%s\"";
+
+    /**
+     * 随机字符串生成源.
+     */
+    private static final String DATA_FOR_RANDOM_STRING = "abcdefghijklmnopqrstuvwxyz0123456789";
 
     /**
      * 发送验证码并返回字符串数组.
@@ -293,6 +297,15 @@ public class CodeUtil {
     public String randomStrBuilder(int strLength) throws NoSuchAlgorithmException {
         SecureRandom random = SecureRandom.getInstance("DRBG",
                 DrbgParameters.instantiation(256, Capability.RESEED_ONLY, null));
-        return new BigInteger(160, random).toString(strLength);
+        if (strLength < 1) {
+            throw new IllegalArgumentException();
+        }
+        StringBuilder sb = new StringBuilder(strLength);
+        for (int i = 0; i < strLength; i++) {
+            int rndCharAt = random.nextInt(DATA_FOR_RANDOM_STRING.length());
+            char rndChar = DATA_FOR_RANDOM_STRING.charAt(rndCharAt);
+            sb.append(rndChar);
+        }
+        return sb.toString();
     }
 }
