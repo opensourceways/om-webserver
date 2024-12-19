@@ -215,6 +215,22 @@ public class AuthingUserDao {
     private String enterAuthUrlOpenatom;
 
     /**
+     * GitCode 企业登录的外部身份提供者 ID.
+     */
+    @Value("${enterprise.extIdpId.gitcode: }")
+    private String enterExtIdpIdGitCode;
+    /**
+     * GitCode 企业登录的标识符.
+     */
+    @Value("${enterprise.identifier.gitcode: }")
+    private String enterIdentifiedGitCode;
+    /**
+     * GitCode 企业登录的授权 URL.
+     */
+    @Value("${enterprise.authorizationUrl.gitcode: }")
+    private String enterAuthUrlGitCode;
+
+    /**
      * Authing 的 RSA 私钥.
      */
     @Value("${rsa.authing.privateKey}")
@@ -1244,6 +1260,13 @@ public class AuthingUserDao {
                 mapWechat.put("authorizationUrl", authWechat);
                 list.add(mapWechat);
             }
+            if (StringUtils.isNotBlank(enterAuthUrlGitCode)) {
+                Map<String, String> mapGitCode = new HashMap<>();
+                String authGitCode = String.format(enterAuthUrlGitCode, appId, enterIdentifiedGitCode, userToken);
+                mapGitCode.put("name", "enterprise_gitcode");
+                mapGitCode.put("authorizationUrl", authGitCode);
+                list.add(mapGitCode);
+            }
             return list;
         } catch (RuntimeException e) {
             LOGGER.error("Internal Server RuntimeException" + e.getMessage());
@@ -1301,6 +1324,10 @@ public class AuthingUserDao {
                 case "openatom":
                     identifier = enterIdentifieOpenatom;
                     extIdpId = enterExtIdpIdOpenatom;
+                    break;
+                case "gitcode":
+                    identifier = enterIdentifiedGitCode;
+                    extIdpId = enterExtIdpIdGitCode;
                     break;
                 case "wechat":
                     identifier = socialIdentifierWechat;
