@@ -29,7 +29,6 @@ import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
 import jakarta.mail.internet.MimeMessage;
 
-import java.math.BigInteger;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.DrbgParameters;

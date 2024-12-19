@@ -27,6 +27,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.auth0.jwt.JWT;
+import com.om.dao.AuthingManagerDao;
 import com.om.dao.AuthingUserDao;
 import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
@@ -81,6 +82,12 @@ public class LoginService {
      * 静态变量: LOGGER - 日志记录器.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(LoginService.class);
+
+    /**
+     * Authing的管理面接口.
+     */
+    @Autowired
+    private AuthingManagerDao authingManagerDao;
 
     /**
      * 使用 @Autowired 注解注入 AuthingUserDao.
@@ -190,7 +197,7 @@ public class LoginService {
             JSONObject userObj = (JSONObject) loginRes;
             idToken = userObj.getString("id_token");
             userId = JWT.decode(idToken).getSubject();
-            user = authingUserDao.getUser(userId);
+            user = authingManagerDao.getUserByUserId(userId);
         } else {
             LogUtil.createLogs(account, "user login", "login",
                     "The user login", ip, "failed");

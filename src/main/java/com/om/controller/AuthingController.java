@@ -114,7 +114,7 @@ public class AuthingController {
      * @param request HTTP 请求对象
      * @return 返回响应模型 ResponseModel
      */
-    @RequestLimitRedis(period = 20, count = 14)
+    @RequestLimitRedis()
     @RequestMapping(value = "/captcha/get", method = RequestMethod.POST)
     public ResponseModel captchaGet(@RequestBody Map<String, String> data, HttpServletRequest request) {
         CaptchaVO captchaVO = new CaptchaVO();
@@ -796,7 +796,8 @@ public class AuthingController {
                 (community == null
                         || community.toLowerCase().equals(Constant.ONEID_VERSION_V1)
                         || community.toLowerCase().equals(Constant.ONEID_VERSION_V2)
-                        || community.toLowerCase().equals(Constant.OPEN_MIND))
+                        || community.toLowerCase().equals(Constant.OPEN_MIND)
+                        || community.toLowerCase().equals(Constant.OPEN_UBMC))
                         ? Constant.AUTHING : community.toLowerCase();
         return userCenterServiceContext.getUserCenterService(serviceType);
     }
