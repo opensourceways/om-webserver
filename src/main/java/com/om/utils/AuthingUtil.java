@@ -103,7 +103,7 @@ public class AuthingUtil {
     }
 
     /**
-     * identities 解析（包括gitee,github,wechat）.
+     * identities 解析（包括gitee,github,wechat,gitcode）.
      *
      * @param userObj 用户对象
      * @return ArrayList
@@ -125,7 +125,7 @@ public class AuthingUtil {
     }
 
     /**
-     * identities -> userInfoInIdp 解析（包括gitee,github,wechat）.
+     * identities -> userInfoInIdp 解析（包括gitee,github,wechat,gitcode）.
      *
      * @param identityObj 用户对象
      * @param map map
@@ -181,6 +181,21 @@ public class AuthingUtil {
             res.put("user_name", userName);
             res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("gitee", res);
+        } else if (extIdpId.equals(env.getProperty("enterprise.extIdpId.gitcode"))) {
+            String phone = jsonObjStringValue(userInfoInIdpObj, "phone");
+            String email = jsonObjStringValue(userInfoInIdpObj, "email");
+            String name = jsonObjStringValue(userInfoInIdpObj, "name");
+            res.put("identity", "gitcode");
+            String loginName = convertIdentityName(name);
+            String userName = convertIdentityName(name);
+            if (map.containsKey("gitcode")) {
+                loginName += IDENTITY_NAME_SPLIT + map.get("gitcode").get("login_name");
+                userName += IDENTITY_NAME_SPLIT + map.get("gitcode").get("gitcode");
+            }
+            res.put("login_name", loginName);
+            res.put("user_name", userName);
+            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
+            map.put("gitcode", res);
         } else if (extIdpId.equals(env.getProperty("enterprise.extIdpId.openatom"))) {
             String phone = jsonObjStringValue(userInfoInIdpObj, "phone");
             String email = jsonObjStringValue(userInfoInIdpObj, "email");
