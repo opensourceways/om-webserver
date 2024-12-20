@@ -174,7 +174,7 @@ public class LoginService {
             }
         }
         // 登录成功返回用户token
-        Object loginRes = login(appId, account, code, password, oneidPrivacy);
+        Object loginRes = login(appId, account, code, password, oneidPrivacy, ip);
         // 获取用户信息
         String idToken;
         String userId;
@@ -259,9 +259,11 @@ public class LoginService {
      * @param code 验证码
      * @param password 密码
      * @param oneidPrivacy 隐私版本
+     * @param clientIp 用户IP
      * @return 登录响应体
      */
-    public Object login(String appId, String account, String code, String password, String oneidPrivacy) {
+    public Object login(String appId, String account, String code, String password, String oneidPrivacy,
+                        String clientIp) {
         // code/password 同时传入报错
         if ((StringUtils.isNotBlank(code) && StringUtils.isNotBlank(password))) {
             return MessageCodeConfig.E00012.getMsgZh();
@@ -294,18 +296,18 @@ public class LoginService {
         try {
             if (accountType.equals(Constant.EMAIL_TYPE)) { // 邮箱登录
                 msg = StringUtils.isNotBlank(code)
-                        ? authingUserDao.loginByEmailCode(app, account, code)
-                        : authingUserDao.loginByEmailPwd(app, account, password);
+                        ? authingUserDao.loginByEmailCode(app, account, code, clientIp)
+                        : authingUserDao.loginByEmailPwd(app, account, password, clientIp);
             } else if (accountType.equals(Constant.PHONE_TYPE)) { // 手机号登录
                 msg = StringUtils.isNotBlank(code)
-                        ? authingUserDao.loginByPhoneCode(app, account, code)
-                        : authingUserDao.loginByPhonePwd(app, account, password);
+                        ? authingUserDao.loginByPhoneCode(app, account, code, clientIp)
+                        : authingUserDao.loginByPhonePwd(app, account, password, clientIp);
             } else { // 用户名登录
                 // 用户名校验
                 if (!authingService.isUserNameParmValid(account)) {
                     return MessageCodeConfig.E00052.getMsgZh();
                 }
-                msg = authingUserDao.loginByUsernamePwd(app, account, password);
+                msg = authingUserDao.loginByUsernamePwd(app, account, password, clientIp);
             }
         } catch (ServerErrorException e) {
             return MessageCodeConfig.E00048.getMsgZh();
