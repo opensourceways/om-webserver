@@ -16,7 +16,7 @@ import com.anji.captcha.util.StringUtils;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.Claim;
-import com.om.dao.AuthingUserDao;
+import com.om.dao.AuthingManagerDao;
 import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
@@ -57,10 +57,10 @@ public class JwtTokenCreateService {
     private CodeUtil codeUtil;
 
     /**
-     * 使用 @Autowired 注解注入 AuthingUserDao.
+     * Authing的管理面接口.
      */
     @Autowired
-    private AuthingUserDao authingUserDao;
+    private AuthingManagerDao authingManagerDao;
 
     /**
      * 过期时间（秒）：Authing Token.
@@ -140,7 +140,7 @@ public class JwtTokenCreateService {
                 .toInstant().plusSeconds(expireSeconds));
 
         if (StringUtils.isBlank(username)) {
-            User user = authingUserDao.getUser(userId);
+            User user = authingManagerDao.getUserByUserId(userId);
             if (user != null && StringUtils.isNotBlank(user.getUsername())) {
                 username = user.getUsername();
             }

@@ -20,7 +20,7 @@ import com.auth0.jwt.interfaces.Claim;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.om.dao.AuthingUserDao;
+import com.om.dao.AuthingManagerDao;
 import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
@@ -109,10 +109,10 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private ClientSessionManager clientSessionManager;
 
     /**
-     * 使用 @Autowired 注解注入 AuthingUserDao.
+     * Authing的管理面接口.
      */
     @Autowired
-    private AuthingUserDao authingUserDao;
+    private AuthingManagerDao authingManagerDao;
 
     /**
      * Authing Token 的基础密码.
@@ -313,7 +313,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
         // 必须设置用户名
         if (StringUtils.isBlank(username) && !BASEINFO_URI.equals(url)) {
-            User user = authingUserDao.getUser(userId);
+            User user = authingManagerDao.getUserByUserId(userId);
             if (user != null && com.anji.captcha.util.StringUtils.isNotBlank(user.getUsername())) {
                 username = user.getUsername();
             }
