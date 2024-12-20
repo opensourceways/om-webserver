@@ -1570,7 +1570,7 @@ public class AuthingService implements UserCenterServiceInter {
     public ResponseEntity message(String res) {
         switch (res) {
             case "true":
-                return result(HttpStatus.OK, "success", null);
+                return result(HttpStatus.OK, MessageCodeConfig.S0001, null, null);
             case "false":
                 return result(HttpStatus.BAD_REQUEST, null, "请求异常", null);
             default:
