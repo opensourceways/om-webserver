@@ -40,8 +40,8 @@ public final class Constant {
     /**
      * 邮箱正则表达式，匹配常见邮箱格式.
      */
-    public static final String EMAILREGEX = "^[A-Za-z0-9-._\\u4e00-\\u9fa5]{1,40}" +
-            "@[a-zA-Z0-9_-]{1,20}(\\.[a-zA-Z0-9_-]{1,20}){1,10}$";
+    public static final String EMAILREGEX = "^[A-Za-z0-9-._\\u4e00-\\u9fa5]{1,40}"
+            + "@[a-zA-Z0-9_-]{1,20}(\\.[a-zA-Z0-9_-]{1,20}){1,10}$";
 
     /**
      * 用户名正则表达式，匹配特定用户名格式.
@@ -52,6 +52,11 @@ public final class Constant {
      * openmind用户名规则.
      */
     public static final String OPEN_MIND_USERNAME_REGEX = "^[a-zA-Z]([-_.]([a-zA-Z0-9])|[a-zA-Z0-9])+$";
+
+    /**
+     * openmind用户名规则.
+     */
+    public static final String SEND_CODE = "_sendcode";
 
     /**
      * 字母或数字.
@@ -182,6 +187,11 @@ public final class Constant {
     public static final String REDIS_PREFIX_RESET_PASSWD = "resetPassWdToken_";
 
     /**
+     * authing管理面token.
+     */
+    public static final String REDIS_KEY_AUTH_MANAGER_TOKEN = "authingManagerToken";
+
+    /**
      * Token过期.
      */
     public static final String TOKEN_EXPIRES = "token expires";
@@ -219,5 +229,10 @@ public final class Constant {
     /**
      * 合法authing的channel字符串序列.
      */
-    public static final String AUTHING_CHANNELS = "CHANNEL_BIND_EMAIL,CHANNEL_BIND_PHONE";
+    public static final String AUTHING_CHANNELS = "CHANNEL_BIND_EMAIL,CHANNEL_BIND_PHONE"
+            + "CHANNEL_LOGIN,CHANNEL_REGISTER,CHANNEL_RESET_PASSWORD,"
+            + "CHANNEL_VERIFY_EMAIL_LINK,CHANNEL_UPDATE_EMAIL,CHANNEL_UNBIND_EMAIL,"
+            + "CHANNEL_VERIFY_MFA,CHANNEL_UNLOCK_ACCOUNT,CHANNEL_COMPLETE_EMAIL,CHANNEL_DELETE_ACCOUNT,"
+            + "CHANNEL_UNBIND_PHONE,CHANNEL_BIND_MFA,CHANNEL_VERIFY_MFA,CHANNEL_UNBIND_MFA,"
+            + "CHANNEL_COMPLETE_PHONE,CHANNEL_IDENTITY_VERIFICATION,CHANNEL_DELETE_ACCOUNT";
 }

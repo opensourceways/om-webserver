@@ -49,25 +49,13 @@ public interface UserCenterServiceInter {
                               HttpServletResponse servletResponse, boolean isSuccess);
 
     /**
-     * 登录方法.
+     * 检查账户是否存在的方法.
      *
      * @param servletRequest  HTTP请求对象
      * @param servletResponse HTTP响应对象
-     * @param isSuccess       是否成功标识
      * @return ResponseEntity 响应实体
      */
-    ResponseEntity login(HttpServletRequest servletRequest, HttpServletResponse servletResponse, boolean isSuccess);
-
-    /**
-     * 个人中心用户信息方法.
-     *
-     * @param servletRequest  HTTP请求对象
-     * @param servletResponse HTTP响应对象
-     * @param token           令牌
-     * @return ResponseEntity 响应实体
-     */
-    ResponseEntity personalCenterUserInfo(HttpServletRequest servletRequest,
-                                          HttpServletResponse servletResponse, String token);
+    ResponseEntity accountExists(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
 
     /**
      * 注销方法.
@@ -80,14 +68,14 @@ public interface UserCenterServiceInter {
     ResponseEntity logout(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 
     /**
-     * 删除用户方法.
+     * 刷新用户信息的方法.
      *
      * @param servletRequest  HTTP请求对象
      * @param servletResponse HTTP响应对象
      * @param token           令牌
      * @return ResponseEntity 响应实体
      */
-    ResponseEntity deleteUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
+    ResponseEntity refreshUser(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token);
 
     /**
      * 更新用户基本信息方法.
@@ -162,6 +150,16 @@ public interface UserCenterServiceInter {
     ResponseEntity getPublicKey();
 
     /**
+     * 更新密码方法.
+     *
+     * @param servletRequest HTTP请求对象
+     * @param servletResponse HTTP响应对象
+     * @return ResponseEntity 响应实体
+     */
+    ResponseEntity updatePassword(HttpServletRequest servletRequest, HttpServletResponse servletResponse);
+
+
+    /**
      * 重置密码验证方法.
      *
      * @param servletRequest HTTP请求对象
@@ -186,4 +184,23 @@ public interface UserCenterServiceInter {
      * @return ResponseEntity 响应实体
      */
     ResponseEntity appVerify(String appId, String redirect);
+
+    /**
+     * 检测token.
+     *
+     * @param token token
+     * @return token中用户信息
+     */
+    ResponseEntity verifyToken(String token);
+
+    /**
+     * 合并账号.
+     *
+     * @param servletRequest 请求体
+     * @param servletResponse 响应体
+     * @param token token
+     * @return 返回值
+     */
+    ResponseEntity mergeUser(HttpServletRequest servletRequest,
+                             HttpServletResponse servletResponse, String token);
 }

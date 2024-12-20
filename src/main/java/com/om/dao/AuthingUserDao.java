@@ -15,9 +15,6 @@ import cn.authing.core.auth.AuthenticationClient;
 import cn.authing.core.mgmt.ManagementClient;
 
 import cn.authing.core.types.Application;
-import cn.authing.core.types.AuthorizedResource;
-import cn.authing.core.types.FindUserParam;
-import cn.authing.core.types.PaginatedAuthorizedResources;
 import cn.authing.core.types.UpdateUserInput;
 import cn.authing.core.types.User;
 import com.alibaba.fastjson2.JSON;
@@ -40,6 +37,8 @@ import com.om.result.Constant;
 import com.om.utils.CommonUtil;
 import com.om.utils.RSAUtil;
 import org.apache.commons.lang3.StringUtils;
+
+import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -50,7 +49,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Repository;
-import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.annotation.PostConstruct;
@@ -241,6 +239,11 @@ public class AuthingUserDao {
     private String photoSuffix;
 
     /**
+     * 允许的社区列表.
+     */
+    private List<String> allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry", "openubmc");
+
+    /**
      * Authing API v2 主机地址.
      */
     @Value("${authing.api.hostv2}")
@@ -331,6 +334,12 @@ public class AuthingUserDao {
      */
     @Autowired
     private AuthingAppSync authingAppSync;
+
+    /**
+     * 管理面 dao类.
+     */
+    @Autowired
+    private AuthingManagerDao managerDao;
 
     /**
      * 历史隐私记录保存类.
@@ -521,7 +530,7 @@ public class AuthingUserDao {
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
                         + "\"profile\":{\"email\":\"%s\", \"givenName\":\"%s\"},"
-                        + "\"options\":{\"passwordEncryptType\":\"sm2\","
+                        + "\"options\":{\"passwordEncryptType\":\"rsa\","
                         + " \"emailPassCodeForInformationCompletion\":\"%s\"}}",
                 username, password, email, privacyHistoryService
                         .createPrivacyVersions(oneidPrivacyVersion, true), code);
@@ -545,7 +554,7 @@ public class AuthingUserDao {
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
                         + "\"profile\":{\"phone\":\"%s\", \"phoneCountryCode\":\"%s\", \"givenName\":\"%s\"},"
-                        + "\"options\":{\"passwordEncryptType\":\"sm2\", "
+                        + "\"options\":{\"passwordEncryptType\":\"rsa\", "
                         + "\"phonePassCodeForInformationCompletion\":\"%s\"}}",
                 username, password, phone, phoneCountryCode,
                 privacyHistoryService.createPrivacyVersions(oneidPrivacyVersion, true), code);
@@ -630,7 +639,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"email\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"sm2\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 email, password, app.getId(), app.getSecret());
         return login(app.getId(), body);
@@ -654,7 +663,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"phone\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"sm2\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 phone, password, app.getId(), app.getSecret());
         return login(app.getId(), body);
@@ -676,7 +685,7 @@ public class AuthingUserDao {
 
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
-                        + "\"options\": {\"passwordEncryptType\": \"sm2\"},"
+                        + "\"options\": {\"passwordEncryptType\": \"rsa\"},"
                         + "\"client_id\":\"%s\",\"client_secret\":\"%s\"}",
                 username, password, app.getId(), app.getSecret());
         return login(app.getId(), body);
@@ -758,45 +767,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 根据邮箱查询用户id.
-     *
-     * @param email 电子邮箱
-     * @return 用户id
-     */
-    public String getUserIdByEmail(String email) {
-        try {
-            User user = managementClient.users().find(new FindUserParam().withEmail(email)).execute();
-            if (user == null) {
-                return null;
-            }
-            return user.getId();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 根据手机号查询用户id.
-     *
-     * @param phone 手机号
-     * @return 用户id
-     */
-    public String getUserIdByPhone(String phone) {
-        try {
-            phone = getPurePhone(phone);
-            User user = managementClient.users().find(new FindUserParam().withPhone(phone)).execute();
-            if (user == null) {
-                return null;
-            }
-            return user.getId();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
      * 通过令牌获取应用用户信息.
      *
      * @param token 用户令牌
@@ -818,94 +788,6 @@ public class AuthingUserDao {
     }
 
     /**
-     * 根据用户 ID 获取用户详细信息.
-     *
-     * @param userId 用户 ID
-     * @return 返回包含用户信息的 JSONObject 对象，如果未找到用户则返回 null
-     */
-    public JSONObject getUserById(String userId) {
-        try {
-            String token = getManagementToken();
-            HttpResponse<JsonNode> response = Unirest.get(authingApiHostV2 + "/users/" + userId)
-                    .header("Authorization", token)
-                    .header("x-authing-userpool-id", userPoolId)
-                    .asJson();
-            return response.getBody().getObject().getJSONObject("data");
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * 通过用户ID更新用户的电子邮件地址.
-     *
-     * @param userId 用户 ID
-     * @param email  要更新为的电子邮件地址
-     * @return 返回更新后的电子邮件地址，如果更新成功则返回新的电子邮件地址，否则返回null
-     */
-    public String updateEmailById(String userId, String email) {
-        try {
-            User res = managementClient.users().update(userId, new UpdateUserInput().withEmail(email)).execute();
-            return res.getEmail();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return "";
-        }
-    }
-
-    /**
-     * 通过用户 ID 删除用户.
-     *
-     * @param userId 用户 ID
-     * @return 如果成功删除用户则返回 true，否则返回 false
-     */
-    public boolean deleteUserById(String userId) {
-        try {
-            String token = getManagementToken();
-            HttpResponse<JsonNode> response = Unirest.delete(authingApiHostV2 + "/users/" + userId)
-                    .header("Authorization", token)
-                    .header("x-authing-userpool-id", userPoolId)
-                    .asJson();
-            int code = response.getBody().getObject().getInt("code");
-            return code == 200;
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return false;
-        }
-    }
-
-    /**
-     * 获取用户资源和操作权限.
-     *
-     * @param userId    用户 ID
-     * @param groupCode 用户组code
-     * @return 返回用户在指定用户组下的权限列表，作为一个字符串数组列表
-     */
-    public ArrayList<String> getUserPermission(String userId, String groupCode) {
-        ArrayList<String> pers = new ArrayList<>();
-        try {
-            PaginatedAuthorizedResources pars = managementClient
-                    .users()
-                    .listAuthorizedResources(userId, groupCode)
-                    .execute();
-            if (pars.getTotalCount() <= 0) {
-                return pers;
-            }
-            List<AuthorizedResource> ars = pars.getList();
-            for (AuthorizedResource ar : ars) {
-                List<String> actions = ar.getActions();
-                if (!CollectionUtils.isEmpty(actions)) {
-                    pers.addAll(actions);
-                }
-            }
-            return pers;
-        } catch (Exception e) {
-            return pers;
-        }
-    }
-
-    /**
      * 获取公钥字符串.
      *
      * @return 返回包含公钥的字符串
@@ -916,11 +798,38 @@ public class AuthingUserDao {
             HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/system").asJson();
             if (response.getStatus() == 200) {
                 JSONObject resObj = response.getBody().getObject();
-                resObj.remove("rsa");
+                resObj.remove("sm2");
                 resObj.remove("version");
                 resObj.remove("publicIps");
                 msg = resObj.toString();
             }
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+        }
+        return msg;
+    }
+
+    /**
+     * 使用访问令牌更新用户密码.
+     *
+     * @param token 访问令牌
+     * @param oldPwd 旧密码
+     * @param newPwd 新密码
+     * @return 如果成功更新密码则返回消息提示，否则返回 null
+     */
+    public String updatePassword(String token, String oldPwd, String newPwd) {
+        String msg = MessageCodeConfig.E00053.getMsgZh();
+        try {
+            Object[] appUserInfo = getAppUserInfo(token);
+            String appId = appUserInfo[0].toString();
+            User user = (User) appUserInfo[1];
+
+            String body = String.format("{\"newPassword\": \"%s\","
+                    + "\"oldPassword\": \"%s\","
+                    + "\"passwordEncryptType\": \"rsa\"}", newPwd, oldPwd);
+            HttpResponse<JsonNode> response = authPost("/update-password", appId, user.getToken(), body);
+            JSONObject resObj = response.getBody().getObject();
+            msg = resObj.getInt("statusCode") != 200 ? AuthingRespConvert.convertMsg(resObj, msg) : Constant.SUCCESS;
         } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
@@ -973,7 +882,7 @@ public class AuthingUserDao {
         try {
             String body = String.format("{\"passwordResetToken\": \"%s\","
                     + "\"password\": \"%s\","
-                    + "\"passwordEncryptType\": \"sm2\"}", pwdResetToken, newPwd);
+                    + "\"passwordEncryptType\": \"rsa\"}", pwdResetToken, newPwd);
             HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + "/reset-password")
                     .header("Content-Type", "application/json").body(body).asJson();
             JSONObject resObj = response.getBody().getObject();
@@ -1024,6 +933,40 @@ public class AuthingUserDao {
         } catch (Exception e) {
             LogUtil.createLogs(userId, "update account", "user",
                     "The user update account", userIp, "failed");
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return e.getMessage();
+        }
+        return "true";
+    }
+
+     /**
+     * 使用访问令牌更新账户信息.
+     *
+     * @param token 访问令牌
+     * @param account 新账户信息
+     * @param type 类型
+     * @return 如果成功更新账户信息则返回消息提示，否则返回 null
+     */
+    public String updateAccountInfo(String token, String account, String type) {
+        try {
+            RSAPrivateKey privateKey = RSAUtil.getPrivateKey(rsaAuthingPrivateKey);
+            String dectoken = RSAUtil.privateDecrypt(token, privateKey);
+            DecodedJWT decode = JWT.decode(dectoken);
+            String userId = decode.getAudience().get(0);
+            UpdateUserInput updateUserInput = new UpdateUserInput();
+
+            switch (type.toLowerCase()) {
+                case "email":
+                    updateUserInput.withEmail(account);
+                    break;
+                case "phone":
+                    updateUserInput.withPhone(account);
+                    break;
+                default:
+                    return "false";
+            }
+            managementClient.users().update(userId, updateUserInput).execute();
+        } catch (Exception e) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return e.getMessage();
         }
@@ -1096,6 +1039,36 @@ public class AuthingUserDao {
     }
 
     /**
+     * 绑定账户到认证客户端.
+     *
+     * @param authentication 认证客户端
+     * @param account 要绑定的账户信息
+     * @param code 验证码
+     * @param type 账户类型
+     * @return 如果成功绑定账户则返回消息提示，否则返回 null
+     */
+    public String bindAccount(AuthenticationClient authentication, String account, String code, String type) {
+        try {
+            switch (type.toLowerCase()) {
+                case "email":
+                    authentication.bindEmail(account, code).execute();
+                    break;
+                case "phone":
+                    authentication.bindPhone(account, code).execute();
+                    break;
+                default:
+                    return "false";
+            }
+        } catch (Exception e) {
+            LogUtil.createLogs(account, "bind account", "user",
+                    "The user bind account", "", "failed");
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return e.getMessage();
+        }
+        return "true";
+    }
+
+    /**
      * 使用令牌绑定账户.
      *
      * @param token 访问令牌
@@ -1162,7 +1135,7 @@ public class AuthingUserDao {
             throw new ServerErrorException("该邮箱已被其它账户绑定");
         }
 
-        String res = updateEmailById(userId, account);
+        String res = managerDao.updateEmailById(userId, account);
 
         if (res.equals(account)) {
             redisDao.remove(redisKey);
@@ -1279,6 +1252,28 @@ public class AuthingUserDao {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * 使用两个令牌绑定账户.
+     *
+     * @param token 第一个访问令牌
+     * @param secondToken 第二个访问令牌
+     * @return 返回绑定账户操作的结果消息
+     */
+    public String linkAccount(String token, String secondToken) {
+        try {
+            Object[] appUserInfo = getAppUserInfo(token);
+            String appId = appUserInfo[0].toString();
+            User us = (User) appUserInfo[1];
+            AuthenticationClient authentication = initUserAuthentication(appId, us);
+
+            authentication.linkAccount(token, secondToken).execute();
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return e.getMessage();
+        }
+        return "true";
     }
 
     /**
@@ -1533,6 +1528,34 @@ public class AuthingUserDao {
     }
 
     /**
+     * 撤销用户隐私设置.
+     *
+     * @param userId 用户ID
+     * @return 如果成功撤销用户隐私设置则返回 true，否则返回 false
+     */
+    public boolean revokePrivacy(String userId) {
+        try {
+            // get user
+            User user = managementClient.users().detail(userId, false, false).execute();
+            UpdateUserInput input = new UpdateUserInput();
+            input.withGivenName(updatePrivacyVersions(user.getGivenName(), "revoked"));
+            User updateUser = managementClient.users().update(userId, input).execute();
+            if (updateUser == null) {
+                return false;
+            }
+            saveHistory(user, null);
+            LOGGER.info(String.format("User %s cancel privacy consent version %s for app version %s",
+                    user.getId(), oneidPrivacyVersion, appVersion));
+            return true;
+        } catch (Exception e) {
+            LogUtil.createLogs(null, "revoke privacy version", "user",
+                    "The user update privacy version", "", "failed");
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * 使用访问令牌更新用户照片.
      *
      * @param token 访问令牌
@@ -1622,20 +1645,6 @@ public class AuthingUserDao {
         }
     }
 
-    private String getManagementToken() {
-        try {
-            String body = String.format("{\"userPoolId\":\"%s\",\"secret\":\"%s\"}", userPoolId, secret);
-            HttpResponse<JsonNode> response = Unirest.post(authingApiHostV2 + "/userpools/access-token")
-                    .header("Content-Type", "application/json")
-                    .body(body)
-                    .asJson();
-            return response.getBody().getObject().get("accessToken").toString();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return "";
-        }
-    }
-
     /**
      * 检查用户名是否合规.
      *
@@ -1670,6 +1679,35 @@ public class AuthingUserDao {
         }
 
         return msg;
+    }
+
+    /**
+     * 获取用户可访问的应用程序列表.
+     *
+     * @param userId 用户ID
+     * @return 包含用户可访问的应用程序名称的列表
+     */
+    public List<String> userAccessibleApps(String userId) {
+        ArrayList<String> appIds = new ArrayList<>();
+        try {
+            String token = getUser(userId).getToken();
+            HttpResponse<JsonNode> response = Unirest.get(authingApiHostV3 + "/get-my-accessible-apps")
+                    .header("Authorization", token)
+                    .header("x-authing-userpool-id", userPoolId)
+                    .asJson();
+            if (response.getStatus() == 200) {
+                JSONArray data = response.getBody().getObject().getJSONArray("data");
+                for (Object item : data) {
+                    if (item instanceof JSONObject) {
+                        JSONObject app = (JSONObject) item;
+                        appIds.add(app.getString("appId"));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+        }
+        return appIds;
     }
 
     private List<String> getUsernameReserved() {
@@ -1779,6 +1817,66 @@ public class AuthingUserDao {
     }
 
     /**
+     * 创建隐私版本号.
+     *
+     * @param version 版本号
+     * @param needSlash 是否需要斜杠
+     * @return 返回创建的隐私版本号
+     */
+    public String createPrivacyVersions(String version, Boolean needSlash) {
+        if (!isValidCommunity(community)) {
+            return "";
+        }
+
+        HashMap<String, String> privacys = new HashMap<>();
+        privacys.put(community, version);
+        if (needSlash) {
+            return JSON.toJSONString(privacys).replaceAll("\"", "\\\\\"");
+        } else {
+            return JSON.toJSONString(privacys);
+        }
+    }
+
+    /**
+     * 更新隐私版本号.
+     *
+     * @param previous 先前的版本号
+     * @param version 新版本号
+     * @return 返回更新后的隐私版本号
+     */
+    public String updatePrivacyVersions(String previous, String version) {
+        if (!isValidCommunity(community)) {
+            return "";
+        }
+
+        if (StringUtils.isBlank(previous)) {
+            return createPrivacyVersions(version, false);
+        }
+
+        if (!previous.contains(":")) {
+            if ("unused".equals(previous)) {
+                return createPrivacyVersions(version, false);
+            } else {
+                HashMap<String, String> privacys = new HashMap<>();
+                privacys.put("openeuler", previous);
+                privacys.put(community, version);
+                return JSON.toJSONString(privacys);
+            }
+        } else {
+            try {
+                HashMap<String, String> privacys = JSON.parseObject(previous, HashMap.class);
+                privacys.put(community, version);
+                return JSON.toJSONString(privacys);
+            } catch (Exception e) {
+                LogUtil.createLogs(null, "update privacy version", "user",
+                    "The user update privacy version", "", "failed");
+                LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+                return createPrivacyVersions(version, false);
+            }
+        }
+    }
+
+    /**
      * 根据社区获取包含特定隐私版本号的隐私设置.
      *
      * @param privacyVersions 隐私版本号
@@ -1803,20 +1901,12 @@ public class AuthingUserDao {
         }
     }
 
-    /**
-     * 将用户踢出系统.
-     *
-     * @param userId 用户ID
-     * @return 如果成功将用户踢出系统则返回 true，否则返回 false
-     */
-    public boolean kickUser(String userId) {
-        try {
-            List<String> userIds = new ArrayList<>();
-            userIds.add(userId);
-            return managementClient.users().kick(userIds).execute();
-        } catch (Exception e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            return false;
+    private boolean isValidCommunity(String communityIns) {
+        for (String com : allowedCommunity) {
+            if (communityIns.startsWith(com)) {
+                return true;
+            }
         }
+        return false;
     }
 }
