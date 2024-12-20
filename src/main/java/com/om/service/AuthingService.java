@@ -636,6 +636,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("username", username);
             userData.put("email", email);
             userData.put("phone", phone);
+            userData.put("phone_exist", StringUtils.isNotBlank(phone));
             userData.put("aigcPrivacyAccepted", aigcPrivacyAccepted);
             userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
             return result(HttpStatus.OK, "success", userData);
