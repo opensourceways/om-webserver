@@ -669,6 +669,7 @@ public class AuthingService implements UserCenterServiceInter {
                 permissionInfo.getUserId(), permissionInfo.getNamespaceCode())) {
             return result(HttpStatus.OK, "success", hasPermission);
         }
+        String resource = authingManagerDao.convertResource(permissionInfo.getResource());
         if (CollectionUtils.isEmpty(permissionInfo.getActions())) {
             return result(HttpStatus.OK, "success", hasPermission);
         }
@@ -677,7 +678,7 @@ public class AuthingService implements UserCenterServiceInter {
         List<String> perActions = new ArrayList<>();
         for (String per : pers) {
             String[] perList = per.split(":");
-            if (perList.length > 1 && StringUtils.equals(permissionInfo.getResource(), perList[0])) {
+            if (perList.length > 1 && StringUtils.equals(resource, perList[0])) {
                 perActions.add(perList[1]);
             }
         }
@@ -742,8 +743,8 @@ public class AuthingService implements UserCenterServiceInter {
             return result(HttpStatus.OK, "unrecognized param", Collections.emptyList());
         }
 
-        List<String> resourceCodeList = authingManagerDao.listResources(nameSpaceCode, page, limit);
-        return result(HttpStatus.OK, "success", Map.of("resources", resourceCodeList));
+        HashMap<String, Object> resourceCodeMap = authingManagerDao.queryResources(namespaceInfoPage);
+        return result(HttpStatus.OK, "success", resourceCodeMap);
     }
 
     /**
@@ -758,8 +759,10 @@ public class AuthingService implements UserCenterServiceInter {
         if (StringUtils.isBlank(nameSpaceCode) || StringUtils.isBlank(resource)) {
             return result(HttpStatus.OK, "unrecognized param", Collections.emptyList());
         }
-
         List<UserOfResourceInfo> userList = authingManagerDao.listUserOfResource(nameSpaceCode, resource);
+        if (userList == null) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
         return result(HttpStatus.OK, "success", Map.of("users", userList));
     }
 

@@ -11,25 +11,31 @@
 
 package com.om.Dao;
 
-import cn.authing.core.http.HttpCall;
+import cn.authing.core.graphql.GraphQLException;
 import cn.authing.core.mgmt.ManagementClient;
 import cn.authing.core.types.AuthorizedResource;
+import cn.authing.core.types.AuthorizedTargetsActionsInput;
 import cn.authing.core.types.AuthorizedTargetsParam;
+import cn.authing.core.types.CommonMessage;
 import cn.authing.core.types.FindUserParam;
-import cn.authing.core.types.IResourceResponse;
 import cn.authing.core.types.Identity;
+import cn.authing.core.types.Operator;
 import cn.authing.core.types.PaginatedAuthorizedResources;
-import cn.authing.core.types.Pagination;
+import cn.authing.core.types.PolicyAssignmentTargetType;
 import cn.authing.core.types.ResourcePermissionAssignment;
 import cn.authing.core.types.ResourceType;
-import cn.authing.core.types.RestfulResponse;
+import cn.authing.core.types.RevokeResourceOpt;
+import cn.authing.core.types.RevokeResourceParams;
 import cn.authing.core.types.UpdateUserInput;
 import cn.authing.core.types.User;
 import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.om.Controller.bean.request.NamespaceInfoPage;
 import com.om.Controller.bean.response.IdentityInfo;
 import com.om.Controller.bean.response.UserOfResourceInfo;
+import com.om.Dao.bean.AuthorizeInfo;
+import com.om.Dao.bean.UserInfo;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Service.PrivacyHistoryService;
@@ -39,6 +45,7 @@ import jakarta.annotation.PostConstruct;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
+import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -50,11 +57,11 @@ import org.springframework.stereotype.Repository;
 import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
+import java.net.URLEncoder;
 import java.security.interfaces.RSAPrivateKey;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -87,9 +94,29 @@ public class AuthingManagerDao {
     private static final String LINK_IDENTITY_URI = "/link-identity";
 
     /**
+     * 批量授权.
+     */
+    private static final String AUTHORIZE_RESOURCES_URI = "/authorize-resources";
+
+    /**
+     * 批量查询用户信息.
+     */
+    private static final String GET_USER_BATCH_URI = "/get-user-batch";
+
+    /**
+     * 获取资源.
+     */
+    private static final String LIST_COMMON_RESOURCE = "/list-common-resource";
+
+    /**
      * 允许的社区列表.
      */
     private List<String> allowedCommunity;
+
+    /**
+     * 特殊的资源名，authing无法录入，需转化后使用.
+     */
+    private HashMap<String, String> resourceConvertMap = new HashMap<>();
 
     /**
      * token多冗余10分钟，防止临界情况.
@@ -184,6 +211,17 @@ public class AuthingManagerDao {
         setInitManagementClient(new ManagementClient(userPoolId, secret));
         allowedCommunity = Arrays.asList(Constant.OPEN_EULER, Constant.MIND_SPORE, Constant.MODEL_FOUNDRY,
                 Constant.OPEN_UBMC);
+        String resourceConvert = env.getProperty("authing.resource.convert.mapping", "");
+        if (StringUtils.isNotBlank(resourceConvert)) {
+            String[] resourceSplit = resourceConvert.split(",");
+            for (String resource : resourceSplit) {
+                String[] dataSplit = resource.split(":");
+                if (dataSplit.length != 2) {
+                    continue;
+                }
+                resourceConvertMap.put(dataSplit[0], dataSplit[1]);
+            }
+        }
     }
 
     /**
@@ -298,21 +336,70 @@ public class AuthingManagerDao {
     /**
      * 获取权限空间下所有资源.
      *
-     * @param nameSpaceCode 权限空间
-     * @param page 分页
-     * @param limit 数量限制
+     * @param namespaceInfoPage 权限空间
      * @return 资源列表
      */
-    public List<String> listResources(String nameSpaceCode, Integer page, Integer limit) {
+    public HashMap<String, Object> queryResources(NamespaceInfoPage namespaceInfoPage) {
         try {
-            HttpCall<RestfulResponse<Pagination<IResourceResponse>>, Pagination<IResourceResponse>> call =
-                    managementClient.acl().listResources(nameSpaceCode, ResourceType.DATA, limit, page);
-            Pagination<IResourceResponse> pageResponse = call.execute();
-            List<IResourceResponse> list = pageResponse.getList();
-            return list.stream().map(i -> i.getCode()).collect(Collectors.toList());
+            HashMap<String, Object> resourceMap = new HashMap<>();
+            resourceMap.put("totalCount", 0);
+            List<String> resourceList = new ArrayList<>();
+            resourceMap.put("resources", resourceList);
+            if (StringUtils.isAnyBlank(namespaceInfoPage.getNamespaceCode())
+                    || "_".equals(namespaceInfoPage.getQuery())) {
+                LOGGER.error("resource or namespaceCode is null");
+                return resourceMap;
+            }
+
+            String mToken = (String) redisDao.get(Constant.REDIS_KEY_AUTH_MANAGER_TOKEN);
+            if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
+                mToken = getManagementToken();
+            }
+            StringBuilder urlBuilder = new StringBuilder(authingApiHostV3 + LIST_COMMON_RESOURCE);
+            List<String> namespaces = new ArrayList<>();
+            namespaces.add(namespaceInfoPage.getNamespaceCode());
+            urlBuilder.append("?namespaceCodeList[]=").append(namespaceInfoPage.getNamespaceCode())
+                    .append("&page=").append(namespaceInfoPage.getPage())
+                    .append("&limit=").append(namespaceInfoPage.getLimit());
+            if (StringUtils.isNotBlank(namespaceInfoPage.getQuery())) {
+                urlBuilder.append("&keyword=").append(namespaceInfoPage.getQuery());
+            }
+            HttpResponse<JsonNode> response = Unirest.get(urlBuilder.toString())
+                    .header("Content-Type", "application/json")
+                    .header("x-authing-userpool-id", userPoolId)
+                    .header("authorization", mToken)
+                    .asJson();
+            JSONObject resObj = response.getBody().getObject();
+            if (resObj.getInt("statusCode") != 200) {
+                LOGGER.error("delete resource failed {}", resObj.getString("message"));
+                return resourceMap;
+            }
+            JSONObject data = resObj.getJSONObject("data");
+            if (data == null) {
+                return resourceMap;
+            }
+            resourceMap.put("totalCount", data.getInt("totalCount"));
+            JSONArray list = data.getJSONArray("list");
+            if (list == null) {
+                return resourceMap;
+            }
+            for (int i = 0; i < list.length(); i++) {
+                String reourceName = list.getJSONObject(i).getString("code");
+                if (!resourceConvertMap.containsValue(reourceName)) {
+                    resourceList.add(reourceName);
+                    continue;
+                }
+                for (String key : resourceConvertMap.keySet()) {
+                    if (resourceConvertMap.get(key).equals(reourceName)) {
+                        reourceName = key;
+                    }
+                }
+                resourceList.add(reourceName);
+            }
+            return resourceMap;
         } catch (Exception e) {
-            LOGGER.error("get resource list failed {}", e.getMessage());
-            return Collections.emptyList();
+            LOGGER.error("query resource failed {}", e.getMessage());
+            return null;
         }
     }
 
@@ -326,10 +413,7 @@ public class AuthingManagerDao {
     public List<UserOfResourceInfo> listUserOfResource(String nameSpaceCode, String resource) {
         try {
             List<UserOfResourceInfo> resList = new ArrayList<>();
-            AuthorizedTargetsParam param =
-                    new AuthorizedTargetsParam(nameSpaceCode, ResourceType.DATA, resource);
-            List<ResourcePermissionAssignment> sourceList = managementClient.acl().getAuthorizedTargets(param)
-                    .execute().getList();
+            List<ResourcePermissionAssignment> sourceList = getAuthorizedUser(nameSpaceCode, resource, null);
             if (CollectionUtils.isEmpty(sourceList)) {
                 return resList;
             }
@@ -337,8 +421,10 @@ public class AuthingManagerDao {
                     .map(ResourcePermissionAssignment::getTargetIdentifier).collect(Collectors.toList());
             List<User> users = managementClient.users().batch(userIds).execute();
             HashMap<String, List<IdentityInfo>> identityBeanMap = new HashMap<>();
+            HashMap<String, User> userMap = new HashMap<>();
             for (User user : users) {
                 identityBeanMap.put(user.getId(), authingUtil.parseUserIdentity(user.getIdentities()));
+                userMap.put(user.getId(), user);
             }
             for (ResourcePermissionAssignment assignment : sourceList) {
                 String userId = assignment.getTargetIdentifier();
@@ -347,13 +433,37 @@ public class AuthingManagerDao {
                 userOfResourceInfo.setUserId(userId);
                 userOfResourceInfo.setActions(actions);
                 userOfResourceInfo.setIdentityInfos(identityBeanMap.get(userId));
+                userOfResourceInfo.setUsername(userMap.get(userId).getUsername());
+                userOfResourceInfo.setEmail(userMap.get(userId).getEmail());
                 resList.add(userOfResourceInfo);
             }
             return resList;
         } catch (Exception e) {
             LOGGER.error("get user resources failed {}", e.getMessage());
-            return Collections.emptyList();
+            return null;
         }
+    }
+
+    /**
+     * 获取拥有某资源权限的用户.
+     *
+     * @param nameSpaceCode 权限命名空间
+     * @param resource 资源
+     * @param actions 操作权限
+     * @return 用户信息
+     * @throws IOException 异常
+     * @throws GraphQLException graph异常
+     */
+    public List<ResourcePermissionAssignment> getAuthorizedUser(String nameSpaceCode, String resource,
+            List<String> actions) throws IOException, GraphQLException {
+        AuthorizedTargetsActionsInput actionsInput = null;
+        if (actions != null) {
+            actionsInput = new AuthorizedTargetsActionsInput(Operator.AND, actions);
+        }
+        String resourceCode = convertResource(resource);
+        AuthorizedTargetsParam param =
+                new AuthorizedTargetsParam(nameSpaceCode, ResourceType.DATA, resourceCode, null, actionsInput);
+        return managementClient.acl().getAuthorizedTargets(param).execute().getList();
     }
 
     /**
@@ -692,5 +802,162 @@ public class AuthingManagerDao {
             return false;
         }
         return true;
+    }
+
+    /**
+     * 授权.
+     *
+     * @param authorizeInfo 授权信息
+     * @return 是否授权成功
+     */
+    public boolean authrizeResource(AuthorizeInfo authorizeInfo) {
+        try {
+            if (StringUtils.isBlank(authorizeInfo.getNamespace()) || CollectionUtils.isEmpty(authorizeInfo.getList())) {
+                LOGGER.error("resource namespace is null");
+                return false;
+            }
+            for (AuthorizeInfo.AuthorizeData data : authorizeInfo.getList()) {
+                if (data.getResources() == null) {
+                    continue;
+                }
+                for (AuthorizeInfo.AuthorizeResource resource : data.getResources()) {
+                    resource.setCode(convertResource(resource.getCode()));
+                }
+            }
+            String mToken = (String) redisDao.get(Constant.REDIS_KEY_AUTH_MANAGER_TOKEN);
+            if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
+                mToken = getManagementToken();
+            }
+
+            String body = JSONObject.valueToString(authorizeInfo);
+            HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + AUTHORIZE_RESOURCES_URI)
+                    .header("Content-Type", "application/json")
+                    .header("x-authing-userpool-id", userPoolId)
+                    .header("authorization", mToken)
+                    .body(body)
+                    .asJson();
+            JSONObject resObj = response.getBody().getObject();
+            if (resObj.getInt("statusCode") != 200) {
+                LOGGER.error("authorize resource failed {}", resObj.getString("message"));
+                return false;
+            }
+        } catch (Exception e) {
+            LOGGER.error("authorize resource failed {}", e.getMessage());
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 删除权限.
+     *
+     * @param namespaceCode 权限命名空间
+     * @param resource 资源
+     * @param userIds 用户ID
+     * @return 是否删除成功
+     */
+    public boolean revokeResource(String namespaceCode, String resource, List<String> userIds) {
+        try {
+            if (CollectionUtils.isEmpty(userIds)) {
+                return true;
+            }
+            String resourceCode = convertResource(resource);
+            RevokeResourceParams params = new RevokeResourceParams();
+            params.setNamespace(namespaceCode);
+            params.setResource(resourceCode);
+            List<RevokeResourceOpt> opts = new ArrayList<>();
+            for (String userId : userIds) {
+                RevokeResourceOpt opt = new RevokeResourceOpt();
+                opt.setTargetIdentifier(userId);
+                opt.setTargetType(PolicyAssignmentTargetType.USER);
+                opts.add(opt);
+            }
+            params.setOpts(opts);
+            CommonMessage execute = managementClient.acl().revokeResource(params).execute();
+            if (execute.getCode() != 200) {
+                LOGGER.error("revoke resource failed {}", execute.getMessage());
+                return false;
+            } else {
+                return true;
+            }
+        } catch (Exception e) {
+            LOGGER.error("revoke resource failed {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 根据ID批量获取用户.
+     *
+     * @param type 用户类型
+     * @param extIdpId 三方平台ID
+     * @param userId 用户ID
+     * @return 用户信息
+     */
+    public List<UserInfo> getUsersByIds(String type, String extIdpId, List<String> userId) {
+        List<UserInfo> userInfos = new ArrayList<>();
+        try {
+            String mToken = (String) redisDao.get(Constant.REDIS_KEY_AUTH_MANAGER_TOKEN);
+            if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
+                mToken = getManagementToken();
+            }
+
+            StringBuilder extIdpIdBuilder = new StringBuilder(extIdpId);
+            extIdpIdBuilder.append(":");
+            List<String> reqUserIds = userId.stream().map((x) -> extIdpIdBuilder + x)
+                    .collect(Collectors.toList());
+
+            StringBuilder urlBuilder = new StringBuilder(authingApiHostV3 + GET_USER_BATCH_URI);
+            urlBuilder.append("?userIdType=").append(type).append("&withIdentities=true").append("&userIds=")
+                    .append(URLEncoder.encode(JSONObject.valueToString(reqUserIds), "UTF-8"));
+            HttpResponse<JsonNode> response = Unirest.get(urlBuilder.toString())
+                    .header("Content-Type", "application/json")
+                    .header("x-authing-userpool-id", userPoolId)
+                    .header("authorization", mToken)
+                    .asJson();
+            JSONObject resObj = response.getBody().getObject();
+            if (resObj.getInt("statusCode") != 200) {
+                LOGGER.error("delete resource failed {}", resObj.getString("message"));
+                return null;
+            }
+            JSONArray data = resObj.getJSONArray("data");
+            if (data == null || data.length() == 0) {
+                return userInfos;
+            }
+            for (int i = 0; i < data.length(); i++) {
+                JSONObject dataObj = data.getJSONObject(i);
+                UserInfo userInfo = new UserInfo();
+                userInfo.setUserId(dataObj.getString("userId"));
+                userInfo.setUsername(dataObj.getString("username"));
+                JSONArray identities = dataObj.getJSONArray("identities");
+                if (identities == null) {
+                    continue;
+                }
+                for (int j = 0; j < identities.length(); j++) {
+                    if (extIdpId.equals(identities.getJSONObject(j).getString("extIdpId"))) {
+                        userInfo.setUserIdInIdp(identities.getJSONObject(j).getString("userIdInIdp"));
+                    }
+                }
+                userInfos.add(userInfo);
+            }
+            return userInfos;
+        } catch (Exception e) {
+            LOGGER.error("delete resource failed {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 转换resource(部分resource在authing无法使用，需要转化使用).
+     *
+     * @param resource
+     * @return 转化后resource
+     */
+    public String convertResource(String resource) {
+        if (resourceConvertMap.containsKey(resource)) {
+            return resourceConvertMap.get(resource);
+        } else {
+            return resource;
+        }
     }
 }

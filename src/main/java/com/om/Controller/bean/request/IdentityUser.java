@@ -9,44 +9,23 @@
  Create: 2024
 */
 
-package com.om.Controller.bean.response;
+package com.om.Controller.bean.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
 
-@Setter
 @Getter
-public class UserOfResourceInfo {
+@Setter
+public class IdentityUser {
     /**
      * 用户ID.
      */
-    @JsonProperty("userId")
-    private String userId;
+    private List<String> userIds;
 
     /**
-     * 资源权限操作.
+     * 三方平台.
      */
-    @JsonProperty("actions")
-    private List<String> actions;
-
-    /**
-     * 三方用户.
-     */
-    @JsonProperty("identities")
-    private List<IdentityInfo> identityInfos;
-
-    /**
-     * 邮箱.
-     */
-    @JsonProperty("email")
-    private String email;
-
-    /**
-     * 用户名.
-     */
-    @JsonProperty("username")
-    private String username;
+    private String thirdPlatform;
 }
