@@ -743,7 +743,7 @@ public class OidcService {
                 Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
                 String nonce = (String) redisDao.get("auth_oidc_nonce");
                 String token = JWT.create()
-                        .withAudience(userId) //谁接受签名
+                        .withAudience(appId) //谁接受签名
                         .withIssuedAt(issuedAt) //生成签名的时间
                         .withExpiresAt(expireAt) //过期时间
                         .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
