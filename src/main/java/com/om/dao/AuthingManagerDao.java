@@ -326,6 +326,38 @@ public class AuthingManagerDao {
     }
 
     /**
+     * 通过邮箱获取用户信息.
+     *
+     * @param email 邮箱
+     * @return 返回包含用户信息的 JSONObject 对象，如果未找到用户则返回 null
+     */
+    public JSONObject getUserByEmail(String email) {
+        try {
+            User user = managementClient.users().find(new FindUserParam().withEmail(email)).execute();
+            return getUserById(user.getId());
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 通过电话号码获取用户信息.
+     *
+     * @param phone 电话号码
+     * @return 返回包含用户信息的 JSONObject 对象，如果未找到用户则返回 null
+     */
+    public JSONObject getUserByPhone(String phone) {
+        try {
+            User user = managementClient.users().find(new FindUserParam().withPhone(phone)).execute();
+            return getUserById(user.getId());
+        } catch (Exception e) {
+            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * 根据邮箱查询用户id.
      *
      * @param email 电子邮箱
