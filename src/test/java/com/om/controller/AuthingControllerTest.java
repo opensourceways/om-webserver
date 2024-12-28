@@ -21,6 +21,7 @@ import com.om.result.Constant;
 import com.om.service.AuthingService;
 import com.om.service.LoginService;
 import com.om.service.OneIdManageService;
+import com.om.service.SendMessageService;
 import com.om.service.UserCenterServiceContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -64,6 +65,9 @@ public class AuthingControllerTest {
 
     @Mock
     private AuthingUserDao authingUserDao;
+
+    @Mock
+    private SendMessageService sendMessageService;
 
     @MockBean
     private CaptchaService mockCaptchaService;
@@ -555,5 +559,15 @@ public class AuthingControllerTest {
         when(mockCaptchaService.check(any())).thenReturn(ResponseModel.success());
         ResponseModel response = mockCaptchaService.check(captchaVO);
         assertThat(response.isSuccess());
+    }
+
+    @Test
+    public void testSendMessage() throws Exception {
+        when(mockUserCenterServiceContext.getUserCenterService(Constant.AUTHING)).thenReturn(authingService);
+        when(sendMessageService.getMessage(any(String.class), any()))
+                .thenReturn("success");
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        Object response = sendMessageService.getMessage("", request);
+        assertThat(response.equals("success"));
     }
 }
