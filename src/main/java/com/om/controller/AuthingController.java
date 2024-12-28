@@ -347,7 +347,7 @@ public class AuthingController {
             + "\"tenant_id\",\"userpool_id\",\"sid\",\"auth_time\",\"iss\"],\"grant_types_supported\":"
             + "[\"authorization_code\",\"password\",\"refresh_token\"],\"response_types_supported\":"
             + "[\"code\"],\"scopes_supported\":[\"openid\",\"offline_access\",\"username\",\"phone\","
-            + "\"email\",\"address\",\"profile\",\"role\",\"roles\",\"unionid\",\"external_id\",\"extended_fields\","
+            + "\"email\",\"id_token\",\"profile\",\"role\",\"roles\",\"unionid\",\"external_id\",\"extended_fields\","
             + "\"tenant_id\",\"userpool_id\"],\"userinfo_endpoint\":"
             + "\"https://openeuler-usercenter.test.osinfra.cn/oneid/oidc/user\",\"subject_types_supported\":"
             + "[\"public\"],\"id_token_signing_alg_values_supported\":[\"HS256\",\"RS256\"]}";
