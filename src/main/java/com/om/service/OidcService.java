@@ -499,7 +499,7 @@ public class OidcService {
             } else {
                 userData.put("phone_number_verified", true);
             }
-            userData.put("preferred_username", "tfh");
+            userData.put("preferred_username", userData.get("username"));
             HashMap<String, Object> res = new HashMap<>();
             res.put("code", 200);
             res.put("data", userData);
@@ -744,6 +744,7 @@ public class OidcService {
                 LocalDateTime expireDate = nowDate.plusSeconds(72000);
                 Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
                 String nonce = (String) redisDao.get("auth_oidc_nonce");
+                LOGGER.error("nonce=====" + nonce);
                 String token = JWT.create()
                         .withAudience(appId) //谁接受签名
                         .withIssuedAt(issuedAt) //生成签名的时间
