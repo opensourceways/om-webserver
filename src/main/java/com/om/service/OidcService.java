@@ -14,6 +14,7 @@ package com.om.service;
 import cn.authing.core.types.Application;
 import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -54,6 +55,7 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -188,6 +190,7 @@ public class OidcService {
             String entity = parameterMap.getOrDefault("entity", new String[]{""})[0];
             String complementation = parameterMap.getOrDefault("complementation", new String[]{""})[0];
             String lang = parameterMap.getOrDefault("lang", new String[]{""})[0];
+            String nonce = parameterMap.getOrDefault("nonce", new String[]{""})[0];
             // responseType校验
             if (!responseType.equals("code")) {
                 return resultOidc(HttpStatus.NOT_FOUND, "currently response_type only supports code", null);
@@ -209,10 +212,11 @@ public class OidcService {
             String complParam = StringUtils.isBlank(complementation)
                     ? "" : String.format("&complementation=%s", complementation);
             String langParam = StringUtils.isBlank(lang) ? "" : String.format("&lang=%s", lang);
+            String nonceParam = StringUtils.isBlank(nonce) ? "" : String.format("&nonce=%s", nonce);
             redirectUri = URLEncoder.encode(redirectUri, "UTF-8");
             String loginPageRedirect = String.format(
-                    "%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s%s%s",
-                    loginPage, clientId, scope, redirectUri, state, complParam, langParam);
+                    "%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s%s%s%s",
+                    loginPage, clientId, scope, redirectUri, state, complParam, langParam, nonceParam);
             servletResponse.sendRedirect(loginPageRedirect);
             return resultOidc(HttpStatus.OK, "OK", loginPageRedirect);
         } catch (Exception e) {
@@ -730,7 +734,22 @@ public class OidcService {
             }
             String idToken = jsonNode.get("idToken").asText();
             if (scopes.contains("id_token")) {
-                tokens.put("id_token", idToken);
+                LocalDateTime nowDate = LocalDateTime.now();
+
+                Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
+
+                LocalDateTime expireDate = nowDate.plusSeconds(72000);
+                Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
+                String token = JWT.create()
+                        .withAudience(userId) //谁接受签名
+                        .withIssuedAt(issuedAt) //生成签名的时间
+                        .withExpiresAt(expireAt) //过期时间
+                        .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
+                        .withClaim("sub", userId)
+                        .withClaim("iss", "https://openeuler-usercenter.test.osinfra.cn/oneid/oidc")
+                        .withClaim("nonce", "BBZASzSiVZ6MQTohCk-sSIIRn3l_1zm2weBxI9EXthM")
+                        .sign(Algorithm.HMAC256(appSecret));
+                tokens.put("id_token", token);
             }
             redisDao.remove(code);
             addOidcLogoutUrl(userId, idToken, redirectUri, logoutUrl);
