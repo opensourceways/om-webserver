@@ -217,6 +217,7 @@ public class OidcService {
             String loginPageRedirect = String.format(
                     "%s?client_id=%s&scope=%s&redirect_uri=%s&response_mode=query&state=%s%s%s%s",
                     loginPage, clientId, scope, redirectUri, state, complParam, langParam, nonceParam);
+            redisDao.set("auth_oidc_nonce", nonce, 72000L);
             servletResponse.sendRedirect(loginPageRedirect);
             return resultOidc(HttpStatus.OK, "OK", loginPageRedirect);
         } catch (Exception e) {
@@ -740,6 +741,7 @@ public class OidcService {
 
                 LocalDateTime expireDate = nowDate.plusSeconds(72000);
                 Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
+                String nonce = (String) redisDao.get("auth_oidc_nonce");
                 String token = JWT.create()
                         .withAudience(userId) //谁接受签名
                         .withIssuedAt(issuedAt) //生成签名的时间
@@ -747,7 +749,7 @@ public class OidcService {
                         .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                         .withClaim("sub", userId)
                         .withClaim("iss", "https://openeuler-usercenter.test.osinfra.cn/oneid/oidc")
-                        .withClaim("nonce", "BBZASzSiVZ6MQTohCk-sSIIRn3l_1zm2weBxI9EXthM")
+                        .withClaim("nonce", nonce)
                         .sign(Algorithm.HMAC256(appSecret));
                 tokens.put("id_token", token);
             }
