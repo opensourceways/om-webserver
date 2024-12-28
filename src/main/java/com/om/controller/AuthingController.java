@@ -342,7 +342,7 @@ public class AuthingController {
             + "\"https://openeuler-usercenter.test.osinfra.cn/oneid/oidc/token\",\"claims_parameter_supported\":"
             + "false,\"claims_supported\":[\"sub\",\"username\",\"phone_number\",\"phone_number_verified\",\"email\""
             + ",\"email_verified\",\"address\",\"birthdate\",\"family_name\",\"gender\",\"given_name\",\"locale\""
-            + ",\"middle_name\",\"name\",\"nickname\",\"picture\",\"preferred_username\",\"profile\",\"updated_at\""
+            + ",\"middle_name\",\"name\",\"nickname\",\"picture\",\"preferredUsername\",\"profile\",\"updated_at\""
             + ",\"website\",\"zoneinfo\",\"role\",\"roles\",\"unionid\",\"external_id\",\"extended_fields\","
             + "\"tenant_id\",\"userpool_id\",\"sid\",\"auth_time\",\"iss\"],\"grant_types_supported\":"
             + "[\"authorization_code\",\"password\",\"refresh_token\"],\"response_types_supported\":"

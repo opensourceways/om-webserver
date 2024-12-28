@@ -499,11 +499,13 @@ public class OidcService {
             } else {
                 userData.put("phone_number_verified", true);
             }
+            userData.put("preferred_username", "tfh");
             HashMap<String, Object> res = new HashMap<>();
             res.put("code", 200);
             res.put("data", userData);
             res.put("msg", "OK");
             res.putAll(userData);
+            LOGGER.error("=" + userData.toString());
             ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(res, HttpStatus.OK);
             return responseEntity;
         } catch (Exception e) {
