@@ -294,8 +294,8 @@ public enum MessageCodeConfig {
      * 错误代码 E00064: 仅支持ID、用户名、gitee用户名、github用户名单一参数查找用户.
      */
     E00064("E00064", "Only ID, username, gitee username,"
-            + " and github username are supported for single parameter search of users",
-            "仅支持ID、用户名、gitee用户名、github用户名单一参数查找用户"),
+            + " github username, phone and email are supported for single parameter search of users",
+            "仅支持ID、用户名、gitee用户名、github用户、电话号码、邮箱名单一参数查找用户"),
 
     /**
      * Error code E00065: Request exceeds the limit.

@@ -14,6 +14,7 @@ package com.om.service;
 import cn.authing.core.auth.AuthenticationClient;
 import cn.authing.core.types.Application;
 import cn.authing.core.types.User;
+import com.om.controller.bean.request.ManagerUserInfo;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -54,9 +55,7 @@ import org.springframework.web.util.HtmlUtils;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @Service
@@ -395,43 +394,39 @@ public class OneIdManageService {
     /**
      * 获取用户信息的方法.
      *
-     * @param username    用户名
-     * @param userId      用户ID
-     * @param giteeLogin  Gitee 登录名
-     * @param githubLogin GitHub 登录名
+     * @param managerUserInfo    用户信息
      * @return 返回 ResponseEntity 对象
      */
-    public ResponseEntity getUserInfo(String username, String userId, String giteeLogin, String githubLogin) {
+    public ResponseEntity getUserInfo(ManagerUserInfo managerUserInfo) {
         try {
-            // only single param allowed
-            List<String> params = Arrays.asList(username, userId, giteeLogin, githubLogin);
-            int count = 0;
-            for (String param : params) {
-                if (StringUtils.isNotBlank(param)) {
-                    count += 1;
-                }
-            }
-            if (count != 1) {
+            if (!managerUserInfo.checkSingle()) {
                 return authingService.result(
                         HttpStatus.BAD_REQUEST, MessageCodeConfig.E00064, null, null);
             }
 
             JSONObject userInfo = null;
-            if (StringUtils.isNotBlank(userId)) {
-                userInfo = managerDao.getUserById(userId);
+            if (StringUtils.isNotBlank(managerUserInfo.getUserId())) {
+                userInfo = managerDao.getUserById(managerUserInfo.getUserId());
             }
-            if (StringUtils.isNotBlank(username)) {
-                userInfo = managerDao.getUserByName(username);
+            if (StringUtils.isNotBlank(managerUserInfo.getUsername())) {
+                userInfo = managerDao.getUserByName(managerUserInfo.getUsername());
             }
-            if (StringUtils.isNotBlank(giteeLogin)) {
-                String giteeId = gitDao.getGiteeUserIdByLogin(giteeLogin);
+
+            if (StringUtils.isNotBlank(managerUserInfo.getEmail())) {
+                userInfo = managerDao.getUserByEmail(managerUserInfo.getEmail());
+            }
+            if (StringUtils.isNotBlank(managerUserInfo.getPhone())) {
+                userInfo = managerDao.getUserByPhone(managerUserInfo.getPhone());
+            }
+            if (StringUtils.isNotBlank(managerUserInfo.getGiteeLogin())) {
+                String giteeId = gitDao.getGiteeUserIdByLogin(managerUserInfo.getGiteeLogin());
                 if (StringUtils.isNotBlank(giteeId)) {
                     userInfo = managerDao.getUserV3(
                             giteeProviderId.concat(":").concat(giteeId), "identity");
                 }
             }
-            if (StringUtils.isNotBlank(githubLogin)) {
-                String githubId = gitDao.getGithubUserIdByLogin(githubLogin);
+            if (StringUtils.isNotBlank(managerUserInfo.getGithubLogin())) {
+                String githubId = gitDao.getGithubUserIdByLogin(managerUserInfo.getGithubLogin());
                 if (StringUtils.isNotBlank(githubId)) {
                     userInfo = managerDao.getUserV3(
                             githubProviderId.concat(":").concat(githubId), "identity");

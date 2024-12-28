@@ -97,6 +97,7 @@ public class AuthingUtil {
         userData.put("nickname", jsonObjStringValue(userObj, "nickname"));
         userData.put("company", jsonObjStringValue(userObj, "company"));
         userData.put("photo", jsonObjStringValue(userObj, "photo"));
+        userData.put("id", jsonObjStringValue(userObj, "id"));
         ArrayList<Map<String, Object>> identities = authingUserIdentity(userObj);
         userData.put("identities", identities);
         return userData;

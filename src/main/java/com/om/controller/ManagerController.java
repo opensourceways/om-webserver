@@ -14,6 +14,7 @@ package com.om.controller;
 import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
+import com.om.controller.bean.request.ManagerUserInfo;
 import com.om.service.AuthingService;
 import com.om.service.OneIdManageService;
 import com.om.vo.User;
@@ -127,22 +128,14 @@ public class ManagerController {
 
     /**
      * 获取用户信息的方法.
-     *
-     * @param username    用户名（可选）
-     * @param userId      用户ID（可选）
-     * @param giteeLogin  Gitee 登录名（可选）
-     * @param githubLogin GitHub 登录名（可选）
-     * @return 返回 ResponseEntity 对象
+     * @param managerUserInfo 用户信息.
+     * @return 返回 ResponseEntity 对象.
      */
     @RequestLimitRedis(period = 1, count = 1000)
     @ManageToken
     @RequestMapping(value = "/getuserinfo", method = RequestMethod.GET)
-    public ResponseEntity getUser(
-            @RequestParam(value = "username", required = false) String username,
-            @RequestParam(value = "userId", required = false) String userId,
-            @RequestParam(value = "giteeLogin", required = false) String giteeLogin,
-            @RequestParam(value = "githubLogin", required = false) String githubLogin) {
-        return oneIdManageService.getUserInfo(username, userId, giteeLogin, githubLogin);
+    public ResponseEntity getUser(ManagerUserInfo managerUserInfo) {
+        return oneIdManageService.getUserInfo(managerUserInfo);
     }
 
     /**
