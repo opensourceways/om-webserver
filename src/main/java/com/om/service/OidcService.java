@@ -30,6 +30,7 @@ import com.om.utils.AuthingUtil;
 import com.om.utils.CodeUtil;
 import com.om.utils.EncryptionService;
 
+import com.om.utils.HttpClientUtils;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -230,14 +231,21 @@ public class OidcService {
      * OIDC令牌方法.
      *
      * @param servletRequest HTTP请求对象
+     * @param servletResponse HTTP请求对象
      * @return ResponseEntity 响应实体
      */
-    public ResponseEntity oidcEnd(HttpServletRequest servletRequest) {
+    public ResponseEntity oidcEnd(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         try {
-            Map<String, String[]> parameterMap = servletRequest.getParameterMap();
-            LOGGER.error("==end point" + parameterMap);
             LOGGER.error("==end point get " + servletRequest.getParameter("id_token_hint"));
             LOGGER.error("==end point get " + servletRequest.getParameter("post_logout_redirect_uri"));
+            // 退出登录，删除cookie，删除idToken
+            String cookieTokenName = env.getProperty("cookie.token.name");
+            String verifyTokenName = env.getProperty("cookie.verify.token.name");
+            HttpClientUtils.setCookie(servletRequest, servletResponse,
+                    verifyTokenName, null, false, 0, "/", authingService.getDomain2secure());
+            HttpClientUtils.setCookie(servletRequest, servletResponse,
+                    cookieTokenName, null, true, 0, "/", authingService.getDomain2secure());
+            servletResponse.sendRedirect(servletRequest.getParameter("post_logout_redirect_uri"));
             return resultOidc(HttpStatus.OK, "OK", null);
         } catch (Exception e) {
             LOGGER.error("Internal Server Error {}", e.getMessage());

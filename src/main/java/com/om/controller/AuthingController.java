@@ -306,12 +306,13 @@ public class AuthingController {
      * 处理 OIDC令牌请求的方法.
      *
      * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 请求对象
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis(period = 10, count = 1000)
-    @RequestMapping(value = "/oidc/end", method = RequestMethod.POST)
-    public ResponseEntity oidcEnd(HttpServletRequest servletRequest) {
-        return oidcService.oidcEnd(servletRequest);
+    @RequestMapping(value = "/oidc/end", method = RequestMethod.GET)
+    public ResponseEntity oidcEnd(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        return oidcService.oidcEnd(servletRequest, servletResponse);
     }
 
     /**

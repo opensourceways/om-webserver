@@ -264,6 +264,15 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     /**
+     * 获取domain.
+     *
+     * @return domain
+     */
+    public static HashMap<String, Boolean> getDomain2secure() {
+        return AuthingService.domain2secure;
+    }
+
+    /**
      * 结果对象赋值.
      *
      * @param result 结果对象实例
