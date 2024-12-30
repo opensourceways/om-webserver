@@ -303,6 +303,18 @@ public class AuthingController {
     }
 
     /**
+     * 处理 OIDC令牌请求的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @return 返回 ResponseEntity 对象
+     */
+    @RequestLimitRedis(period = 10, count = 1000)
+    @RequestMapping(value = "/oidc/end", method = RequestMethod.POST)
+    public ResponseEntity oidcEnd(HttpServletRequest servletRequest) {
+        return oidcService.oidcEnd(servletRequest);
+    }
+
+    /**
      * 处理 OIDC用户信息请求的方法.
      *
      * @param servletRequest HTTP 请求对象
@@ -339,7 +351,8 @@ public class AuthingController {
     public String checkFile() {
         return "{\"issuer\":\"https://openeuler-usercenter.test.osinfra.cn/oneid/oidc\",\"authorization_endpoint\":"
             + "\"https://openeuler-usercenter.test.osinfra.cn/oneid/oidc/authorize\",\"token_endpoint\":"
-            + "\"https://openeuler-usercenter.test.osinfra.cn/oneid/oidc/token\",\"claims_parameter_supported\":"
+            + "\"https://openeuler-usercenter.test.osinfra.cn/oneid/oidc/token\",\"end_session_endpoint\":"
+            + "\"https://openeuler-usercenter.test.osinfra.cn/oneid/oidc/end\",\"claims_parameter_supported\":"
             + "false,\"claims_supported\":[\"sub\",\"username\",\"phone_number\",\"phone_number_verified\",\"email\""
             + ",\"email_verified\",\"address\",\"birthdate\",\"family_name\",\"gender\",\"given_name\",\"locale\""
             + ",\"middle_name\",\"name\",\"nickname\",\"picture\",\"preferredUsername\",\"profile\",\"updated_at\""

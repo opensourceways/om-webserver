@@ -232,6 +232,26 @@ public class OidcService {
      * @param servletRequest HTTP请求对象
      * @return ResponseEntity 响应实体
      */
+    public ResponseEntity oidcEnd(HttpServletRequest servletRequest) {
+        try {
+            Map<String, String[]> parameterMap = servletRequest.getParameterMap();
+            LOGGER.error("==end point" + parameterMap);
+            LOGGER.error("==end point get " + servletRequest.getParameter("id_token_hint"));
+            LOGGER.error("==end point get " + servletRequest.getParameter("post_logout_redirect_uri"));
+            return resultOidc(HttpStatus.OK, "OK", null);
+        } catch (Exception e) {
+            LOGGER.error("Internal Server Error {}", e.getMessage());
+            redisDao.remove("code");
+            return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
+        }
+    }
+
+    /**
+     * OIDC令牌方法.
+     *
+     * @param servletRequest HTTP请求对象
+     * @return ResponseEntity 响应实体
+     */
     public ResponseEntity oidcToken(HttpServletRequest servletRequest) {
         try {
             Map<String, String[]> parameterMap = servletRequest.getParameterMap();
