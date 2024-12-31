@@ -522,9 +522,9 @@ public class OidcService {
             } else {
                 userData.put("phone_number_verified", true);
             }
-            if (userData.containsKey("preferredUsername")
-                    && StringUtils.isBlank((String) userData.get("preferredUsername"))) {
-                userData.put("preferredUsername", userData.get("username"));
+            if (userData.containsKey("preferred_username")
+                    && StringUtils.isBlank((String) userData.get("preferred_username"))) {
+                userData.put("preferred_username", userData.get("username"));
             }
             //userData.put("preferred_username", userData.get("username"));
             HashMap<String, Object> res = new HashMap<>();
