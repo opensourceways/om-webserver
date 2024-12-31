@@ -19,6 +19,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.Service.bean.OidcAuthParam;
 import com.om.dao.AuthingManagerDao;
 import com.om.dao.AuthingUserDao;
 import com.om.dao.QueryDao;
@@ -228,7 +229,7 @@ public class OidcService {
     }
 
     /**
-     * OIDC令牌方法.
+     * OIDC退出登录方法.
      *
      * @param servletRequest HTTP请求对象
      * @param servletResponse HTTP请求对象
@@ -236,8 +237,6 @@ public class OidcService {
      */
     public ResponseEntity oidcEnd(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
         try {
-            LOGGER.error("==end point get " + servletRequest.getParameter("id_token_hint"));
-            LOGGER.error("==end point get " + servletRequest.getParameter("post_logout_redirect_uri"));
             // 退出登录，删除cookie，删除idToken
             String cookieTokenName = env.getProperty("cookie.token.name");
             String verifyTokenName = env.getProperty("cookie.verify.token.name");
@@ -352,48 +351,43 @@ public class OidcService {
     /**
      * OIDC认证方法.
      *
-     * @param token        认证令牌
-     * @param appId        应用ID
-     * @param redirectUri  重定向URI
-     * @param responseType 响应类型
-     * @param state        状态
-     * @param scope        范围
+     * @param oidcAuthParam  oidc参数
      * @return ResponseEntity 响应实体
      */
-    public ResponseEntity oidcAuth(String token, String appId,
-                                   String redirectUri, String responseType, String state, String scope) {
+    public ResponseEntity oidcAuth(OidcAuthParam oidcAuthParam) {
         try {
             // responseType校验
-            if (!responseType.equals("code")) {
+            if (!oidcAuthParam.getResponseType().equals("code")) {
                 return resultOidc(HttpStatus.NOT_FOUND, "currently response_type only supports code", null);
             }
             // scope校验
-            List<String> scopes = Arrays.asList(scope.split(" "));
+            List<String> scopes = Arrays.asList(oidcAuthParam.getScope().split(" "));
             if (!scopes.contains("openid") || !scopes.contains("profile")) {
                 return resultOidc(HttpStatus.NOT_FOUND, "scope must contain <openid profile>", null);
             }
-            redirectUri = URLDecoder.decode(redirectUri, "UTF-8");
+            String redirectUri = URLDecoder.decode(oidcAuthParam.getRedirectUri(), "UTF-8");
             // app回调地址校验
-            ResponseEntity responseEntity = authingService.appVerify(appId, redirectUri);
+            ResponseEntity responseEntity = authingService.appVerify(oidcAuthParam.getAppId(), redirectUri);
             if (responseEntity.getStatusCode().value() != 200) {
                 return resultOidc(HttpStatus.NOT_FOUND, "redirect_uri not found in the app", null);
             }
             // 获取登录用户ID
-            token = authingUtil.rsaDecryptToken(token);
+            String token = authingUtil.rsaDecryptToken(oidcAuthParam.getToken());
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             String headToken = decode.getClaim("verifyToken").asString();
             String idToken = (String) redisDao.get("idToken_" + headToken);
             idToken = encryptionService.decrypt(idToken);
             List<String> accessibleApps = authingUserDao.userAccessibleApps(userId);
-            if (!accessibleApps.contains(appId)) {
+            if (!accessibleApps.contains(oidcAuthParam.getAppId())) {
                 return resultOidc(HttpStatus.BAD_REQUEST, "No permission to login the application", null);
             }
             // 生成code和state
             String code = codeUtil.randomStrBuilder(32);
-            state = StringUtils.isNotBlank(state) ? state : UUID.randomUUID().toString().replaceAll("-", "");
+            String state = StringUtils.isNotBlank(oidcAuthParam.getState())
+                    ? oidcAuthParam.getState() : UUID.randomUUID().toString().replaceAll("-", "");
             // 生成access_token和refresh_token
-            scope = StringUtils.isBlank(scope) ? "openid profile" : scope;
+            String scope = StringUtils.isBlank(oidcAuthParam.getScope()) ? "openid profile" : oidcAuthParam.getScope();
             long codeExpire = Long.parseLong(env.getProperty("oidc.code.expire", "60"));
             long accessTokenExpire = Long.parseLong(env.getProperty("oidc.access.token.expire", "1800"));
             long refreshTokenExpire = Long.parseLong(env.getProperty("oidc.refresh.token.expire", "86400"));
@@ -404,10 +398,11 @@ public class OidcService {
             codeMap.put("accessToken", accessToken);
             codeMap.put("refreshToken", refreshToken);
             codeMap.put("idToken", idToken);
-            codeMap.put("appId", appId);
+            codeMap.put("appId", oidcAuthParam.getAppId());
             codeMap.put("redirectUri", redirectUri);
             codeMap.put("scope", scope);
             codeMap.put("userId", userId);
+            codeMap.put("nonce", oidcAuthParam.getNonce());
             String codeMapStr = "oidcCode:" + objectMapper.writeValueAsString(codeMap);
             redisDao.set(code, codeMapStr, codeExpire);
             // 缓存 oidcToken
@@ -527,7 +522,11 @@ public class OidcService {
             } else {
                 userData.put("phone_number_verified", true);
             }
-            userData.put("preferred_username", userData.get("username"));
+            if (userData.containsKey("preferredUsername")
+                    && StringUtils.isBlank((String) userData.get("preferredUsername"))) {
+                userData.put("preferredUsername", userData.get("username"));
+            }
+            //userData.put("preferred_username", userData.get("username"));
             HashMap<String, Object> res = new HashMap<>();
             res.put("code", 200);
             res.put("data", userData);
@@ -737,6 +736,7 @@ public class OidcService {
             String redirectUriTemp = jsonNode.get("redirectUri").asText();
             String scopeTemp = jsonNode.get("scope").asText();
             String userId = jsonNode.get("userId").asText();
+            String nonce = jsonNode.get("nonce").asText();
             // app校验（授权码对应的app）
             if (!appId.equals(appIdTemp)) {
                 redisDao.remove(code);
@@ -766,12 +766,13 @@ public class OidcService {
             String idToken = jsonNode.get("idToken").asText();
             if (scopes.contains("id_token")) {
                 LocalDateTime nowDate = LocalDateTime.now();
-
                 Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
-
                 LocalDateTime expireDate = nowDate.plusSeconds(72000);
                 Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
-                String nonce = (String) redisDao.get("auth_oidc_nonce");
+                if (StringUtils.isBlank(nonce)) {
+                    nonce = (String) redisDao.get("auth_oidc_nonce");
+                    LOGGER.error("get from redis nonce=====");
+                }
                 LOGGER.error("nonce=====" + nonce);
                 String token = JWT.create()
                         .withAudience(appId) //谁接受签名

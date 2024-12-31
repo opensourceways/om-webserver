@@ -16,6 +16,7 @@ import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.anji.captcha.util.StringUtils;
+import com.om.Service.bean.OidcAuthParam;
 import com.om.result.Constant;
 import com.om.service.AuthingService;
 import com.om.service.LoginService;
@@ -262,6 +263,7 @@ public class AuthingController {
      * @param redirectUri 重定向URI
      * @param responseType 响应类型
      * @param state 状态信息（可选）
+     * @param nonce 范围
      * @param scope 范围
      * @return 返回 ResponseEntity 对象
      */
@@ -273,8 +275,11 @@ public class AuthingController {
                                    @RequestParam(value = "redirect_uri") String redirectUri,
                                    @RequestParam(value = "response_type") String responseType,
                                    @RequestParam(value = "state", required = false) String state,
+                                   @RequestParam(value = "nonce", required = false) String nonce,
                                    @RequestParam(value = "scope") String scope) {
-        return oidcService.oidcAuth(token, clientId, redirectUri, responseType, state, scope);
+        OidcAuthParam oidcAuthParam = new OidcAuthParam(token, clientId, redirectUri,
+                responseType, state, scope, nonce);
+        return oidcService.oidcAuth(oidcAuthParam);
     }
 
     /**
@@ -354,15 +359,15 @@ public class AuthingController {
             + "\"https://openeuler-usercenter.test.osinfra.cn/oneid/oidc/authorize\",\"token_endpoint\":"
             + "\"https://openeuler-usercenter.test.osinfra.cn/oneid/oidc/token\",\"end_session_endpoint\":"
             + "\"https://openeuler-usercenter.test.osinfra.cn/oneid/oidc/end\",\"claims_parameter_supported\":"
-            + "false,\"claims_supported\":[\"sub\",\"username\",\"phone_number\",\"phone_number_verified\",\"email\""
-            + ",\"email_verified\",\"address\",\"birthdate\",\"family_name\",\"gender\",\"given_name\",\"locale\""
-            + ",\"middle_name\",\"name\",\"nickname\",\"picture\",\"preferredUsername\",\"profile\",\"updated_at\""
-            + ",\"website\",\"zoneinfo\",\"role\",\"roles\",\"unionid\",\"external_id\",\"extended_fields\","
-            + "\"tenant_id\",\"userpool_id\",\"sid\",\"auth_time\",\"iss\"],\"grant_types_supported\":"
-            + "[\"authorization_code\",\"password\",\"refresh_token\"],\"response_types_supported\":"
+            + "false,\"claims_supported\":[\"sub\",\"username\",\"phone\",\"phoneVerified\",\"email\""
+            + ",\"emailVerified\",\"birthdate\",\"familyName\",\"gender\",\"givenName\",\"locale\""
+            + ",\"middleName\",\"name\",\"nickname\",\"picture\",\"preferredUsername\",\"profile\",\"updatedAt\""
+            + ",\"website\",\"zoneinfo\""
+            + "],\"grant_types_supported\":"
+            + "[\"authorization_code\"],\"response_types_supported\":"
             + "[\"code\"],\"scopes_supported\":[\"openid\",\"offline_access\",\"username\",\"phone\","
-            + "\"email\",\"id_token\",\"profile\",\"role\",\"roles\",\"unionid\",\"external_id\",\"extended_fields\","
-            + "\"tenant_id\",\"userpool_id\"],\"userinfo_endpoint\":"
+            + "\"email\",\"id_token\",\"profile\",\"unionid\",\"external_id\",\"extended_fields\","
+            + "\"id_token\",\"preferred_username\"],\"userinfo_endpoint\":"
             + "\"https://openeuler-usercenter.test.osinfra.cn/oneid/oidc/user\",\"subject_types_supported\":"
             + "[\"public\"],\"id_token_signing_alg_values_supported\":[\"HS256\",\"RS256\"]}";
     }
