@@ -31,4 +31,9 @@ public class NamespaceInfoPage {
      * 命名空间code.
      */
     private String namespaceCode;
+
+    /**
+     * 模糊搜索.
+     */
+    private String query;
 }

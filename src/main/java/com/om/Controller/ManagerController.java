@@ -14,6 +14,8 @@ package com.om.Controller;
 import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
+import com.om.Controller.bean.request.BatchAuthInfo;
+import com.om.Controller.bean.request.IdentityUser;
 import com.om.Controller.bean.request.PermissionInfo;
 import com.om.Controller.bean.request.ResourceInfo;
 import com.om.Controller.bean.request.NamespaceInfoPage;
@@ -293,6 +295,32 @@ public class ManagerController {
                                             HttpServletResponse servletResponse,
                                             @CookieValue(value = "_Y_G_", required = false) String token) {
         return authingService.updateAccountInfo(servletRequest, servletResponse, token);
+    }
+
+    /**
+     * 根据三方平台用户ID查询authing用户ID.
+     *
+     * @param identityUser 三方平台ID
+     * @return authing用户ID
+     */
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
+    @ManageToken
+    @RequestMapping(value = "/getUsers/byIdentity", method = RequestMethod.POST)
+    public ResponseEntity getUsersByIdentity(@RequestBody IdentityUser identityUser) {
+        return oneIdManageService.getUserByIdentities(identityUser);
+    }
+
+    /**
+     * 批量授权.
+     *
+     * @param batchAuthInfo 授权信息
+     * @return 是否授权成功
+     */
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
+    @ManageToken
+    @RequestMapping(value = "/permission/batchAuth", method = RequestMethod.POST)
+    public ResponseEntity batchAuth(@RequestBody BatchAuthInfo batchAuthInfo) {
+        return oneIdManageService.batchAuthrize(batchAuthInfo);
     }
 
     private boolean verifyCaptcha(String captchaVerification) {
