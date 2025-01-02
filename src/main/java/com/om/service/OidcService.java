@@ -526,13 +526,11 @@ public class OidcService {
                     && StringUtils.isBlank((String) userData.get("preferred_username"))) {
                 userData.put("preferred_username", userData.get("username"));
             }
-            //userData.put("preferred_username", userData.get("username"));
             HashMap<String, Object> res = new HashMap<>();
             res.put("code", 200);
             res.put("data", userData);
             res.put("msg", "OK");
             res.putAll(userData);
-            LOGGER.error("=" + userData.toString());
             ResponseEntity<HashMap<String, Object>> responseEntity = new ResponseEntity<>(res, HttpStatus.OK);
             return responseEntity;
         } catch (Exception e) {
@@ -769,7 +767,8 @@ public class OidcService {
                 Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
                 LocalDateTime expireDate = nowDate.plusSeconds(72000);
                 Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
-                if (StringUtils.isBlank(nonce)) {
+                LOGGER.error("nonce==========" + nonce);
+                if (StringUtils.isBlank(nonce) || "null".equals(nonce)) {
                     nonce = (String) redisDao.get("auth_oidc_nonce");
                     LOGGER.error("get from redis nonce=====");
                 }
