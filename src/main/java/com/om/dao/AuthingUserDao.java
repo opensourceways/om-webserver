@@ -494,7 +494,8 @@ public class AuthingUserDao {
                         + "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},"
                         + "\"options\": {\"clientIp\": \"%s\"},"
                         + "\"profile\":{\"username\":\"%s\", \"givenName\":\"%s\"}}",
-                email, code, clientIp, username, privacyHistoryService.createPrivacyVersions(oneidPrivacyVersion, true));
+                email, code, clientIp, username,
+                privacyHistoryService.createPrivacyVersions(oneidPrivacyVersion, true));
         return register(appId, body);
     }
 
