@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import jakarta.servlet.http.HttpServletRequest;
 
 /**
- * 用于处理验证码相关的请求和逻辑.
+ * 用于处理验证码相关的请求和逻辑1.
  */
 @RestController("updatedCaptchaController")
 @RequestMapping("/captcha")
