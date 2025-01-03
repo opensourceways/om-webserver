@@ -499,8 +499,8 @@ public class AuthingService implements UserCenterServiceInter {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
             msg = accountType.equals(Constant.EMAIL_TYPE)
-                    ? authingUserDao.registerByEmailPwd(appId, account, password, username, code)
-                    : authingUserDao.registerByPhonePwd(appId, account, password, username, code);
+                    ? authingUserDao.registerByEmailPwd(appId, account, password, username, code, ip)
+                    : authingUserDao.registerByPhonePwd(appId, account, password, username, code, ip);
             if (msg.equals(Constant.SUCCESS)) {
                 LogUtil.createLogs(username, "user register", "register",
                         "The user register By password", ip, "success");
@@ -511,8 +511,8 @@ public class AuthingService implements UserCenterServiceInter {
         } else if (StringUtils.isNotBlank(code)) {
             // 验证码登录
             msg = accountType.equals(Constant.EMAIL_TYPE)
-                    ? authingUserDao.registerByEmailCode(appId, account, code, username)
-                    : authingUserDao.registerByPhoneCode(appId, account, code, username);
+                    ? authingUserDao.registerByEmailCode(appId, account, code, username, ip)
+                    : authingUserDao.registerByPhoneCode(appId, account, code, username, ip);
             if (msg.equals(Constant.SUCCESS)) {
                 LogUtil.createLogs(username, "user register", "register",
                         "The user register By code", ip, "success");
@@ -1623,9 +1623,10 @@ public class AuthingService implements UserCenterServiceInter {
      * @param account 账号
      * @param code 验证码
      * @param password 密码
+     * @param clientIp 用户IP
      * @return 登录响应体
      */
-    public Object login(String appId, String account, String code, String password) {
+    public Object login(String appId, String account, String code, String password, String clientIp) {
         // code/password 同时传入报错
         if ((StringUtils.isNotBlank(code) && StringUtils.isNotBlank(password))) {
             return MessageCodeConfig.E00012.getMsgZh();
@@ -1645,18 +1646,18 @@ public class AuthingService implements UserCenterServiceInter {
         try {
             if (accountType.equals(Constant.EMAIL_TYPE)) { // 邮箱登录
                 msg = StringUtils.isNotBlank(code)
-                        ? authingUserDao.loginByEmailCode(app, account, code)
-                        : authingUserDao.loginByEmailPwd(app, account, password);
+                        ? authingUserDao.loginByEmailCode(app, account, code, clientIp)
+                        : authingUserDao.loginByEmailPwd(app, account, password, clientIp);
             } else if (accountType.equals(Constant.PHONE_TYPE)) { // 手机号登录
                 msg = StringUtils.isNotBlank(code)
-                        ? authingUserDao.loginByPhoneCode(app, account, code)
-                        : authingUserDao.loginByPhonePwd(app, account, password);
+                        ? authingUserDao.loginByPhoneCode(app, account, code, clientIp)
+                        : authingUserDao.loginByPhonePwd(app, account, password, clientIp);
             } else { // 用户名登录
                 // 用户名校验
                 if (StringUtils.isBlank(account)) {
                     return MessageCodeConfig.E00012.getMsgZh();
                 }
-                msg = authingUserDao.loginByUsernamePwd(app, account, password);
+                msg = authingUserDao.loginByUsernamePwd(app, account, password, clientIp);
             }
         } catch (ServerErrorException e) {
             return MessageCodeConfig.E00048.getMsgZh();
@@ -1721,11 +1722,12 @@ public class AuthingService implements UserCenterServiceInter {
             String appId = (String) getBodyPara(body, "client_id");
             String account = (String) getBodyPara(body, "account");
             String code = (String) getBodyPara(body, "code");
+            String clientIp = ClientIPUtil.getClientIpAddress(servletRequest);
             if (!Constant.PHONE_TYPE.equals(getAccountType(account))) {
                 return result(HttpStatus.BAD_REQUEST, null, "", null);
             }
             // 登录成功返回用户token
-            Object loginRes = login(appId, account, code, null);
+            Object loginRes = login(appId, account, code, null, clientIp);
             // 获取用户信息
             String newIdToken;
             String newUserId = "";
