@@ -218,7 +218,7 @@ public class OneIdManageService {
         }
 
         // 限制1分钟只能发送一次
-        String redisKey = account.toLowerCase() + Constant.SEND_CODE;
+        String redisKey = account.toLowerCase() + Constant.SEND_CODE_V1;
         String codeOld = (String) redisDao.get(redisKey);
         if (codeOld != null) {
             return authingService.result(HttpStatus.BAD_REQUEST,
@@ -266,7 +266,7 @@ public class OneIdManageService {
             token = authingUtil.rsaDecryptToken(token);
             DecodedJWT decode = JWT.decode(token);
             userId = decode.getAudience().get(0);
-            String photo = authingUserDao.getUser(userId).getPhoto();
+            String photo = authingManagerDao.getUserByUserId(userId).getPhoto();
             //用户注销
             if (authingManagerDao.deleteUserById(userId)) {
                 LogUtil.createLogs(userId, "delete account", "user",
@@ -338,7 +338,7 @@ public class OneIdManageService {
                 authingUtil.authingUserIdentityIdp(obj, map);
             }
             // 获取用户
-            User user = authingUserDao.getUser(userId);
+            User user = authingManagerDao.getUserByUserId(userId);
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
             userData.put("permissions", permissions);
@@ -370,7 +370,7 @@ public class OneIdManageService {
 
         try {
             JsonNode jsonNode = getTokenInfo(token);
-            User user = authingUserDao.getUser(userId);
+            User user = authingManagerDao.getUserByUserId(userId);
             AuthenticationClient authentication =
                     authingUserDao.initUserAuthentication(jsonNode.get("app_id").asText(), user);
             String res = authingUserDao.bindAccount(authentication, account, code, accountType);
@@ -421,7 +421,7 @@ public class OneIdManageService {
                 userInfo = managerDao.getUserById(userId);
             }
             if (StringUtils.isNotBlank(username)) {
-                userInfo = managerDao.getUserByName(username);
+                userInfo = authingUserDao.getUserByName(username);
             }
             if (StringUtils.isNotBlank(giteeLogin)) {
                 String giteeId = gitDao.getGiteeUserIdByLogin(giteeLogin);
@@ -503,7 +503,7 @@ public class OneIdManageService {
         if (!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX)) {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
-        String res = authingUserDao.updateAccountInfo(token, account, accountType);
+        String res = authingManagerDao.updateAccountInfo(token, account, accountType);
         return authingService.message(res);
     }
 
@@ -537,7 +537,7 @@ public class OneIdManageService {
      */
     public ResponseEntity revokePrivacy(String userId) {
         try {
-            if (authingUserDao.revokePrivacy(userId)) {
+            if (authingManagerDao.revokePrivacy(userId)) {
                 return authingService.result(HttpStatus.OK, MessageCodeConfig.S0001, null, null);
             }
 

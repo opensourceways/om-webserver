@@ -16,9 +16,13 @@ import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.om.service.AuthingService;
 import com.om.service.OneIdManageService;
+import com.om.service.ResourceService;
 import com.om.vo.User;
 import com.om.aop.RequestLimitRedis;
 import com.om.authing.AuthingUserToken;
+import com.om.controller.bean.request.NamespaceInfoPage;
+import com.om.controller.bean.request.PermissionInfo;
+import com.om.controller.bean.request.ResourceInfo;
 import com.om.token.ManageToken;
 
 import org.slf4j.Logger;
@@ -50,6 +54,15 @@ public class ManagerController {
     private static final Logger LOGGER = LoggerFactory.getLogger(ManagerController.class);
 
     /**
+     * 间隔时间.
+     */
+    private static final int MANAGER_LIMIT_PERIOD = 1;
+    /**
+     * 调用次数.
+     */
+    private static final int MANAGER_LIMIT_COUNT = 1000;
+
+    /**
      * 用于注入验证码服务的对象.
      */
     @Autowired
@@ -66,6 +79,12 @@ public class ManagerController {
      */
     @Autowired
     private AuthingService authingService;
+
+    /**
+     * 用于注入 ResourceService 服务的对象.
+     */
+    @Autowired
+    private ResourceService resourceService;
 
     /**
      * 处理令牌申请的方法.
@@ -85,7 +104,7 @@ public class ManagerController {
      * @param token 包含在请求头中的令牌字符串
      * @return 返回 ResponseEntity 对象
      */
-    @RequestLimitRedis(period = 1, count = 1000)
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
     @ManageToken
     @RequestMapping(value = "/sendcode", method = RequestMethod.POST)
     public ResponseEntity sendCode(@RequestBody Map<String, String> body,
@@ -100,7 +119,7 @@ public class ManagerController {
      * @param token 包含在请求头中的令牌字符串
      * @return 返回 ResponseEntity 对象
      */
-    @RequestLimitRedis(period = 1, count = 1000)
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
     @ManageToken
     @RequestMapping(value = "/bind/account", method = RequestMethod.POST)
     public ResponseEntity bindAccount(@RequestBody Map<String, String> body,
@@ -115,7 +134,7 @@ public class ManagerController {
      * @param userCookie 用户 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
-    @RequestLimitRedis(period = 1, count = 1000)
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
     @ManageToken
     @AuthingUserToken
     @RequestMapping(value = "/authenticate", method = RequestMethod.GET)
@@ -134,7 +153,7 @@ public class ManagerController {
      * @param githubLogin GitHub 登录名（可选）
      * @return 返回 ResponseEntity 对象
      */
-    @RequestLimitRedis(period = 1, count = 1000)
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
     @ManageToken
     @RequestMapping(value = "/getuserinfo", method = RequestMethod.GET)
     public ResponseEntity getUser(
@@ -152,7 +171,7 @@ public class ManagerController {
      * @param token     用户凭证 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
-    @RequestLimitRedis(period = 1, count = 1000)
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
     @ManageToken
     @AuthingUserToken
     @RequestMapping(value = "/u/permissions", method = RequestMethod.GET)
@@ -163,6 +182,55 @@ public class ManagerController {
     }
 
     /**
+     * 查询用户是否有权限.
+     *
+     * @param permissionInfo 请求体
+     * @return 是否有权限
+     */
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
+    @ManageToken
+    @RequestMapping(value = "/u/checkPermission", method = RequestMethod.POST)
+    public ResponseEntity checkPermission(@RequestBody PermissionInfo permissionInfo) {
+        return resourceService.checkPermission(permissionInfo);
+    }
+    /**
+     * 获取有权限的资源.
+     *
+     * @param permissionInfo 权限信息
+     * @return 权限资源
+     */
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
+    @ManageToken
+    @RequestMapping(value = "/u/getResources", method = RequestMethod.POST)
+    public ResponseEntity getResources(@RequestBody PermissionInfo permissionInfo) {
+        return resourceService.getResources(permissionInfo);
+    }
+    /**
+     * 获取权限分组下的资源列表.
+     *
+     * @param namespaceInfoPage 分页获取
+     * @return 资源列表
+     */
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
+    @ManageToken
+    @RequestMapping(value = "/permission/allResources", method = RequestMethod.POST)
+    public ResponseEntity getAllResources(@RequestBody NamespaceInfoPage namespaceInfoPage) {
+        return resourceService.getAllResources(namespaceInfoPage);
+    }
+    /**
+     * 获取某个资源的用户授权列表.
+     *
+     * @param resourceInfo 资源参数
+     * @return 用户授权列表
+     */
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
+    @ManageToken
+    @RequestMapping(value = "/permission/resource/userList", method = RequestMethod.POST)
+    public ResponseEntity listUserOfResource(@RequestBody ResourceInfo resourceInfo) {
+        return resourceService.listUserOfResource(resourceInfo);
+    }
+
+    /**
      * 获取用户中心信息的方法.
      *
      * @param servletRequest  HTTP Servlet 请求对象
@@ -170,7 +238,7 @@ public class ManagerController {
      * @param token           用户凭证 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
-    @RequestLimitRedis(period = 1, count = 1000)
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
     @ManageToken
     @AuthingUserToken
     @RequestMapping(value = "/personal/center/user", method = RequestMethod.GET)
@@ -187,7 +255,7 @@ public class ManagerController {
      * @param body 包含用户信息的请求体对象
      * @return 返回 ResponseEntity 对象
      */
-    @RequestLimitRedis(period = 1, count = 1000)
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
     @ManageToken
     @RequestMapping(value = "/privacy/revoke", method = RequestMethod.POST)
     public ResponseEntity revokePrivacy(@RequestBody User body) {
@@ -202,7 +270,7 @@ public class ManagerController {
      * @param token 包含令牌的 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
-    @RequestLimitRedis(period = 1, count = 1000)
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
     @ManageToken
     @AuthingUserToken
     @RequestMapping(value = "/update/account", method = RequestMethod.POST)
@@ -220,7 +288,7 @@ public class ManagerController {
      * @param token 包含令牌的 Cookie 值（可选）
      * @return 返回 ResponseEntity 对象
      */
-    @RequestLimitRedis(period = 1, count = 1000)
+    @RequestLimitRedis(period = MANAGER_LIMIT_PERIOD, count = MANAGER_LIMIT_COUNT)
     @ManageToken
     @AuthingUserToken
     @RequestMapping(value = "/update/accountInfo", method = RequestMethod.POST)

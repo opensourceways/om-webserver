@@ -621,7 +621,7 @@ public class AuthingService implements UserCenterServiceInter {
             DecodedJWT decode = JWT.decode(authingUtil.rsaDecryptToken(token));
             String userId = decode.getAudience().get(0);
             // 获取用户
-            User user = authingUserDao.getUser(userId);
+            User user = authingManagerDao.getUserByUserId(userId);
             String photo = user.getPhoto();
             String username = user.getUsername();
             String email = user.getEmail();
@@ -764,7 +764,7 @@ public class AuthingService implements UserCenterServiceInter {
             DecodedJWT decode = JWT.decode(token);
             String userId = decode.getAudience().get(0);
             // 获取用户
-            User user = authingUserDao.getUser(userId);
+            User user = authingManagerDao.getUserByUserId(userId);
             String photo = user.getPhoto();
             String username = user.getUsername();
             // 返回结果
@@ -962,7 +962,7 @@ public class AuthingService implements UserCenterServiceInter {
             if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, null);
             }
-            User user = authingUserDao.getUser(userId);
+            User user = authingManagerDao.getUserByUserId(userId);
             String emailInDb = user.getEmail();
             if (accountType.equals("email")
                     && StringUtils.isNotBlank(emailInDb)
@@ -1736,7 +1736,7 @@ public class AuthingService implements UserCenterServiceInter {
                 JSONObject userObj = (JSONObject) loginRes;
                 newIdToken = userObj.getString("id_token");
                 newUserId = JWT.decode(newIdToken).getSubject();
-                newuser = authingUserDao.getUser(newUserId);
+                newuser = authingManagerDao.getUserByUserId(newUserId);
             } else if (MessageCodeConfig.E0002.getMsgZh().equals(loginRes)
                     || MessageCodeConfig.E00026.getMsgZh().equals(loginRes)) {
                 return result(HttpStatus.BAD_REQUEST, null, (String) loginRes, null);
@@ -1746,7 +1746,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
 
             String currentUserId = authingUtil.getUserIdFromToken(token);
-            User currentUser = authingUserDao.getUser(currentUserId);
+            User currentUser = authingManagerDao.getUserByUserId(currentUserId);
             if (currentUser == null) {
                 LOGGER.error("user is null");
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00071, null, null);
