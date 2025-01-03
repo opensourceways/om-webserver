@@ -13,9 +13,11 @@ package com.om.utils;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
+import com.om.controller.bean.response.IdentityInfo;
 import com.om.modules.MessageCodeConfig;
 import com.om.service.AuthingService;
 
+import cn.authing.core.types.Identity;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import kong.unirest.json.JSONArray;
@@ -26,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import javax.crypto.NoSuchPaddingException;
 import java.security.InvalidKeyException;
@@ -35,6 +38,7 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -122,6 +126,30 @@ public class AuthingUtil {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
         }
         return res;
+    }
+
+    /**
+     * 获取三方绑定用户.
+     *
+     * @param identities authing的三方信息
+     * @return 三方绑定信息
+     */
+    public List<IdentityInfo> parseUserIdentity(List<Identity> identities) {
+        List<IdentityInfo> identityInfos = new ArrayList<>();
+        if (CollectionUtils.isEmpty(identities)) {
+            return identityInfos;
+        }
+        for (Identity identity : identities) {
+            if (identity.getUserInfoInIdp() != null
+                    && StringUtils.equals(identity.getExtIdpId(), env.getProperty("enterprise.extIdpId.gitcode"))) {
+                IdentityInfo identityInfo = new IdentityInfo();
+                identityInfo.setLoginName(identity.getUserInfoInIdp().getName());
+                identityInfo.setUserId(identity.getUserIdInIdp());
+                identityInfo.setThirdPlatform("gitcode");
+                identityInfos.add(identityInfo);
+            }
+        }
+        return identityInfos;
     }
 
     /**
