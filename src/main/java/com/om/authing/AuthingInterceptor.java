@@ -416,8 +416,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
             // 服务端校验headerToken是否有效
             String shaToken = CommonUtil.encryptSha256(headerToken, tokenSalt);
             String md5Token = DigestUtils.md5DigestAsHex(headerToken.getBytes(StandardCharsets.UTF_8));
-            boolean shaTokenExist = redisDao.exists("idToken_" + shaToken);
-            boolean md5TokenExist = redisDao.exists("idToken_" + md5Token);
+            boolean shaTokenExist;
+            boolean md5TokenExist = false;
+            shaTokenExist = redisDao.exists("idToken_" + shaToken);
+            if (!shaTokenExist) {
+                md5TokenExist = redisDao.exists("idToken_" + md5Token);
+            }
             if (!shaTokenExist && !md5TokenExist) {
                 return "token expires";
             }
