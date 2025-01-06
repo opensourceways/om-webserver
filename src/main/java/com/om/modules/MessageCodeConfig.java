@@ -98,7 +98,7 @@ public enum MessageCodeConfig {
      */
     E00018("E00018", "Username must be not empty", "用户名不能为空"),
     /**
-     * 错误代码 E00019: 用户名已存在.
+     * 错误代码 E00019: 用户名不合法.
      */
     E00019("E00019", "Username is illegal", "用户名不合法"),
     /**
@@ -335,7 +335,33 @@ public enum MessageCodeConfig {
     /**
      * 错误代码 E00071: 绑定已有账号失败.
      */
-    E00071("E00071", "Failed to bind existing account", "绑定已有账号失败");
+    E00071("E00071", "Failed to bind existing account", "绑定已有账号失败"),
+
+    /**
+     * 错误代码 E00072: 昵称涉及敏感信息.
+     */
+    E00072("E00072", "Nick name involves sensitive information", "昵称涉及敏感信息"),
+
+    /**
+     * 错误代码 E00073: 公司名涉及敏感信息.
+     */
+    E00073("E00073", "Company name involves sensitive information", "公司名涉及敏感信息"),
+
+    /**
+     * 图片文件名不合法.
+     */
+    E00074("E00074", "The image file name is illegal", "图片文件名不合法"),
+
+    /**
+     * 图片格式不合法.
+     */
+    E00075("E00075", "Image format error, please use JPG or PNG format image",
+            "图片格式错误，请使用JPG或PNG格式图片"),
+
+    /**
+     * 图片内容涉及敏感信息.
+     */
+    E00076("E00076", "The image content involves sensitive information", "图片内容涉及敏感信息");
 
     /**
      * 消息代码.
@@ -403,7 +429,7 @@ public enum MessageCodeConfig {
         map.put("Duplicate entry", E0004);
         map.put("没有配置其他登录方式", E0005);
         map.put("解绑三方账号失败", E0006);
-        map.put("更新失败", E0007);
+        map.put("Failed to update user info", E0007);
         map.put("验证码发送失败", E0008);
         map.put("一分钟之内已发送过验证码", E0009);
         map.put("注销用户失败", E00010);
@@ -416,6 +442,7 @@ public enum MessageCodeConfig {
         map.put("退出登录失败", E00017);
         map.put("用户名不能为空", E00018);
         map.put("用户名已存在", E00019);
+        map.put("Username is illegal", E00019);
         map.put("手机号或者邮箱不能为空", E00020);
         map.put("请输入正确的手机号或者邮箱", E00021);
         map.put("该账号已注册", E00022);
@@ -472,6 +499,9 @@ public enum MessageCodeConfig {
         map.put("[openMind] username invalid", E00066);
         map.put("Please bind the phone number first", E00067);
         map.put("Only supports mobile phone numbers in China", E00068);
+        map.put("The image file name is illegal", E00074);
+        map.put("The image format is illegal", E00075);
+        map.put("The image content is illegal", E00076);
 
         return map;
     }

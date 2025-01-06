@@ -20,6 +20,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.config.UnirestCustomTrustManager;
 import com.om.modules.authing.AuthingAppSync;
+import com.om.service.ModeratorService;
 import com.om.service.PrivacyHistoryService;
 import com.om.utils.LogUtil;
 import com.om.authing.AuthingRespConvert;
@@ -355,6 +356,12 @@ public class AuthingUserDao {
      */
     @Autowired
     private AuthingManagerDao authingManagerDao;
+
+    /**
+     * 敏感信息校验.
+     */
+    @Autowired
+    private ModeratorService moderatorService;
 
     /**
      * OBS客户端实例赋值.
@@ -1443,16 +1450,14 @@ public class AuthingUserDao {
                 String inputValue = entry.getValue() == null ? "" : entry.getValue().toString();
                 switch (item.toLowerCase()) {
                     case "nickname":
-                        if (StringUtils.isNotBlank(inputValue) && (inputValue.length() < 3 || inputValue.length() > 20
-                                || !inputValue.matches(NICKNAME_REG))) {
-                            return MessageCodeConfig.E0007.getMsgZh();
+                        if (!checkNickName(inputValue)) {
+                            return MessageCodeConfig.E00072.getMsgZh();
                         }
                         updateUserInput.withNickname(inputValue);
                         break;
                     case "company":
-                        if (StringUtils.isNotBlank(inputValue) && (inputValue.length() < 2 || inputValue.length() > 100
-                                || !inputValue.matches(COMPANYNAME_REG))) {
-                            return MessageCodeConfig.E0007.getMsgZh();
+                        if (!checkCompanyName(inputValue)) {
+                            return MessageCodeConfig.E00073.getMsgZh();
                         }
                         updateUserInput.withCompany(inputValue);
                         break;
@@ -1518,6 +1523,28 @@ public class AuthingUserDao {
         }
     }
 
+    private boolean checkNickName(String nickName) {
+        if (StringUtils.isNotBlank(nickName) && (nickName.length() < 3 || nickName.length() > 20
+                || !nickName.matches(NICKNAME_REG))) {
+            return false;
+        }
+        if (!moderatorService.checkText(nickName)) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean checkCompanyName(String companyName) {
+        if (StringUtils.isNotBlank(companyName) && (companyName.length() < 2 || companyName.length() > 100
+                || !companyName.matches(COMPANYNAME_REG))) {
+            return false;
+        }
+        if (!moderatorService.checkText(companyName)) {
+            return false;
+        }
+        return true;
+    }
+
     private void saveHistory(User user, String newPrivacy) {
         String content;
         String type;
@@ -1554,45 +1581,42 @@ public class AuthingUserDao {
      * @param token 访问令牌
      * @param file 包含新用户照片的文件
      * @param userIp 用户IP
-     * @return 如果成功更新用户照片则返回 true，否则返回 false
+     * @return 更新用户照片结果返回
      */
-    public boolean updatePhoto(String token, MultipartFile file, String userIp) {
+    public String updatePhoto(String token, MultipartFile file, String userIp) {
         InputStream inputStream = null;
         try {
             inputStream = CommonUtil.rewriteImage(file);
-
             Object[] appUserInfo = getAppUserInfo(token);
             String appId = appUserInfo[0].toString();
             User user = (User) appUserInfo[1];
             AuthenticationClient authentication = initUserAuthentication(appId, user);
-
             String photo = user.getPhoto();
-
             // 重命名文件
             String fileName = file.getOriginalFilename();
             if (Objects.isNull(fileName)) {
-                throw new ServerErrorException("Filename is invalid");
+                throw new ServerErrorException("The image file name is illegal");
             }
             for (String c : Constant.PHOTO_NOT_ALLOWED_CHARS.split(",")) {
                 if (fileName.contains(c)) {
-                    throw new ServerErrorException("Filename is invalid");
+                    throw new ServerErrorException("The image file name is illegal");
                 }
             }
             String extension = fileName.substring(fileName.lastIndexOf("."));
             if (!photoSuffixes.contains(extension.toLowerCase())) {
-                return false;
+                throw new ServerErrorException("The image format is illegal");
             }
-
             if (!CommonUtil.isFileContentTypeValid(file)) {
-                throw new ServerErrorException("File content type is invalid");
+                throw new ServerErrorException("The image format is illegal");
             }
-
             String objectName = String.format("%s%s", UUID.randomUUID().toString(), extension);
-
             //上传文件到OBS
             PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, inputStream);
             String objectUrl = putObjectResult.getObjectUrl();
-
+            if (!moderatorService.checkImage(objectUrl, false)) {
+                deleteObsObjectByUrl(objectUrl);
+                throw new ServerErrorException("The image content is illegal");
+            }
             // 修改用户头像
             authentication.updateProfile(new UpdateUserInput().withPhoto(objectUrl)).execute();
             LogUtil.createLogs(user.getId(), "update photo", "user", "The user update photo",
@@ -1601,16 +1625,19 @@ public class AuthingUserDao {
             deleteObsObjectByUrl(photo);
             LogUtil.createLogs(user.getId(), "delete photo", "user", "The user delete photo",
                     userIp, "success");
-            return true;
+            return Constant.SUCCESS;
+        } catch (ServerErrorException ex) {
+            LOGGER.error("update photo failed {}", ex.getMessage());
+            return ex.getMessage();
         } catch (Exception ex) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
-            return false;
+            LOGGER.error("update photo failed {}", ex.getMessage());
+            return "Failed to update user info";
         } finally {
             if (inputStream != null) {
                 try {
                     inputStream.close();
                 } catch (IOException e) {
-                    LOGGER.error(e.getMessage());
+                    LOGGER.error("close pic file stream failed {}", e.getMessage());
                 }
             }
         }
@@ -1668,6 +1695,11 @@ public class AuthingUserDao {
         }
         if (reservedUsernames.contains(userName) || isUserExists(appId, userName, "username")) {
             msg = "用户名已存在";
+            return msg;
+        }
+        if (!moderatorService.checkText(userName)) {
+            msg = "Username is illegal";
+            LOGGER.error("username is illegal: {}", userName);
             return msg;
         }
 
