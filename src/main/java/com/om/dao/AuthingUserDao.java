@@ -1439,7 +1439,7 @@ public class AuthingUserDao {
             if (!oneidPrivacyVersion.equals(oldPrevious)) {
                 for (String key : map.keySet()) {
                     if (!StringUtils.equals("oneidprivacyaccepted", key.toLowerCase())) {
-                        return MessageCodeConfig.E0007.getMsgZh();
+                        return MessageCodeConfig.E0007.getMsgEn();
                     }
                 }
             }
@@ -1451,13 +1451,13 @@ public class AuthingUserDao {
                 switch (item.toLowerCase()) {
                     case "nickname":
                         if (!checkNickName(inputValue)) {
-                            return MessageCodeConfig.E00072.getMsgZh();
+                            return MessageCodeConfig.E00072.getMsgEn();
                         }
                         updateUserInput.withNickname(inputValue);
                         break;
                     case "company":
                         if (!checkCompanyName(inputValue)) {
-                            return MessageCodeConfig.E00073.getMsgZh();
+                            return MessageCodeConfig.E00073.getMsgEn();
                         }
                         updateUserInput.withCompany(inputValue);
                         break;
@@ -1519,7 +1519,7 @@ public class AuthingUserDao {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
             LogUtil.createLogs(userId, "update baseInfo", "user",
                     "User update baseInfo", userIp, "failed");
-            return MessageCodeConfig.E0007.getMsgZh();
+            return MessageCodeConfig.E0007.getMsgEn();
         }
     }
 

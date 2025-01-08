@@ -499,6 +499,8 @@ public enum MessageCodeConfig {
         map.put("[openMind] username invalid", E00066);
         map.put("Please bind the phone number first", E00067);
         map.put("Only supports mobile phone numbers in China", E00068);
+        map.put("Nick name involves sensitive information", E00072);
+        map.put("Company name involves sensitive information", E00073);
         map.put("The image file name is illegal", E00074);
         map.put("The image format is illegal", E00075);
         map.put("The image content is illegal", E00076);
