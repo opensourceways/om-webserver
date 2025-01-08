@@ -1374,9 +1374,12 @@ public class AuthingService implements UserCenterServiceInter {
     public ResponseEntity updatePhoto(HttpServletRequest servletRequest,
                                       HttpServletResponse servletResponse, String token, MultipartFile file) {
         String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
-        return authingUserDao.updatePhoto(token, file, userIp)
-                ? result(HttpStatus.OK, "update photo success", null)
-                : result(HttpStatus.BAD_REQUEST, null, "更新失败", null);
+        String updateResult = authingUserDao.updatePhoto(token, file, userIp);
+        if (Constant.SUCCESS.equals(updateResult)) {
+            return result(HttpStatus.OK, "update photo success", null);
+        } else {
+            return result(HttpStatus.BAD_REQUEST, null, updateResult, null);
+        }
     }
 
     /**

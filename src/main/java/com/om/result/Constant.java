@@ -213,6 +213,11 @@ public final class Constant {
     public static final String REDIS_KEY_AUTH_MANAGER_TOKEN = "authingManagerToken";
 
     /**
+     * 敏感信息检查token缓存.
+     */
+    public static final String REDIS_KEY_MODERATOR_TOKEN = "moderatorAuthToken";
+
+    /**
      * Token过期.
      */
     public static final String TOKEN_EXPIRES = "token expires";

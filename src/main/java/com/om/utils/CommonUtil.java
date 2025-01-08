@@ -16,9 +16,13 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Base64;
 import java.util.Objects;
 
 import javax.imageio.ImageIO;
@@ -141,6 +145,43 @@ public final class CommonUtil {
      */
     public static String getSafeRequestUri(HttpServletRequest request) {
         return request.getServletPath() + (request.getPathInfo() != null ? request.getPathInfo() : "");
+    }
+
+    /**
+     * 根据url下载图片base64.
+     *
+     * @param imageUrl url
+     * @param maxSize 最大图片大小
+     * @return base64数据
+     */
+    public static String getBase64FromURL(String imageUrl, int maxSize) {
+        URL url = null;
+        try {
+            url = new URL(imageUrl);
+        } catch (MalformedURLException e) {
+            LOGGER.error("Error: imageurl is invalid");
+            return "Error: imageurl is invalid";
+        }
+        try (InputStream inputStream = url.openStream();
+             ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
+
+            URLConnection uConnection = url.openConnection();
+            if (uConnection.getContentLength() > maxSize) {
+                LOGGER.error("Error occurs when checking images. Only support images smaller than " + maxSize);
+                return "Error occurs when checking images";
+            }
+            byte[] buffer = new byte[4096];
+            int n = 0;
+            while ((n = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, n);
+            }
+            byte[] imageBytes = outputStream.toByteArray();
+            String base64Encoded = Base64.getEncoder().encodeToString(imageBytes);
+            return base64Encoded;
+        } catch (IOException e) {
+            LOGGER.error("Error: Could not read image");
+            return "Error: Could not read image";
+        }
     }
 
     private static byte[] check(byte[] bs) {
