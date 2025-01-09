@@ -962,6 +962,7 @@ public class AuthingService implements UserCenterServiceInter {
             if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00030, null, null);
             }
+            String channelReal = convertChannel(appId, account, channel);
             User user = authingManagerDao.getUserByUserId(userId);
             String emailInDb = user.getEmail();
             if (accountType.equals("email")
@@ -969,9 +970,9 @@ public class AuthingService implements UserCenterServiceInter {
                     && emailInDb.endsWith(Constant.AUTO_GEN_EMAIL_SUFFIX)) {
                 msg = sendSelfDistributedCode(account, accountType, "CodeBindEmail");
             } else if (accountType.equals("email")) {
-                msg = authingUserDao.sendEmailCodeV3(appId, account, channel);
+                msg = authingUserDao.sendEmailCodeV3(appId, account, channelReal);
             } else if (accountType.equals("phone")) {
-                msg = authingUserDao.sendPhoneCodeV3(appId, account, channel);
+                msg = authingUserDao.sendPhoneCodeV3(appId, account, channelReal);
             } else {
                 return result(HttpStatus.BAD_REQUEST, null, accountType, null);
             }
@@ -995,6 +996,22 @@ public class AuthingService implements UserCenterServiceInter {
                     "The user sends code", ClientIPUtil.getClientIpAddress(request), "success");
             return result(HttpStatus.OK, "success", null);
         }
+    }
+
+    private String convertChannel(String appId, String account, String channel) {
+        String channelUp = channel.toUpperCase(Locale.ROOT);
+        try {
+            if ("CHANNEL_MERGE_USER".equals(channelUp)) {
+                if (!authingUserDao.isUserExists(appId, account, "phone")) {
+                    channelUp = "CHANNEL_BIND_PHONE";
+                } else {
+                    channelUp = "CHANNEL_LOGIN";
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.error("convert channel failed {}", e.getMessage());
+        }
+        return channelUp;
     }
 
     private String sendSelfDistributedCode(String account, String accountType, String channel) {
@@ -1722,6 +1739,26 @@ public class AuthingService implements UserCenterServiceInter {
                                     HttpServletResponse servletResponse, String token) {
         try {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+            String account = (String) getBodyPara(body, "account");
+            String appId = (String) getBodyPara(body, "client_id");
+            if (!Constant.PHONE_TYPE.equals(getAccountType(account))) {
+                return result(HttpStatus.BAD_REQUEST, null, "", null);
+            }
+            if (!authingUserDao.isUserExists(appId, account, "phone")) {
+                return bindAccount(servletRequest, servletResponse, token);
+            } else {
+                return mergeExistUser(servletRequest, servletResponse, token);
+            }
+        } catch (Exception e) {
+            LOGGER.error("[merge users] merge users failed {}", e.getMessage());
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+    }
+
+    private ResponseEntity mergeExistUser(HttpServletRequest servletRequest,
+                                          HttpServletResponse servletResponse, String token) {
+        try {
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
             String appId = (String) getBodyPara(body, "client_id");
             String account = (String) getBodyPara(body, "account");
             String code = (String) getBodyPara(body, "code");
@@ -1747,7 +1784,6 @@ public class AuthingService implements UserCenterServiceInter {
                 LOGGER.error("merge users failed {}", loginRes);
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
-
             String currentUserId = authingUtil.getUserIdFromToken(token);
             User currentUser = authingManagerDao.getUserByUserId(currentUserId);
             if (currentUser == null) {
@@ -1766,24 +1802,20 @@ public class AuthingService implements UserCenterServiceInter {
                     currentIdentity.getExtIdpId())) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00069, null, null);
             }
-
             if (hasSameIdentityType(newuser.getIdentities(), currentIdentity)) {
                 LOGGER.error("[merge users] phone user has been bind");
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00070, null, null);
             }
-
             if (!authingManagerDao.removeIdentity(currentIdentity)) {
                 LOGGER.error("[merge users] remove identity failed");
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00071, null, null);
             }
-
             if (!authingManagerDao.bindIdentity(newUserId, currentIdentity)) {
                 authingManagerDao.bindIdentity(currentUserId, currentIdentity);
                 LOGGER.error("[merge users] bind identity failed");
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00071, null, null);
             }
             authingManagerDao.deleteUserById(currentUserId);
-
             // 登录成功解除登录失败次数限制
             redisDao.remove(account + Constant.LOGIN_COUNT);
             // 获取是否同意隐私
@@ -1794,9 +1826,9 @@ public class AuthingService implements UserCenterServiceInter {
             if (Objects.isNull(userName)) {
                 userName = "";
             }
+            newIdToken = encryptionService.encrypt(newIdToken);
             String[] tokens = jwtTokenCreateService.authingUserToken(appId, newUserId, userName,
                     "", "", newIdToken, oneidPrivacyVersionAccept);
-
             String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(newUserId).toString();
             int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
             redisDao.addList(loginKey, newIdToken, expireSeconds);
@@ -1805,6 +1837,7 @@ public class AuthingService implements UserCenterServiceInter {
                 redisDao.removeListTail(loginKey, maxLoginNum);
             }
             // 写cookie
+            servletResponse.reset();
             setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
             // 返回结果
             HashMap<String, Object> userData = new HashMap<>();
@@ -1814,6 +1847,8 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("email_exist", StringUtils.isNotBlank(newuser.getEmail()));
             userData.put("phone_exist", StringUtils.isNotBlank(newuser.getPhone()));
             userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
+            LogUtil.createLogs(currentUser.getId(), "merge user", "user",
+                    "The user merge to" + newUserId, clientIp, "success");
             return result(HttpStatus.OK, "success", userData);
         } catch (InvalidKeySpecException e) {
             LOGGER.error("[merge users] merge users failed {}", e.getMessage());
