@@ -193,6 +193,7 @@ public class ManagerController {
     public ResponseEntity checkPermission(@RequestBody PermissionInfo permissionInfo) {
         return resourceService.checkPermission(permissionInfo);
     }
+
     /**
      * 获取有权限的资源.
      *
@@ -205,6 +206,7 @@ public class ManagerController {
     public ResponseEntity getResources(@RequestBody PermissionInfo permissionInfo) {
         return resourceService.getResources(permissionInfo);
     }
+
     /**
      * 获取权限分组下的资源列表.
      *
@@ -217,6 +219,7 @@ public class ManagerController {
     public ResponseEntity getAllResources(@RequestBody NamespaceInfoPage namespaceInfoPage) {
         return resourceService.getAllResources(namespaceInfoPage);
     }
+
     /**
      * 获取某个资源的用户授权列表.
      *

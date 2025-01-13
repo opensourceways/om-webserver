@@ -13,6 +13,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 import java.util.List;
+
 @Setter
 @Getter
 public class UserOfResourceInfo {
@@ -31,4 +32,16 @@ public class UserOfResourceInfo {
      */
     @JsonProperty("identities")
     private List<IdentityInfo> identityInfos;
+
+    /**
+     * 邮箱.
+     */
+    @JsonProperty("email")
+    private String email;
+
+    /**
+     * 用户名.
+     */
+    @JsonProperty("username")
+    private String username;
 }

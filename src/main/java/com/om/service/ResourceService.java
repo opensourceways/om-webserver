@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.om.modules.MessageCodeConfig;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -59,6 +60,7 @@ public class ResourceService {
                 permissionInfo.getUserId(), permissionInfo.getNamespaceCode())) {
             return authingService.result(HttpStatus.OK, "success", hasPermission);
         }
+        String resource = authingManagerDao.convertResource(permissionInfo.getResource());
         if (CollectionUtils.isEmpty(permissionInfo.getActions())) {
             return authingService.result(HttpStatus.OK, "success", hasPermission);
         }
@@ -67,18 +69,29 @@ public class ResourceService {
         List<String> perActions = new ArrayList<>();
         for (String per : pers) {
             String[] perList = per.split(":");
-            if (perList.length > 1 && StringUtils.equals(permissionInfo.getResource(), perList[0])) {
+            if (perList.length > 1 && StringUtils.equals(resource, perList[0])) {
                 perActions.add(perList[1]);
             }
         }
-        for (String action : permissionInfo.getActions()) {
-            if (!perActions.contains(action)) {
-                return authingService.result(HttpStatus.OK, "success", hasPermission);
+        if ("OR".equals(permissionInfo.getOperator())) {
+            for (String action : perActions) {
+                if (permissionInfo.getActions().contains(action)) {
+                    hasPermission.put("hasPermission", true);
+                    break;
+                }
             }
+            return authingService.result(HttpStatus.OK, "success", hasPermission);
+        } else {
+            for (String action : permissionInfo.getActions()) {
+                if (!perActions.contains(action)) {
+                    return authingService.result(HttpStatus.OK, "success", hasPermission);
+                }
+            }
+            hasPermission.put("hasPermission", true);
+            return authingService.result(HttpStatus.OK, "success", hasPermission);
         }
-        hasPermission.put("hasPermission", true);
-        return authingService.result(HttpStatus.OK, "success", hasPermission);
     }
+
     /**
      * 根据权限获取对应资源.
      *
@@ -98,8 +111,10 @@ public class ResourceService {
         for (String per : pers) {
             String[] perList = per.split(":");
             if (perList.length > 1) {
-                authPermissionMap.putIfAbsent(perList[0], new ArrayList<>());
-                authPermissionMap.get(perList[0]).add(perList[1]);
+                String resource = perList[0];
+                resource = authingManagerDao.convertResource2Outside(resource);
+                authPermissionMap.putIfAbsent(resource, new ArrayList<>());
+                authPermissionMap.get(resource).add(perList[1]);
             }
         }
         if (CollectionUtils.isEmpty(permissionInfo.getActions())) {
@@ -113,6 +128,7 @@ public class ResourceService {
         }
         return authingService.result(HttpStatus.OK, "success", perResourceMap);
     }
+
     /**
      * 获取权限空间下所有资源.
      *
@@ -127,9 +143,10 @@ public class ResourceService {
                 || (limit != null && (limit < 1 || limit > 50))) {
             return authingService.result(HttpStatus.OK, "unrecognized param", Collections.emptyList());
         }
-        List<String> resourceCodeList = authingManagerDao.listResources(nameSpaceCode, page, limit);
-        return authingService.result(HttpStatus.OK, "success", Map.of("resources", resourceCodeList));
+        HashMap<String, Object> resourceCodeMap = authingManagerDao.queryResources(namespaceInfoPage);
+        return authingService.result(HttpStatus.OK, "success", resourceCodeMap);
     }
+
     /**
      * 获取资源下用户权限.
      *
@@ -143,6 +160,9 @@ public class ResourceService {
             return authingService.result(HttpStatus.OK, "unrecognized param", Collections.emptyList());
         }
         List<UserOfResourceInfo> userList = authingManagerDao.listUserOfResource(nameSpaceCode, resource);
+        if (userList == null) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
         return authingService.result(HttpStatus.OK, "success", Map.of("users", userList));
     }
 }

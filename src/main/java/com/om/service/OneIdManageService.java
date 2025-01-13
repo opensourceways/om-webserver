@@ -13,7 +13,13 @@ package com.om.service;
 
 import cn.authing.core.auth.AuthenticationClient;
 import cn.authing.core.types.Application;
+import cn.authing.core.types.ResourcePermissionAssignment;
 import cn.authing.core.types.User;
+import com.om.controller.bean.request.BatchAuthInfo;
+import com.om.controller.bean.request.IdentityUser;
+import com.om.dao.bean.AuthorizeInfo;
+import com.om.dao.bean.UserInfo;
+import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -49,6 +55,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.util.HtmlUtils;
 
@@ -58,6 +65,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class OneIdManageService {
@@ -141,14 +149,20 @@ public class OneIdManageService {
     private String tokenSalt;
 
     /**
+     * gitcode 企业登录的外部身份提供者 ID.
+     */
+    @Value("${enterprise.extIdpId.gitcode: }")
+    private String enterExtIdpIdGitcode;
+
+    /**
+     * 能用于三方用户查询authing用户的三方平台.
+     */
+    private HashMap<String, String> extIdpIdMap;
+
+    /**
      * 静态日志记录器，用于记录 OneIdManageService 类的日志信息.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(OneIdManageService.class);
-
-    /**
-     * 参数默认值数组.
-     */
-    private static final String[] PARAMETER_DEFAULT_VALUE = new String[]{""};
 
     /**
      * 默认消息内容.
@@ -159,6 +173,15 @@ public class OneIdManageService {
      * 令牌正则表达式前缀.
      */
     private static final String TOKEN_REGEX = "token_info:";
+
+    /**
+     * 初始化方法.
+     */
+    @PostConstruct
+    public void init() {
+        extIdpIdMap = new HashMap<>();
+        extIdpIdMap.put("gitcode", enterExtIdpIdGitcode);
+    }
 
     /**
      * 处理令牌申请请求.
@@ -542,6 +565,84 @@ public class OneIdManageService {
             }
 
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage());
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+    }
+
+    /**
+     * 批量根据三方用户ID获取活用户.
+     *
+     * @param identityUser 三方用户信息
+     * @return authing用户
+     */
+    public ResponseEntity getUserByIdentities(IdentityUser identityUser) {
+        if (!extIdpIdMap.containsValue(identityUser.getThirdPlatform())) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+        String extIdpId = extIdpIdMap.get(identityUser.getThirdPlatform());
+        List<UserInfo> userInfos = authingManagerDao.getUsersByIds("identity",
+                extIdpId, identityUser.getUserIds());
+        if (userInfos == null) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+        return authingService.result(HttpStatus.OK, MessageCodeConfig.S0001, null, userInfos);
+    }
+
+    /**
+     * 批量授权.
+     *
+     * @param batchAuthInfo 权限信息
+     * @return 授权结果
+     */
+    public ResponseEntity batchAuthrize(BatchAuthInfo batchAuthInfo) {
+        try {
+            List<ResourcePermissionAssignment> authorizedUsers = authingManagerDao.getAuthorizedUser(
+                    batchAuthInfo.getNamespaceCode(),
+                    batchAuthInfo.getResource(), batchAuthInfo.getActions());
+            List<String> authUserIds = authorizedUsers.stream()
+                    .map(ResourcePermissionAssignment::getTargetIdentifier).collect(Collectors.toList());
+            if (batchAuthInfo.getIsDeleteOthers()) {
+                List<String> deleteUserIds = new ArrayList<>();
+                for (String userId : authUserIds) {
+                    if (!batchAuthInfo.getUserIds().contains(userId)) {
+                        deleteUserIds.add(userId);
+                    }
+                }
+                authingManagerDao.revokeResource(batchAuthInfo.getNamespaceCode(), batchAuthInfo.getResource(),
+                        deleteUserIds);
+            }
+            List<String> addUserIds = new ArrayList<>();
+            for (String userId : batchAuthInfo.getUserIds()) {
+                if (!authUserIds.contains(userId)) {
+                    addUserIds.add(userId);
+                }
+            }
+            if (!CollectionUtils.isEmpty(addUserIds)) {
+                String authActionPre = batchAuthInfo.getResource() + ":";
+                List<String> authActions = batchAuthInfo.getActions().stream().map(x -> authActionPre + x)
+                        .collect(Collectors.toList());
+                AuthorizeInfo authorizeInfo = new AuthorizeInfo();
+                authorizeInfo.setNamespace(batchAuthInfo.getNamespaceCode());
+                AuthorizeInfo.AuthorizeData authorizeData = authorizeInfo.new AuthorizeData();
+                authorizeData.setTargetType("USER");
+                authorizeData.setTargetIdentifiers(addUserIds);
+                AuthorizeInfo.AuthorizeResource authorizeResource = authorizeInfo.new AuthorizeResource();
+                authorizeResource.setResourceType("DATA");
+                authorizeResource.setCode(batchAuthInfo.getResource());
+                authorizeResource.setActions(authActions);
+                List<AuthorizeInfo.AuthorizeResource> resources = new ArrayList<>();
+                resources.add(authorizeResource);
+                authorizeData.setResources(resources);
+                List<AuthorizeInfo.AuthorizeData> list = new ArrayList<>();
+                list.add(authorizeData);
+                authorizeInfo.setList(list);
+                if (!authingManagerDao.authrizeResource(authorizeInfo)) {
+                    return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+                }
+            }
+            return authingService.result(HttpStatus.OK, MessageCodeConfig.S0001, null, null);
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);

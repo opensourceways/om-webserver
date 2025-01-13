@@ -6,31 +6,41 @@
  IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
  PURPOSE.
  See the Mulan PSL v2 for more details.
- Create: 2024
+ Create: 2025
 */
+
 package com.om.controller.bean.request;
+
 import lombok.Getter;
 import lombok.Setter;
-@Getter
+
+import java.util.List;
+
 @Setter
-public class NamespaceInfoPage {
+@Getter
+public class BatchAuthInfo {
     /**
-     * 分页.
-     */
-    private Integer page;
-
-    /**
-     * 分页限制.
-     */
-    private Integer limit;
-
-    /**
-     * 命名空间code.
+     * 权限空间code.
      */
     private String namespaceCode;
 
     /**
-     * 模糊搜索.
+     * 资源路径.
      */
-    private String query;
+    private String resource;
+
+    /**
+     * 用户ID.
+     */
+    private List<String> userIds;
+
+    /**
+     * 资源权限操作.
+     */
+    private List<String> actions;
+
+    /**
+     * 是否删除其他用于的权限.
+     */
+    private Boolean isDeleteOthers;
 }
