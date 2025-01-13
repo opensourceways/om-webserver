@@ -6,31 +6,26 @@
  IMPLIED, INCLUDING BUT NOT LIMITED TO NON-INFRINGEMENT, MERCHANTABILITY OR FIT FOR A PARTICULAR
  PURPOSE.
  See the Mulan PSL v2 for more details.
- Create: 2024
+ Create: 2025
 */
+
 package com.om.controller.bean.request;
+
 import lombok.Getter;
 import lombok.Setter;
+
+import java.util.List;
+
 @Getter
 @Setter
-public class NamespaceInfoPage {
+public class IdentityUser {
     /**
-     * 分页.
+     * 用户ID.
      */
-    private Integer page;
+    private List<String> userIds;
 
     /**
-     * 分页限制.
+     * 三方平台.
      */
-    private Integer limit;
-
-    /**
-     * 命名空间code.
-     */
-    private String namespaceCode;
-
-    /**
-     * 模糊搜索.
-     */
-    private String query;
+    private String thirdPlatform;
 }

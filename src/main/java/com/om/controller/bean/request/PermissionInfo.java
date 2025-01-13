@@ -34,4 +34,8 @@ public class PermissionInfo {
      * 资源权限操作.
      */
     private List<String> actions;
+    /**
+     * AND/OR.
+     */
+    private String operator;
 }
