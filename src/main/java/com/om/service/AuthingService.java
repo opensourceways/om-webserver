@@ -1598,11 +1598,11 @@ public class AuthingService implements UserCenterServiceInter {
                 if (!res.contains(":")) {
                     return result(HttpStatus.BAD_REQUEST, null, res, null);
                 }
-                ObjectMapper objectMapper = new ObjectMapper();
+                ObjectMapper jsonReader = new ObjectMapper();
                 String message = "faild";
                 try {
                     res = res.substring(Constant.AUTHING_RES_PREFIX_LENGTH);
-                    Iterator<JsonNode> buckets = objectMapper.readTree(res).iterator();
+                    Iterator<JsonNode> buckets = jsonReader.readTree(res).iterator();
                     if (buckets.hasNext()) {
                         message = buckets.next().get("message").get("message").asText();
                     }

@@ -100,11 +100,11 @@ public class SendMessageService {
             }
         }
         String wsse  = servletRequest.getHeader("x-wsse");
-        String accessKey = "";
+        String msgAccessKey = "";
         String[] wsses = wsse.split(",");
         for (String wss : wsses) {
             if (wss.startsWith("UsernameToken Username=")) {
-                accessKey = wss.replace("UsernameToken Username=", "")
+                msgAccessKey = wss.replace("UsernameToken Username=", "")
                         .replace("\"", "");
                 break;
             }
@@ -112,19 +112,20 @@ public class SendMessageService {
         String phone = infoMap.get("to");
         String templateCode = infoMap.get("templateId");
         String signName = infoMap.get("signature");
-        String securityKey = infoMap.get("from");
+        String msgSecurityKey = infoMap.get("from");
         String content = infoMap.get("templateParas");
         content = URLDecoder.decode(URLDecoder.decode(content, StandardCharsets.UTF_8), StandardCharsets.UTF_8)
                 .replace("[", "")
                 .replace("]", "");
         // 参数判空
-        if (StringUtils.isEmpty(accessKey) || StringUtils.isEmpty(securityKey) || StringUtils.isEmpty(templateCode)
+        if (StringUtils.isEmpty(msgAccessKey) || StringUtils.isEmpty(msgSecurityKey)
+                || StringUtils.isEmpty(templateCode)
                 || StringUtils.isEmpty(signName) || StringUtils.isEmpty(phone)  || StringUtils.isEmpty(content)) {
             LOGGER.error("sendMessage Error, input is empty");
             return "";
         }
         // 重要参数校验
-        if (!accessKey.equals(this.accessKey) || !securityKey.equals(this.securityKey)
+        if (!msgAccessKey.equals(this.accessKey) || !msgSecurityKey.equals(this.securityKey)
                 || !templateCode.equals(templateId)) {
             LOGGER.error("sendMessage Error, input is invalid");
             return "";
