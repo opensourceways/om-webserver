@@ -23,6 +23,7 @@ import com.om.Utils.CodeUtil;
 import com.om.Utils.RSAUtil;
 import com.om.config.LoginConfig;
 import kong.unirest.json.JSONObject;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -131,26 +132,16 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             if (null == app) {
                 return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00047, null, null, null);
             }
-
-            // code换token
-            String body = String.format("{\"client_id\": \"%s\", \"client_secret\": \"%s\", " +
-                            "\"code\": \"%s\", \"redirect_uri\": \"%s\", \"grant_type\": \"authorization_code\"}",
-                    source.getClientId(), source.getClientSecret(), code,
-                    String.format(LoginConfig.EXTERNAL_CALLBACK_URL, source.getId()));
-            HttpResponse<JsonNode> response = Unirest.post(source.getTokenUrl())
-                    .header("Accept", "application/json")
-                    .header("Content-Type", "application/json")
-                    .body(body)
-                    .asJson();
-
+            logger.error("======source name==" + source.getName());
             String accessToken = null;
-            if (response.getStatus() == 200) {
-                accessToken = response.getBody().getObject().getString("access_token");
+            if (Constant.GITCODE.equals(source.getName())) {
+                accessToken = getAccessTokenParam(source, code);
             } else {
-                logger.error("thirdPartyCallback err: " + response.getBody().toString());
+                accessToken = getAccessTokenBody(source, code);
+            }
+            if (StringUtils.isBlank(accessToken)) {
                 return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, null, "Internal Server Error", null, null);
             }
-
             // token获取用户信息
             HttpResponse<JsonNode> responseUser = Unirest.get(source.getUserUrl())
                     .header("Accept", "application/json")
@@ -164,7 +155,7 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
                 logger.error("thirdPartyCallback err: " + responseUser.getBody().toString());
                 return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, null, "Internal Server Error", null, null);
             }
-
+            logger.error("======source user==" + user.toString());
             // check if user exist
             String userIdInPd = user.get("id").toString();
             OneIdEntity.User userInDb = oneIdThirdPartyDao.getUserByIdInProvider(userIdInPd, source.getName());
@@ -205,6 +196,44 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             logger.error(e.getMessage());
             return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, null, "Internal Server Error", null, null);
         }
+    }
+
+    private String getAccessTokenParam(OneIdEntity.ThirdPartyClient source, String code) {
+        String accessToken = "";
+        StringBuilder tokenUrl = new StringBuilder(source.getTokenUrl());
+        tokenUrl.append("?grant_type=authorization_code&code=").append(code).append("&client_id=")
+                .append(source.getClientId()).append("&client_secret=").append(source.getClientSecret());
+        HttpResponse<JsonNode> response = Unirest.post(tokenUrl.toString())
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .asJson();
+        logger.error("=====token url ===" + tokenUrl);
+        if (response.getStatus() == 200) {
+            accessToken = response.getBody().getObject().getString("access_token");
+        } else {
+            logger.error("thirdPartyCallback err: " + response.getBody().toString());
+        }
+        return accessToken;
+    }
+
+    private String getAccessTokenBody(OneIdEntity.ThirdPartyClient source, String code) {
+        // code换token
+        String accessToken = "";
+        String body = String.format("{\"client_id\": \"%s\", \"client_secret\": \"%s\", " +
+                        "\"code\": \"%s\", \"redirect_uri\": \"%s\", \"grant_type\": \"authorization_code\"}",
+                source.getClientId(), source.getClientSecret(), code,
+                String.format(LoginConfig.EXTERNAL_CALLBACK_URL, source.getId()));
+        HttpResponse<JsonNode> response = Unirest.post(source.getTokenUrl())
+                .header("Accept", "application/json")
+                .header("Content-Type", "application/json")
+                .body(body)
+                .asJson();
+        if (response.getStatus() == 200) {
+            accessToken = response.getBody().getObject().getString("access_token");
+        } else {
+            logger.error("thirdPartyCallback err: " + response.getBody().toString());
+        }
+        return accessToken;
     }
 
     @Override
@@ -337,6 +366,7 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
     public OneIdEntity.ThirdPartyUser toThirdPartyUser(String provider, JSONObject thirdPartyUserObject) {
         OneIdEntity.ThirdPartyUser thirdPartyUser = new OneIdEntity.ThirdPartyUser();
         thirdPartyUser.setProvider(provider);
+        logger.error("=====third user ==" + provider + "== " + thirdPartyUser.toString());
         switch (provider) {
             case "github":
                 if (! thirdPartyUserObject.isNull("login")) {
@@ -365,6 +395,20 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
                 }
                 if (! thirdPartyUserObject.isNull("id")) {
                     thirdPartyUser.setUserIdInIdp(Integer.toString(thirdPartyUserObject.getInt("id")));
+                }
+                break;
+            case Constant.GITCODE:
+                if (! thirdPartyUserObject.isNull("login")) {
+                    thirdPartyUser.setUsername(thirdPartyUserObject.getString("login"));
+                }
+                if (! thirdPartyUserObject.isNull("email")) {
+                    thirdPartyUser.setEmail(thirdPartyUserObject.getString("email"));
+                }
+                if (! thirdPartyUserObject.isNull("name")) {
+                    thirdPartyUser.setName(thirdPartyUserObject.getString("name"));
+                }
+                if (! thirdPartyUserObject.isNull("id")) {
+                    thirdPartyUser.setUserIdInIdp(thirdPartyUserObject.getString("id"));
                 }
                 break;
             default:
