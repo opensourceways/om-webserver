@@ -35,6 +35,8 @@ import com.om.modules.ServerErrorException;
 import com.om.result.Constant;
 import com.om.utils.CommonUtil;
 import com.om.utils.RSAUtil;
+import com.om.utils.thirdauthorizationurl.GiteeAuthorizationUrlUtil;
+
 import org.apache.commons.lang3.StringUtils;
 
 import kong.unirest.json.JSONArray;
@@ -187,12 +189,6 @@ public class AuthingUserDao {
      */
     @Value("${enterprise.identifier.gitee}")
     private String enterIdentifieGitee;
-
-    /**
-     * Gitee 企业登录的授权 URL.
-     */
-    @Value("${enterprise.authorizationUrl.gitee}")
-    private String enterAuthUrlGitee;
 
     /**
      * OpenAtom 企业登录的外部身份提供者 ID.
@@ -362,6 +358,12 @@ public class AuthingUserDao {
      */
     @Autowired
     private ModeratorService moderatorService;
+
+    /**
+     * gitee授权url工具类.
+     */
+    @Autowired
+    private GiteeAuthorizationUrlUtil giteeAuthorizationUrlUtil;
 
     /**
      * OBS客户端实例赋值.
@@ -1241,10 +1243,10 @@ public class AuthingUserDao {
             mapGithub.put("name", "social_github");
             mapGithub.put("authorizationUrl", authGithub);
 
-            HashMap<String, String> mapGitee = new HashMap<>();
-            String authGitee = String.format(enterAuthUrlGitee, appId, enterIdentifieGitee, userToken);
-            mapGitee.put("name", "enterprise_gitee");
-            mapGitee.put("authorizationUrl", authGitee);
+            HashMap<String, String> mapGitee = giteeAuthorizationUrlUtil.generateAuthorizationUrl(appId, userToken);
+            if (mapGitee != null) {
+                list.add(mapGitee);
+            }
 
             HashMap<String, String> mapOpenatom = new HashMap<>();
             String authOpenatom = String.format(enterAuthUrlOpenatom, appId, enterIdentifieOpenatom, userToken);
