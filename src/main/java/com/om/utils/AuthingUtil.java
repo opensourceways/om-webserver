@@ -74,6 +74,29 @@ public class AuthingUtil {
     }
 
     /**
+     * 根据企业身份源或者社会身份源判断授权URL.
+     * @param authUrl 授权URL模板.
+     * @param identifier 标识.
+     * @param appId 应用ID.
+     * @param userToken 用户token.
+     * @return 授权URL.
+     */
+    public String generateAuthorizationUrl(String authUrl, String identifier, String appId, String userToken) {
+        if (StringUtils.isBlank(authUrl) || StringUtils.isBlank(identifier) || StringUtils.isBlank(userToken)
+                || StringUtils.isBlank(appId)) {
+            return null;
+        }
+        // 企业源
+        if (authUrl.contains("oauth2")) {
+            return String.format(authUrl, appId, identifier, userToken);
+        } else if (authUrl.contains("social")) { // 社会源
+            return String.format(authUrl, identifier, appId, userToken);
+        } else {
+            return null;
+        }
+    }
+
+    /**
      * 解密RSA加密过的token.
      *
      * @param token
