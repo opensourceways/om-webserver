@@ -13,6 +13,7 @@ package com.om.service;
 
 import cn.authing.core.types.Application;
 import cn.authing.core.types.Identity;
+import cn.authing.core.types.UpdateUserInput;
 import cn.authing.core.types.User;
 import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
@@ -64,6 +65,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.HtmlUtils;
 
+import java.io.IOException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.security.spec.InvalidKeySpecException;
@@ -452,7 +454,7 @@ public class AuthingService implements UserCenterServiceInter {
         String accountType;
         try {
             // 用户名校验
-            msg = authingUserDao.checkUsername(appId, username, instanceCommunity);
+            msg = authingUserDao.checkUsername(appId, username, instanceCommunity, false);
             if (!msg.equals(Constant.SUCCESS)) {
                 return result(HttpStatus.BAD_REQUEST, null, msg, null);
             }
@@ -850,6 +852,7 @@ public class AuthingService implements UserCenterServiceInter {
             String idToken = user.get("id_token").toString();
             String picture = user.get("picture").toString();
             String userName = (String) user.get("username");
+            userName = resetUserName(appId, userName, userId);
             String phone = (String) user.get("phone_number");
             String email = (String) user.get("email");
             if ("openeuler".equals(instanceCommunity) && StringUtils.isBlank(email)) {
@@ -877,7 +880,6 @@ public class AuthingService implements UserCenterServiceInter {
             if (listSize > maxLoginNum) {
                 redisDao.removeListTail(loginKey, maxLoginNum);
             }
-
             String token = tokens[0];
             String verifyToken = tokens[1];
             // 写cookie
@@ -906,6 +908,19 @@ public class AuthingService implements UserCenterServiceInter {
             LogUtil.createLogs(userId, "user login", "login", "The user third party login",
                     ClientIPUtil.getClientIpAddress(httpServletRequest), "failed");
             return result(HttpStatus.UNAUTHORIZED, "unauthorized", null);
+        }
+    }
+
+    private String resetUserName(String appId, String userName, String userId)
+            throws ServerErrorException, IOException {
+        if (Constant.SUCCESS.equals(authingUserDao.checkUsername(appId, userName, instanceCommunity, true))) {
+            return userName;
+        } else {
+            LOGGER.warn("username: {} is invalid, auto clean", userName);
+            UpdateUserInput updateUserInput = new UpdateUserInput();
+            updateUserInput.withUsername("");
+            authingManagerDao.updateUserInfo(userId, updateUserInput);
+            return "";
         }
     }
 
