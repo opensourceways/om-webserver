@@ -22,7 +22,6 @@ import com.om.config.UnirestCustomTrustManager;
 import com.om.modules.authing.AuthingAppSync;
 import com.om.service.ModeratorService;
 import com.om.service.PrivacyHistoryService;
-import com.om.utils.AuthingUtil;
 import com.om.utils.LogUtil;
 import com.om.authing.AuthingRespConvert;
 import kong.unirest.HttpResponse;
@@ -363,12 +362,6 @@ public class AuthingUserDao {
      */
     @Autowired
     private ModeratorService moderatorService;
-
-    /**
-     * authing 工具类.
-     */
-    @Autowired
-    private AuthingUtil authingUtil;
 
     /**
      * OBS客户端实例赋值.
@@ -1249,8 +1242,7 @@ public class AuthingUserDao {
             mapGithub.put("authorizationUrl", authGithub);
 
             HashMap<String, String> mapGitee = new HashMap<>();
-            String authGitee = authingUtil.generateAuthorizationUrl(enterAuthUrlGitee, enterIdentifieGitee,
-                    appId, userToken);
+            String authGitee = String.format(enterAuthUrlGitee, appId, enterIdentifieGitee, userToken);
             mapGitee.put("name", "enterprise_gitee");
             mapGitee.put("authorizationUrl", authGitee);
 
