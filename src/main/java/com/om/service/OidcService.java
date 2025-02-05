@@ -14,6 +14,7 @@ package com.om.service;
 import cn.authing.core.types.Application;
 import com.alibaba.fastjson2.JSON;
 import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -55,7 +56,9 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -737,7 +740,7 @@ public class OidcService {
             }
             String idToken = jsonNode.get("idToken").asText();
             if (scopes.contains("id_token")) {
-                tokens.put("id_token", idToken);
+                tokens.put("id_token", createOidcIdToken(appId, appSecret, userId));
             }
             redisDao.remove(code);
             addOidcLogoutUrl(userId, idToken, redirectUri, logoutUrl);
@@ -748,6 +751,22 @@ public class OidcService {
             redisDao.remove(code);
             return resultOidc(HttpStatus.INTERNAL_SERVER_ERROR, "Internal Server Error", null);
         }
+    }
+
+    private String createOidcIdToken(String appId, String appSecret, String userId) throws NoSuchAlgorithmException {
+        LocalDateTime nowDate = LocalDateTime.now();
+        Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
+        LocalDateTime expireDate = nowDate.plusSeconds(72000);
+        Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
+        String token = JWT.create()
+                .withAudience(appId) //谁接受签名
+                .withIssuedAt(issuedAt) //生成签名的时间
+                .withExpiresAt(expireAt) //过期时间
+                .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
+                .withClaim("sub", userId)
+                .withClaim("iss", env.getProperty("oidc.login.page"))
+                .sign(Algorithm.HMAC256(appSecret));
+        return token;
     }
 
     /**

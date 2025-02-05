@@ -22,7 +22,9 @@ import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Objects;
 
 import javax.imageio.ImageIO;
@@ -30,6 +32,7 @@ import javax.imageio.ImageIO;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 public final class CommonUtil {
@@ -182,6 +185,28 @@ public final class CommonUtil {
             LOGGER.error("Error: Could not read image");
             return "Error: Could not read image";
         }
+    }
+
+    /**
+     * 数组切片.
+     *
+     * @param originList 元数据
+     * @param chunkSize 切片大小
+     * @return 返回值
+     */
+    public static List<List<String>> splitList(List<String> originList, int chunkSize) {
+        List<List<String>> splits = new ArrayList<>();
+        if (CollectionUtils.isEmpty(originList)) {
+            return splits;
+        }
+        for (int i = 0; i < originList.size(); i += chunkSize) {
+            List<String> chunk = new ArrayList<>();
+            for (int j = i; j < Math.min(i + chunkSize, originList.size()); j++) {
+                chunk.add(originList.get(j));
+            }
+            splits.add(chunk);
+        }
+        return splits;
     }
 
     private static byte[] check(byte[] bs) {
