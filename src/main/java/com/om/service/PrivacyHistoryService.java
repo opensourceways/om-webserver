@@ -69,7 +69,7 @@ public class PrivacyHistoryService {
     /**
      * 允许的社区列表.
      */
-    private List<String> allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry");;
+    private List<String> allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry", "openubmc");
 
     /**
      * 用户池id.

@@ -18,6 +18,9 @@ import cn.authing.core.types.AuthorizedTargetsActionsInput;
 import cn.authing.core.types.AuthorizedTargetsParam;
 import cn.authing.core.types.CommonMessage;
 import cn.authing.core.types.FindUserParam;
+import cn.authing.core.types.IAction;
+import cn.authing.core.types.IResourceDto;
+import cn.authing.core.types.IResourceResponse;
 import cn.authing.core.types.Identity;
 import cn.authing.core.types.Operator;
 import cn.authing.core.types.PaginatedAuthorizedResources;
@@ -31,6 +34,7 @@ import cn.authing.core.types.User;
 import com.om.controller.bean.request.NamespaceInfoPage;
 import com.om.dao.bean.AuthorizeInfo;
 import com.om.dao.bean.UserInfo;
+import com.om.utils.CommonUtil;
 import jakarta.annotation.PostConstruct;
 
 import com.alibaba.fastjson2.JSON;
@@ -106,6 +110,11 @@ public class AuthingManagerDao {
      * 获取资源.
      */
     private static final String LIST_COMMON_RESOURCE = "/list-common-resource";
+
+    /**
+     * 创建账号.
+     */
+    private static final String CREATE_USER = "/create-user";
 
     /**
      * 允许的社区列表.
@@ -621,7 +630,11 @@ public class AuthingManagerDao {
             }
             List<String> userIds = sourceList.stream()
                     .map(ResourcePermissionAssignment::getTargetIdentifier).collect(Collectors.toList());
-            List<User> users = managementClient.users().batch(userIds).execute();
+            List<List<String>> splitUserIds = CommonUtil.splitList(userIds, 80);
+            List<User> users = new ArrayList<>();
+            for (List<String> userIdList : splitUserIds) {
+                users.addAll(managementClient.users().batch(userIdList).execute());
+            }
             HashMap<String, List<IdentityInfo>> identityBeanMap = new HashMap<>();
             HashMap<String, User> userMap = new HashMap<>();
             for (User user : users) {
@@ -891,6 +904,46 @@ public class AuthingManagerDao {
     }
 
     /**
+     * 创建资源.
+     *
+     * @param namespace 命名空间
+     * @param resource 资源
+     * @param actions 操作
+     * @return 创建结果
+     */
+    public boolean createResource(String namespace, String resource, List<String> actions) {
+        try {
+            String resourceName = convertResource(resource);
+            IResourceResponse execute = managementClient.acl().findResourceByCode(resourceName, namespace).execute();
+            if (execute != null && StringUtils.isNotBlank(execute.getCode())) {
+                return true;
+            }
+            ArrayList<IAction> list = new ArrayList<>();
+            for (String action : actions) {
+                list.add(new IAction(action, null));
+            }
+            IResourceDto iResourceDto = new IResourceDto(
+                    resourceName,
+                    ResourceType.DATA,
+                    null,
+                    list,
+                    namespace
+            );
+            IResourceResponse res = managementClient.acl().createResource(iResourceDto).execute();
+            if (res != null && StringUtils.equals(res.getCode(), resourceName)) {
+                LOGGER.info("create resource({}:{}) success", namespace, resource);
+                return true;
+            } else {
+                LOGGER.info("create resource({}:{}) failed", namespace, resource);
+                return false;
+            }
+        } catch (Exception e) {
+            LOGGER.error("create resource {} failed {}", resource, e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * 授权.
      *
      * @param authorizeInfo 授权信息
@@ -973,7 +1026,7 @@ public class AuthingManagerDao {
     }
 
     /**
-     * 根据ID批量获取用户.
+     * 根据ID批量获取用户(最多一次只能查询50个用户).
      *
      * @param type 用户类型
      * @param extIdpId 三方平台ID
@@ -1027,6 +1080,44 @@ public class AuthingManagerDao {
                 userInfos.add(userInfo);
             }
             return userInfos;
+        } catch (Exception e) {
+            LOGGER.error("delete resource failed {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * 创建用户.
+     *
+     * @param usersObj 用户消息体
+     * @return 创建用户结果
+     */
+    public UserInfo createUser(JSONObject usersObj) {
+        try {
+            String mToken = (String) redisDao.get(Constant.REDIS_KEY_AUTH_MANAGER_TOKEN);
+            if (StringUtils.isBlank(mToken) || "null".equals(mToken)) {
+                mToken = getManagementToken();
+            }
+            System.out.println(usersObj.toString());
+            HttpResponse<JsonNode> response = Unirest.post(authingApiHostV3 + CREATE_USER)
+                    .header("Content-Type", "application/json")
+                    .header("x-authing-userpool-id", userPoolId)
+                    .header("authorization", mToken)
+                    .body(usersObj.toString())
+                    .asJson();
+            JSONObject resObj = response.getBody().getObject();
+            if (resObj.getInt("statusCode") != 200) {
+                LOGGER.error("create users failed {}", resObj.getString("message"));
+                return null;
+            }
+            JSONObject data = resObj.getJSONObject("data");
+            if (data == null) {
+                return null;
+            }
+            UserInfo userInfo = new UserInfo();
+            userInfo.setUserId(data.getString("userId"));
+            userInfo.setUsername(data.getString("username"));
+            return userInfo;
         } catch (Exception e) {
             LOGGER.error("delete resource failed {}", e.getMessage());
             return null;
