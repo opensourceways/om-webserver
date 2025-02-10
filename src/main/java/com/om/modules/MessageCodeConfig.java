@@ -329,8 +329,10 @@ public enum MessageCodeConfig {
     /**
      * 错误代码 E00070: 该账号已绑定其他三方账号，请解绑后重试.
      */
-    E00070("E00070", "This account has been bound to other third-party accounts. Please unbind and try again",
-            "该账号已绑定其他三方账号，请解绑后重试"),
+    E00070("E00070", "Your mobile phone number/email address has been occupied, and the corresponding "
+            + "account is bound to a third-party login from the same source. Please log in to the original account "
+            + "to unbind, and then try the operation again",
+            "您的手机号/邮箱已被占用，且对应账号绑定了同源第三方登录。请先登陆原账号解绑，再重新尝试操作"),
 
     /**
      * 错误代码 E00071: 绑定已有账号失败.

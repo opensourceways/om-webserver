@@ -1756,10 +1756,11 @@ public class AuthingService implements UserCenterServiceInter {
             Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
             String account = (String) getBodyPara(body, "account");
             String appId = (String) getBodyPara(body, "client_id");
-            if (!Constant.PHONE_TYPE.equals(getAccountType(account))) {
+            String accountType = getAccountType(account);
+            if (!Constant.PHONE_TYPE.equals(accountType) && !Constant.EMAIL_TYPE.equals(accountType)) {
                 return result(HttpStatus.BAD_REQUEST, null, "", null);
             }
-            if (!authingUserDao.isUserExists(appId, account, "phone")) {
+            if (!authingUserDao.isUserExists(appId, account, accountType)) {
                 return bindAccount(servletRequest, servletResponse, token);
             } else {
                 return mergeExistUser(servletRequest, servletResponse, token);
@@ -1778,7 +1779,8 @@ public class AuthingService implements UserCenterServiceInter {
             String account = (String) getBodyPara(body, "account");
             String code = (String) getBodyPara(body, "code");
             String clientIp = ClientIPUtil.getClientIpAddress(servletRequest);
-            if (!Constant.PHONE_TYPE.equals(getAccountType(account))) {
+            String accountType = getAccountType(account);
+            if (!Constant.PHONE_TYPE.equals(accountType) && !Constant.EMAIL_TYPE.equals(accountType)) {
                 return result(HttpStatus.BAD_REQUEST, null, "", null);
             }
             // 登录成功返回用户token
@@ -1807,7 +1809,7 @@ public class AuthingService implements UserCenterServiceInter {
             }
             List<Identity> identities = currentUser.getIdentities();
             if (identities == null || identities.size() != 1) {
-                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00068, null, null);
+                return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00069, null, null);
             }
             Identity currentIdentity = identities.get(0);
             if (currentIdentity == null) {
