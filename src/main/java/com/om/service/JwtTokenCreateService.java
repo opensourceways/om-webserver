@@ -148,6 +148,7 @@ public class JwtTokenCreateService {
 
         String headToken = JWT.create()
                 .withAudience(username) //谁接受签名
+                .withSubject(userId)
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(headTokenExpireAt) //过期时间
                 .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))

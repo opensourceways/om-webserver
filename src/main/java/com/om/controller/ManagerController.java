@@ -191,7 +191,7 @@ public class ManagerController {
     @ManageToken
     @RequestMapping(value = "/u/checkPermission", method = RequestMethod.POST)
     public ResponseEntity checkPermission(@RequestBody PermissionInfo permissionInfo) {
-        return resourceService.checkPermission(permissionInfo);
+        return resourceService.checkPermission(null, permissionInfo);
     }
 
     /**
