@@ -14,8 +14,8 @@ package com.om.aop;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.reflect.SourceLocation;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -23,7 +23,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 public class ManagementOperationLogAOPTest {
     private ManagementOperationLogAOP managementOperationLogAOPUnderTest;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         managementOperationLogAOPUnderTest = new ManagementOperationLogAOP();
         ReflectionTestUtils.setField(managementOperationLogAOPUnderTest, "request", new MockHttpServletRequest());

@@ -9,7 +9,7 @@
  Create: 2024
 */
 package com.om.service.bean;
-import org.junit.Assert;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import java.util.HashSet;
 import java.util.Set;
@@ -24,7 +24,7 @@ class OnlineUserInfoTest {
     void testIdToken() {
         OnlineUserInfo onlineUserInfo = new OnlineUserInfo();
         onlineUserInfo.setIdToken("test");
-        Assert.assertEquals("test", onlineUserInfo.getIdToken());
+        assertEquals("test", onlineUserInfo.getIdToken());
     }
     /**
      * logoutUrl测试.
@@ -34,6 +34,6 @@ class OnlineUserInfoTest {
         OnlineUserInfo onlineUserInfo = new OnlineUserInfo();
         Set<String> logoutUrl = new HashSet<>();
         onlineUserInfo.setLogoutUrls(logoutUrl);
-        Assert.assertEquals(logoutUrl, onlineUserInfo.getLogoutUrls());
+        assertEquals(logoutUrl, onlineUserInfo.getLogoutUrls());
     }
 }

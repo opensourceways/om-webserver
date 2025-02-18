@@ -11,15 +11,15 @@
 
 package com.om.authing;
 
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class AuthingInterceptorConfigTest {
     private AuthingInterceptorConfig authingInterceptorConfigUnderTest;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         authingInterceptorConfigUnderTest = new AuthingInterceptorConfig();
     }
@@ -33,6 +33,6 @@ public class AuthingInterceptorConfigTest {
     @Test
     public void testAuthingInterceptor() {
         AuthingInterceptor result = authingInterceptorConfigUnderTest.authingInterceptor();
-        Assert.assertNotNull(result);
+        assertNotNull(result);
     }
 }

@@ -9,12 +9,12 @@
  Create: 2024
 */
 package com.om.controller;
-import org.junit.Assert;
-import org.junit.Test;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.fail;
 /**
  * CommonAPIController 测试用例.
  */
@@ -39,11 +39,11 @@ public class CommonAPIControllerTest {
         ResponseEntity response = commonAPIController.getPrivacyVersion();
         Object responseBody = response.getBody();
         if (!(responseBody instanceof Map)) {
-            Assert.fail();
+            fail();
         }
         Map<String, Object> resMap = (Map<String, Object>) responseBody;
         if (!resMap.containsKey("data")) {
-            Assert.fail();
+            fail();
         }
         Map<String, String> dataMap = (Map<String, String>) resMap.get("data");
         assertThat(dataMap.get("oneidPrivacyAccepted")).isEqualTo("20240815");

@@ -15,12 +15,13 @@ import com.om.dao.RedisDao;
 import com.om.service.JwtTokenCreateService;
 import com.om.utils.EncryptionService;
 import jakarta.servlet.http.HttpServletRequest;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnitRunner;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -37,7 +38,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-@RunWith(MockitoJUnitRunner.class)
+@ExtendWith(MockitoExtension.class)
 public class AuthingInterceptorTest {
     @Mock
     private RedisDao mockRedisDao;
@@ -49,7 +50,7 @@ public class AuthingInterceptorTest {
     @InjectMocks
     private AuthingInterceptor authingInterceptorUnderTest;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         ReflectionTestUtils.setField(authingInterceptorUnderTest, "env", new MockEnvironment());
         ReflectionTestUtils.setField(authingInterceptorUnderTest, "authingTokenBasePassword",
