@@ -167,16 +167,7 @@ public class OneIdService {
     public ResponseEntity<?> loginSuccessSetToken(OneIdEntity.User user, String idToken, String appId) {
         String oneidPrivacyVersionAccept = CommonUtil.getPrivacyVersionWithCommunity(localCommunity,
                 user.getPrivacyVersion());
-        if (!oneidPrivacyVersion.equals(oneidPrivacyVersionAccept)) {
-            String userJsonStr = String.format("{\"privacyVersion\": \"%s\"}",
-                    CommonUtil.createPrivacyVersions(localCommunity, oneidPrivacyVersion, true));
-            JSONObject userUpdate = oneidDao.updateUser(poolId, poolSecret, user.getId(), userJsonStr);
-            if (userUpdate == null) {
-                logger.error("{} signed privacy policy {} failed", user.getUsername(), oneidPrivacyVersion);
-            } else {
-                logger.info("{} signed privacy policy {} success", user.getUsername(), oneidPrivacyVersion);
-            }
-        }
+
         // 生成token
         Map<String, String> tokens = jwtTokenCreateService.authingUserToken(appId, user.getId(), user.getUsername(),
                 "", "", idToken, oneidPrivacyVersion);
@@ -197,7 +188,7 @@ public class OneIdService {
         userData.put("username", user.getUsername());
         userData.put("company", user.getCompany());
         userData.put("email_exist", StringUtils.hasText(user.getEmail()));
-        userData.put("oneidPrivacyAccepted", oneidPrivacyVersion);
+        userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
 
         return Result.setResult(HttpStatus.OK, MessageCodeConfig.S0001, null, userData, null);
     }
