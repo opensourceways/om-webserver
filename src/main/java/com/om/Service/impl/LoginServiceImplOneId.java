@@ -39,6 +39,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 
 @Service
 @ConditionalOnProperty(value = "service.oidc", havingValue = "oidcServiceImplOneId")
@@ -65,6 +66,30 @@ public class LoginServiceImplOneId implements LoginServiceInter {
      */
     @Value("${community}")
     private String localCommunity;
+
+    /**
+     * jenkins.opengauss需要使用白名单登录的clientId
+     */
+    @Value("${jenkins.opengauss.login.client.id:}")
+    private String jenkinsOpenGaussWhiteLoginClientId;
+
+    /**
+     * opengaussjenkins.osinfra需要使用白名单登录的clientId
+     */
+    @Value("${opengaussjenkins.osinfra.login.client.id:}")
+    private String openGaussJenkinsOsinfraWhiteLoginClientId;
+
+    /**
+     * jenkins.opengauss使用白名单登录时的白名单
+     */
+    @Value("#{'${jenkins.opengauss.login.email.white.list:}'.split(',')}")
+    private List<String> jenkinsOpenGaussWhiteLoginList;
+
+    /**
+     * opengaussjenkins.osinfra使用白名单登录时的白名单
+     */
+    @Value("#{'${opengaussjenkins.osinfra.login.email.white.list:}'.split(',')}")
+    private List<String> openGaussJenkinsOsinfraWhiteLoginList;
 
     @Autowired
     OneIdService oneIdService;
@@ -121,8 +146,22 @@ public class LoginServiceImplOneId implements LoginServiceInter {
                 }
             }
 
+            String clientId = loginParam.getClient_id();
+            String account = loginParam.getAccount();
+            boolean whiteLoginCheck = true;
+            // 检查该clientId是否需要通过白名单过滤
+            if (StringUtils.hasText(clientId) && clientId.equals(jenkinsOpenGaussWhiteLoginClientId) && !jenkinsOpenGaussWhiteLoginList.contains(account)) {
+                whiteLoginCheck = false;
+            } else if (StringUtils.hasText(clientId) && clientId.equals(openGaussJenkinsOsinfraWhiteLoginClientId) && !openGaussJenkinsOsinfraWhiteLoginList.contains(account)) {
+                whiteLoginCheck = false;
+            }
+
+            if (!whiteLoginCheck) {
+                return Result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00070, null, null, null);
+            }
+
             // app校验
-            OneIdEntity.App app = oneIdAppDao.getAppInfo(loginParam.getClient_id());
+            OneIdEntity.App app = oneIdAppDao.getAppInfo(clientId);
             if (null == app) {
                 return Result.setResult(HttpStatus.NOT_FOUND, MessageCodeConfig.E00047, null, limitUtil.loginFail(failCounter), null);
             }
