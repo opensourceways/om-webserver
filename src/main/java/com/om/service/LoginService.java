@@ -211,12 +211,6 @@ public class LoginService {
         // 获取是否同意隐私
         String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(
                 user.getGivenName());
-        // 同意隐私版本更新为前端传入的最新版本
-        if (!oneidPrivacyVersionAccept.equals(oneidPrivacy)) {
-            if (privacyHistoryService.updatePrivacy(userId, oneidPrivacy)) {
-                oneidPrivacyVersionAccept = oneidPrivacy;
-            }
-        }
 
         // 生成token
         String userName = user.getUsername();
