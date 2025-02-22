@@ -82,7 +82,15 @@ public class AuthingController {
         return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
-    @RequestMapping(value = "/captcha/checkLogin", method = RequestMethod.GET)
+    @RequestMapping(value = {"/captcha/sendCode", "/v3/sendCode"}, method = {RequestMethod.POST})
+    public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String captchaVerification = (String) body.getOrDefault("captchaVerification", null);
+        return service.sendCodeV3(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
+    }
+
+    @RequestMapping(value = "/captcha/checkLogin", method = {RequestMethod.POST, RequestMethod.GET})
     public ResponseEntity captchaLogin(HttpServletRequest servletRequest) {
         UserCenterServiceInter service = getServiceImpl(servletRequest);
         return service.captchaLogin(servletRequest);
@@ -142,8 +150,25 @@ public class AuthingController {
         return service.sendCodeUnbind(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
     }
 
+    /**
+     * 发送解绑验证码的方法.
+     *
+     * @param servletRequest HTTP 请求对象
+     * @param servletResponse HTTP 响应对象
+     * @return 返回 ResponseEntity 对象
+     */
     @AuthingUserToken
-    @RequestMapping(value = "/update/account", method = RequestMethod.GET)
+    @RequestMapping(value = "/sendcode/unbind", method = RequestMethod.POST)
+    public ResponseEntity sendCodeUnbindPost(HttpServletRequest servletRequest,
+                                         HttpServletResponse servletResponse) {
+        UserCenterServiceInter service = getServiceImpl(servletRequest);
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String captchaVerification = (String) body.getOrDefault("captchaVerification", null);
+        return service.sendCodeUnbind(servletRequest, servletResponse, verifyCaptcha(captchaVerification));
+    }
+
+    @AuthingUserToken
+    @RequestMapping(value = "/update/account", method = {RequestMethod.GET, RequestMethod.POST})
     public ResponseEntity updateAccount(HttpServletRequest servletRequest,
                                         HttpServletResponse servletResponse,
                                         @CookieValue(value = "_Y_G_", required = false) String token) {
@@ -161,7 +186,7 @@ public class AuthingController {
     }
 
     @AuthingUserToken
-    @RequestMapping(value = "/bind/account", method = RequestMethod.GET)
+    @RequestMapping(value = "/bind/account", method = {RequestMethod.GET, RequestMethod.POST})
     public ResponseEntity bindAccount(HttpServletRequest servletRequest,
                                       HttpServletResponse servletResponse,
                                       @CookieValue(value = "_Y_G_", required = false) String token) {

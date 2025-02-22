@@ -252,9 +252,18 @@ public class OpenGaussService implements UserCenterServiceInter {
     @Override
     public ResponseEntity sendCodeV3(HttpServletRequest servletRequest, HttpServletResponse servletResponse, boolean isSuccess) {
         try {
-            String community = servletRequest.getParameter("community");
-            String account = servletRequest.getParameter("account");
-            String channel = servletRequest.getParameter("channel");
+            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+            String account = (String) getBodyPara(body, "account");
+            account = CommonUtil.getAbsoluteAccount(account);
+            String channel = (String) getBodyPara(body, "channel");
+            String community = (String) getBodyPara(body, "community");
+
+            // 如果请求体里没有，尝试在请求参数里获取
+            if (StringUtils.isBlank(account) && StringUtils.isBlank(channel)) {
+                account = servletRequest.getParameter("account");
+                channel = servletRequest.getParameter("channel");
+                community = servletRequest.getParameter("community");
+            }
 
             // 验证码二次校验
             if (!isSuccess)
@@ -334,7 +343,16 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity captchaLogin(HttpServletRequest request) {
-        String account = request.getParameter("account");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(request);
+        String account = (String) getBodyPara(body, "account");
+        account = CommonUtil.getAbsoluteAccount(account);
+        // 如果请求体里没有，尝试在请求参数里获取
+        if (StringUtils.isBlank(account)) {
+            account = request.getParameter("account");
+        }
+        if (StringUtils.isEmpty(account)) {
+            return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
         LoginFailCounter failCounter = limitUtil.initLoginFailCounter(account);
         return result(HttpStatus.OK, null, Constant.SUCCESS, limitUtil.isNeedCaptcha(failCounter));
     }
@@ -704,10 +722,20 @@ public class OpenGaussService implements UserCenterServiceInter {
     @Override
     public ResponseEntity sendCodeUnbind(HttpServletRequest servletRequest, HttpServletResponse servletResponse,
                                          boolean isSuccess) {
-        String community = servletRequest.getParameter("community");
-        String appId = servletRequest.getParameter("client_id");
-        String account = servletRequest.getParameter("account");
-        String accountType = servletRequest.getParameter("account_type");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String community = (String) getBodyPara(body, "community");
+        String appId = (String) getBodyPara(body, "client_id");
+        String account = (String) getBodyPara(body, "account");
+        String accountType = (String) getBodyPara(body, "account_type");
+
+        // 如果请求体里没有，尝试在请求参数里获取
+        if (StringUtils.isBlank(account) && StringUtils.isBlank(account) && StringUtils.isBlank(accountType)) {
+            community = servletRequest.getParameter("community");
+            appId = servletRequest.getParameter("client_id");
+            account = servletRequest.getParameter("account");
+            accountType = servletRequest.getParameter("account_type");
+        }
+        account = CommonUtil.getAbsoluteAccount(account);
 
         // 验证码二次校验
         if (!isSuccess)
@@ -759,13 +787,26 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity updateAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
-        String community = servletRequest.getParameter("community");
-        String appId = servletRequest.getParameter("client_id");
-        String oldAccount = servletRequest.getParameter("oldaccount");
-        String oldCode = servletRequest.getParameter("oldcode");
-        String account = servletRequest.getParameter("account");
-        String code = servletRequest.getParameter("code");
-        String accountType = servletRequest.getParameter("account_type");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String community = (String) getBodyPara(body, "community");
+        String appId = (String) getBodyPara(body, "client_id");
+        String oldAccount = (String) getBodyPara(body, "oldaccount");
+        String oldCode = (String) getBodyPara(body, "oldcode");
+        String account = (String) getBodyPara(body, "account");
+        String code = (String) getBodyPara(body, "code");
+        String accountType = (String) getBodyPara(body, "account_type");
+
+        // 如果请求体里没有，尝试在请求参数里获取
+        if (StringUtils.isBlank(account) && StringUtils.isBlank(oldAccount) && StringUtils.isBlank(oldCode)) {
+            community = servletRequest.getParameter("community");
+            appId = servletRequest.getParameter("client_id");
+            account = servletRequest.getParameter("account");
+            oldAccount = servletRequest.getParameter("oldaccount");
+            oldCode = servletRequest.getParameter("oldcode");
+            code = servletRequest.getParameter("code");
+            accountType = servletRequest.getParameter("account_type");
+        }
+        account = CommonUtil.getAbsoluteAccount(account);
 
         if (StringUtils.isBlank(oldAccount) || StringUtils.isBlank(account) || StringUtils.isBlank(accountType) ||
                 (!accountType.toLowerCase().equals("email") && !accountType.toLowerCase().equals("phone")))
@@ -875,11 +916,22 @@ public class OpenGaussService implements UserCenterServiceInter {
 
     @Override
     public ResponseEntity bindAccount(HttpServletRequest servletRequest, HttpServletResponse servletResponse, String token) {
-        String community = servletRequest.getParameter("community");
-        String appId = servletRequest.getParameter("client_id");
-        String account = servletRequest.getParameter("account");
-        String code = servletRequest.getParameter("code");
-        String accountType = servletRequest.getParameter("account_type");
+        Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
+        String community = (String) getBodyPara(body, "community");
+        String appId = (String) getBodyPara(body, "client_id");
+        String account = (String) getBodyPara(body, "account");
+        String code = (String) getBodyPara(body, "code");
+        String accountType = (String) getBodyPara(body, "account_type");
+
+        // 如果请求体里没有，尝试在请求参数里获取
+        if (StringUtils.isBlank(account) && StringUtils.isBlank(code) && StringUtils.isBlank(accountType)) {
+            community = servletRequest.getParameter("community");
+            appId = servletRequest.getParameter("client_id");
+            account = servletRequest.getParameter("account");
+            code = servletRequest.getParameter("code");
+            accountType = servletRequest.getParameter("account_type");
+        }
+        account = CommonUtil.getAbsoluteAccount(account);
 
         if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType) ||
                 (!accountType.toLowerCase().equals("email") && !accountType.toLowerCase().equals("phone")))

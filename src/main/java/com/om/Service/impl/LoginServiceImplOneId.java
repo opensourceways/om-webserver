@@ -131,6 +131,7 @@ public class LoginServiceImplOneId implements LoginServiceInter {
     @Override
     public ResponseEntity<?> userLogin(LoginParam loginParam) {
         try {
+            loginParam.setAccount(CommonUtil.getAbsoluteAccount(loginParam.getAccount()));
             LoginFailCounter failCounter = limitUtil.initLoginFailCounter(loginParam.getAccount());
 
             // 限制一分钟登录失败次数
