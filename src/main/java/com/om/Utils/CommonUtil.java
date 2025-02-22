@@ -10,6 +10,8 @@ import java.util.HashMap;
 import javax.imageio.ImageIO;
 
 import com.alibaba.fastjson2.JSON;
+import com.om.Result.Constant;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.multipart.MultipartFile;
@@ -97,6 +99,46 @@ public class CommonUtil {
         } else {
             return JSON.toJSONString(privacys);
         }
+    }
+
+    /**
+     * 获取账号.
+     * @param account 原始账号.
+     * @return 账号.
+     */
+    public static String getAbsoluteAccount(String account) {
+        if (StringUtils.isBlank(account)) {
+            return account;
+        }
+        String absoluteAccount = "";
+        if (Constant.EMAIL_TYPE.equals(getAccountType(account))) {
+            absoluteAccount = account.toLowerCase();
+        } else if (Constant.PHONE_TYPE.equals(getAccountType(account))) {
+            // 暂时不允许加地区号
+            absoluteAccount = account.startsWith("+") ? "" : account;
+        } else {
+            absoluteAccount = account;
+        }
+        return absoluteAccount;
+    }
+
+    /**
+     * 判断账号类型.
+     *
+     * @param account 账号信息
+     * @return 账号类型
+     */
+    public static String getAccountType(String account) {
+        if (!org.springframework.util.StringUtils.hasText(account)) {
+            return "";
+        }
+        if (account.matches(Constant.EMAILREGEX)) {
+            return "email";
+        }
+        if (account.matches(Constant.PHONEREGEX)) {
+            return "phone";
+        }
+        return "username";
     }
 
     private static byte[] check(byte[] bs) {

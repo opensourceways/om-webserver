@@ -37,7 +37,7 @@ public enum MessageCodeConfig {
     E00016("E00016", "The account has been bound email", "已经绑定了邮箱"),
     E00017("E00017", "Failed to logout", "退出登录失败"),
     E00018("E00018", "Username must be not empty", "用户名不能为空"),
-    E00019("E00019", "Username already exists", "用户名已存在"),
+    E00019("E00019", "Username is illegal", "用户名不合法"),
     E00020("E00020", "Phone or email must be not empty", "手机号或者邮箱不能为空"),
     E00021("E00021", "Please enter the correct phone or email", "请输入正确的手机号或者邮箱"),
     E00022("E00022", "This account is already registered", "该账号已注册"),
