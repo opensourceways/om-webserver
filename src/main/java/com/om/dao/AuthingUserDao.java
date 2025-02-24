@@ -1528,7 +1528,7 @@ public class AuthingUserDao {
                 || !nickName.matches(NICKNAME_REG))) {
             return false;
         }
-        if (!moderatorService.checkText(nickName)) {
+        if (!moderatorService.checkText(nickName, Constant.MODERATOR_V3_EVENT_TYPE_NICKNAME)) {
             return false;
         }
         return true;
@@ -1539,7 +1539,7 @@ public class AuthingUserDao {
                 || !companyName.matches(COMPANYNAME_REG))) {
             return false;
         }
-        if (!moderatorService.checkText(companyName)) {
+        if (!moderatorService.checkText(companyName, Constant.MODERATOR_V3_EVENT_TYPE_NICKNAME)) {
             return false;
         }
         return true;
@@ -1613,7 +1613,7 @@ public class AuthingUserDao {
             //上传文件到OBS
             PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, inputStream);
             String objectUrl = putObjectResult.getObjectUrl();
-            if (!moderatorService.checkImage(objectUrl, false)) {
+            if (!moderatorService.checkImage(objectUrl, false, Constant.MODERATOR_V3_EVENT_TYPE_HEAD_IMAGE)) {
                 deleteObsObjectByUrl(objectUrl);
                 throw new ServerErrorException("The image content is illegal");
             }
@@ -1700,7 +1700,7 @@ public class AuthingUserDao {
                 msg = "用户名已存在";
                 return msg;
             }
-            if (!moderatorService.checkText(userName)) {
+            if (!moderatorService.checkText(userName, Constant.MODERATOR_V3_EVENT_TYPE_NICKNAME)) {
                 msg = "Username is illegal";
                 LOGGER.error("username is illegal: {}", userName);
                 return msg;
