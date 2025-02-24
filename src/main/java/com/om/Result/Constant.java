@@ -93,5 +93,9 @@ public class Constant {
 
     public static final String OIDCISSUER = "ONEID";
 
+    /**
+     * gitcode.
+     */
+    public static final String GITCODE = "gitcode";
 }
 
