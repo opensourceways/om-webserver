@@ -73,6 +73,12 @@ public class LoginService {
     private String oneidPrivacyVersion;
 
     /**
+     * 应用程序版本号.
+     */
+    @Value("${app.version:1.0}")
+    private String appVersion;
+
+    /**
      * 使用 @Autowired 注解注入 JwtTokenCreateService.
      */
     @Autowired
@@ -139,6 +145,10 @@ public class LoginService {
         String ip = ClientIPUtil.getClientIpAddress(servletRequest);
         account = authingService.getAbsoluteAccount(account);
         if (!authingService.isPermissionParmValid(permission) || StringUtils.isBlank(account)) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
+        // 校验隐私协议
+        if (StringUtils.isEmpty(oneidPrivacy) || !oneidPrivacyVersion.equals(oneidPrivacy)) {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
         OperateFailCounter failCounter = limitUtil.initLoginFailCounter(account);
@@ -247,6 +257,9 @@ public class LoginService {
         userData.put("email_exist", StringUtils.isNotBlank(user.getEmail()));
         userData.put("phone_exist", StringUtils.isNotBlank(user.getPhone()));
         userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
+        LogUtil.createLogs(user.getId(), "accept privacy", "user",
+                "User accept privacy version:" + oneidPrivacy + ",appVersion:" + appVersion,
+                ip, "success");
         LogUtil.createLogs(userId, "user login", "login",
                 "The user login", ip, "success");
         return authingService.result(HttpStatus.OK, "success", userData);
@@ -276,10 +289,6 @@ public class LoginService {
         }
         if (StringUtils.isNotBlank(code)
                 && (Constant.EMAIL_TYPE.equals(accountType) || Constant.PHONE_TYPE.equals(accountType))) {
-            // 校验隐私协议
-            if (StringUtils.isEmpty(oneidPrivacy) || !oneidPrivacyVersion.equals(oneidPrivacy)) {
-                return MessageCodeConfig.E00037.getMsgZh();
-            }
             if (!authingService.isCodeParmValid(code)) {
                 return MessageCodeConfig.E0002.getMsgZh();
             }
