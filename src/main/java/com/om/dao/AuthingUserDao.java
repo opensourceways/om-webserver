@@ -1510,11 +1510,6 @@ public class AuthingUserDao {
             LogUtil.createLogs(user.getId(), "update baseInfo", "user",
                     "User update baseInfo", userIp, "success");
             return msg;
-        } catch (ServerErrorException e) {
-            LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
-            LogUtil.createLogs(userId, "update baseInfo", "user",
-                    "User update baseInfo", userIp, "failed");
-            throw e;
         } catch (Exception ex) {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", ex.getMessage());
             LogUtil.createLogs(userId, "update baseInfo", "user",
@@ -1613,7 +1608,7 @@ public class AuthingUserDao {
             //上传文件到OBS
             PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, inputStream);
             String objectUrl = putObjectResult.getObjectUrl();
-            if (!moderatorService.checkImage(objectUrl, false)) {
+            if (!moderatorService.checkImage(objectUrl, false, Constant.MODERATOR_V3_EVENT_TYPE_HEAD_IMAGE)) {
                 deleteObsObjectByUrl(objectUrl);
                 throw new ServerErrorException("The image content is illegal");
             }

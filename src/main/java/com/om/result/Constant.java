@@ -228,6 +228,11 @@ public final class Constant {
     public static final String MODERATOR_V3_EVENT_TYPE_NICKNAME = "nickname";
 
     /**
+     * 敏感信息图片检查头像事件类型
+     */
+    public static final String MODERATOR_V3_EVENT_TYPE_HEAD_IMAGE = "head_image";
+
+    /**
      * Token过期.
      */
     public static final String TOKEN_EXPIRES = "token expires";

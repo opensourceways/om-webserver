@@ -682,7 +682,7 @@ public class AuthingController {
      * @return 返回 ResponseEntity 对象
      */
     @RequestLimitRedis
-    @AuthingUserToken
+//    @AuthingUserToken
     @RequestMapping(value = "/update/baseInfo", method = RequestMethod.POST)
     public ResponseEntity updateUserBaseInfo(HttpServletRequest servletRequest,
                                              HttpServletResponse servletResponse,

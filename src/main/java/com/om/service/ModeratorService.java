@@ -151,6 +151,10 @@ public class ModeratorService {
      */
     public boolean checkText(String text, String eventType) {
         try {
+            if (StringUtils.isBlank(text)) {
+                LOGGER.info("text is blank, eventType is {}", eventType);
+                return true;
+            }
             String url = String.format(moderatorUrl, mProjectId);
             String sBodyTemplate = String.join("",
                     """
@@ -200,7 +204,7 @@ public class ModeratorService {
      * @param needDownload 图片是否需要下载
      * @return 检测结果
      */
-    public boolean checkImage(String imageUrl, boolean needDownload) {
+    public boolean checkImage(String imageUrl, boolean needDownload, String eventType) {
         try {
             String url = String.format(moderatorImageUrl, mProjectId);
             String sBodyTemplate = String.join("",
