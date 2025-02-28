@@ -173,7 +173,8 @@ public class LoginServiceImplOneId implements LoginServiceInter {
             // 登录
             String accountType = oneIdService.getAccountType(account);
             if (accountType.equals(Constant.USERNAME_TYPE) && !authingUserDao.checkLoginUsername(account)) {
-                return Result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null, null, null);
+                return Result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null,
+                        limitUtil.loginFail(failCounter), null);
             }
 
             OneIdEntity.User user = null;
@@ -188,8 +189,8 @@ public class LoginServiceImplOneId implements LoginServiceInter {
                     String password = Base64.encodeBase64String(Hex.decodeHex(loginParam.getPassword()));
                     user = oneIdUserDao.loginByPassword(loginParam.getAccount(), accountType, password);
                 } catch (Exception e) {
-                    redisDao.updateValue(redisKey, codeTemp + "_used", 0);
-                    return Result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, e.getMessage(), null, null);
+                    return Result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null,
+                            limitUtil.loginFail(failCounter), null);
                 }
             } else {
                 // 校验隐私协议
