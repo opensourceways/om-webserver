@@ -238,6 +238,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             if (user == null) {
                 return result(HttpStatus.BAD_REQUEST, null, "注册失败", null);
             } else {
+                logger.info("{} register change privacy version to {}", userName, oneidPrivacyVersion);
                 // 注册成功，验证码失效，解除注册失败次数限制
                 redisDao.remove(registerErrorCountKey);
                 redisDao.updateValue(redisKey, codeTemp + "_used", 0);
@@ -641,6 +642,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                 if (!oneidPrivacyVersion.equals(privacyAccepted) && !"revoked".equals(privacyAccepted)) {
                     return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
                 }
+                logger.info("{} change privacy version to {}", userId, privacyAccepted);
                 map.remove("oneidPrivacyAccepted");
                 map.put("privacyVersion", CommonUtil.createPrivacyVersions(localCommunity, privacyAccepted, false));
             }

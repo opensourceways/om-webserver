@@ -89,6 +89,11 @@ public class AuthingInterceptor implements HandlerInterceptor {
      */
     private static final String BASEINFO_URI = "/oneid/update/baseInfo";
 
+    /**
+     * 登录后获取协议内容.
+     */
+    private static final String REFRESH_URI = "/oneid/user/refresh";
+
     private static final Logger logger =  LoggerFactory.getLogger(AuthingInterceptor.class);
 
     @PostConstruct
@@ -183,7 +188,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         }
 
         // 是否接受隐私协议
-        if (!"unused".equals(oneidPrivacyVersion) && !BASEINFO_URI.equals(url)
+        if (!"unused".equals(oneidPrivacyVersion) && !BASEINFO_URI.equals(url) && !REFRESH_URI.equals(url)
                 && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept)) {
                 tokenError(httpServletRequest, httpServletResponse, "unauthorized");
                 return false;

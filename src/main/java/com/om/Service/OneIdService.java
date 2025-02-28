@@ -170,7 +170,7 @@ public class OneIdService {
 
         // 生成token
         Map<String, String> tokens = jwtTokenCreateService.authingUserToken(appId, user.getId(), user.getUsername(),
-                "", "", idToken, oneidPrivacyVersion);
+                "", "", idToken, oneidPrivacyVersionAccept);
         String token = tokens.get(Constant.TOKEN_Y_G_);
         String verifyToken = tokens.get(Constant.TOKEN_U_T_);
 
