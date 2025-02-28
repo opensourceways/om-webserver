@@ -928,6 +928,14 @@ public class AuthingUserDao {
         return msg;
     }
 
+    public Boolean checkLoginUsername(String userName) {
+        if (StringUtils.isBlank(userName)) {
+            return false;
+        }
+        return userName.matches(Constant.USERNAMEREGEX)
+                || userName.matches(Constant.THIRDUSERNAMEREGEX);
+    }
+
     public List<String> userAccessibleApps(String userId) {
         ArrayList<String> appIds = new ArrayList<>();
         try {
