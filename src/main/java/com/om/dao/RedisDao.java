@@ -15,6 +15,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -365,6 +366,30 @@ public class RedisDao {
         return result;
     }
 
+    /**
+     * 分布式锁.
+     *
+     * @param lockKey 锁key
+     * @param identifier 锁value
+     * @param expireTime 锁的时长
+     * @return 是否上锁成功
+     */
+    public boolean acquireLock(String lockKey, String identifier, long expireTime) {
+        return redisTemplate.opsForValue().setIfAbsent(lockKey, identifier, Duration.ofMinutes(expireTime));
+    }
+
+    /**
+     * 解锁分布式锁.
+     *
+     * @param lockKey 锁内容
+     * @param identifier 锁值
+     */
+    public void releaseLock(String lockKey, String identifier) {
+        String currentValue = redisTemplate.opsForValue().get(lockKey);
+        if (identifier.equals(currentValue)) {
+            redisTemplate.delete(lockKey);
+        }
+    }
 
     private RedisSerializer getJsonserializer() {
         Jackson2JsonRedisSerializer jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer(Object.class);
