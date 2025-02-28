@@ -1,6 +1,7 @@
 package com.om.Dao.oneId;
 
 import com.alibaba.fastjson2.JSON;
+import com.om.Modules.MessageCodeConfig;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
@@ -23,8 +24,9 @@ public class OneIdUserDao {
         if (response.getStatus() == 200) {
             JSONObject jsonObject = response.getBody().getObject().getJSONObject("data");
             return JSON.parseObject(jsonObject.toString(), OneIdEntity.User.class);
+        } else {
+            throw new Exception(MessageCodeConfig.E00052.getMsgZh());
         }
-        return null;
     }
 
     public OneIdEntity.User getUserInfo(String account, String accountType) throws Exception {
