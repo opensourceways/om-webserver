@@ -188,6 +188,7 @@ public class LoginServiceImplOneId implements LoginServiceInter {
                     String password = Base64.encodeBase64String(Hex.decodeHex(loginParam.getPassword()));
                     user = oneIdUserDao.loginByPassword(loginParam.getAccount(), accountType, password);
                 } catch (Exception e) {
+                    redisDao.updateValue(redisKey, codeTemp + "_used", 0);
                     return Result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, e.getMessage(), null, null);
                 }
             } else {
