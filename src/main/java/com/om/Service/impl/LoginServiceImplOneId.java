@@ -5,6 +5,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.Dao.AuthingUserDao;
 import com.om.Dao.OneidDao;
 import com.om.Dao.RedisDao;
 import com.om.Dao.oneId.OneIdAppDao;
@@ -114,6 +115,8 @@ public class LoginServiceImplOneId implements LoginServiceInter {
 
     @Autowired
     private OneidDao oneidDao;
+    @Autowired
+    private AuthingUserDao authingUserDao;
 
     @Override
     public ResponseEntity<?> appVerify(String clientId, String redirectUri) {
@@ -168,7 +171,11 @@ public class LoginServiceImplOneId implements LoginServiceInter {
             }
 
             // 登录
-            String accountType = oneIdService.getAccountType(loginParam.getAccount());
+            String accountType = oneIdService.getAccountType(account);
+            if (accountType.equals(Constant.USERNAME_TYPE) && !authingUserDao.checkLoginUsername(account)) {
+                return Result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null, null, null);
+            }
+
             OneIdEntity.User user = null;
             if (!StringUtils.hasText(accountType)) {
                 return Result.setResult(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null, null);
