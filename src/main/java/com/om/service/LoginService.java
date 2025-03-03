@@ -209,9 +209,10 @@ public class LoginService {
             userId = JWT.decode(idToken).getSubject();
             user = authingManagerDao.getUserByUserId(userId);
         } else {
+            LOGGER.error("{} login failed {}", account, loginRes);
             LogUtil.createLogs(account, "user login", "login",
                     "The user login", ip, "failed");
-            return authingService.result(HttpStatus.BAD_REQUEST, null, (String) loginRes,
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null,
                     limitUtil.loginFail(failCounter));
         }
         // 登录成功解除登录失败次数限制
