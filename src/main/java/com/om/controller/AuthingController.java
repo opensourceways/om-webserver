@@ -16,11 +16,13 @@ import com.anji.captcha.model.common.ResponseModel;
 import com.anji.captcha.model.vo.CaptchaVO;
 import com.anji.captcha.service.CaptchaService;
 import com.anji.captcha.util.StringUtils;
+import com.om.controller.bean.request.PermissionInfo;
 import com.om.result.Constant;
 import com.om.service.AuthingService;
 import com.om.service.LoginService;
 import com.om.service.OidcService;
 import com.om.service.OneIdManageService;
+import com.om.service.ResourceService;
 import com.om.service.SendMessageService;
 import com.om.service.UserCenterServiceContext;
 import com.om.service.inter.UserCenterServiceInter;
@@ -91,6 +93,12 @@ public class AuthingController {
      */
     @Autowired
     private SendMessageService sendMessageService;
+
+    /**
+     * 资源管理服务.
+     */
+    @Autowired
+    private ResourceService resourceService;
 
     /**
      * 从 HttpServletRequest 中获取远程主机的 IP 地址或者主机名.
@@ -388,6 +396,21 @@ public class AuthingController {
     @RequestMapping(value = "/user/permissions", method = RequestMethod.GET)
     public ResponseEntity userPermissions(@CookieValue(value = "_Y_G_", required = false) String token) {
         return oneIdManageService.userPermissions(token);
+    }
+
+    /**
+     * 查询用户是否有权限.
+     *
+     * @param token 包含令牌的 Cookie 值（可选）
+     * @param permissionInfo 请求体
+     * @return 是否有权限
+     */
+    @RequestLimitRedis
+    @AuthingUserToken
+    @RequestMapping(value = "/user/checkPermission", method = RequestMethod.POST)
+    public ResponseEntity checkPermission(@CookieValue(value = "_Y_G_", required = false) String token,
+                                          @RequestBody PermissionInfo permissionInfo) {
+        return resourceService.checkPermission(token, permissionInfo);
     }
 
     /**

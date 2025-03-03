@@ -19,9 +19,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.modules.MessageCodeConfig;
+import com.om.utils.AuthingUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -36,6 +42,11 @@ import com.om.dao.AuthingManagerDao;
 @Service
 public class ResourceService {
     /**
+     * 静态变量: LOGGER - 日志记录器.
+     */
+    private static final Logger LOGGER = LoggerFactory.getLogger(ResourceService.class);
+
+    /**
      * 注入authingservice.
      */
     @Autowired
@@ -48,47 +59,77 @@ public class ResourceService {
     private AuthingManagerDao authingManagerDao;
 
     /**
+     * authing工具.
+     */
+    @Autowired
+    private AuthingUtil authingUtil;
+
+    /**
+     * 自动注入环境变量.
+     */
+    @Autowired
+    private Environment env;
+
+    /**
      * 查询是否具备权限.
      *
+     * @param token 包含令牌的 Cookie 值
      * @param permissionInfo 权限实例
      * @return 是否具备权限的结果
      */
-    public ResponseEntity checkPermission(PermissionInfo permissionInfo) {
-        HashMap<String, Boolean> hasPermission = new HashMap<>();
-        hasPermission.put("hasPermission", false);
-        if (StringUtils.isAnyBlank(permissionInfo.getResource(),
-                permissionInfo.getUserId(), permissionInfo.getNamespaceCode())) {
-            return authingService.result(HttpStatus.OK, "success", hasPermission);
-        }
-        String resource = authingManagerDao.convertResource(permissionInfo.getResource());
-        if (CollectionUtils.isEmpty(permissionInfo.getActions())) {
-            return authingService.result(HttpStatus.OK, "success", hasPermission);
-        }
-        ArrayList<String> pers = authingManagerDao.getUserPermission(permissionInfo.getUserId(),
-                permissionInfo.getNamespaceCode());
-        List<String> perActions = new ArrayList<>();
-        for (String per : pers) {
-            String[] perList = per.split(":");
-            if (perList.length > 1 && StringUtils.equals(resource, perList[0])) {
-                perActions.add(perList[1]);
+    public ResponseEntity checkPermission(String token, PermissionInfo permissionInfo) {
+        try {
+            if (permissionInfo == null) {
+                return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
-        }
-        if ("OR".equals(permissionInfo.getOperator())) {
-            for (String action : perActions) {
-                if (permissionInfo.getActions().contains(action)) {
-                    hasPermission.put("hasPermission", true);
-                    break;
+            if (StringUtils.isBlank(permissionInfo.getNamespaceCode())) {
+                // 自动使用默认权限分组
+                permissionInfo.setNamespaceCode(env.getProperty("openeuler.groupCode"));
+            }
+            if (StringUtils.isNotBlank(token)) {
+                DecodedJWT decode = JWT.decode(authingUtil.rsaDecryptToken(token));
+                String userId = decode.getAudience().get(0);
+                permissionInfo.setUserId(userId);
+            }
+            HashMap<String, Boolean> hasPermission = new HashMap<>();
+            hasPermission.put("hasPermission", false);
+            if (StringUtils.isAnyBlank(permissionInfo.getResource(),
+                    permissionInfo.getUserId(), permissionInfo.getNamespaceCode())) {
+                return authingService.result(HttpStatus.FORBIDDEN, "forbidden", hasPermission);
+            }
+            String resource = authingManagerDao.convertResource(permissionInfo.getResource());
+            if (CollectionUtils.isEmpty(permissionInfo.getActions())) {
+                return authingService.result(HttpStatus.FORBIDDEN, "forbidden", hasPermission);
+            }
+            ArrayList<String> pers = authingManagerDao.getUserPermission(permissionInfo.getUserId(),
+                    permissionInfo.getNamespaceCode());
+            List<String> perActions = new ArrayList<>();
+            for (String per : pers) {
+                String[] perList = per.split(":");
+                if (perList.length > 1 && StringUtils.equals(resource, perList[0])) {
+                    perActions.add(perList[1]);
                 }
             }
-            return authingService.result(HttpStatus.OK, "success", hasPermission);
-        } else {
-            for (String action : permissionInfo.getActions()) {
-                if (!perActions.contains(action)) {
-                    return authingService.result(HttpStatus.OK, "success", hasPermission);
+            if ("OR".equals(permissionInfo.getOperator())) {
+                for (String action : perActions) {
+                    if (permissionInfo.getActions().contains(action)) {
+                        hasPermission.put("hasPermission", true);
+                        return authingService.result(HttpStatus.OK, "success", hasPermission);
+                    }
                 }
+                return authingService.result(HttpStatus.FORBIDDEN, "forbidden", hasPermission);
+            } else {
+                for (String action : permissionInfo.getActions()) {
+                    if (!perActions.contains(action)) {
+                        return authingService.result(HttpStatus.FORBIDDEN, "forbidden", hasPermission);
+                    }
+                }
+                hasPermission.put("hasPermission", true);
+                return authingService.result(HttpStatus.OK, "success", hasPermission);
             }
-            hasPermission.put("hasPermission", true);
-            return authingService.result(HttpStatus.OK, "success", hasPermission);
+        } catch (Exception e) {
+            LOGGER.error("check permission failed {}", e.getMessage());
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
     }
 
