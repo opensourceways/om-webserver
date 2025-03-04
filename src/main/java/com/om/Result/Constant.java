@@ -70,6 +70,12 @@ public class Constant {
     public static final String ONEID_TOKEN_KEY = "Oneid-Token";
     public static final String ID_TOKEN_PREFIX = "idToken_";
     public static final String TOKEN_EXPIRES = "token expires";
+    public static final String PRIVACY_VERSION_RECORD_TIME = "time";
+    public static final String PRIVACY_VERSION_RECORD_OPERATE = "opt";
+    public static final String PRIVACY_VERSION_RECORD_ACCEPT = "accept";
+    public static final String PRIVACY_VERSION_RECORD_REVOKE = "revoke";
+    public static final String PRIVACY_VERSION_RECORD_VERSION = "privacyAccepted";
+    public static final String PRIVACY_VERSION_RECORD_HISTORY = "privacyHistory";
 
     public static final String TOKEN_Y_G_ = "_Y_G_";
     public static final String TOKEN_U_T_ = "_U_T_";
