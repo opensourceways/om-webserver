@@ -582,7 +582,7 @@ public class AuthingManagerDao {
                     .asJson();
             JSONObject resObj = response.getBody().getObject();
             if (resObj.getInt("statusCode") != 200) {
-                LOGGER.error("delete resource failed {}", resObj.getString("message"));
+                LOGGER.error("query resources failed {}", resObj.getString("message"));
                 return resourceMap;
             }
             JSONObject data = resObj.getJSONObject("data");
@@ -1056,7 +1056,7 @@ public class AuthingManagerDao {
                     .asJson();
             JSONObject resObj = response.getBody().getObject();
             if (resObj.getInt("statusCode") != 200) {
-                LOGGER.error("delete resource failed {}", resObj.getString("message"));
+                LOGGER.error("get users by ids failed {}", resObj.getString("message"));
                 return null;
             }
             JSONArray data = resObj.getJSONArray("data");
@@ -1067,7 +1067,12 @@ public class AuthingManagerDao {
                 JSONObject dataObj = data.getJSONObject(i);
                 UserInfo userInfo = new UserInfo();
                 userInfo.setUserId(dataObj.getString("userId"));
-                userInfo.setUsername(dataObj.getString("username"));
+                if (!dataObj.isNull("username")) {
+                    userInfo.setUsername(dataObj.getString("username"));
+                }
+                if (dataObj.isNull("identities")) {
+                    continue;
+                }
                 JSONArray identities = dataObj.getJSONArray("identities");
                 if (identities == null) {
                     continue;
@@ -1081,7 +1086,7 @@ public class AuthingManagerDao {
             }
             return userInfos;
         } catch (Exception e) {
-            LOGGER.error("delete resource failed {}", e.getMessage());
+            LOGGER.error("get users by ids failed {}", e.getMessage());
             return null;
         }
     }
@@ -1119,7 +1124,7 @@ public class AuthingManagerDao {
             userInfo.setUsername(data.getString("username"));
             return userInfo;
         } catch (Exception e) {
-            LOGGER.error("delete resource failed {}", e.getMessage());
+            LOGGER.error("create user failed {}", e.getMessage());
             return null;
         }
     }

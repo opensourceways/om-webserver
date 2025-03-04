@@ -186,7 +186,6 @@ public class AuthingUtil {
             }
             res.put("login_name", loginName);
             res.put("user_name", userName);
-            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("github", res);
         } else if (extIdpId.equals(env.getProperty("enterprise.extIdpId.gitee"))) {
             res.put("identity", "gitee");
@@ -207,7 +206,6 @@ public class AuthingUtil {
             }
             res.put("login_name", loginName);
             res.put("user_name", userName);
-            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("gitee", res);
         } else if (extIdpId.equals(env.getProperty("enterprise.extIdpId.gitcode"))) {
             String name = jsonObjStringValue(userInfoInIdpObj, "name");
@@ -220,7 +218,6 @@ public class AuthingUtil {
             }
             res.put("login_name", loginName);
             res.put("user_name", userName);
-            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("gitcode", res);
         } else if (extIdpId.equals(env.getProperty("enterprise.extIdpId.openatom"))) {
             String phone = jsonObjStringValue(userInfoInIdpObj, "phone");
@@ -235,7 +232,6 @@ public class AuthingUtil {
             }
             res.put("login_name", loginName);
             res.put("user_name", userName);
-            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("openatom", res);
         } else if (extIdpId.equals(env.getProperty("social.extIdpId.wechat"))) {
             String name = jsonObjStringValue(userInfoInIdpObj, "nickname");
@@ -248,7 +244,6 @@ public class AuthingUtil {
             }
             res.put("login_name", loginName);
             res.put("user_name", userName);
-            res.put("accessToken", jsonObjStringValue(userInfoInIdpObj, "accessToken"));
             map.put("wechat", res);
         } else {
             LogUtil.createLogs(null, "authing user identitiy idp", "user",
