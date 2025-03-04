@@ -10,6 +10,8 @@ import java.util.HashMap;
 import javax.imageio.ImageIO;
 
 import com.alibaba.fastjson2.JSON;
+import com.alibaba.fastjson2.JSONArray;
+import com.alibaba.fastjson2.JSONObject;
 import com.om.Result.Constant;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -91,9 +93,38 @@ public class CommonUtil {
      * @param needSlash 是否需要斜杠
      * @return 返回创建的隐私版本号
      */
-    public static String createPrivacyVersions(String community, String version, Boolean needSlash) {
+    public static String createPrivacyVersions(String community, String version, Boolean needSlash, String oldPrivacyVersion) {
         HashMap<String, String> privacys = new HashMap<>();
         privacys.put(community, version);
+        HashMap<String, String> oldPrivacyVersionMap = null;
+        try {
+            if (StringUtils.isNotBlank(oldPrivacyVersion)) {
+                oldPrivacyVersionMap = JSON.parseObject(oldPrivacyVersion, HashMap.class);
+            }
+            if (oldPrivacyVersionMap != null) {
+                String privacyHistory = oldPrivacyVersionMap.get(Constant.PRIVACY_VERSION_RECORD_HISTORY);
+                JSONArray oldPrivacyMsg = StringUtils.isBlank(privacyHistory) ? new JSONArray() : JSON.parseArray(privacyHistory);
+                if (oldPrivacyMsg.size() > 10) {
+                    oldPrivacyMsg.remove(0);
+                }
+                long time = System.currentTimeMillis();
+                String oldPrivacyAccept = oldPrivacyVersionMap.get(community);
+                if (StringUtils.isNotBlank(oldPrivacyAccept)) {
+                    JSONObject historyMsg = new JSONObject();
+                    historyMsg.put(Constant.PRIVACY_VERSION_RECORD_TIME, time);
+                    if ("revoked".equals(oldPrivacyAccept)) {
+                        historyMsg.put(Constant.PRIVACY_VERSION_RECORD_OPERATE, Constant.PRIVACY_VERSION_RECORD_REVOKE);
+                    } else {
+                        historyMsg.put(Constant.PRIVACY_VERSION_RECORD_OPERATE, Constant.PRIVACY_VERSION_RECORD_ACCEPT);
+                    }
+                    historyMsg.put(Constant.PRIVACY_VERSION_RECORD_VERSION, oldPrivacyAccept);
+                    oldPrivacyMsg.add(historyMsg);
+                }
+                privacys.put(Constant.PRIVACY_VERSION_RECORD_HISTORY, oldPrivacyMsg.toJSONString());
+            }
+        } catch (Exception e) {
+            logger.error(e.getMessage());
+        }
         if (needSlash) {
             return JSON.toJSONString(privacys).replaceAll("\"", "\\\\\"");
         } else {

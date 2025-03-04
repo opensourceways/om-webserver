@@ -186,7 +186,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                 logger.error("oneidPrivacy param error.");
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
-            userInfo.put("privacyVersion", CommonUtil.createPrivacyVersions(localCommunity, oneidPrivacyVersion, false));
+            userInfo.put("privacyVersion", CommonUtil.createPrivacyVersions(localCommunity, oneidPrivacyVersion, false, null));
             // 用户名校验
             if (StringUtils.isBlank(userName))
                 return result(HttpStatus.BAD_REQUEST, null, "用户名不能为空", null);
@@ -643,8 +643,10 @@ public class OpenGaussService implements UserCenterServiceInter {
                     return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
                 }
                 logger.info("{} change privacy version to {}", userId, privacyAccepted);
+                JSONObject user = oneidDao.getUser(poolId, poolSecret, userId, "id");
+                String oldPrivacyVersion = user.has("privacyVersion") ? user.getString("privacyVersion") : null;
                 map.remove("oneidPrivacyAccepted");
-                map.put("privacyVersion", CommonUtil.createPrivacyVersions(localCommunity, privacyAccepted, false));
+                map.put("privacyVersion", CommonUtil.createPrivacyVersions(localCommunity, privacyAccepted, false, oldPrivacyVersion));
             }
 
             String nickname = (String) map.getOrDefault("nickname", null);
