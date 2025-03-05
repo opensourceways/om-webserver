@@ -94,4 +94,36 @@ public class LogUtil {
         }
         return "";
     }
+
+    /**
+     * 组装记录日志.
+     *
+     * @param userId 用户id
+     * @param type 操作类型
+     * @param module 模块名
+     * @param detail 操作资源详情
+     * @param ip 操作者ip
+     * @param result 操作结果
+     */
+    public static void createLogs(String userId, String type, String module, String detail, String ip, String result) {
+        StringBuilder account = new StringBuilder();
+        if (StringUtils.isNotBlank(userId)) {
+            if (userId.matches((Constant.PHONEREGEX))) {
+                account.append("****").append(userId.substring(userId.length() - 4));
+            } else if (userId.matches(Constant.EMAILREGEX)) {
+                int atIndex = userId.indexOf('@');
+                if (atIndex > 1) {
+                    account.append(userId.charAt(0)).append("****").append(userId.charAt(atIndex - 1))
+                            .append(userId.substring(atIndex));
+                } else {
+                    account.append(userId);
+                }
+            } else {
+                account.append(userId);
+            }
+        }
+        logger.info(String.format("(Client ip:%s, User:%s, Module:%s, Type:%s) Detail:%s.--->Result:%s.",
+                ip, account.toString(), module, type, detail, result));
+    }
+
 }

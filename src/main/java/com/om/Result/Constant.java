@@ -21,14 +21,14 @@ import java.util.List;
  * @description:常量类
  */
 public class Constant {
-    public static final String openeuler="openeuler";
-    public static final String opengauss="opengauss";
-    public static final String openlookeng="openlookeng";
-    public static final String mindspore="mindspore";
-    public static final String individual="individual";
-    public static final String organization="organization";
-    public static final String allIssueCveStr="allIssueCveStr";
-    public static final String allIssueResult="allIssueResult";
+    public static final String openeuler = "openeuler";
+    public static final String opengauss = "opengauss";
+    public static final String openlookeng = "openlookeng";
+    public static final String mindspore = "mindspore";
+    public static final String individual = "individual";
+    public static final String organization = "organization";
+    public static final String allIssueCveStr = "allIssueCveStr";
+    public static final String allIssueResult = "allIssueResult";
     public static final String PHONEREGEX = "^1[0-9]{10}$";
     public static final String EMAILREGEX = "^[A-Za-z0-9-._\\u4e00-\\u9fa5]+@[a-zA-Z0-9_-]+(\\.[a-zA-Z0-9_-]+)+$";
     public static final String USERNAMEREGEX = "^[a-zA-Z][0-9a-zA-Z_]{1,18}[0-9a-zA-Z]$";
@@ -76,10 +76,12 @@ public class Constant {
     public static final String PRIVACY_VERSION_RECORD_REVOKE = "revoke";
     public static final String PRIVACY_VERSION_RECORD_VERSION = "privacyAccepted";
     public static final String PRIVACY_VERSION_RECORD_HISTORY = "privacyHistory";
+    public static final String PRIVACY_VERSION_RECORD_SIGN_TIME = "signTime";
+    public static final String PRIVACY_VERSION_RECORD_APP_VERSION = "appVersion";
 
     public static final String TOKEN_Y_G_ = "_Y_G_";
     public static final String TOKEN_U_T_ = "_U_T_";
- 
+
     public static final String ONEID_USER_C_PATH = "/composite-user";
     public static final String ONEID_USER_URD_PATH = "/composite-user/{account}";
     public static final String ONEID_CHECK_PASSWORD_PATH = "/auth/check-password/{account}";
