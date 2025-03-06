@@ -105,5 +105,15 @@ public class Constant {
      * gitcode.
      */
     public static final String GITCODE = "gitcode";
+
+    /**
+     * 隐私变更.
+     */
+    public static final String REDIS_KEY_PRIVACY_CHANGE = "privacy_version_new";
+
+    /**
+     * 隐私变更信息缓存时间.
+     */
+    public static final Long REDIS_KEY_PRIVACY_CHANGE_ALIVE = 120L;
 }
 
