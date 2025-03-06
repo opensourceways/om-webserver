@@ -664,7 +664,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                 }
                 logger.info("{} change privacy version to {}", userId, privacyAccepted);
                 JSONObject user = oneidDao.getUser(poolId, poolSecret, userId, "id");
-                String oldPrivacyVersion = user.has("privacyVersion") ? user.getString("privacyVersion") : null;
+                String oldPrivacyVersion = user.optString("privacyVersion", null);
                 map.remove("oneidPrivacyAccepted");
                 String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
                 String privacyInfo = CommonUtil.createPrivacyVersions(localCommunity, privacyAccepted, false, oldPrivacyVersion, oneidPrivacyAppVersion);
