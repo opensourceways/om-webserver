@@ -55,8 +55,10 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPrivateKey;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -70,11 +72,6 @@ import java.util.stream.Collectors;
  */
 public class AuthingInterceptor implements HandlerInterceptor {
     /**
-     * 鉴权自身的接口.
-     */
-    private static final String LOCAL_VERIFY_TOKEN_URI = "/oneid/verify/token";
-
-    /**
      * 登出接口.
      */
     private static final String LOGOUT_URI = "/oneid/logout";
@@ -85,9 +82,16 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private static final String BASEINFO_URI = "/oneid/update/baseInfo";
 
     /**
-     * 权限接口接口.
+     * 用户名为空可以使用的接口.
      */
-    private static final String PERMISSION_URI = "/oneid/user/permission";
+    public static final List<String> URL_USERNAME_NULL_LIST = Collections.unmodifiableList(new ArrayList<>() {
+        {
+            add("/oneid/user/permission");
+            add("/oneid/update/baseInfo");
+            add("/oneid/sendcode");
+            add("/oneid/bind/account");
+        }
+    });
 
     /**
      * 用于与 Redis 数据库进行交互的 DAO.
@@ -317,7 +321,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         List<String> audience = JWT.decode(headerJwtToken).getAudience();
         String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
         // 必须设置用户名
-        if (StringUtils.isBlank(username) && !BASEINFO_URI.equals(url) && !PERMISSION_URI.equals(url)) {
+        if (StringUtils.isBlank(username) && !URL_USERNAME_NULL_LIST.contains(url)) {
             User user = authingManagerDao.getUserByUserId(userId);
             if (user != null && com.anji.captcha.util.StringUtils.isNotBlank(user.getUsername())) {
                 username = user.getUsername();
