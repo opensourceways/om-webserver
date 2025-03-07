@@ -163,11 +163,20 @@ public class JwtTokenCreateService {
         String inputPermission = claimMap.get("inputPermission").asString();
         String idToken = (String) redisDao.get(Constant.ID_TOKEN_PREFIX + headJwtTokenMd5);
         String permission = new String(Base64.getDecoder().decode(claimMap.get("permission").asString().getBytes()));
-
+        String oneidPrivacyVersionAccept = "";
+        if (claimMap.containsKey("oneidPrivacyAccepted")) {
+            oneidPrivacyVersionAccept = claimMap.get("oneidPrivacyAccepted").asString();
+            if (!oneidPrivacyVersion.equals(oneidPrivacyVersionAccept)) {
+                String privacyVersionNew = (String) redisDao.get(Constant.REDIS_KEY_PRIVACY_CHANGE + userId);
+                if (privacyVersionNew != null) {
+                    oneidPrivacyVersionAccept = privacyVersionNew;
+                }
+            }
+        }
         // 生成新的token和headToken
         List<String> audience = JWT.decode(headerJwtToken).getAudience();
         String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
-        return authingUserToken(appId, userId, username, permission, inputPermission, idToken, oneidPrivacyVersion);
+        return authingUserToken(appId, userId, username, permission, inputPermission, idToken, oneidPrivacyVersionAccept);
     }
 
     public String oidcToken(String userId, String issuer, String scope, long expireSeconds, Date expireAt) {

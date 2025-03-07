@@ -708,6 +708,10 @@ public class OpenGaussService implements UserCenterServiceInter {
             String userJsonStr = objectMapper.writeValueAsString(map);
             JSONObject user = oneidDao.updateUser(poolId, poolSecret, userId, userJsonStr);
             if (user != null) {
+                if (map.containsKey("privacyVersion")) {
+                    redisDao.set(Constant.REDIS_KEY_PRIVACY_CHANGE + userId, privacyAccepted,
+                            Constant.REDIS_KEY_PRIVACY_CHANGE_ALIVE);
+                }
                 return result(HttpStatus.OK, null, "update base info success", null);
             }
         } catch (Exception e) {
