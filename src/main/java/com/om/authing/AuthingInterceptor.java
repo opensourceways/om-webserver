@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.dao.AuthingManagerDao;
 import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
+import com.om.modules.privacy.PrivacyContentSync;
 import com.om.result.Constant;
 import com.om.service.JwtTokenCreateService;
 import com.om.service.bean.OnlineUserInfo;
@@ -166,10 +167,10 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private String cookieSecures;
 
     /**
-     * OneID 隐私政策版本号.
+     * 隐私内容服务.
      */
-    @Value("${oneid.privacy.version}")
-    private String oneidPrivacyVersion;
+    @Autowired
+    private PrivacyContentSync privacyContentSync;
 
     /**
      * 三方鉴权接口.
@@ -331,6 +332,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
                 return false;
             }
         }
+        String oneidPrivacyVersion = privacyContentSync.getPrivacyVersion();
 
         // 是否接受隐私协议
         if (!isLoginNormal(verifyToken, userId)

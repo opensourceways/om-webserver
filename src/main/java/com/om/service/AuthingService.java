@@ -28,6 +28,7 @@ import com.om.modules.OperateFailCounter;
 import com.om.modules.MessageCodeConfig;
 import com.om.modules.ServerErrorException;
 import com.om.modules.authing.AuthingAppSync;
+import com.om.modules.privacy.PrivacyContentSync;
 import com.om.result.Constant;
 import com.om.result.Result;
 import com.om.service.bean.OnlineUserInfo;
@@ -149,6 +150,12 @@ public class AuthingService implements UserCenterServiceInter {
     private ClientSessionManager clientSessionManager;
 
     /**
+     * 隐私内容服务.
+     */
+    @Autowired
+    private PrivacyContentSync privacyContentSync;
+
+    /**
      * 退出APP线程池.
      */
     private static final ExecutorService LOGOUT_EXE = new ThreadPoolExecutor(4, 5,
@@ -200,11 +207,6 @@ public class AuthingService implements UserCenterServiceInter {
      * 静态变量: 结果对象.
      */
     private static Result result;
-
-    /**
-     * 静态变量: OneID隐私版本信息.
-     */
-    private static String oneidPrivacyVersion;
 
     /**
      * 静态变量: 实例社区信息.
@@ -275,15 +277,6 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     /**
-     * oneid隐私版本信息赋值.
-     *
-     * @param oneidPrivacyVersion oneid隐私版本信息
-     */
-    public static void setOneidPrivacyVersion(String oneidPrivacyVersion) {
-        AuthingService.oneidPrivacyVersion = oneidPrivacyVersion;
-    }
-
-    /**
      * 实例社区赋值.
      *
      * @param instanceCommunity 实例社区信息
@@ -306,7 +299,6 @@ public class AuthingService implements UserCenterServiceInter {
             setDomain2secure(HttpClientUtils.getConfigCookieInfo(domains, secures));
         }
         setResult(new Result());
-        setOneidPrivacyVersion(env.getProperty("oneid.privacy.version", ""));
         setInstanceCommunity(env.getProperty("community", ""));
     }
 
@@ -471,6 +463,7 @@ public class AuthingService implements UserCenterServiceInter {
         } catch (ServerErrorException e) {
             return result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
         }
+        String oneidPrivacyVersion = privacyContentSync.getPrivacyVersion();
         // 检查是否同意隐私政策
         if (!"unused".equals(oneidPrivacyVersion) && !oneidPrivacyVersion.equals(acceptPrivacyVersion)) {
             LogUtil.createLogs("anonymous", "user register", "register",
