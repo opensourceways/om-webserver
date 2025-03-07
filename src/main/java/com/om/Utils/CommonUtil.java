@@ -93,9 +93,11 @@ public class CommonUtil {
      * @param needSlash 是否需要斜杠
      * @return 返回创建的隐私版本号
      */
-    public static String createPrivacyVersions(String community, String version, Boolean needSlash, String oldPrivacyVersion) {
+    public static String createPrivacyVersions(String community, String version, Boolean needSlash,
+                                               String oldPrivacyVersion, String appVersion) {
         HashMap<String, String> privacys = new HashMap<>();
         privacys.put(community, version);
+        privacys.put(Constant.PRIVACY_VERSION_RECORD_SIGN_TIME, String.valueOf(System.currentTimeMillis()));
         HashMap<String, String> oldPrivacyVersionMap = null;
         try {
             if (StringUtils.isNotBlank(oldPrivacyVersion)) {
@@ -118,6 +120,7 @@ public class CommonUtil {
                         historyMsg.put(Constant.PRIVACY_VERSION_RECORD_OPERATE, Constant.PRIVACY_VERSION_RECORD_ACCEPT);
                     }
                     historyMsg.put(Constant.PRIVACY_VERSION_RECORD_VERSION, oldPrivacyAccept);
+                    historyMsg.put(Constant.PRIVACY_VERSION_RECORD_APP_VERSION, appVersion);
                     oldPrivacyMsg.add(historyMsg);
                 }
                 privacys.put(Constant.PRIVACY_VERSION_RECORD_HISTORY, oldPrivacyMsg.toJSONString());

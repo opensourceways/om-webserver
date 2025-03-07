@@ -11,6 +11,7 @@
 
 package com.om.Service.impl;
 
+import cn.authing.core.types.Log;
 import cn.authing.core.types.User;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.Claim;
@@ -32,6 +33,8 @@ import com.om.Utils.CommonUtil;
 import com.om.Utils.HttpClientUtils;
 import com.om.Utils.LimitUtil;
 import com.om.Utils.RSAUtil;
+import com.om.Utils.LogUtil;
+import com.om.Utils.ClientIPUtil;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
@@ -49,7 +52,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.annotation.PostConstruct;
+
 import javax.crypto.NoSuchPaddingException;
+
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -65,7 +70,7 @@ import java.util.*;
 @Service("opengauss")
 public class OpenGaussService implements UserCenterServiceInter {
 
-    private static final Logger logger =  LoggerFactory.getLogger(OpenGaussService.class);
+    private static final Logger logger = LoggerFactory.getLogger(OpenGaussService.class);
 
     @Autowired
     private Environment env;
@@ -102,6 +107,12 @@ public class OpenGaussService implements UserCenterServiceInter {
      */
     @Value("${oneid.privacy.version}")
     private String oneidPrivacyVersion;
+
+    /**
+     * OneId App版本
+     */
+    @Value("${oneid.privacy.app.version:1.0}")
+    private String oneidPrivacyAppVersion;
 
     private static HashMap<String, Boolean> domain2secure;
 
@@ -163,7 +174,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             int registerErrorCount = v == null ? 0 : Integer.parseInt(v.toString());
             if (registerErrorCount >= Integer.parseInt(env.getProperty("login.error.limit.count", "6")))
                 return result(HttpStatus.BAD_REQUEST, null, "请求过于频繁", null);
-                
+
             HashMap<String, Object> userInfo = new HashMap<>();
             // 公司名校验
             if (company == null || !company.matches(Constant.COMPANYNAMEREGEX))
@@ -186,7 +197,16 @@ public class OpenGaussService implements UserCenterServiceInter {
                 logger.error("oneidPrivacy param error.");
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
             }
-            userInfo.put("privacyVersion", CommonUtil.createPrivacyVersions(localCommunity, oneidPrivacyVersion, false, null));
+            String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
+            String privacyInfo = CommonUtil.createPrivacyVersions(localCommunity, oneidPrivacyVersion, false, null, oneidPrivacyAppVersion);
+            if ("unused".equals(oneidPrivacyVersion)) {
+                LogUtil.createLogs(account, "cancel privacy", "user",
+                        privacyInfo, userIp, "success");
+            } else {
+                LogUtil.createLogs(account, "accept privacy", "user",
+                        privacyInfo, userIp, "success");
+            }
+            userInfo.put("privacyVersion", privacyInfo);
             // 用户名校验
             if (StringUtils.isBlank(userName))
                 return result(HttpStatus.BAD_REQUEST, null, "用户名不能为空", null);
@@ -231,7 +251,7 @@ public class OpenGaussService implements UserCenterServiceInter {
                 }
                 userInfo.put("password", password);
             }
-            
+
             // 用户注册
             String userJsonStr = objectMapper.writeValueAsString(userInfo);
             JSONObject user = oneidDao.createUser(poolId, poolSecret, userJsonStr);
@@ -292,7 +312,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             channel = channel.toLowerCase();
             String redisKey =
                     channel.equals(Constant.CHANNEL_REGISTER) || channel.equals(Constant.CHANNEL_REGISTER_BY_PASSWORD)
-                    ? redisKeyTemp + Constant.REGISTER_SUFFIX : redisKeyTemp;
+                            ? redisKeyTemp + Constant.REGISTER_SUFFIX : redisKeyTemp;
             redisKey = channel.equals(Constant.CHANNEL_RESET_PASSWORD)
                     ? redisKey + Constant.RESET_PASSWORD_SUFFIX : redisKey;
 
@@ -646,7 +666,16 @@ public class OpenGaussService implements UserCenterServiceInter {
                 JSONObject user = oneidDao.getUser(poolId, poolSecret, userId, "id");
                 String oldPrivacyVersion = user.optString("privacyVersion", null);
                 map.remove("oneidPrivacyAccepted");
-                map.put("privacyVersion", CommonUtil.createPrivacyVersions(localCommunity, privacyAccepted, false, oldPrivacyVersion));
+                String userIp = ClientIPUtil.getClientIpAddress(servletRequest);
+                String privacyInfo = CommonUtil.createPrivacyVersions(localCommunity, privacyAccepted, false, oldPrivacyVersion, oneidPrivacyAppVersion);
+                if ("revoked".equals(privacyAccepted)) {
+                    LogUtil.createLogs(userId, "cancel privacy", "user",
+                            privacyInfo, userIp, "success");
+                } else {
+                    LogUtil.createLogs(userId, "accept privacy", "user",
+                            privacyInfo, userIp, "success");
+                }
+                map.put("privacyVersion", privacyInfo);
             }
 
             String nickname = (String) map.getOrDefault("nickname", null);
@@ -1121,7 +1150,7 @@ public class OpenGaussService implements UserCenterServiceInter {
             if (tokenInRedis == null || tokenInRedis.toString().endsWith("_used")) {
                 return result(HttpStatus.BAD_REQUEST, null, "reset password token expire", null);
             }
-            
+
             // reset password
             String accountType = getAccountType(account);
             JSONObject user = oneidDao.getUser(poolId, poolSecret, account, accountType);
