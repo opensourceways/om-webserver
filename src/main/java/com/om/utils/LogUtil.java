@@ -52,6 +52,8 @@ public final class LogUtil {
     public static final List<String> URL_NO_LOG_WHITE_LIST = Collections.unmodifiableList(new ArrayList<>() {
         {
             add("/oneid/checkOmService");
+            add("/oneid/privacy/version");
+            add("/oneid/verify/token");
         }
     });
 
