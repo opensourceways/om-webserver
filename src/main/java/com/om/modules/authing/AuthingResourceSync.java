@@ -257,6 +257,12 @@ public class AuthingResourceSync {
                     }
                     Set<String> developers = new HashSet<>();
                     for (int j = 0; j < developerArray.length(); j++) {
+                        if (!developerArray.getJSONObject(j).has("gitcode_id")
+                                || developerArray.getJSONObject(j).isNull("gitcode_id")
+                                || !developerArray.getJSONObject(j).has("user_id")
+                                || developerArray.getJSONObject(j).isNull("user_id")) {
+                            continue;
+                        }
                         String gitcodeId = developerArray.getJSONObject(j).getString("gitcode_id");
                         String userId = developerArray.getJSONObject(j).getString("user_id");
                         userMap.put(userId, gitcodeId);
@@ -278,6 +284,12 @@ public class AuthingResourceSync {
             JSONArray maintainerArray = permissionObject.getJSONArray("maintainers");
             if (maintainerArray != null) {
                 for (int j = 0; j < maintainerArray.length(); j++) {
+                    if (!maintainerArray.getJSONObject(j).has("gitcode_id")
+                            || maintainerArray.getJSONObject(j).isNull("gitcode_id")
+                            || !maintainerArray.getJSONObject(j).has("user_id")
+                            || maintainerArray.getJSONObject(j).isNull("user_id")) {
+                        continue;
+                    }
                     String gitcodeId = maintainerArray.getJSONObject(j).getString("gitcode_id");
                     String userId = maintainerArray.getJSONObject(j).getString("user_id");
                     userMap.put(userId, gitcodeId);
@@ -290,6 +302,12 @@ public class AuthingResourceSync {
             JSONArray committerArray = permissionObject.getJSONArray("committers");
             if (committerArray != null) {
                 for (int j = 0; j < committerArray.length(); j++) {
+                    if (!committerArray.getJSONObject(j).has("gitcode_id")
+                            || committerArray.getJSONObject(j).isNull("gitcode_id")
+                            || !committerArray.getJSONObject(j).has("user_id")
+                            || committerArray.getJSONObject(j).isNull("user_id")) {
+                        continue;
+                    }
                     String gitcodeId = committerArray.getJSONObject(j).getString("gitcode_id");
                     String userId = committerArray.getJSONObject(j).getString("user_id");
                     userMap.put(userId, gitcodeId);
