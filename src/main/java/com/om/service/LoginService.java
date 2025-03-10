@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import com.om.modules.privacy.PrivacyContentSync;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -67,10 +68,10 @@ public class LoginService {
     private Integer maxLoginNum;
 
     /**
-     * OneID隐私版本信息.
+     * 隐私内容服务.
      */
-    @Value("${oneid.privacy.version: }")
-    private String oneidPrivacyVersion;
+    @Autowired
+    private PrivacyContentSync privacyContentSync;
 
     /**
      * 应用程序版本号.
@@ -147,6 +148,7 @@ public class LoginService {
         if (!authingService.isPermissionParmValid(permission) || StringUtils.isBlank(account)) {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
+        String oneidPrivacyVersion = privacyContentSync.getPrivacyVersion();
         // 校验隐私协议
         if (StringUtils.isEmpty(oneidPrivacy) || !oneidPrivacyVersion.equals(oneidPrivacy)) {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
