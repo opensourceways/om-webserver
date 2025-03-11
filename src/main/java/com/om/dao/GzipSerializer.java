@@ -39,7 +39,7 @@ class GzipSerializer implements RedisSerializer<Object> {
     /**
      * 最大解压大小.
      */
-    private static final int MAX_ZIP_DATA_SIZE = 1024 * 1024 * 5;
+    private static final int MAX_ZIP_DATA_SIZE = 1024 * 1024 * 10;
 
     /**
      * 这里组合方式，使用到了一个序列化器.
