@@ -156,8 +156,12 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
             }
             // check if user exist
             String userIdInPd = user.get("id").toString();
+
+            //当已有三方用户信息时，callback接口应做处理
+            boolean hasThirdParty = oneIdThirdPartyUserDao.getThirdPartyUserByProvider(source.getName(), userIdInPd) != null;
+
             OneIdEntity.User userInDb = oneIdThirdPartyDao.getUserByIdInProvider(userIdInPd, source.getName());
-            if (userInDb == null) {
+            if (userInDb == null || hasThirdParty) {
                 // store userinfo
                 int expire = LoginConfig.AUTHING_TOKEN_EXPIRE_SECONDS;
                 user.put("code", 200);
