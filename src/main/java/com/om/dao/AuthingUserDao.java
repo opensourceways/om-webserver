@@ -1450,14 +1450,16 @@ public class AuthingUserDao {
                 String inputValue = entry.getValue() == null ? "" : entry.getValue().toString();
                 switch (item.toLowerCase()) {
                     case "nickname":
-                        if (!checkNickName(inputValue)) {
-                            return MessageCodeConfig.E00072.getMsgEn();
+                        String checkResult = checkNickName(inputValue);
+                        if (!Constant.SUCCESS.equals(checkResult)) {
+                            return checkResult;
                         }
                         updateUserInput.withNickname(inputValue);
                         break;
                     case "company":
-                        if (!checkCompanyName(inputValue)) {
-                            return MessageCodeConfig.E00073.getMsgEn();
+                        String checkResultC = checkCompanyName(inputValue);
+                        if (!Constant.SUCCESS.equals(checkResultC)) {
+                            return checkResultC;
                         }
                         updateUserInput.withCompany(inputValue);
                         break;
@@ -1523,26 +1525,34 @@ public class AuthingUserDao {
         }
     }
 
-    private boolean checkNickName(String nickName) {
+    private String checkNickName(String nickName) {
+        // 全为空格
+        if (nickName != null && StringUtils.isBlank(nickName) && nickName.length() > 0) {
+            return MessageCodeConfig.EC0001.getMsgEn();
+        }
         if (StringUtils.isNotBlank(nickName) && (nickName.length() < 3 || nickName.length() > 20
                 || !nickName.matches(NICKNAME_REG))) {
-            return false;
+            return MessageCodeConfig.EC0001.getMsgEn();
         }
         if (!moderatorService.checkText(nickName)) {
-            return false;
+            return MessageCodeConfig.E00072.getMsgEn();
         }
-        return true;
+        return Constant.SUCCESS;
     }
 
-    private boolean checkCompanyName(String companyName) {
+    private String checkCompanyName(String companyName) {
+        // 全为空格
+        if (companyName != null && StringUtils.isBlank(companyName) && companyName.length() > 0) {
+            return MessageCodeConfig.EC0001.getMsgEn();
+        }
         if (StringUtils.isNotBlank(companyName) && (companyName.length() < 2 || companyName.length() > 100
                 || !companyName.matches(COMPANYNAME_REG))) {
-            return false;
+            return MessageCodeConfig.EC0001.getMsgEn();
         }
         if (!moderatorService.checkText(companyName)) {
-            return false;
+            return MessageCodeConfig.E00072.getMsgEn();
         }
-        return true;
+        return Constant.SUCCESS;
     }
 
     private void saveHistory(User user, String newPrivacy) {
