@@ -328,15 +328,15 @@ public class AuthingInterceptor implements HandlerInterceptor {
             }
         }
 
-//        // 是否接受隐私协议
-//        if (!isLoginNormal(verifyToken, userId)
-//                || (!"unused".equals(oneidPrivacyVersion) && !BASEINFO_URI.equals(url)
-//                && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept))) {
-//            if (!LOGOUT_URI.equals(url)) {
-//                tokenError(httpServletRequest, httpServletResponse, "unauthorized");
-//                return false;
-//            }
-//        }
+        // 是否接受隐私协议
+        if (!isLoginNormal(verifyToken, userId)
+                || (!"unused".equals(oneidPrivacyVersion) && !BASEINFO_URI.equals(url)
+                && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept))) {
+            if (!LOGOUT_URI.equals(url)) {
+                tokenError(httpServletRequest, httpServletResponse, "unauthorized");
+                return false;
+            }
+        }
 
         // skip refresh if manageToken present
         if (manageToken != null && manageToken.required()) {
