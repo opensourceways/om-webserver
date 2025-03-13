@@ -85,6 +85,11 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private static final String BASEINFO_URI = "/oneid/update/baseInfo";
 
     /**
+     * 权限接口接口.
+     */
+    private static final String PERMISSION_URI = "/oneid/user/permission";
+
+    /**
      * 用于与 Redis 数据库进行交互的 DAO.
      */
     @Autowired
@@ -312,7 +317,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         List<String> audience = JWT.decode(headerJwtToken).getAudience();
         String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
         // 必须设置用户名
-        if (StringUtils.isBlank(username) && !BASEINFO_URI.equals(url)) {
+        if (StringUtils.isBlank(username) && !BASEINFO_URI.equals(url) && !PERMISSION_URI.equals(url)) {
             User user = authingManagerDao.getUserByUserId(userId);
             if (user != null && com.anji.captcha.util.StringUtils.isNotBlank(user.getUsername())) {
                 username = user.getUsername();

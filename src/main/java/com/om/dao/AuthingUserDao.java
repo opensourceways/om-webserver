@@ -1906,20 +1906,20 @@ public class AuthingUserDao {
      * @return 返回包含特定隐私版本号的隐私设置
      */
     public String getPrivacyVersionWithCommunity(String privacyVersions) {
-        if (privacyVersions == null || !privacyVersions.contains(":")) {
-            return "";
+        if (StringUtils.isBlank(privacyVersions) || !privacyVersions.contains(":")) {
+            return "revoked";
         }
         try {
             HashMap<String, String> privacys = JSON.parseObject(privacyVersions, HashMap.class);
             String privacyAccept = privacys.get(community);
             if (privacyAccept == null) {
-                return "";
+                return "revoked";
             } else {
                 return privacyAccept;
             }
         } catch (Exception e) {
             LOGGER.error(e.getMessage());
-            return "";
+            return "revoked";
         }
     }
 

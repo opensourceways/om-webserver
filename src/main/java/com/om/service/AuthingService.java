@@ -696,6 +696,7 @@ public class AuthingService implements UserCenterServiceInter {
             userData.put("is_logout", isLogout);
             userData.put("client_id", appId);
             userData.put("redirect_uri", redirectUri);
+            userData.put("id_token", encryptionService.decrypt(idToken));
             LogUtil.createLogs(userId, "logout", "login",
                     "The user logout", ClientIPUtil.getClientIpAddress(servletRequest), "success");
             return result(HttpStatus.OK, "success", userData);

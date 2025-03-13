@@ -478,6 +478,7 @@ public enum MessageCodeConfig {
         map.put("不支持的加密类型", E00051);
         map.put("passwordEncryptType must be a valid enum value", E00051);
         map.put("账号或密码有误", E00052);
+        map.put("账号或密码错误", E00052);
         map.put("解密密码失败", E00052);
         map.put("Execute query failed: Password is not valid", E00052);
         map.put("密码不允许为空", E00052);

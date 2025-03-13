@@ -73,6 +73,12 @@ public class LoginService {
     private String oneidPrivacyVersion;
 
     /**
+     * 应用程序版本号.
+     */
+    @Value("${app.version:1.0}")
+    private String appVersion;
+
+    /**
      * 使用 @Autowired 注解注入 JwtTokenCreateService.
      */
     @Autowired
@@ -141,6 +147,10 @@ public class LoginService {
         if (!authingService.isPermissionParmValid(permission) || StringUtils.isBlank(account)) {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
+        // 校验隐私协议
+        if (StringUtils.isEmpty(oneidPrivacy) || !oneidPrivacyVersion.equals(oneidPrivacy)) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+        }
         OperateFailCounter failCounter = limitUtil.initLoginFailCounter(account);
         // 限制一小时登录失败次数
         if (failCounter.getAccountCount() >= failCounter.getLimitCount()) {
@@ -199,9 +209,10 @@ public class LoginService {
             userId = JWT.decode(idToken).getSubject();
             user = authingManagerDao.getUserByUserId(userId);
         } else {
+            LOGGER.error("{} login failed {}", account, loginRes);
             LogUtil.createLogs(account, "user login", "login",
                     "The user login", ip, "failed");
-            return authingService.result(HttpStatus.BAD_REQUEST, null, (String) loginRes,
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null,
                     limitUtil.loginFail(failCounter));
         }
         // 登录成功解除登录失败次数限制
@@ -211,12 +222,6 @@ public class LoginService {
         // 获取是否同意隐私
         String oneidPrivacyVersionAccept = authingUserDao.getPrivacyVersionWithCommunity(
                 user.getGivenName());
-        // 同意隐私版本更新为前端传入的最新版本
-        if (!oneidPrivacyVersionAccept.equals(oneidPrivacy)) {
-            if (privacyHistoryService.updatePrivacy(userId, oneidPrivacy)) {
-                oneidPrivacyVersionAccept = oneidPrivacy;
-            }
-        }
 
         // 生成token
         String userName = user.getUsername();
@@ -253,6 +258,9 @@ public class LoginService {
         userData.put("email_exist", StringUtils.isNotBlank(user.getEmail()));
         userData.put("phone_exist", StringUtils.isNotBlank(user.getPhone()));
         userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
+        LogUtil.createLogs(user.getId(), "accept privacy", "user",
+                "User accept privacy version:" + oneidPrivacy + ",appVersion:" + appVersion,
+                ip, "success");
         LogUtil.createLogs(userId, "user login", "login",
                 "The user login", ip, "success");
         return authingService.result(HttpStatus.OK, "success", userData);
@@ -282,10 +290,6 @@ public class LoginService {
         }
         if (StringUtils.isNotBlank(code)
                 && (Constant.EMAIL_TYPE.equals(accountType) || Constant.PHONE_TYPE.equals(accountType))) {
-            // 校验隐私协议
-            if (StringUtils.isEmpty(oneidPrivacy) || !oneidPrivacyVersion.equals(oneidPrivacy)) {
-                return MessageCodeConfig.E00037.getMsgZh();
-            }
             if (!authingService.isCodeParmValid(code)) {
                 return MessageCodeConfig.E0002.getMsgZh();
             }
