@@ -361,7 +361,13 @@ public enum MessageCodeConfig {
     /**
      * 图片内容涉及敏感信息.
      */
-    E00076("E00076", "The image content involves sensitive information", "图片内容涉及敏感信息");
+    E00076("E00076", "The image content involves sensitive information", "图片内容涉及敏感信息"),
+
+    /**
+     * Error code EC0001: Wrong parameter.
+     * Chinese: 参数错误.
+     */
+    EC0001("EC0001", "Wrong parameter", "参数错误");
 
     /**
      * 消息代码.
@@ -505,6 +511,7 @@ public enum MessageCodeConfig {
         map.put("The image file name is illegal", E00074);
         map.put("The image format is illegal", E00075);
         map.put("The image content is illegal", E00076);
+        map.put("Wrong parameter", EC0001);
 
         return map;
     }
