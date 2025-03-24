@@ -94,6 +94,7 @@ public class AuthingUtil {
     public HashMap<String, Object> parseAuthingUser(JSONObject userObj) {
         HashMap<String, Object> userData = new HashMap<>();
         userData.put("username", jsonObjStringValue(userObj, "username"));
+        userData.put("userId", jsonObjStringValue(userObj, "id"));
         userData.put("email", jsonObjStringValue(userObj, "email"));
         userData.put("phone", jsonObjStringValue(userObj, "phone"));
         userData.put("phoneCountryCode", jsonObjStringValue(userObj, "phoneCountryCode"));
