@@ -7,11 +7,35 @@
  PURPOSE.
  See the Mulan PSL v2 for more details.
  Create: 2022
-*/
-
+ */
 package com.om.authing;
 
-import cn.authing.core.types.User;
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.security.interfaces.RSAPrivateKey;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.DigestUtils;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.ModelAndView;
+
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -26,49 +50,25 @@ import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
 import com.om.service.JwtTokenCreateService;
 import com.om.service.bean.OnlineUserInfo;
+import com.om.token.ClientSessionManager;
+import com.om.token.ManageToken;
+import com.om.utils.ClientIPUtil;
 import com.om.utils.CommonUtil;
 import com.om.utils.HttpClientUtils;
 import com.om.utils.LogUtil;
-import com.om.utils.ClientIPUtil;
 import com.om.utils.RSAUtil;
-import com.om.token.ClientSessionManager;
-import com.om.token.ManageToken;
 
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.DigestUtils;
-import org.springframework.web.method.HandlerMethod;
-import org.springframework.web.servlet.HandlerInterceptor;
-import org.springframework.web.servlet.ModelAndView;
-
+import cn.authing.core.types.User;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.security.interfaces.RSAPrivateKey;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.List;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 /**
  * 拦截器类，用于进行身份验证拦截.
  */
 public class AuthingInterceptor implements HandlerInterceptor {
+
     /**
      * 鉴权自身的接口.
      */
@@ -203,7 +203,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
         AuthingInterceptor.domain2secure = domain2secure;
     }
 
-
     /**
      * 初始化方法，在对象创建后调用，用于初始化域名与安全性标志的映射关系.
      */
@@ -215,15 +214,26 @@ public class AuthingInterceptor implements HandlerInterceptor {
     /**
      * 预处理方法，在请求处理之前调用，用于进行预处理操作.
      *
-     * @param httpServletRequest  HTTP 请求对象
+     * @param httpServletRequest HTTP 请求对象
      * @param httpServletResponse HTTP 响应对象
-     * @param object              处理器
+     * @param object 处理器
      * @return 返回布尔值表示是否继续处理请求
      * @throws Exception 可能抛出的异常
      */
     @Override
     public boolean preHandle(HttpServletRequest httpServletRequest,
-                             HttpServletResponse httpServletResponse, Object object) throws Exception {
+            HttpServletResponse httpServletResponse, Object object) throws Exception {
+
+        //添加安全响应头
+        httpServletResponse.setHeader("X-XSS-Protection", "1; mode=block");
+        httpServletResponse.setHeader("X-Frame-Options", "DENY");
+        httpServletResponse.setHeader("X-Content-Type-Options", "nosniff");
+        httpServletResponse.setHeader("Strict-Transport-Security", "max-age=34536000; includeSubDomains");
+        httpServletResponse.setHeader("Content-Security-Policy", "script-src 'self'; object-src 'none'; frame-src 'none'");
+        httpServletResponse.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        httpServletResponse.setHeader("Pragma", "no-cache");
+        httpServletResponse.setHeader("Expires", "0");
+
         // 如果不是映射到方法直接通过
         if (!(object instanceof HandlerMethod)) {
             return true;
@@ -395,15 +405,15 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
     @Override
     public void postHandle(HttpServletRequest httpServletRequest,
-                           HttpServletResponse httpServletResponse,
-                           Object o, ModelAndView modelAndView) throws Exception {
+            HttpServletResponse httpServletResponse,
+            Object o, ModelAndView modelAndView) throws Exception {
 
     }
 
     @Override
     public void afterCompletion(HttpServletRequest httpServletRequest,
-                                HttpServletResponse httpServletResponse,
-                                Object o, Exception e) throws Exception {
+            HttpServletResponse httpServletResponse,
+            Object o, Exception e) throws Exception {
     }
 
     /**
@@ -452,16 +462,16 @@ public class AuthingInterceptor implements HandlerInterceptor {
      * 校验token.
      *
      * @param headerToken header中带的token
-     * @param token       cookie中解密的token
+     * @param token cookie中解密的token
      * @param verifyToken 用于校验的token
-     * @param expiresAt   token过期时间
-     * @param permission  用户权限信息
-     * @param userIp  用户IP
-     * @param userId  用户ID
+     * @param expiresAt token过期时间
+     * @param permission 用户权限信息
+     * @param userIp 用户IP
+     * @param userId 用户ID
      * @return 校验结果
      */
     private String verifyToken(String headerToken, String token, String verifyToken,
-                               Date expiresAt, String permission, String userIp, String userId) {
+            Date expiresAt, String permission, String userIp, String userId) {
         try {
             // header中的token和cookie中的token不一样
             if (!headerToken.equals(verifyToken)) {
@@ -574,7 +584,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
     }
 
     private String refreshToken(HttpServletRequest request, HttpServletResponse response,
-                                String verifyToken, String userId, Map<String, Claim> claimMap) {
+            String verifyToken, String userId, Map<String, Claim> claimMap) {
         String oldTokenKey = Constant.ID_TOKEN_PREFIX + verifyToken;
         String idToken = (String) redisDao.get(oldTokenKey);
 
@@ -597,8 +607,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
         redisDao.set(Constant.ID_TOKEN_PREFIX + newVerifyToken, idToken, (long) tokenExpire);
 
         // 旧token失效,保持一个短时间的有效性
-        long validityPeriod =
-                Long.parseLong(env.getProperty("old.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
+        long validityPeriod
+                = Long.parseLong(env.getProperty("old.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
         if (redisDao.expire(oldTokenKey) > validityPeriod) {
             redisDao.set(oldTokenKey, idToken, validityPeriod);
         }
@@ -607,8 +617,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
     }
 
     private void tokenError(HttpServletRequest httpServletRequest,
-                            HttpServletResponse httpServletResponse,
-                            String message) throws IOException {
+            HttpServletResponse httpServletResponse,
+            String message) throws IOException {
+
         String refrer = httpServletRequest.getHeader("referer");
         List<String> childDomains = HttpClientUtils.extractSubdomains(refrer);
         Map<String, Boolean> cleanCookie = childDomains.stream().collect(Collectors.toMap(
@@ -626,6 +637,16 @@ public class AuthingInterceptor implements HandlerInterceptor {
                     null, false, 0, "/", clearMap);
         }
         clientSessionManager.deleteCookieInConfig(httpServletResponse);
+
+        //添加安全响应头
+        httpServletResponse.setHeader("X-XSS-Protection", "1; mode=block");
+        httpServletResponse.setHeader("X-Frame-Options", "DENY");
+        httpServletResponse.setHeader("X-Content-Type-Options", "nosniff");
+        httpServletResponse.setHeader("Strict-Transport-Security", "max-age=34536000; includeSubDomains");
+        httpServletResponse.setHeader("Content-Security-Policy", "script-src 'self'; object-src 'none'; frame-src 'none'");
+        httpServletResponse.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        httpServletResponse.setHeader("Pragma", "no-cache");
+        httpServletResponse.setHeader("Expires", "0");
 
         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
     }

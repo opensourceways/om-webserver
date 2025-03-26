@@ -7,9 +7,20 @@
  PURPOSE.
  See the Mulan PSL v2 for more details.
  Create: 2023
-*/
-
+ */
 package com.om.token;
+
+import java.io.IOException;
+import java.lang.reflect.Method;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.ModelAndView;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
@@ -17,20 +28,12 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.om.dao.RedisDao;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.env.Environment;
-import org.springframework.web.method.HandlerMethod;
-import org.springframework.web.servlet.HandlerInterceptor;
-import org.springframework.web.servlet.ModelAndView;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
-import java.io.IOException;
-import java.lang.reflect.Method;
-
 public class OneIdManageInterceptor implements HandlerInterceptor {
+
     /**
      * 自动注入环境变量.
      */
@@ -49,19 +52,32 @@ public class OneIdManageInterceptor implements HandlerInterceptor {
     @Autowired
     private ObjectMapper objectMapper;
 
+    // 添加 LOGGER 变量，确保在整个类中可用
+    private static final Logger LOGGER = LoggerFactory.getLogger(OneIdManageInterceptor.class);
+
     /**
      * 在请求处理之前调用，用于拦截请求.
      *
-     * @param request  HTTP请求对象
+     * @param request HTTP请求对象
      * @param response HTTP响应对象
-     * @param handler  处理器对象
+     * @param handler 处理器对象
      * @return 是否继续处理请求的布尔值
      * @throws Exception 异常
      */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
-                             Object handler) throws Exception {
-        // 如果不是映射到方法直接通过
+            Object handler) throws Exception {
+
+        //添加安全响应头
+        response.setHeader("X-XSS-Protection", "1; mode=block");
+        response.setHeader("X-Frame-Options", "DENY");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("Strict-Transport-Security", "max-age=34536000; includeSubDomains");
+        response.setHeader("Content-Security-Policy", "script-src 'self'; object-src 'none'; frame-src 'none'");
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Expires", "0");
+
         if (!(handler instanceof HandlerMethod)) {
             return true;
         }
@@ -108,17 +124,28 @@ public class OneIdManageInterceptor implements HandlerInterceptor {
 
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response,
-                           Object handler, ModelAndView modelAndView) throws Exception {
+            Object handler, ModelAndView modelAndView) throws Exception {
 
     }
 
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response,
-                                Object handler, Exception ex) throws Exception {
+            Object handler, Exception ex) throws Exception {
 
     }
 
     private void tokenError(HttpServletResponse response, String msg) throws IOException {
+
+        //添加安全响应头
+        response.setHeader("X-XSS-Protection", "1; mode=block");
+        response.setHeader("X-Frame-Options", "DENY");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("Strict-Transport-Security", "max-age=34536000; includeSubDomains");
+        response.setHeader("Content-Security-Policy", "script-src 'self'; object-src 'none'; frame-src 'none'");
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Expires", "0");
+
         response.sendError(HttpServletResponse.SC_UNAUTHORIZED, msg);
     }
 }
