@@ -8,34 +8,10 @@
  See the Mulan PSL v2 for more details.
  Create: 2022
  */
+
 package com.om.authing;
 
-import java.io.IOException;
-import java.lang.reflect.Method;
-import java.nio.charset.StandardCharsets;
-import java.security.interfaces.RSAPrivateKey;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.DigestUtils;
-import org.springframework.web.method.HandlerMethod;
-import org.springframework.web.servlet.HandlerInterceptor;
-import org.springframework.web.servlet.ModelAndView;
-
+import cn.authing.core.types.User;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
@@ -50,29 +26,51 @@ import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
 import com.om.service.JwtTokenCreateService;
 import com.om.service.bean.OnlineUserInfo;
-import com.om.token.ClientSessionManager;
-import com.om.token.ManageToken;
-import com.om.utils.ClientIPUtil;
 import com.om.utils.CommonUtil;
 import com.om.utils.HttpClientUtils;
 import com.om.utils.LogUtil;
+import com.om.utils.ClientIPUtil;
 import com.om.utils.RSAUtil;
+import com.om.token.ClientSessionManager;
+import com.om.token.ManageToken;
 
-import cn.authing.core.types.User;
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.DigestUtils;
+import org.springframework.web.method.HandlerMethod;
+import org.springframework.web.servlet.HandlerInterceptor;
+import org.springframework.web.servlet.ModelAndView;
+
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.io.IOException;
+import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.security.interfaces.RSAPrivateKey;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.List;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 /**
  * 拦截器类，用于进行身份验证拦截.
  */
 public class AuthingInterceptor implements HandlerInterceptor {
-
-    /**
-     * 鉴权自身的接口.
-     */
-    private static final String LOCAL_VERIFY_TOKEN_URI = "/oneid/verify/token";
 
     /**
      * 登出接口.
@@ -85,9 +83,16 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private static final String BASEINFO_URI = "/oneid/update/baseInfo";
 
     /**
-     * 权限接口接口.
+     * 用户名为空可以使用的接口.
      */
-    private static final String PERMISSION_URI = "/oneid/user/permission";
+    public static final List<String> URL_USERNAME_NULL_LIST = Collections.unmodifiableList(new ArrayList<>() {
+        {
+            add("/oneid/user/permission");
+            add("/oneid/update/baseInfo");
+            add("/oneid/sendcode");
+            add("/oneid/bind/account");
+        }
+    });
 
     /**
      * 用于与 Redis 数据库进行交互的 DAO.
@@ -223,17 +228,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest httpServletRequest,
             HttpServletResponse httpServletResponse, Object object) throws Exception {
-
-        //添加安全响应头
-        httpServletResponse.setHeader("X-XSS-Protection", "1; mode=block");
-        httpServletResponse.setHeader("X-Frame-Options", "DENY");
-        httpServletResponse.setHeader("X-Content-Type-Options", "nosniff");
-        httpServletResponse.setHeader("Strict-Transport-Security", "max-age=34536000; includeSubDomains");
-        httpServletResponse.setHeader("Content-Security-Policy", "script-src 'self'; object-src 'none'; frame-src 'none'");
-        httpServletResponse.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        httpServletResponse.setHeader("Pragma", "no-cache");
-        httpServletResponse.setHeader("Expires", "0");
-
+        HttpClientUtils.setSecurityHeaders(httpServletResponse);
         // 如果不是映射到方法直接通过
         if (!(object instanceof HandlerMethod)) {
             return true;
@@ -327,7 +322,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         List<String> audience = JWT.decode(headerJwtToken).getAudience();
         String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
         // 必须设置用户名
-        if (StringUtils.isBlank(username) && !BASEINFO_URI.equals(url) && !PERMISSION_URI.equals(url)) {
+        if (StringUtils.isBlank(username) && !URL_USERNAME_NULL_LIST.contains(url)) {
             User user = authingManagerDao.getUserByUserId(userId);
             if (user != null && com.anji.captcha.util.StringUtils.isNotBlank(user.getUsername())) {
                 username = user.getUsername();
@@ -620,6 +615,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
             HttpServletResponse httpServletResponse,
             String message) throws IOException {
 
+        HttpClientUtils.setSecurityHeaders(httpServletResponse);
+
         String refrer = httpServletRequest.getHeader("referer");
         List<String> childDomains = HttpClientUtils.extractSubdomains(refrer);
         Map<String, Boolean> cleanCookie = childDomains.stream().collect(Collectors.toMap(
@@ -637,17 +634,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
                     null, false, 0, "/", clearMap);
         }
         clientSessionManager.deleteCookieInConfig(httpServletResponse);
-
-        //添加安全响应头
-        httpServletResponse.setHeader("X-XSS-Protection", "1; mode=block");
-        httpServletResponse.setHeader("X-Frame-Options", "DENY");
-        httpServletResponse.setHeader("X-Content-Type-Options", "nosniff");
-        httpServletResponse.setHeader("Strict-Transport-Security", "max-age=34536000; includeSubDomains");
-        httpServletResponse.setHeader("Content-Security-Policy", "script-src 'self'; object-src 'none'; frame-src 'none'");
-        httpServletResponse.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-        httpServletResponse.setHeader("Pragma", "no-cache");
-        httpServletResponse.setHeader("Expires", "0");
-
         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
     }
 }
