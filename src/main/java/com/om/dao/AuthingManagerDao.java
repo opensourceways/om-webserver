@@ -226,7 +226,7 @@ public class AuthingManagerDao {
     public void init() {
         setInitManagementClient(new ManagementClient(userPoolId, secret));
         allowedCommunity = Arrays.asList(Constant.OPEN_EULER, Constant.MIND_SPORE, Constant.MODEL_FOUNDRY,
-                Constant.OPEN_UBMC);
+                Constant.OPEN_UBMC, Constant.OPEN_FUYAO);
         String resourceConvert = env.getProperty("authing.resource.convert.mapping", "");
         if (StringUtils.isNotBlank(resourceConvert)) {
             String[] resourceSplit = resourceConvert.split(",");

@@ -256,7 +256,8 @@ public class AuthingUserDao {
     /**
      * 允许的社区列表.
      */
-    private List<String> allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry", "openubmc");
+    private List<String> allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry", "openubmc",
+            "openfuyao");
 
     /**
      * Authing API v2 主机地址.
@@ -391,7 +392,7 @@ public class AuthingUserDao {
         photoSuffixes = Arrays.asList(photoSuffix.split(";"));
         initUnirestConf();
         allowedCommunity = Arrays.asList(Constant.OPEN_EULER, Constant.MIND_SPORE, Constant.MODEL_FOUNDRY,
-                Constant.OPEN_UBMC);
+                Constant.OPEN_UBMC, Constant.OPEN_FUYAO);
     }
 
     private void initUnirestConf() {
