@@ -44,6 +44,11 @@ public final class Constant {
     public static final String OPEN_UBMC = "openubmc";
 
     /**
+     * openFuyao社区.
+     */
+    public static final String OPEN_FUYAO = "openfuyao";
+
+    /**
      * MIND_SPORE: mindspore.
      */
     public static final String MIND_SPORE = "mindspore";
