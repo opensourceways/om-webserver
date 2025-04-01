@@ -11,6 +11,8 @@
 
 package com.om.service;
 
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import cn.authing.core.auth.AuthenticationClient;
 import cn.authing.core.types.Application;
 import cn.authing.core.types.User;
@@ -52,7 +54,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 import org.springframework.web.util.HtmlUtils;
 
+import javax.crypto.NoSuchPaddingException;
 import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -492,6 +498,7 @@ public class OneIdManageService {
      * @param token           令牌
      * @return ResponseEntity 响应实体
      */
+    @Transactional(rollbackFor = Exception.class)
     public ResponseEntity updateAccountInfo(HttpServletRequest servletRequest,
                                             HttpServletResponse servletResponse, String token) {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
@@ -500,11 +507,44 @@ public class OneIdManageService {
         if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
-        //账号格式校验
-        if (!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX)) {
+//        //账号格式校验
+//        if (!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX)) {
+//            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+//        }
+
+        // 针对非 email 类型的账号，account 必须不为空
+        if (!"email".equalsIgnoreCase(accountType) && StringUtils.isBlank(account)) {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
+
+        // 当 account 不为空时，进行格式校验，必须符合手机号或邮箱正则表达式
+        if (StringUtils.isNotBlank(account)) {
+            if (!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX)) {
+                return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
+            }
+        }
+
+        // 执行更新账户信息操作即使 account 为空也允许更新
         String res = authingManagerDao.updateAccountInfo(token, account, accountType);
+
+        // 对于 email 类型且 account 非空，不论是首次绑定还是后续修改，都尝试发送确认邮件
+        // 如果发送失败，则回滚事务使更新无效
+        if ("email".equalsIgnoreCase(accountType) && StringUtils.isNotBlank(account)) {
+            try {
+                JsonNode tokenInfo = getTokenInfo(token);
+                String appId = tokenInfo.get("app_id").asText();
+                String msg = authingUserDao.sendEmailCodeV3(appId, account, "confirm");
+                if (!"success".equals(msg)) {
+                    TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                    return authingService.result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00012, null, null);
+                }
+            } catch (Exception e) {
+                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+                return authingService.result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00012, null, null);
+            }
+        }
+
+
         return authingService.message(res);
     }
 
