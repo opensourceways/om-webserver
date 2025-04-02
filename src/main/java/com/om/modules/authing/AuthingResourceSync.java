@@ -38,7 +38,6 @@ import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -173,33 +172,8 @@ public class AuthingResourceSync {
                             gitCodePermissionInfo.getResource());
                     continue;
                 }
-                List<String> createUserIds = gitcodeUserIds.stream().collect(Collectors.toList());
-                        // 去掉已经获取基本信息的用户
-                allUserInfos.forEach(userInfo -> {
-                    if (createUserIds.contains(userInfo.getUserIdInIdp())) {
-                        createUserIds.remove(userInfo.getUserIdInIdp());
-                    }
-                });
-                List<UserInfo> userInfoCreated = new ArrayList<>();
-                if (!CollectionUtils.isEmpty(createUserIds)) {
-                    for (String gitcodeUserId : createUserIds) {
-                        JSONObject userObj = createUserObj(gitcodeUserMap.get(gitcodeUserId), gitcodeUserId);
-                        UserInfo user = authingManagerDao.createUser(userObj);
-                        if (user == null) {
-                            LogUtil.createLogs(gitcodeUserMap.get(gitcodeUserId), "auto register", "register",
-                                    "auto create user", "localhost", "failed");
-                        } else {
-                            userInfoCreated.add(user);
-                            LogUtil.createLogs(user.getUsername(), "auto register", "register",
-                                    "auto create user", "localhost", "success");
-                        }
-                    }
-                    LOGGER.info("sync gitcode needs to create {} users, and has created {} users",
-                            createUserIds.size(), userInfoCreated.size());
-                }
                 List<String> authUsers = new ArrayList<>();
                 authUsers.addAll(allUserInfos.stream().map(UserInfo::getUserId).collect(Collectors.toList()));
-                authUsers.addAll(userInfoCreated.stream().map(UserInfo::getUserId).collect(Collectors.toList()));
                 BatchAuthInfo batchAuthInfo = new BatchAuthInfo();
                 batchAuthInfo.setNamespaceCode(gitcodeRepoNamesapce);
                 batchAuthInfo.setIsDeleteOthers(true);
@@ -330,28 +304,6 @@ public class AuthingResourceSync {
             LOGGER.error("get gitcode remote userinfo failed {}", e.getMessage());
         }
         return data;
-    }
-
-    private JSONObject createUserObj(String identName, String identId) throws NoSuchAlgorithmException {
-        JSONObject userObj = new JSONObject();
-        StringBuilder userName = new StringBuilder(identName);
-        userName.append("_").append(codeUtil.randomStrBuilder(5));
-        userObj.put("username", userName);
-        JSONObject identitiesObj = new JSONObject();
-        List<JSONObject> identities = new ArrayList<>();
-        JSONObject userInfoInIdpObj = new JSONObject();
-        userInfoInIdpObj.put("name", identName);
-        identitiesObj.put("extIdpId", enterExtIdpIdGitCode);
-        identitiesObj.put("provider", "oauth2");
-        identitiesObj.put("type", "generic");
-        identitiesObj.put("userIdInIdp", identId);
-        identitiesObj.put("userInfoInIdp", userInfoInIdpObj);
-        List<String> originConnIds = new ArrayList<>();
-        originConnIds.add(enterConnIdGitCode);
-        identitiesObj.put("originConnIds", originConnIds);
-        identities.add(identitiesObj);
-        userObj.put("identities", identities);
-        return userObj;
     }
 
     /**
