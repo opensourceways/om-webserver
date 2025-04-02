@@ -497,11 +497,23 @@ public class OneIdManageService {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
         String account = (String) authingService.getBodyPara(body, "account");
         String accountType = (String) authingService.getBodyPara(body, "account_type");
-        if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
+
+        if (StringUtils.isBlank(accountType)) {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
-        //账号格式校验
-        if (!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX)) {
+        if (!"email".equalsIgnoreCase(accountType) && StringUtils.isBlank(account)) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00020, null, null);
+        }
+
+        if ("phone".equalsIgnoreCase(accountType)) {
+            if (!account.matches(Constant.PHONEREGEX)) {
+                return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00043, null, null);
+            }
+        } else if ("email".equalsIgnoreCase(accountType)) {
+            if (StringUtils.isNotBlank(account) && !account.matches(Constant.EMAILREGEX)) {
+                return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00040, null, null);
+            }
+        } else {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
         String res = authingManagerDao.updateAccountInfo(token, account, accountType);
