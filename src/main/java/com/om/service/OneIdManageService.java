@@ -11,6 +11,7 @@
 
 package com.om.service;
 
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import cn.authing.core.auth.AuthenticationClient;
@@ -504,46 +505,54 @@ public class OneIdManageService {
         Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
         String account = (String) authingService.getBodyPara(body, "account");
         String accountType = (String) authingService.getBodyPara(body, "account_type");
-        if (StringUtils.isBlank(account) || StringUtils.isBlank(accountType)) {
+
+        // 初始参数校验：
+        // account_type 必须不为空；对于非 email 类型，account 也必须不为空
+        if (StringUtils.isBlank(accountType)) {
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
-//        //账号格式校验
-//        if (!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX)) {
-//            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
-//        }
-
-        // 针对非 email 类型的账号，account 必须不为空
         if (!"email".equalsIgnoreCase(accountType) && StringUtils.isBlank(account)) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00020, null, null);
+        }
+
+        // 格式校验根据 account_type 分开处理
+        if ("phone".equalsIgnoreCase(accountType)) {
+            // 手机号必须符合 Constant.PHONEREGEX
+            if (!account.matches(Constant.PHONEREGEX)) {
+                return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00043, null, null);
+            }
+        } else if ("email".equalsIgnoreCase(accountType)) {
+            // 对于邮箱，允许 account 为空（用户后续自行配置），
+            // 如果 account 非空，则必须符合 Constant.EMAILREGEX
+            if (StringUtils.isNotBlank(account) && !account.matches(Constant.EMAILREGEX)) {
+                return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00040, null, null);
+            }
+        } else {
+            // 如果 account_type 既不是 phone 也不是 email，则返回请求异常
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
 
-        // 当 account 不为空时，进行格式校验，必须符合手机号或邮箱正则表达式
-        if (StringUtils.isNotBlank(account)) {
-            if (!account.matches(Constant.PHONEREGEX) && !account.matches(Constant.EMAILREGEX)) {
-                return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
-            }
-        }
-
-        // 执行更新账户信息操作即使 account 为空也允许更新
+        // 执行更新账户信息操作（对于 email 类型，允许 account 为空）
         String res = authingManagerDao.updateAccountInfo(token, account, accountType);
 
-        // 对于 email 类型且 account 非空，不论是首次绑定还是后续修改，都尝试发送确认邮件
-        // 如果发送失败，则回滚事务使更新无效
+        // 如果是 email 类型且 account 非空，则尝试发送确认邮件
         if ("email".equalsIgnoreCase(accountType) && StringUtils.isNotBlank(account)) {
             try {
                 JsonNode tokenInfo = getTokenInfo(token);
                 String appId = tokenInfo.get("app_id").asText();
                 String msg = authingUserDao.sendEmailCodeV3(appId, account, "confirm");
                 if (!"success".equals(msg)) {
+                    // 如果邮件发送失败，回滚事务并返回错误，使用 E00048（服务错误）
                     TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-                    return authingService.result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00012, null, null);
+                    return authingService.result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
                 }
             } catch (Exception e) {
+                // 出现异常，同样回滚事务，记录日志并返回错误
+                LOGGER.error("发送确认邮件异常: ", e);
                 TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-                return authingService.result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00012, null, null);
+                return authingService.result(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00048, null, null);
             }
         }
-
 
         return authingService.message(res);
     }
