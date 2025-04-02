@@ -27,7 +27,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ModeratorService {
+public class ModeratorService implements ModeratorServiceInterface {
     /**
      * 日志记录器.
      */
@@ -146,6 +146,65 @@ public class ModeratorService {
     /**
      * 检查文本敏感信息.
      *
+     * @param text      文本内容
+     * @param eventType 检查文本类型
+     * @return 是否检测通过
+     */
+    public boolean checkText(String text, String eventType) {
+        if (moderatorUrl.contains("v2")) {
+            return checkText(text);
+        }
+        try {
+            if (StringUtils.isBlank(text)) {
+                LOGGER.info("text is blank, eventType is {}", eventType);
+                return true;
+            }
+            String url = String.format(moderatorUrl, mProjectId);
+            String sBodyTemplate = String.join("",
+                    """
+                            {
+                                "event_type": "%s",
+                                "data": {
+                                    "text": "%s",
+                                    "language": "%s"
+                                }
+                            }
+                            """
+            );
+            String sBody = String.format(sBodyTemplate, eventType, text, Constant.MODERATOR_V3_LANGUAGE_ZH);
+            String token = (String) redisDao.get(Constant.REDIS_KEY_MODERATOR_TOKEN);
+            if (StringUtils.isBlank(token)) {
+                token = getToken();
+                redisDao.set(Constant.REDIS_KEY_MODERATOR_TOKEN, token, moderatorTokenExpire);
+            }
+            HttpResponse<JsonNode> response = Unirest.post(url)
+                    .header("X-Auth-Token", token)
+                    .header("Content-Type", "application/json;charset=utf8")
+                    .body(sBody)
+                    .asJson();
+            if (response.getStatus() != 200) {
+                LOGGER.error("moderator service error {}", response.getBody().getObject().toString());
+                redisDao.remove(Constant.REDIS_KEY_MODERATOR_TOKEN);
+                return false;
+            }
+            JSONObject jsonObject = response.getBody().getObject().getJSONObject("result");
+            String suggestion = jsonObject.getString("suggestion");
+            if ("block".equals(suggestion) || "review".equals(suggestion)) {
+                LOGGER.error("text is invalid, suggestion is {}, text is {}, eventType is {}",
+                        jsonObject.getString("suggestion"), text, eventType);
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("moderator service error {}", e.getMessage());
+            redisDao.remove(Constant.REDIS_KEY_MODERATOR_TOKEN);
+            return false;
+        }
+    }
+
+    /**
+     * 检查文本敏感信息. 使用moderator的V2版本.
+     *
      * @param text 文本内容
      * @return 是否检测通过
      */
@@ -194,6 +253,77 @@ public class ModeratorService {
 
     /**
      * 检测图片敏感信息.
+     *
+     * @param imageUrl     图片url
+     * @param needDownload 图片是否需要下载
+     * @param eventType    检查图片类型
+     * @return 检测结果
+     */
+    public boolean checkImage(String imageUrl, boolean needDownload, String eventType) {
+        if (moderatorImageUrl.contains("v2")) {
+            return checkImage(imageUrl, needDownload);
+        }
+        try {
+            String url = String.format(moderatorImageUrl, mProjectId);
+            String sBodyTemplate = String.join("",
+                    """
+                            {
+                                "event_type": "%s",
+                                "categories": ["terrorism", "porn", "image_text"],
+                                "%s": "%s"
+                            }
+                            """
+            );
+            String mode;
+            String sBody;
+            if (needDownload) {
+                mode = "image";
+                String base64Image = CommonUtil.getBase64FromURL(imageUrl, PIC_MAX_SIZE);
+                if (base64Image.contains("Error")) {
+                    LOGGER.error("base64 pic failed");
+                    return false;
+                }
+                sBody = String.format(sBodyTemplate, eventType, mode, base64Image);
+            } else {
+                mode = "url";
+                sBody = String.format(sBodyTemplate, eventType, mode, imageUrl);
+            }
+            String token = (String) redisDao.get(Constant.REDIS_KEY_MODERATOR_TOKEN);
+            if (StringUtils.isBlank(token)) {
+                token = getToken();
+                redisDao.set(Constant.REDIS_KEY_MODERATOR_TOKEN, token, moderatorTokenExpire);
+            }
+
+            HttpResponse<JsonNode> response = Unirest.post(url)
+                    .header("X-Auth-Token", token)
+                    .header("Content-Type", "application/json;charset=utf8")
+                    .body(sBody)
+                    .asJson();
+            if (response.getStatus() != 200) {
+                LOGGER.error("moderator service error {}", response.getBody().getObject().toString());
+                redisDao.remove(Constant.REDIS_KEY_MODERATOR_TOKEN);
+                return false;
+            }
+            JSONObject jsonObject = response.getBody().getObject().getJSONObject("result");
+            if (jsonObject.has("error_code")) {
+                LOGGER.error("moderator service error {}", jsonObject.toString());
+                return false;
+            }
+            String suggestion = jsonObject.getString("suggestion");
+            if ("block".equals(suggestion) || "review".equals(suggestion)) {
+                LOGGER.error("text is invalid");
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("moderator service error {}", e.getMessage());
+            redisDao.remove(Constant.REDIS_KEY_MODERATOR_TOKEN);
+            return false;
+        }
+    }
+
+    /**
+     * 检测图片敏感信息. 使用moderator的V2版本.
      *
      * @param imageUrl 图片url
      * @param needDownload 图片是否需要下载
