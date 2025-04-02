@@ -298,34 +298,44 @@
     </build>
 
     <repositories>
+        <!-- 腾讯云香港镜像（主仓库） -->
         <repository>
-			<id>aliyunmaven</id>
-			<name>aliyunmaven</name>
-			<url>https://maven.aliyun.com/repository/public</url>
-			<layout>default</layout>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-			<snapshots>
-				<enabled>true</enabled>
-			</snapshots>
-		</repository>
+            <id>tencent-hk</id>
+            <name>Tencent Cloud Hong Kong Mirror</name>
+            <url>https://mirrors.cloud.tencent.com/nexus/repository/maven-public/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+
+        <!-- 华为云海外镜像（备用） -->
         <repository>
-            <id>central</id>
-            <url>https://maven.aliyun.com/repository/central/</url>
+            <id>huawei-global</id>
+            <name>Huawei Cloud Global Mirror</name>
+            <url>https://repo.huaweicloud.com/repository/maven/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
         </repository>
     </repositories>
 
     <pluginRepositories>
-		<pluginRepository>
-			<id>aliyun-plugin</id>
-			<url>https://maven.aliyun.com/repository/public</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</pluginRepository>
-	</pluginRepositories>
+        <!-- 腾讯云插件仓库 -->
+        <pluginRepository>
+            <id>tencent-plugin</id>
+            <url>https://mirrors.cloud.tencent.com/nexus/repository/maven-public/</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </pluginRepository>
+    </pluginRepositories>
 </project>
