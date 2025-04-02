@@ -10,15 +10,17 @@ WORKDIR /
 RUN cd / \
     && yum install -y wget
 
-RUN wget https://mirrors.tuna.tsinghua.edu.cn/Adoptium/18/jdk/x64/linux/OpenJDK18U-jdk_x64_linux_hotspot_18.0.2.1_1.tar.gz \
+
+# 使用香港或亚洲地区的镜像源下载 JDK 和 Maven
+RUN wget https://github.com/adoptium/temurin18-binaries/releases/download/jdk-18.0.2.1%2B1/OpenJDK18U-jdk_x64_linux_hotspot_18.0.2.1_1.tar.gz \
     && tar -zxvf OpenJDK18U-jdk_x64_linux_hotspot_18.0.2.1_1.tar.gz \
-    && wget https://repo.huaweicloud.com/apache/maven/maven-3/3.8.1/binaries/apache-maven-3.8.1-bin.tar.gz \
-    && tar -zxvf apache-maven-3.8.1-bin.tar.gz
+    && wget https://mirrors.cloud.tencent.com/apache/maven/maven-3/3.8.8/binaries/apache-maven-3.8.8-bin.tar.gz \
+    && tar -zxvf apache-maven-3.8.8-bin.tar.gz
 
 ENV JAVA_HOME=/jdk-18.0.2.1+1
 ENV PATH=${JAVA_HOME}/bin:$PATH
 
-ENV MAVEN_HOME=/apache-maven-3.8.1
+ENV MAVEN_HOME=/apache-maven-3.8.8
 ENV PATH=${MAVEN_HOME}/bin:$PATH
 
 COPY . /om-webserver
