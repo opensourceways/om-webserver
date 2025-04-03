@@ -35,7 +35,6 @@ public final class HttpClientUtils implements Serializable {
     private HttpClientUtils() {
         throw new AssertionError("Utility class. Not intended for instantiation.");
     }
-
     /**
      * 日志记录器实例，用于记录 HttpClientUtils 类的日志信息.
      */
@@ -189,5 +188,21 @@ public final class HttpClientUtils implements Serializable {
         } catch (Exception e) {
             return new ArrayList<>();
         }
+    }
+
+    /**
+     * 设置安全响应头进行封装.
+     *
+     * @param response HTTP响应对象
+     */
+    public static void setSecurityHeaders(HttpServletResponse response) {
+        response.setHeader("X-XSS-Protection", "1; mode=block");
+        response.setHeader("X-Frame-Options", "DENY");
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader("Strict-Transport-Security", "max-age=34536000; includeSubDomains");
+        response.setHeader("Content-Security-Policy", "script-src 'self'; object-src 'none'; frame-src 'none'");
+        response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response.setHeader("Pragma", "no-cache");
+        response.setHeader("Expires", "0");
     }
 }
