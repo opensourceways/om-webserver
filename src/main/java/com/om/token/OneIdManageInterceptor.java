@@ -7,16 +7,13 @@
  PURPOSE.
  See the Mulan PSL v2 for more details.
  Create: 2023
-*/
-
+ */
 package com.om.token;
 
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.JWTVerifier;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.om.dao.RedisDao;
+import java.io.IOException;
+import java.lang.reflect.Method;
+
+import com.om.utils.HttpClientUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -24,11 +21,15 @@ import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.JWTVerifier;
+import com.auth0.jwt.algorithms.Algorithm;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.om.dao.RedisDao;
+
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
-import java.io.IOException;
-import java.lang.reflect.Method;
 
 public class OneIdManageInterceptor implements HandlerInterceptor {
     /**
@@ -52,16 +53,17 @@ public class OneIdManageInterceptor implements HandlerInterceptor {
     /**
      * 在请求处理之前调用，用于拦截请求.
      *
-     * @param request  HTTP请求对象
+     * @param request HTTP请求对象
      * @param response HTTP响应对象
-     * @param handler  处理器对象
+     * @param handler 处理器对象
      * @return 是否继续处理请求的布尔值
      * @throws Exception 异常
      */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response,
                              Object handler) throws Exception {
-        // 如果不是映射到方法直接通过
+        HttpClientUtils.setSecurityHeaders(response);
+
         if (!(handler instanceof HandlerMethod)) {
             return true;
         }
@@ -109,7 +111,6 @@ public class OneIdManageInterceptor implements HandlerInterceptor {
     @Override
     public void postHandle(HttpServletRequest request, HttpServletResponse response,
                            Object handler, ModelAndView modelAndView) throws Exception {
-
     }
 
     @Override
@@ -119,6 +120,7 @@ public class OneIdManageInterceptor implements HandlerInterceptor {
     }
 
     private void tokenError(HttpServletResponse response, String msg) throws IOException {
+        HttpClientUtils.setSecurityHeaders(response);
         response.sendError(HttpServletResponse.SC_UNAUTHORIZED, msg);
     }
 }

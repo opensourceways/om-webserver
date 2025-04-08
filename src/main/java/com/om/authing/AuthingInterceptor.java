@@ -7,7 +7,7 @@
  PURPOSE.
  See the Mulan PSL v2 for more details.
  Create: 2022
-*/
+ */
 
 package com.om.authing;
 
@@ -55,8 +55,10 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.security.interfaces.RSAPrivateKey;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -70,11 +72,6 @@ import java.util.stream.Collectors;
  */
 public class AuthingInterceptor implements HandlerInterceptor {
     /**
-     * 鉴权自身的接口.
-     */
-    private static final String LOCAL_VERIFY_TOKEN_URI = "/oneid/verify/token";
-
-    /**
      * 登出接口.
      */
     private static final String LOGOUT_URI = "/oneid/logout";
@@ -85,9 +82,16 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private static final String BASEINFO_URI = "/oneid/update/baseInfo";
 
     /**
-     * 权限接口接口.
+     * 用户名为空可以使用的接口.
      */
-    private static final String PERMISSION_URI = "/oneid/user/permission";
+    public static final List<String> URL_USERNAME_NULL_LIST = Collections.unmodifiableList(new ArrayList<>() {
+        {
+            add("/oneid/user/permission");
+            add("/oneid/update/baseInfo");
+            add("/oneid/sendcode");
+            add("/oneid/bind/account");
+        }
+    });
 
     /**
      * 用于与 Redis 数据库进行交互的 DAO.
@@ -203,7 +207,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
         AuthingInterceptor.domain2secure = domain2secure;
     }
 
-
     /**
      * 初始化方法，在对象创建后调用，用于初始化域名与安全性标志的映射关系.
      */
@@ -215,15 +218,16 @@ public class AuthingInterceptor implements HandlerInterceptor {
     /**
      * 预处理方法，在请求处理之前调用，用于进行预处理操作.
      *
-     * @param httpServletRequest  HTTP 请求对象
+     * @param httpServletRequest HTTP 请求对象
      * @param httpServletResponse HTTP 响应对象
-     * @param object              处理器
+     * @param object 处理器
      * @return 返回布尔值表示是否继续处理请求
      * @throws Exception 可能抛出的异常
      */
     @Override
     public boolean preHandle(HttpServletRequest httpServletRequest,
                              HttpServletResponse httpServletResponse, Object object) throws Exception {
+        HttpClientUtils.setSecurityHeaders(httpServletResponse);
         // 如果不是映射到方法直接通过
         if (!(object instanceof HandlerMethod)) {
             return true;
@@ -317,7 +321,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         List<String> audience = JWT.decode(headerJwtToken).getAudience();
         String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
         // 必须设置用户名
-        if (StringUtils.isBlank(username) && !BASEINFO_URI.equals(url) && !PERMISSION_URI.equals(url)) {
+        if (StringUtils.isBlank(username) && !URL_USERNAME_NULL_LIST.contains(url)) {
             User user = authingManagerDao.getUserByUserId(userId);
             if (user != null && com.anji.captcha.util.StringUtils.isNotBlank(user.getUsername())) {
                 username = user.getUsername();
@@ -452,12 +456,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
      * 校验token.
      *
      * @param headerToken header中带的token
-     * @param token       cookie中解密的token
+     * @param token cookie中解密的token
      * @param verifyToken 用于校验的token
-     * @param expiresAt   token过期时间
-     * @param permission  用户权限信息
-     * @param userIp  用户IP
-     * @param userId  用户ID
+     * @param expiresAt token过期时间
+     * @param permission 用户权限信息
+     * @param userIp 用户IP
+     * @param userId 用户ID
      * @return 校验结果
      */
     private String verifyToken(String headerToken, String token, String verifyToken,
@@ -597,8 +601,8 @@ public class AuthingInterceptor implements HandlerInterceptor {
         redisDao.set(Constant.ID_TOKEN_PREFIX + newVerifyToken, idToken, (long) tokenExpire);
 
         // 旧token失效,保持一个短时间的有效性
-        long validityPeriod =
-                Long.parseLong(env.getProperty("old.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
+        long validityPeriod
+                = Long.parseLong(env.getProperty("old.token.expire.seconds", Constant.DEFAULT_EXPIRE_SECOND));
         if (redisDao.expire(oldTokenKey) > validityPeriod) {
             redisDao.set(oldTokenKey, idToken, validityPeriod);
         }
@@ -609,6 +613,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private void tokenError(HttpServletRequest httpServletRequest,
                             HttpServletResponse httpServletResponse,
                             String message) throws IOException {
+
+        HttpClientUtils.setSecurityHeaders(httpServletResponse);
+
         String refrer = httpServletRequest.getHeader("referer");
         List<String> childDomains = HttpClientUtils.extractSubdomains(refrer);
         Map<String, Boolean> cleanCookie = childDomains.stream().collect(Collectors.toMap(
@@ -626,7 +633,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
                     null, false, 0, "/", clearMap);
         }
         clientSessionManager.deleteCookieInConfig(httpServletResponse);
-
         httpServletResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, message);
     }
 }

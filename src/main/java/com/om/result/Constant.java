@@ -44,6 +44,11 @@ public final class Constant {
     public static final String OPEN_UBMC = "openubmc";
 
     /**
+     * openFuyao社区.
+     */
+    public static final String OPEN_FUYAO = "openfuyao";
+
+    /**
      * MIND_SPORE: mindspore.
      */
     public static final String MIND_SPORE = "mindspore";
@@ -216,6 +221,21 @@ public final class Constant {
      * 敏感信息检查token缓存.
      */
     public static final String REDIS_KEY_MODERATOR_TOKEN = "moderatorAuthToken";
+
+    /**
+     * 敏感信息检查中文语言类型.
+     */
+    public static final String MODERATOR_V3_LANGUAGE_ZH = "zh";
+
+    /**
+     * 敏感文本信息检查昵称事件类型.
+     */
+    public static final String MODERATOR_V3_EVENT_TYPE_NICKNAME = "nickname";
+
+    /**
+     * 敏感信息图片检查头像事件类型.
+     */
+    public static final String MODERATOR_V3_EVENT_TYPE_HEAD_IMAGE = "head_image";
 
     /**
      * Token过期.

@@ -256,7 +256,8 @@ public class AuthingUserDao {
     /**
      * 允许的社区列表.
      */
-    private List<String> allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry", "openubmc");
+    private List<String> allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry", "openubmc",
+            "openfuyao");
 
     /**
      * Authing API v2 主机地址.
@@ -391,7 +392,7 @@ public class AuthingUserDao {
         photoSuffixes = Arrays.asList(photoSuffix.split(";"));
         initUnirestConf();
         allowedCommunity = Arrays.asList(Constant.OPEN_EULER, Constant.MIND_SPORE, Constant.MODEL_FOUNDRY,
-                Constant.OPEN_UBMC);
+                Constant.OPEN_UBMC, Constant.OPEN_FUYAO);
     }
 
     private void initUnirestConf() {
@@ -1450,14 +1451,16 @@ public class AuthingUserDao {
                 String inputValue = entry.getValue() == null ? "" : entry.getValue().toString();
                 switch (item.toLowerCase()) {
                     case "nickname":
-                        if (!checkNickName(inputValue)) {
-                            return MessageCodeConfig.E00072.getMsgEn();
+                        String checkResult = checkNickName(inputValue);
+                        if (!Constant.SUCCESS.equals(checkResult)) {
+                            return checkResult;
                         }
                         updateUserInput.withNickname(inputValue);
                         break;
                     case "company":
-                        if (!checkCompanyName(inputValue)) {
-                            return MessageCodeConfig.E00073.getMsgEn();
+                        String checkResultC = checkCompanyName(inputValue);
+                        if (!Constant.SUCCESS.equals(checkResultC)) {
+                            return checkResultC;
                         }
                         updateUserInput.withCompany(inputValue);
                         break;
@@ -1523,26 +1526,34 @@ public class AuthingUserDao {
         }
     }
 
-    private boolean checkNickName(String nickName) {
+    private String checkNickName(String nickName) {
+        // 全为空格
+        if (nickName != null && StringUtils.isBlank(nickName) && nickName.length() > 0) {
+            return MessageCodeConfig.EC0001.getMsgEn();
+        }
         if (StringUtils.isNotBlank(nickName) && (nickName.length() < 3 || nickName.length() > 20
                 || !nickName.matches(NICKNAME_REG))) {
-            return false;
+            return MessageCodeConfig.EC0001.getMsgEn();
         }
-        if (!moderatorService.checkText(nickName)) {
-            return false;
+        if (!moderatorService.checkText(nickName, Constant.MODERATOR_V3_EVENT_TYPE_NICKNAME)) {
+            return MessageCodeConfig.E00072.getMsgEn();
         }
-        return true;
+        return Constant.SUCCESS;
     }
 
-    private boolean checkCompanyName(String companyName) {
+    private String checkCompanyName(String companyName) {
+        // 全为空格
+        if (companyName != null && StringUtils.isBlank(companyName) && companyName.length() > 0) {
+            return MessageCodeConfig.EC0001.getMsgEn();
+        }
         if (StringUtils.isNotBlank(companyName) && (companyName.length() < 2 || companyName.length() > 100
                 || !companyName.matches(COMPANYNAME_REG))) {
-            return false;
+            return MessageCodeConfig.EC0001.getMsgEn();
         }
-        if (!moderatorService.checkText(companyName)) {
-            return false;
+        if (!moderatorService.checkText(companyName, Constant.MODERATOR_V3_EVENT_TYPE_NICKNAME)) {
+            return MessageCodeConfig.E00072.getMsgEn();
         }
-        return true;
+        return Constant.SUCCESS;
     }
 
     private void saveHistory(User user, String newPrivacy) {
@@ -1613,7 +1624,7 @@ public class AuthingUserDao {
             //上传文件到OBS
             PutObjectResult putObjectResult = obsClient.putObject(datastatImgBucket, objectName, inputStream);
             String objectUrl = putObjectResult.getObjectUrl();
-            if (!moderatorService.checkImage(objectUrl, false)) {
+            if (!moderatorService.checkImage(objectUrl, false, Constant.MODERATOR_V3_EVENT_TYPE_HEAD_IMAGE)) {
                 deleteObsObjectByUrl(objectUrl);
                 throw new ServerErrorException("The image content is illegal");
             }
@@ -1700,7 +1711,7 @@ public class AuthingUserDao {
                 msg = "用户名已存在";
                 return msg;
             }
-            if (!moderatorService.checkText(userName)) {
+            if (!moderatorService.checkText(userName, Constant.MODERATOR_V3_EVENT_TYPE_NICKNAME)) {
                 msg = "Username is illegal";
                 LOGGER.error("username is illegal: {}", userName);
                 return msg;
