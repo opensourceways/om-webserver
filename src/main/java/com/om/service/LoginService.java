@@ -212,8 +212,7 @@ public class LoginService {
             LOGGER.error("{} login failed {}", account, loginRes);
             LogUtil.createLogs(account, "user login", "login",
                     "The user login", ip, "failed");
-            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null,
-                    limitUtil.loginFail(failCounter));
+            return loginFailedMsg(failCounter, code);
         }
         // 登录成功解除登录失败次数限制
         redisDao.remove(account + Constant.LOGIN_COUNT);
@@ -264,6 +263,15 @@ public class LoginService {
         LogUtil.createLogs(userId, "user login", "login",
                 "The user login", ip, "success");
         return authingService.result(HttpStatus.OK, "success", userData);
+    }
+
+    private ResponseEntity loginFailedMsg(OperateFailCounter failCounter, String code) {
+        if (StringUtils.isNotBlank(code)) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0001, null,
+                    limitUtil.loginFail(failCounter));
+        }
+        return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null,
+                limitUtil.loginFail(failCounter));
     }
 
     /**
