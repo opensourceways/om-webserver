@@ -1551,7 +1551,7 @@ public class AuthingUserDao {
             return MessageCodeConfig.EC0001.getMsgEn();
         }
         if (!moderatorService.checkText(companyName, Constant.MODERATOR_V3_EVENT_TYPE_NICKNAME)) {
-            return MessageCodeConfig.E00072.getMsgEn();
+            return MessageCodeConfig.E00073.getMsgEn();
         }
         return Constant.SUCCESS;
     }
