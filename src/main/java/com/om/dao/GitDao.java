@@ -13,6 +13,7 @@ package com.om.dao;
 
 import kong.unirest.json.JSONArray;
 import kong.unirest.json.JSONObject;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -140,5 +141,29 @@ public class GitDao {
             return null;
         }
         return Integer.toString(targetUser.getInt("id"));
+    }
+
+    /**
+     * 下载隐私文档内容.
+     *
+     * @param privacyDownloadUrl 地址
+     * @return 文档内容
+     */
+    public String getPrivacyContent(String privacyDownloadUrl) {
+        if (StringUtils.isBlank(privacyDownloadUrl)) {
+            return null;
+        }
+        try {
+            HttpResponse<String> response = Unirest.get(privacyDownloadUrl)
+                    .asString();
+            if (response.getStatus() != 200) {
+                LOGGER.error("download privacy file failed {}", response.getBody());
+                return null;
+            }
+            return response.getBody();
+        } catch (Exception e) {
+            LOGGER.error("download privacy file failed {}", e.getMessage());
+            return null;
+        }
     }
 }

@@ -19,6 +19,7 @@ import com.auth0.jwt.interfaces.Claim;
 import com.om.dao.AuthingManagerDao;
 import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
+import com.om.modules.privacy.PrivacyContentSync;
 import com.om.result.Constant;
 import com.om.utils.CodeUtil;
 import com.om.utils.CommonUtil;
@@ -93,10 +94,10 @@ public class JwtTokenCreateService {
     private String rsaAuthingPublicKey;
 
     /**
-     * OneID隐私版本.
+     * 隐私内容服务.
      */
-    @Value("${oneid.privacy.version}")
-    private String oneidPrivacyVersion;
+    @Autowired
+    private PrivacyContentSync privacyContentSync;
 
     /**
      * token的盐值.
@@ -198,7 +199,8 @@ public class JwtTokenCreateService {
         // 生成新的token和headToken
         List<String> audience = JWT.decode(headerJwtToken).getAudience();
         String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
-        return authingUserToken(appId, userId, username, permission, inputPermission, idToken, oneidPrivacyVersion);
+        return authingUserToken(appId, userId, username, permission, inputPermission, idToken,
+                privacyContentSync.getPrivacyVersion());
     }
 
     /**

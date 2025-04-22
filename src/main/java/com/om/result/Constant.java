@@ -208,6 +208,21 @@ public final class Constant {
     public static final String REDIS_PREFIX_LOGIN_USER = "loginIdToken_";
 
     /**
+     * 隐私政策版本.
+     */
+    public static final String REDIS_PRIVACY_VERSION = "privacyPolicyVersion";
+
+    /**
+     * 隐私版本内容（中文）.
+     */
+    public static final String REDIS_PRIVACY_CONTENT_ZH = "privacyPolicyContentZh";
+
+    /**
+     * 隐私版本内容（英文）.
+     */
+    public static final String REDIS_PRIVACY_CONTENT_EN = "privacyPolicyContentEn";
+
+    /**
      * 记录重置密码token的用户id.
      */
     public static final String REDIS_PREFIX_RESET_PASSWD = "resetPassWdToken_";
@@ -241,6 +256,16 @@ public final class Constant {
      * Token过期.
      */
     public static final String TOKEN_EXPIRES = "token expires";
+
+    /**
+     * 语言.
+     */
+    public static final String LANGUAGE_ZH = "zh";
+
+    /**
+     * 语言.
+     */
+    public static final String LANGUAGE_EN = "en";
 
     /**
      * Token YG值为0.

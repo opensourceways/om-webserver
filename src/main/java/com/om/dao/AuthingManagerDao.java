@@ -34,6 +34,7 @@ import cn.authing.core.types.User;
 import com.om.controller.bean.request.NamespaceInfoPage;
 import com.om.dao.bean.AuthorizeInfo;
 import com.om.dao.bean.UserInfo;
+import com.om.modules.privacy.PrivacyContentSync;
 import com.om.utils.CommonUtil;
 import jakarta.annotation.PostConstruct;
 
@@ -165,16 +166,19 @@ public class AuthingManagerDao {
      */
     @Value("${rsa.authing.privateKey}")
     private String rsaAuthingPrivateKey;
+
     /**
-     * OneID 隐私版本号.
+     * 隐私内容服务.
      */
-    @Value("${oneid.privacy.version}")
-    private String oneidPrivacyVersion;
+    @Autowired
+    private PrivacyContentSync privacyContentSync;
+
     /**
      * 应用程序版本号.
      */
     @Value("${app.version:1.0}")
     private String appVersion;
+
     /**
      * 社区名称.
      */
@@ -699,7 +703,7 @@ public class AuthingManagerDao {
             }
             saveHistory(user, null);
             LOGGER.info(String.format("User %s cancel privacy consent version %s for app version %s",
-                    user.getId(), oneidPrivacyVersion, appVersion));
+                    user.getId(), privacyContentSync.getPrivacyVersion(), appVersion));
             return true;
         } catch (Exception e) {
             LOGGER.error("revoke privacy failed {}", e.getMessage());

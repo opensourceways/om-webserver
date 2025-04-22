@@ -20,6 +20,7 @@ import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.om.config.UnirestCustomTrustManager;
 import com.om.modules.authing.AuthingAppSync;
+import com.om.modules.privacy.PrivacyContentSync;
 import com.om.service.ModeratorService;
 import com.om.service.PrivacyHistoryService;
 import com.om.utils.LogUtil;
@@ -272,10 +273,10 @@ public class AuthingUserDao {
     private String authingApiHostV3;
 
     /**
-     * OneID 隐私版本号.
+     * 隐私内容服务.
      */
-    @Value("${oneid.privacy.version}")
-    private String oneidPrivacyVersion;
+    @Autowired
+    private PrivacyContentSync privacyContentSync;
 
     /**
      * 应用程序版本号.
@@ -498,6 +499,7 @@ public class AuthingUserDao {
      * @return 返回注册结果信息
      */
     public String registerByEmailCode(String appId, String email, String code, String username, String clientIp) {
+        String oneidPrivacyVersion = privacyContentSync.getPrivacyVersion();
         String body = String.format("{\"connection\": \"PASSCODE\","
                         + "\"passCodePayload\": {\"email\": \"%s\",\"passCode\": \"%s\"},"
                         + "\"options\": {\"clientIp\": \"%s\"},"
@@ -518,6 +520,7 @@ public class AuthingUserDao {
      * @return 返回注册结果信息
      */
     public String registerByPhoneCode(String appId, String phone, String code, String username, String clientIp) {
+        String oneidPrivacyVersion = privacyContentSync.getPrivacyVersion();
         String phoneCountryCode = getPhoneCountryCode(phone);
         phone = getPurePhone(phone);
 
@@ -543,6 +546,7 @@ public class AuthingUserDao {
      */
     public String registerByEmailPwd(String appId, String email, String password, String username, String code,
                                      String clientIp) {
+        String oneidPrivacyVersion = privacyContentSync.getPrivacyVersion();
         String body = String.format("{\"connection\": \"PASSWORD\","
                         + "\"passwordPayload\": {\"username\": \"%s\",\"password\": \"%s\"},"
                         + "\"profile\":{\"email\":\"%s\", \"givenName\":\"%s\"},"
@@ -566,6 +570,7 @@ public class AuthingUserDao {
      */
     public String registerByPhonePwd(String appId, String phone, String password, String username, String code,
                                      String clientIp) {
+        String oneidPrivacyVersion = privacyContentSync.getPrivacyVersion();
         String phoneCountryCode = getPhoneCountryCode(phone);
         phone = getPurePhone(phone);
 
@@ -1436,6 +1441,7 @@ public class AuthingUserDao {
             User user = (User) appUserInfo[1];
             userId = user.getId();
             String oldPrevious = getPrivacyVersionWithCommunity(user.getGivenName());
+            String oneidPrivacyVersion = privacyContentSync.getPrivacyVersion();
             // 防止未签署隐私协议就更改用户信息
             if (!oneidPrivacyVersion.equals(oldPrevious)) {
                 for (String key : map.keySet()) {

@@ -31,7 +31,7 @@ public class ScheduleTaskPool {
     @Bean("SR-Task-SchedulePool")
     public ThreadPoolTaskScheduler getScheduleTask() {
         ThreadPoolTaskScheduler executor = new ThreadPoolTaskScheduler();
-        executor.setPoolSize(2);
+        executor.setPoolSize(3);
         executor.setThreadNamePrefix("Task-");
         executor.setWaitForTasksToCompleteOnShutdown(false);
         executor.setAwaitTerminationSeconds(10);

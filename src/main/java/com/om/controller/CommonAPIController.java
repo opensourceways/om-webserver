@@ -13,9 +13,13 @@ package com.om.controller;
 
 import java.util.HashMap;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.om.modules.privacy.PrivacyContentSync;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,10 +34,10 @@ import com.alibaba.fastjson2.JSON;
 @RestController
 public class CommonAPIController {
     /**
-     * OneID隐私版本.
+     * 隐私内容服务.
      */
-    @Value("${oneid.privacy.version}")
-    private String oneidPrivacyVersion;
+    @Autowired
+    private PrivacyContentSync privacyContentSync;
 
     /**
      * 表示服务正常状态的常量.
@@ -58,8 +62,31 @@ public class CommonAPIController {
     @RequestMapping(value = "/privacy/version", method = RequestMethod.GET)
     public ResponseEntity getPrivacyVersion() {
         HashMap<String, Object> userData = new HashMap<>();
-        userData.put("oneidPrivacyAccepted", oneidPrivacyVersion);
+        userData.put("oneidPrivacyAccepted", privacyContentSync.getPrivacyVersion());
         return result(HttpStatus.OK, "success", userData);
+    }
+
+    /**
+     * 获取隐私内容.
+     *
+     * @param language 语言
+     * @return 内容
+     */
+    @GetMapping("/privacy/{language}/content")
+    public ResponseEntity<String> getPrivacyContent(@PathVariable String language) {
+        try {
+            String content = privacyContentSync.getPrivacyContent(language);
+            return buildResponse(content);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    private ResponseEntity<String> buildResponse(String content) {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_TYPE, "text/plain; charset=utf-8")
+                .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(content.getBytes().length))
+                .body(content);
     }
 
     private ResponseEntity result(HttpStatus status, String msg, Object data) {
