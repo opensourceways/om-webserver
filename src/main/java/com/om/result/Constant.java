@@ -238,6 +238,26 @@ public final class Constant {
     public static final String MODERATOR_V3_EVENT_TYPE_HEAD_IMAGE = "head_image";
 
     /**
+     * infra-audit底层moderator.
+     */
+    public static final String MODERATOR_INFRA_AUDIT_MODERATOR = "Moderation";
+
+    /**
+     * infra-audit底层SCAS.
+     */
+    public static final String MODERATOR_INFRA_AUDIT_SCAS = "SCAS";
+
+    /**
+     * infra-audit底层SCAS时账号type.
+     */
+    public static final String MODERATOR_INFRA_USER_ACCOUNT_TYPE = "USER_ACCOUNT";
+
+    /**
+     * infra-audit底层SCAS时富媒体type.
+     */
+    public static final String MODERATOR_INFRA_RICH_MEDIA_TYPE = "RICH_MEDIA";
+
+    /**
      * Token过期.
      */
     public static final String TOKEN_EXPIRES = "token expires";

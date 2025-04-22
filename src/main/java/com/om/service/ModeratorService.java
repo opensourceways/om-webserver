@@ -99,6 +99,19 @@ public class ModeratorService implements ModeratorServiceInterface {
     private String moderatorImageUrl;
 
     /**
+     * infra-audit使用的底层.
+     * Moderation或SCAS.
+     */
+    @Value("${sensitive.moderator.infra.audit.type:}")
+    private String infraAuditType;
+
+    /**
+     * infra-audit-token.
+     */
+    @Value("${sensitive.moderator.infra.audit.token:}")
+    private String infraAuditToken;
+
+    /**
      * 获取token信息.
      *
      * @return token
@@ -151,7 +164,9 @@ public class ModeratorService implements ModeratorServiceInterface {
      * @return 是否检测通过
      */
     public boolean checkText(String text, String eventType) {
-        if (moderatorUrl.contains("v2")) {
+        if (StringUtils.isNotBlank(infraAuditToken)) {
+            return checkTextByInfraAudit(text, eventType);
+        } else if (moderatorUrl.contains("v2")) {
             return checkText(text);
         }
         try {
@@ -198,6 +213,56 @@ public class ModeratorService implements ModeratorServiceInterface {
         } catch (Exception e) {
             LOGGER.error("moderator service error {}", e.getMessage());
             redisDao.remove(Constant.REDIS_KEY_MODERATOR_TOKEN);
+            return false;
+        }
+    }
+
+    /**
+     * 通过infra-audit服务进行文本敏感信息检查.
+     *
+     * @param text      文本内容
+     * @param eventType 检查文本类型
+     * @return 是否通过检查
+     */
+    public boolean checkTextByInfraAudit(String text, String eventType) {
+        try {
+            if (StringUtils.isBlank(text)) {
+                LOGGER.info("text is blank, eventType is {}", eventType);
+                return true;
+            }
+            String sBodyTemplate = String.join("",
+                    """
+                            {
+                                "type": "%s",
+                                "text": "%s"
+                            }
+                            """
+            );
+            String sBody = "";
+            if (infraAuditType.equals(Constant.MODERATOR_INFRA_AUDIT_MODERATOR)) {
+                sBody = String.format(sBodyTemplate, eventType, text);
+            } else if (infraAuditType.equals(Constant.MODERATOR_INFRA_AUDIT_SCAS)) {
+                sBody = String.format(sBodyTemplate, Constant.MODERATOR_INFRA_USER_ACCOUNT_TYPE, text);
+            }
+            HttpResponse<JsonNode> response = Unirest.post(moderatorUrl)
+                    .header("TOKEN", infraAuditToken)
+                    .header("Content-Type", "application/json;charset=utf8")
+                    .body(sBody)
+                    .asJson();
+            if (response.getStatus() / 100 != 2) {
+                LOGGER.error("moderator service error {}", response.getBody().getObject().toString());
+                return false;
+            }
+            JSONObject jsonObject = response.getBody().getObject().getJSONObject("data");
+            String result = jsonObject.getString("result");
+            if ("block".equals(result) || "review".equals(result)) {
+                LOGGER.error("text is invalid, result is {}, text is {}, eventType is {}",
+                        jsonObject.getString("result"), text, eventType);
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("moderator service error {}", e.getMessage());
             return false;
         }
     }
@@ -260,7 +325,9 @@ public class ModeratorService implements ModeratorServiceInterface {
      * @return 检测结果
      */
     public boolean checkImage(String imageUrl, boolean needDownload, String eventType) {
-        if (moderatorImageUrl.contains("v2")) {
+        if (StringUtils.isNotBlank(infraAuditToken)) {
+            return checkImageByInfraAudit(imageUrl, needDownload, eventType);
+        } else if (moderatorImageUrl.contains("v2")) {
             return checkImage(imageUrl, needDownload);
         }
         try {
@@ -323,9 +390,70 @@ public class ModeratorService implements ModeratorServiceInterface {
     }
 
     /**
+     * 通过infra-audit服务进行图片敏感信息检查.
+     *
+     * @param imageUrl     图片url
+     * @param needDownload 图片是否需要下载
+     * @param eventType    检查图片类型
+     * @return 检测结果
+     */
+    public boolean checkImageByInfraAudit(String imageUrl, boolean needDownload, String eventType) {
+        try {
+            String sBodyTemplate = String.join("",
+                    """
+                            {
+                                "type": "%s",
+                                "%s": "%s"
+                            }
+                            """
+            );
+            String mode;
+            String sBody;
+            String type = "";
+            if (infraAuditType.equals(Constant.MODERATOR_INFRA_AUDIT_MODERATOR)) {
+                type = eventType;
+            } else if (infraAuditType.equals(Constant.MODERATOR_INFRA_AUDIT_SCAS)) {
+                type = Constant.MODERATOR_INFRA_USER_ACCOUNT_TYPE;
+            }
+            if (needDownload) {
+                mode = "image";
+                String base64Image = CommonUtil.getBase64FromURL(imageUrl, PIC_MAX_SIZE);
+                if (base64Image.contains("Error")) {
+                    LOGGER.error("base64 pic failed");
+                    return false;
+                }
+                sBody = String.format(sBodyTemplate, type, mode, base64Image);
+            } else {
+                mode = "url";
+                sBody = String.format(sBodyTemplate, type, mode, imageUrl);
+            }
+            HttpResponse<JsonNode> response = Unirest.post(moderatorImageUrl)
+                    .header("TOKEN", infraAuditToken)
+                    .header("Content-Type", "application/json;charset=utf8")
+                    .body(sBody)
+                    .asJson();
+            if (response.getStatus() / 100 != 2) {
+                LOGGER.error("moderator service error {}", response.getBody().getObject().toString());
+                return false;
+            }
+            JSONObject jsonObject = response.getBody().getObject().getJSONObject("data");
+            String result = jsonObject.getString("result");
+            if ("block".equals(result) || "review".equals(result)) {
+                LOGGER.error("text is invalid, result is {}, mode is {}, imageUrl is {}, eventType is {}",
+                        jsonObject.getString("result"), mode, imageUrl, eventType);
+                return false;
+            }
+            return true;
+        } catch (Exception e) {
+            LOGGER.error("moderator service error {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
      * 检测图片敏感信息. 使用moderator的V2版本.
      *
-     * @param imageUrl 图片url
+     * @param imageUrl     图片url
      * @param needDownload 图片是否需要下载
      * @return 检测结果
      */
