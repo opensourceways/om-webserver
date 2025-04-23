@@ -177,9 +177,10 @@ public class AuthingService implements UserCenterServiceInter {
     private static Pattern redirectUrlPattern = Pattern.compile("[\\u4e00-\\u9fa5]+");
 
     /**
-     * 静态变量: CodeUtil实例.
+     * CodeUtil实例.
      */
-    private static CodeUtil codeUtil;
+    @Autowired
+    private CodeUtil codeUtil;
 
     /**
      * 静态变量: 错误码映射表.
@@ -228,15 +229,6 @@ public class AuthingService implements UserCenterServiceInter {
      */
     @Value("${authing.token.sha256.salt: }")
     private String tokenSalt;
-
-    /**
-     * CodeUtil赋值.
-     *
-     * @param codeUtil CodeUtil实例
-     */
-    public static void setCodeUtil(CodeUtil codeUtil) {
-        AuthingService.codeUtil = codeUtil;
-    }
 
     /**
      * error2code赋值.
@@ -297,7 +289,6 @@ public class AuthingService implements UserCenterServiceInter {
      */
     @PostConstruct
     public void init() {
-        setCodeUtil(new CodeUtil());
         setError2code(MessageCodeConfig.getErrorCode());
         setObjectMapper(new ObjectMapper());
         String domains = env.getProperty("cookie.token.domains");

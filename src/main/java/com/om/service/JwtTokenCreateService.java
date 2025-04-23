@@ -20,7 +20,6 @@ import com.om.dao.AuthingManagerDao;
 import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
-import com.om.utils.CodeUtil;
 import com.om.utils.CommonUtil;
 import com.om.utils.LogUtil;
 import com.om.utils.RSAUtil;
@@ -49,12 +48,6 @@ public class JwtTokenCreateService {
      */
     @Autowired
     private RedisDao redisDao;
-
-    /**
-     * 注入 CodeUtil 依赖.
-     */
-    @Autowired
-    private CodeUtil codeUtil;
 
     /**
      * Authing的管理面接口.
@@ -151,7 +144,7 @@ public class JwtTokenCreateService {
                 .withSubject(userId)
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(headTokenExpireAt) //过期时间
-                .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
+                .withJWTId(CommonUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .sign(Algorithm.HMAC256(authingTokenBasePassword));
         String verifyToken = CommonUtil.encryptSha256(headToken, tokenSalt);
         redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
@@ -161,7 +154,7 @@ public class JwtTokenCreateService {
                 .withAudience(userId) //谁接受签名
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(expireAt) //过期时间
-                .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
+                .withJWTId(CommonUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .withClaim("permission", permissionStr)
                 .withClaim("inputPermission", inputPermission)
                 .withClaim("verifyToken", verifyToken)
