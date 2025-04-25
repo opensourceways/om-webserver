@@ -32,6 +32,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
 import java.security.interfaces.RSAPublicKey;
 import java.time.LocalDateTime;
@@ -289,16 +290,13 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
         try {
             // get third party user
             String token = RSAUtil.privateDecrypt(bindToken, RSAUtil.getPrivateKey(rsaAuthingPrivateKey));
-
             DecodedJWT decode = JWT.decode(token);
 
             String provider = decode.getClaims().get("provider").asString();
             String userIdInPd = decode.getClaims().get("userIdInPd").asString();
             String appId = decode.getClaims().get("appId").asString();
-
             JWTVerifier jwtVerifier = JWT.require(Algorithm.HMAC256(userIdInPd + authingTokenBasePassword)).build();
             DecodedJWT decodedJWT = jwtVerifier.verify(token);
-
             String redisKey = provider + userIdInPd + state;
             String thirdPartyUserJson = (String) redisDao.get(redisKey);
 
@@ -314,6 +312,9 @@ public class ThirdPartyServiceImpl implements ThirdPartyServiceInter {
 
             // get user id
             decode = JWT.decode(userToken);
+            if (CollectionUtils.isEmpty(decode.getAudience())) {
+                return Result.setResult(HttpStatus.INTERNAL_SERVER_ERROR, MessageCodeConfig.E00071, null, null, null);
+            }
             String username = decode.getAudience().get(0);
 
             OneIdEntity.User user = oneIdUserDao.getUserInfo(username, "username");

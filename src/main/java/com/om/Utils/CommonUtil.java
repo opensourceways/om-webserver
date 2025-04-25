@@ -13,6 +13,7 @@ import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.om.Result.Constant;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -182,4 +183,13 @@ public class CommonUtil {
         return null;
     }
 
+    /**
+     * 获取调用接口路径（防uri鉴权绕过）.
+     *
+     * @param request 请求体
+     * @return uri
+     */
+    public static String getSafeRequestUri(HttpServletRequest request) {
+        return request.getServletPath() + (request.getPathInfo() != null ? request.getPathInfo() : "");
+    }
 }

@@ -17,13 +17,29 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 
 public class LogUtil {
     private static final Logger logger = LoggerFactory.getLogger(LogUtil.class);
 
+    /**
+     * 不记录日志的 URL 白名单列表.
+     */
+    public static final List<String> URL_NO_LOG_WHITE_LIST = Collections.unmodifiableList(new ArrayList<>() {
+        {
+            add("/oneid/checkOmService");
+            add("/oneid/privacy/version");
+        }
+    });
+
     public static void managementOperate(JoinPoint joinPoint, HttpServletRequest request, HttpServletResponse response, Object returnObject) {
+        if (URL_NO_LOG_WHITE_LIST.contains(CommonUtil.getSafeRequestUri(request))) {
+            return;
+        }
         ManagementLog log = new ManagementLog();
         log.setType("OmOperate");
 
