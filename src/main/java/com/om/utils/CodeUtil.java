@@ -11,6 +11,8 @@
 
 package com.om.utils;
 
+import com.alibaba.fastjson2.JSONObject;
+import com.om.service.SendMessageService;
 import kong.unirest.HttpResponse;
 import kong.unirest.JsonNode;
 import kong.unirest.Unirest;
@@ -19,6 +21,7 @@ import com.om.result.Constant;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -31,11 +34,8 @@ import jakarta.mail.internet.MimeMessage;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.security.DrbgParameters;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.DrbgParameters.Capability;
 import java.text.SimpleDateFormat;
 import java.util.Base64;
 import java.util.Date;
@@ -66,6 +66,12 @@ public class CodeUtil {
     private static final String DATA_FOR_RANDOM_STRING = "abcdefghijklmnopqrstuvwxyz0123456789";
 
     /**
+     * 新增的发送短信的服务.
+     */
+    @Autowired
+    private SendMessageService sendMessageService;
+
+    /**
      * 发送验证码并返回字符串数组.
      *
      * @param accountType 账户类型
@@ -82,7 +88,8 @@ public class CodeUtil {
         String code = null;
         try {
             // 生成验证码
-            code = randomNumBuilder(Integer.parseInt(env.getProperty("code.length", Constant.DEFAULT_CODE_LENGTH)));
+            code = CommonUtil.randomNumBuilder(Integer.parseInt(
+                    env.getProperty("code.length", Constant.DEFAULT_CODE_LENGTH)));
 
             switch (accountType.toLowerCase()) {
                 case "email":
@@ -97,30 +104,17 @@ public class CodeUtil {
                     break;
                 case "phone":
                     codeExpire = Long.parseLong(env.getProperty("msgsms.code.expire", Constant.DEFAULT_EXPIRE_SECOND));
-                    // 短信发送服务器
-                    String communityTemp = StringUtils.isBlank(community) ? "" : community + ".";
-                    String msgsmsAppKey = env.getProperty(communityTemp + "msgsms.app_key");
-                    String msgsmsAppSecret = env.getProperty(communityTemp + "msgsms.app_secret");
-                    String msgsmsUrl = env.getProperty(communityTemp + "msgsms.url");
-                    String msgsmsSignature = env.getProperty(communityTemp + "msgsms.signature");
-                    String msgsmsSender = env.getProperty(communityTemp + "msgsms.sender");
-                    String msgsmsTemplateId = env.getProperty(communityTemp + "msgsms.template.id");
-                    // 短信发送模板赋值
-                    String templateParas = (community.equalsIgnoreCase("opengauss"))
-                            ? String.format("[\"%s\",\"%s\"]", code, env.getProperty("msgsms.template.expire.minutes"))
-                            : String.format("[\"%s\"]", code);
-                    String wsseHeader = buildWsseHeader(msgsmsAppKey, msgsmsAppSecret);
-                    String body = buildSmsBody(msgsmsSender, account, msgsmsTemplateId,
-                            templateParas, "", msgsmsSignature);
-                    // 发送验证码
-                    HttpResponse<JsonNode> response = Unirest.post(msgsmsUrl)
-                            .header("Content-Type", "application/x-www-form-urlencoded")
-                            .header("Authorization", CodeUtil.AUTH_HEADER_VALUE)
-                            .header("X-WSSE", wsseHeader)
-                            .body(body)
-                            .asJson();
-                    if (response.getStatus() == 200) {
-                        resMsg = "send code success";
+                    String rongHeYunUrl = env.getProperty("rongheyun.message.url");
+                    String rongHeYunAk = env.getProperty("rongheyun.message.ak");
+                    String rongHeYunSk = env.getProperty("rongheyun.message.sk");
+                    if (StringUtils.isAnyBlank(rongHeYunUrl, rongHeYunSk, rongHeYunAk)) {
+                        resMsg = sendSms(account, env, community, code);
+                    } else {
+                        JSONObject sendMsg = sendMessageService
+                                .sendRongHeYunSms(account, rongHeYunAk, rongHeYunSk, code);
+                        if ("000000".equals(sendMsg.getString("code"))) {
+                            resMsg = "send code success";
+                        }
                     }
                     break;
                 default:
@@ -132,6 +126,37 @@ public class CodeUtil {
             LOGGER.error(MessageCodeConfig.E00048.getMsgEn() + "{}", e.getMessage());
         }
         return new String[]{code, String.valueOf(codeExpire), resMsg};
+    }
+
+    private String sendSms(String account, Environment env, String community, String code)
+            throws NoSuchAlgorithmException {
+        String resMsg = "fail";
+        // 短信发送服务器
+        String communityTemp = StringUtils.isBlank(community) ? "" : community + ".";
+        String msgsmsAppKey = env.getProperty(communityTemp + "msgsms.app_key");
+        String msgsmsAppSecret = env.getProperty(communityTemp + "msgsms.app_secret");
+        String msgsmsUrl = env.getProperty(communityTemp + "msgsms.url");
+        String msgsmsSignature = env.getProperty(communityTemp + "msgsms.signature");
+        String msgsmsSender = env.getProperty(communityTemp + "msgsms.sender");
+        String msgsmsTemplateId = env.getProperty(communityTemp + "msgsms.template.id");
+        // 短信发送模板赋值
+        String templateParas = (community.equalsIgnoreCase("opengauss"))
+                ? String.format("[\"%s\",\"%s\"]", code, env.getProperty("msgsms.template.expire.minutes"))
+                : String.format("[\"%s\"]", code);
+        String wsseHeader = buildWsseHeader(msgsmsAppKey, msgsmsAppSecret);
+        String body = buildSmsBody(msgsmsSender, account, msgsmsTemplateId,
+                templateParas, "", msgsmsSignature);
+        // 发送验证码
+        HttpResponse<JsonNode> response = Unirest.post(msgsmsUrl)
+                .header("Content-Type", "application/x-www-form-urlencoded")
+                .header("Authorization", CodeUtil.AUTH_HEADER_VALUE)
+                .header("X-WSSE", wsseHeader)
+                .body(body)
+                .asJson();
+        if (response.getStatus() == 200) {
+            resMsg = "send code success";
+        }
+        return resMsg;
     }
 
     /**
@@ -251,7 +276,7 @@ public class CodeUtil {
         }
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
         String time = sdf.format(new Date()); //Created
-        String nonce = randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH); //Nonce
+        String nonce = CommonUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH); //Nonce
 
         MessageDigest md;
         byte[] passwordDigest = null;
@@ -268,44 +293,5 @@ public class CodeUtil {
         String passwordDigestBase64Str = Base64.getEncoder().encodeToString(passwordDigest);
 
         return String.format(WSSE_HEADER_FORMAT, appKey, passwordDigestBase64Str, nonce, time);
-    }
-
-    /**
-     * 随机生成验证码.
-     *
-     * @param codeLength 随机数长度
-     * @return 生成的随机数字字符串
-     * @throws NoSuchAlgorithmException 当算法不存在时抛出异常
-     */
-    public String randomNumBuilder(int codeLength) throws NoSuchAlgorithmException {
-        StringBuilder result = new StringBuilder();
-        SecureRandom instance = SecureRandom.getInstance("DRBG",
-                DrbgParameters.instantiation(256, Capability.RESEED_ONLY, null));
-        for (int i = 0; i < codeLength; i++) {
-            result.append(instance.nextInt(9));
-        }
-        return result.toString();
-    }
-
-    /**
-     * 随机生成字符串.
-     *
-     * @param strLength 字符串长度
-     * @return 随机字符串
-     * @throws NoSuchAlgorithmException 当算法不存在时抛出异常
-     */
-    public String randomStrBuilder(int strLength) throws NoSuchAlgorithmException {
-        SecureRandom random = SecureRandom.getInstance("DRBG",
-                DrbgParameters.instantiation(256, Capability.RESEED_ONLY, null));
-        if (strLength < 1) {
-            throw new IllegalArgumentException();
-        }
-        StringBuilder sb = new StringBuilder(strLength);
-        for (int i = 0; i < strLength; i++) {
-            int rndCharAt = random.nextInt(DATA_FOR_RANDOM_STRING.length());
-            char rndChar = DATA_FOR_RANDOM_STRING.charAt(rndCharAt);
-            sb.append(rndChar);
-        }
-        return sb.toString();
     }
 }

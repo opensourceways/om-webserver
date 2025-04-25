@@ -320,6 +320,22 @@ public class AuthingUtil {
     }
 
     /**
+     * 获取电话号码的纯净形式，去除任何非数字字符.
+     *
+     * @param phone 原始电话号码
+     * @return 返回经过处理后的纯净电话号码
+     */
+    public String getPurePhone(String phone) {
+        String[] countryCodes = env.getProperty("sms.international.countrys.code", "").split(",");
+        for (String countryCode : countryCodes) {
+            if (phone.startsWith(countryCode)) {
+                return phone.replace(countryCode, "");
+            }
+        }
+        return phone;
+    }
+
+    /**
      * 获取cookie.
      *
      * @param cookies 所有cookie

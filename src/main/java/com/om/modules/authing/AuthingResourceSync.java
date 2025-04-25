@@ -18,7 +18,6 @@ import com.om.dao.RedisDao;
 import com.om.dao.bean.AuthorizeInfo;
 import com.om.dao.bean.UserInfo;
 import com.om.modules.bean.GitCodePermissionInfo;
-import com.om.utils.CodeUtil;
 import com.om.utils.CommonUtil;
 import com.om.utils.LogUtil;
 import jakarta.annotation.PostConstruct;
@@ -53,11 +52,6 @@ public class AuthingResourceSync {
      * 日志记录器.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(AuthingResourceSync.class);
-
-    /**
-     * CodeUtil实例.
-     */
-    private CodeUtil codeUtil = new CodeUtil();
 
     /**
      * gitcode 操作权限.
