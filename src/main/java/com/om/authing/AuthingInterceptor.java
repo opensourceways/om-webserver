@@ -94,6 +94,11 @@ public class AuthingInterceptor implements HandlerInterceptor {
      */
     private static final String REFRESH_URI = "/oneid/user/refresh";
 
+    /**
+     * 三方绑定.
+     */
+    private static final String THIRD_PARTY_BIND = "/oneid/third-party/bind";
+
     private static final Logger logger =  LoggerFactory.getLogger(AuthingInterceptor.class);
 
     @PostConstruct
@@ -189,7 +194,9 @@ public class AuthingInterceptor implements HandlerInterceptor {
 
         // 是否接受隐私协议
         if (!"unused".equals(oneidPrivacyVersion) && !BASEINFO_URI.equals(url) && !REFRESH_URI.equals(url)
+                && !THIRD_PARTY_BIND.equals(url)
                 && !oneidPrivacyVersion.equals(oneidPrivacyVersionAccept)) {
+                logger.error("oneidPrivacyVersionAccept error " + oneidPrivacyVersionAccept);
                 tokenError(httpServletRequest, httpServletResponse, "unauthorized");
                 return false;
         }
