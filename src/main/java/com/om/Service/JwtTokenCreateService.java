@@ -11,11 +11,15 @@
 
 package com.om.Service;
 
+import cn.authing.core.types.User;
+import com.anji.captcha.util.StringUtils;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.Claim;
 import com.om.Dao.AuthingUserDao;
 import com.om.Dao.RedisDao;
+import com.om.Dao.oneId.OneIdEntity;
+import com.om.Dao.oneId.OneIdUserDao;
 import com.om.Modules.MessageCodeConfig;
 import com.om.Result.Constant;
 import com.om.Utils.CodeUtil;
@@ -48,6 +52,9 @@ public class JwtTokenCreateService {
 
     @Autowired
     private Environment env;
+
+    @Autowired
+    private OneIdUserDao oneIdUserDao;
 
     @Value("${authing.token.expire.seconds}")
     private String authingTokenExpireSeconds;
@@ -110,7 +117,12 @@ public class JwtTokenCreateService {
         LocalDateTime expireDate = nowDate.plusSeconds(expireSeconds);
         Date expireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant());
         Date headTokenExpireAt = Date.from(expireDate.atZone(ZoneId.systemDefault()).toInstant().plusSeconds(expireSeconds));
-
+        if (StringUtils.isBlank(username)) {
+            OneIdEntity.User user = oneIdUserDao.getUserInfo(userId, "id");
+            if (user != null && StringUtils.isNotBlank(user.getUsername())) {
+                username = user.getUsername();
+            }
+        }
         String headToken = JWT.create()
                 .withAudience(username) //谁接受签名
                 .withIssuedAt(issuedAt) //生成签名的时间
