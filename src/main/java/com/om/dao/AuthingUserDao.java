@@ -139,7 +139,6 @@ public class AuthingUserDao {
     @Value("${datastat.img.bucket.name}")
     private String datastatImgBucket;
 
-
     /**
      * GitHub 社交登录的外部身份提供者 ID.
      */
@@ -205,7 +204,6 @@ public class AuthingUserDao {
      */
     @Value("${enterprise.identifier.openatom}")
     private String enterIdentifieOpenatom;
-
 
     /**
      * OpenAtom 企业登录的授权 URL.
@@ -1477,6 +1475,7 @@ public class AuthingUserDao {
                                 return "用户名唯一，不可修改";
                             }
                         }
+                        authingManagerDao.genPredefinedEmail(userId, inputValue);
                         updateUserInput.withUsername(inputValue);
                         break;
                     case "oneidprivacyaccepted":

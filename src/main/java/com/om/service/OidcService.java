@@ -116,6 +116,12 @@ public class OidcService {
     private AuthingUserDao authingUserDao;
 
     /**
+     * authing数据管理类.
+     */
+    @Autowired
+    private AuthingManagerDao authingManagerDao;
+
+    /**
      * 使用 @Autowired 注解注入 RedisDao.
      */
     @Autowired
@@ -475,7 +481,7 @@ public class OidcService {
                         if (StringUtils.isBlank(prefix)) {
                             prefix = authingUtil.jsonObjStringValue(userObj, "phone");
                         }
-                        value = authingService.genPredefinedEmail(userId, prefix);
+                        value = authingManagerDao.genPredefinedEmail(userId, prefix);
                     }
                     if (scope.equals("address")) {
                         addressMap.put(claim, value);

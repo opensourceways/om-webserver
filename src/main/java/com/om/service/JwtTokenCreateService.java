@@ -20,6 +20,7 @@ import com.om.dao.AuthingManagerDao;
 import com.om.dao.RedisDao;
 import com.om.modules.MessageCodeConfig;
 import com.om.result.Constant;
+import com.om.service.bean.JwtCreatedParam;
 import com.om.utils.CommonUtil;
 import com.om.utils.LogUtil;
 import com.om.utils.RSAUtil;
@@ -98,6 +99,12 @@ public class JwtTokenCreateService {
     private String tokenSalt;
 
     /**
+     * 社区.
+     */
+    @Value("${community}")
+    private String instanceCommunity;
+
+    /**
      * 静态日志记录器，用于记录 JwtTokenCreateService 类的日志信息.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenCreateService.class);
@@ -105,19 +112,11 @@ public class JwtTokenCreateService {
     /**
      * 为 Authing 用户生成令牌.
      *
-     * @param appId                     应用ID
-     * @param userId                    用户ID
-     * @param username                  用户名
-     * @param permission                权限
-     * @param inputPermission           输入的权限
-     * @param idToken                   ID令牌
-     * @param oneidPrivacyVersionAccept OneID隐私版本接受标志
-     * @return 包含生成的令牌的字符串数组
+     * @param jwtCreatedParam jwt生成参数
+     * @return tokens
      */
     @SneakyThrows
-    public String[] authingUserToken(String appId, String userId, String username,
-                                     String permission, String inputPermission,
-                                     String idToken, String oneidPrivacyVersionAccept) {
+    public String[] authingUserToken(JwtCreatedParam jwtCreatedParam) {
         // 过期时间
         LocalDateTime nowDate = LocalDateTime.now();
         Date issuedAt = Date.from(nowDate.atZone(ZoneId.systemDefault()).toInstant());
@@ -132,35 +131,43 @@ public class JwtTokenCreateService {
         Date headTokenExpireAt = Date.from(expireDate.atZone(ZoneId.systemDefault())
                 .toInstant().plusSeconds(expireSeconds));
 
-        if (StringUtils.isBlank(username)) {
-            User user = authingManagerDao.getUserByUserId(userId);
-            if (user != null && StringUtils.isNotBlank(user.getUsername())) {
-                username = user.getUsername();
+        String username = jwtCreatedParam.getUsername();
+        Boolean phoneExist = jwtCreatedParam.getPhoneExist();
+        if (StringUtils.isBlank(username)
+                || (!phoneExist && Constant.OPEN_UBMC.equals(instanceCommunity))) {
+            User user = authingManagerDao.getUserByUserId(jwtCreatedParam.getUserId());
+            if (user != null) {
+                if (StringUtils.isNotBlank(user.getUsername())) {
+                    username = user.getUsername();
+                }
+                phoneExist = StringUtils.isNotBlank(user.getPhone());
             }
         }
 
         String headToken = JWT.create()
                 .withAudience(username) //谁接受签名
-                .withSubject(userId)
+                .withSubject(jwtCreatedParam.getUserId())
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(headTokenExpireAt) //过期时间
                 .withJWTId(CommonUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .sign(Algorithm.HMAC256(authingTokenBasePassword));
         String verifyToken = CommonUtil.encryptSha256(headToken, tokenSalt);
-        redisDao.set("idToken_" + verifyToken, idToken, expireSeconds);
-        String permissionStr = Base64.getEncoder().encodeToString(permission.getBytes(StandardCharsets.UTF_8));
+        redisDao.set("idToken_" + verifyToken, jwtCreatedParam.getIdToken(), expireSeconds);
+        String permissionStr = Base64.getEncoder().encodeToString(jwtCreatedParam.getPermission()
+                .getBytes(StandardCharsets.UTF_8));
 
         String token = JWT.create()
-                .withAudience(userId) //谁接受签名
+                .withAudience(jwtCreatedParam.getUserId()) //谁接受签名
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(expireAt) //过期时间
                 .withJWTId(CommonUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .withClaim("permission", permissionStr)
-                .withClaim("inputPermission", inputPermission)
+                .withClaim("inputPermission", jwtCreatedParam.getInputPermission())
                 .withClaim("verifyToken", verifyToken)
-                .withClaim("client_id", appId)
-                .withClaim("oneidPrivacyAccepted", oneidPrivacyVersionAccept)
-                .sign(Algorithm.HMAC256(permission + authingTokenSessionPassword));
+                .withClaim("client_id", jwtCreatedParam.getAppId())
+                .withClaim("oneidPrivacyAccepted", jwtCreatedParam.getOneidPrivacyVersionAccept())
+                .withClaim("phoneExist", phoneExist)
+                .sign(Algorithm.HMAC256(jwtCreatedParam.getPermission() + authingTokenSessionPassword));
         try {
             RSAPublicKey publicKey = RSAUtil.getPublicKey(rsaAuthingPublicKey);
             return new String[]{RSAUtil.publicEncrypt(token, publicKey), headToken};
@@ -183,6 +190,10 @@ public class JwtTokenCreateService {
                                             String userId, Map<String, Claim> claimMap) {
         String headerJwtToken = request.getHeader("token");
         String appId = claimMap.get("client_id").asString();
+        Boolean phoneExist = false;
+        if (claimMap.containsKey("phoneExist")) {
+            phoneExist = claimMap.get("phoneExist").asBoolean();
+        }
         String inputPermission = claimMap.get("inputPermission").asString();
         String permission = new String(Base64.getDecoder()
                 .decode(claimMap.get("permission").asString()
@@ -191,7 +202,8 @@ public class JwtTokenCreateService {
         // 生成新的token和headToken
         List<String> audience = JWT.decode(headerJwtToken).getAudience();
         String username = ((audience == null) || audience.isEmpty()) ? "" : audience.get(0);
-        return authingUserToken(appId, userId, username, permission, inputPermission, idToken, oneidPrivacyVersion);
+        return authingUserToken(new JwtCreatedParam(appId, userId, username, permission, inputPermission, idToken,
+                oneidPrivacyVersion, phoneExist));
     }
 
     /**
