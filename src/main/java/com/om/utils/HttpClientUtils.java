@@ -96,31 +96,33 @@ public final class HttpClientUtils implements Serializable {
             serverName = referer.substring(0, endIndex);
         }
 
-        String domain = null;
-        boolean secure = true;
-        for (Map.Entry<String, Boolean> entry : domain2Secure.entrySet()) {
-            String key = entry.getKey();
-            if (serverName.endsWith(key)) {
-                domain = entry.getKey();
-                secure = entry.getValue();
-                break;
-            }
-        }
-        if (domain == null) {
-            return;
-        }
+//        String domain = null;
+//        boolean secure = true;
+//        for (Map.Entry<String, Boolean> entry : domain2Secure.entrySet()) {
+//            String key = entry.getKey();
+//            if (serverName.endsWith(key)) {
+//                domain = entry.getKey();
+//                secure = entry.getValue();
+//                break;
+//            }
+//        }
+//        if (domain == null) {
+//            return;
+//        }
         if (StringUtils.isBlank(path)) {
             path = "/";
         }
 
-        Cookie cookie = new Cookie(name, value);
-        cookie.setDomain(domain);
-        cookie.setHttpOnly(isHttpOnly);
-        cookie.setSecure(secure);
-        cookie.setMaxAge(maxAge);
-        cookie.setPath(path);
-        cookie.setAttribute("SameSite", "Lax");
-        servletResponse.addCookie(cookie);
+        for (String domainItem : domain2Secure.keySet()) {
+            Cookie cookie = new Cookie(name, value);
+            cookie.setDomain(domainItem);
+            cookie.setHttpOnly(isHttpOnly);
+            cookie.setSecure(domain2Secure.get(domainItem));
+            cookie.setMaxAge(maxAge);
+            cookie.setPath(path);
+            cookie.setAttribute("SameSite", "Lax");
+            servletResponse.addCookie(cookie);
+        }
     }
 
     /**
