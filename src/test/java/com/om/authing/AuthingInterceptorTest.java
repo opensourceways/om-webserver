@@ -13,6 +13,7 @@ package com.om.authing;
 
 import com.om.dao.RedisDao;
 import com.om.service.JwtTokenCreateService;
+import com.om.service.bean.JwtCreatedParam;
 import com.om.utils.EncryptionService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.junit.Before;
@@ -121,8 +122,8 @@ public class AuthingInterceptorTest {
 
     @Test
     public void testRefreshAuthingUserToken() throws Exception {
-        when(mockJwtTokenCreateService.authingUserToken(
-                any(),any(),any(),any(),any(),any(),any())).thenReturn(new String[2]);
+        when(mockJwtTokenCreateService.authingUserToken(new JwtCreatedParam(
+                any(),any(),any(),any(),any(),any(),any(), true))).thenReturn(new String[2]);
         mockJwtTokenCreateService.refreshAuthingUserToken( new MockHttpServletRequest(),"idToken",
                 "userId", new HashMap<>());
     }

@@ -306,6 +306,9 @@ public class SendMessageService {
         if (StringUtils.isNotBlank(xmlResult)) {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             try {
+                factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false);
+                factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+                factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
                 DocumentBuilder builder = factory.newDocumentBuilder();
                 Document doc = builder.parse(new InputSource(new StringReader(xmlResult)));
                 Element root = doc.getDocumentElement();
