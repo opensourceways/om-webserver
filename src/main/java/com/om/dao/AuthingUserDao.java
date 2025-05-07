@@ -110,6 +110,12 @@ public class AuthingUserDao {
     private String userPoolId;
 
     /**
+     * 社区.
+     */
+    @Value("${community}")
+    private String instanceCommunity;
+
+    /**
      * Authing 密钥.
      */
     @Value("${authing.secret}")
@@ -1475,7 +1481,9 @@ public class AuthingUserDao {
                                 return "用户名唯一，不可修改";
                             }
                         }
-                        authingManagerDao.genPredefinedEmail(userId, inputValue);
+                        if (Constant.OPEN_UBMC.equals(instanceCommunity) && StringUtils.isBlank(user.getEmail())) {
+                            authingManagerDao.genPredefinedEmail(userId, inputValue);
+                        }
                         updateUserInput.withUsername(inputValue);
                         break;
                     case "oneidprivacyaccepted":
