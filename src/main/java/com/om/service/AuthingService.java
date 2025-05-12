@@ -30,6 +30,7 @@ import com.om.modules.ServerErrorException;
 import com.om.modules.authing.AuthingAppSync;
 import com.om.result.Constant;
 import com.om.result.Result;
+import com.om.service.bean.JwtCreatedParam;
 import com.om.service.bean.OnlineUserInfo;
 import com.om.service.inter.UserCenterServiceInter;
 import com.om.utils.AuthingUtil;
@@ -177,9 +178,10 @@ public class AuthingService implements UserCenterServiceInter {
     private static Pattern redirectUrlPattern = Pattern.compile("[\\u4e00-\\u9fa5]+");
 
     /**
-     * 静态变量: CodeUtil实例.
+     * CodeUtil实例.
      */
-    private static CodeUtil codeUtil;
+    @Autowired
+    private CodeUtil codeUtil;
 
     /**
      * 静态变量: 错误码映射表.
@@ -228,15 +230,6 @@ public class AuthingService implements UserCenterServiceInter {
      */
     @Value("${authing.token.sha256.salt: }")
     private String tokenSalt;
-
-    /**
-     * CodeUtil赋值.
-     *
-     * @param codeUtil CodeUtil实例
-     */
-    public static void setCodeUtil(CodeUtil codeUtil) {
-        AuthingService.codeUtil = codeUtil;
-    }
 
     /**
      * error2code赋值.
@@ -297,7 +290,6 @@ public class AuthingService implements UserCenterServiceInter {
      */
     @PostConstruct
     public void init() {
-        setCodeUtil(new CodeUtil());
         setError2code(MessageCodeConfig.getErrorCode());
         setObjectMapper(new ObjectMapper());
         String domains = env.getProperty("cookie.token.domains");
@@ -856,8 +848,9 @@ public class AuthingService implements UserCenterServiceInter {
             userName = resetUserName(appId, userName, userId);
             String phone = (String) user.get("phone_number");
             String email = (String) user.get("email");
-            if ("openeuler".equals(instanceCommunity) && StringUtils.isBlank(email)) {
-                email = genPredefinedEmail(userId, userName);
+            if (("openeuler".equals(instanceCommunity) || Constant.OPEN_UBMC.equals(instanceCommunity))
+                    && StringUtils.isBlank(email)) {
+                email = authingManagerDao.genPredefinedEmail(userId, userName);
             }
             // 获取隐私同意字段值
             String givenName = user.get("given_name") == null ? "" : user.get("given_name").toString();
@@ -870,8 +863,8 @@ public class AuthingService implements UserCenterServiceInter {
             }
             idToken = encryptionService.encrypt(idToken);
             // 生成token
-            String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, userName,
-                    permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
+            String[] tokens = jwtTokenCreateService.authingUserToken(new JwtCreatedParam(appId, userId, userName,
+                permissionInfo, permission, idToken, oneidPrivacyVersionAccept, StringUtils.isNotBlank(phone)));
 
             String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER)
                     .append(userId).toString();
@@ -1723,26 +1716,6 @@ public class AuthingService implements UserCenterServiceInter {
     }
 
     /**
-     * 根据用户id更新成默认邮件地址.
-     *
-     * @param userId 用户id
-     * @param username 用户名
-     * @return 执行结果
-     */
-    public String genPredefinedEmail(String userId, String username) {
-        try {
-            if (StringUtils.isBlank(userId) || StringUtils.isBlank(username)) {
-                return "";
-            }
-            String email = username + Constant.AUTO_GEN_EMAIL_SUFFIX;
-            return authingManagerDao.updateEmailById(userId, email);
-        } catch (Exception e) {
-            LOGGER.error(e.getMessage());
-            return "";
-        }
-    }
-
-    /**
      * 合并仅有一个三方绑定的用户到手机号对应账号.
      *
      * @param servletRequest 请求体
@@ -1843,8 +1816,8 @@ public class AuthingService implements UserCenterServiceInter {
                 userName = "";
             }
             newIdToken = encryptionService.encrypt(newIdToken);
-            String[] tokens = jwtTokenCreateService.authingUserToken(appId, newUserId, userName,
-                    "", "", newIdToken, oneidPrivacyVersionAccept);
+            String[] tokens = jwtTokenCreateService.authingUserToken(new JwtCreatedParam(appId, newUserId, userName,
+                "", "", newIdToken, oneidPrivacyVersionAccept, StringUtils.isNotBlank(newuser.getPhone())));
             String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(newUserId).toString();
             int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
             redisDao.addList(loginKey, newIdToken, expireSeconds);

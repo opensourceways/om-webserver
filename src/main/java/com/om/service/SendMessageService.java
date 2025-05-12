@@ -14,6 +14,9 @@ package com.om.service;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
+import com.om.utils.AuthingUtil;
+import com.om.utils.CommonUtil;
+import com.om.utils.LogUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -26,11 +29,23 @@ import org.apache.http.util.EntityUtils;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Value;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.StringReader;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -48,6 +63,30 @@ import java.util.TimeZone;
 
 @Component
 public class SendMessageService {
+    /**
+     * 构建XML消息.
+     */
+    private static final String RONGHEYUN_XML_TEMPLATE = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Body>"
+            + "<user>%s</user><password>%s</password><version>1.2</version>%s</Body>";
+
+    /**
+     * 消息模板.
+     */
+    private static final String RONGHEYUN_SUBMIT_TEMPLATE = "<submit><usermsgid>%s</usermsgid>"
+            + "<desttermid>%s</desttermid><srctermid></srctermid><msgcontent>%s</msgcontent>"
+            + "<signid>0</signid><desttype>0</desttype><tempid>1</tempid><needreply>1</needreply></submit>";
+
+    /**
+     * 融合云短信url.
+     */
+    @Value("${rongheyun.message.url:}")
+    private String rongHeYunSendMessageUrl;
+
+    /**
+     * 融合云短信模板.
+     */
+    @Value("${rongheyun.message.template:}")
+    private String rongHeYunTemplate;
 
     /**
      * 云短信.
@@ -73,6 +112,11 @@ public class SendMessageService {
     @Value("${tianyiyun.template.id:}")
     private String templateId;
 
+    /**
+     * authing工具.
+     */
+    @Autowired
+    private AuthingUtil authingUtil;
 
     /**
      * 日志记录器，用于记录身份验证拦截器的日志信息.
@@ -88,7 +132,7 @@ public class SendMessageService {
      * @throws Exception
      */
     public Object getMessage(String map, HttpServletRequest servletRequest) throws Exception {
-        if (StringUtils.isEmpty(sendMessageUrl)) {
+        if (StringUtils.isAllBlank(sendMessageUrl, rongHeYunSendMessageUrl)) {
             LOGGER.error("sendMessage Error, sendMessageUrl is not found");
             return "";
         }
@@ -124,17 +168,33 @@ public class SendMessageService {
             LOGGER.error("sendMessage Error, input is empty");
             return "";
         }
+        if (StringUtils.isNotBlank(sendMessageUrl)) {
+            return sendTyyMessage(phone, signName, templateId, msgAccessKey, msgSecurityKey, content);
+        } else {
+            return sendRongHeYunSms(phone, msgAccessKey, msgSecurityKey, content);
+        }
+    }
+
+    /**
+     * 发送天翼云短信.
+     *
+     * @param phoneNumber 手机号
+     * @param signName 签名
+     * @param templateCode 模板ID
+     * @param accessKey ak
+     * @param securityKey sk
+     * @param content 模板内容
+     * @return 发送结果
+     * @throws Exception
+     */
+    private Object sendTyyMessage(String phoneNumber, String signName, String templateCode,
+                               String accessKey, String securityKey, String content) throws Exception {
         // 重要参数校验
-        if (!msgAccessKey.equals(this.accessKey) || !msgSecurityKey.equals(this.securityKey)
+        if (!accessKey.equals(this.accessKey) || !securityKey.equals(this.securityKey)
                 || !templateCode.equals(templateId)) {
             LOGGER.error("sendMessage Error, input is invalid");
             return "";
         }
-        return sendMessage(phone, signName, templateId, this.accessKey, this.securityKey, content);
-    }
-
-    private Object sendMessage(String phoneNumber, String signName, String templateCode,
-                               String accessKey, String securityKey, String content) throws Exception {
         URL url = new URL(sendMessageUrl);
         // 请求body.
         String body = getBodyInfo(phoneNumber, signName, templateCode, content);
@@ -169,6 +229,104 @@ public class SendMessageService {
             LOGGER.error("sendMessage Error {}", e.getMessage());
         }
         return "";
+    }
+
+    /**
+     * 融合云短信服务.
+     *
+     * @param phoneNumber 手机号
+     * @param accessKey key
+     * @param securityKey secret
+     * @param content code
+     * @return 发送结果
+     */
+    public JSONObject sendRongHeYunSms(String phoneNumber, String accessKey, String securityKey, String content) {
+        HttpURLConnection conn = null;
+        JSONObject res = new JSONObject();
+        res.put("code", "E000510");
+        res.put("description", "The SMS fails to be sent.");
+        try {
+            String code = content.replace("\"", "");
+            String rawMsg = String.format(rongHeYunTemplate, code);
+            // Base64编码消息
+            String msg = Base64.getEncoder().encodeToString(rawMsg.getBytes(StandardCharsets.UTF_8));
+            String smsId = CommonUtil.randomStrBuilder(10);
+            String submit = String.format(RONGHEYUN_SUBMIT_TEMPLATE, smsId, authingUtil.getPurePhone(phoneNumber), msg)
+                    .replaceAll("\r", "")
+                    .replaceAll("\n", "");
+            String xmlMessage = String.format(RONGHEYUN_XML_TEMPLATE, accessKey, securityKey, submit)
+                    .replaceAll("\r", "")
+                    .replaceAll("\n", "");
+            URL url = new URL(rongHeYunSendMessageUrl);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "text/xml; charset=utf-8");
+            conn.setRequestProperty("Content-Length", String.valueOf(xmlMessage.length()));
+            conn.setRequestProperty("Connection", "Close");
+            conn.setRequestProperty("Pragma", "no-cache");
+            conn.setRequestProperty("Action", "\"submitreq\"");
+            conn.setDoOutput(true);
+            // 发送请求
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(xmlMessage.getBytes(StandardCharsets.UTF_8));
+            }
+            // 处理响应
+            int responseCode = conn.getResponseCode();
+            StringBuilder response = new StringBuilder();
+            try (BufferedReader br = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = br.readLine()) != null) {
+                    response.append(line.trim());
+                }
+            }
+            String result = parseRongHeYunResult(unescape(response.toString()));
+            if (responseCode == 200 && "0".equals(result)) {
+                res.put("code", "000000");
+                res.put("description", "Success");
+                LogUtil.createLogs(phoneNumber, "Send SMS", "sms",
+                        "Send SMS verification code " + smsId, "localhost", "success");
+                return res;
+            }
+            LOGGER.error("send sms failed {} {}", smsId, result);
+        } catch (Exception e) {
+            LOGGER.error("send sms failed {}", e.getMessage());
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
+        }
+        LogUtil.createLogs(phoneNumber, "Send SMS", "sms",
+                "Send SMS verification code", "localhost", "failed");
+        return res;
+    }
+
+    private String parseRongHeYunResult(String xmlResult) {
+        String resultData = "";
+        if (StringUtils.isNotBlank(xmlResult)) {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            try {
+                factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false);
+                factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
+                factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+                DocumentBuilder builder = factory.newDocumentBuilder();
+                Document doc = builder.parse(new InputSource(new StringReader(xmlResult)));
+                Element root = doc.getDocumentElement();
+                NodeList books = root.getChildNodes();
+                resultData = books.item(0).getFirstChild().getNodeValue();
+            } catch (Exception e) {
+                LOGGER.error("parse rongheyun sms result failed {}", e.getMessage());
+            }
+        }
+        return resultData;
+    }
+
+    private String unescape(String input) {
+        return input.replace("&lt;", "<")
+                .replace("&gt;", ">")
+                .replace("&amp;", "&")
+                .replace("&quot;", "\"")
+                .replace("&apos;", "'");
     }
 
     @NotNull

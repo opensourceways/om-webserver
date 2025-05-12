@@ -110,6 +110,12 @@ public class AuthingUserDao {
     private String userPoolId;
 
     /**
+     * 社区.
+     */
+    @Value("${community}")
+    private String instanceCommunity;
+
+    /**
      * Authing 密钥.
      */
     @Value("${authing.secret}")
@@ -138,7 +144,6 @@ public class AuthingUserDao {
      */
     @Value("${datastat.img.bucket.name}")
     private String datastatImgBucket;
-
 
     /**
      * GitHub 社交登录的外部身份提供者 ID.
@@ -205,7 +210,6 @@ public class AuthingUserDao {
      */
     @Value("${enterprise.identifier.openatom}")
     private String enterIdentifieOpenatom;
-
 
     /**
      * OpenAtom 企业登录的授权 URL.
@@ -1477,6 +1481,9 @@ public class AuthingUserDao {
                                 return "用户名唯一，不可修改";
                             }
                         }
+                        if (Constant.OPEN_UBMC.equals(instanceCommunity) && StringUtils.isBlank(user.getEmail())) {
+                            authingManagerDao.genPredefinedEmail(userId, inputValue);
+                        }
                         updateUserInput.withUsername(inputValue);
                         break;
                     case "oneidprivacyaccepted":
@@ -1551,7 +1558,7 @@ public class AuthingUserDao {
             return MessageCodeConfig.EC0001.getMsgEn();
         }
         if (!moderatorService.checkText(companyName, Constant.MODERATOR_V3_EVENT_TYPE_NICKNAME)) {
-            return MessageCodeConfig.E00072.getMsgEn();
+            return MessageCodeConfig.E00073.getMsgEn();
         }
         return Constant.SUCCESS;
     }

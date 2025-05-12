@@ -29,7 +29,7 @@ import com.om.service.bean.OidcLoginParam;
 import com.om.service.bean.OnlineUserInfo;
 import com.om.utils.AuthingUtil;
 import com.om.utils.ClientIPUtil;
-import com.om.utils.CodeUtil;
+import com.om.utils.CommonUtil;
 import com.om.utils.EncryptionService;
 
 import jakarta.annotation.PostConstruct;
@@ -92,11 +92,6 @@ public class OidcService {
     private ObjectMapper objectMapper = new ObjectMapper();
 
     /**
-     * CodeUtil实例.
-     */
-    private CodeUtil codeUtil = new CodeUtil();
-
-    /**
      * 使用 @Autowired 注解注入环境变量.
      */
     @Autowired
@@ -119,6 +114,12 @@ public class OidcService {
      */
     @Autowired
     private AuthingUserDao authingUserDao;
+
+    /**
+     * authing数据管理类.
+     */
+    @Autowired
+    private AuthingManagerDao authingManagerDao;
 
     /**
      * 使用 @Autowired 注解注入 RedisDao.
@@ -365,7 +366,7 @@ public class OidcService {
                 return resultOidc(HttpStatus.BAD_REQUEST, "No permission to login the application", null);
             }
             // 生成code和state
-            String code = codeUtil.randomStrBuilder(32);
+            String code = CommonUtil.randomStrBuilder(32);
             state = StringUtils.isNotBlank(state) ? state : UUID.randomUUID().toString().replaceAll("-", "");
             // 生成access_token和refresh_token
             scope = StringUtils.isBlank(scope) ? "openid profile" : scope;
@@ -480,7 +481,7 @@ public class OidcService {
                         if (StringUtils.isBlank(prefix)) {
                             prefix = authingUtil.jsonObjStringValue(userObj, "phone");
                         }
-                        value = authingService.genPredefinedEmail(userId, prefix);
+                        value = authingManagerDao.genPredefinedEmail(userId, prefix);
                     }
                     if (scope.equals("address")) {
                         addressMap.put(claim, value);
@@ -762,7 +763,7 @@ public class OidcService {
                 .withAudience(appId) //谁接受签名
                 .withIssuedAt(issuedAt) //生成签名的时间
                 .withExpiresAt(expireAt) //过期时间
-                .withJWTId(codeUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
+                .withJWTId(CommonUtil.randomStrBuilder(Constant.RANDOM_DEFAULT_LENGTH))
                 .withClaim("sub", userId)
                 .withClaim("iss", env.getProperty("oidc.login.page"))
                 .sign(Algorithm.HMAC256(appSecret));

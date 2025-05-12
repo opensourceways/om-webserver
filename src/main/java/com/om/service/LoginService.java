@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
+import com.om.service.bean.JwtCreatedParam;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -77,6 +78,12 @@ public class LoginService {
      */
     @Value("${app.version:1.0}")
     private String appVersion;
+
+    /**
+     * 社区.
+     */
+    @Value("${community}")
+    private String instanceCommunity;
 
     /**
      * 使用 @Autowired 注解注入 JwtTokenCreateService.
@@ -212,8 +219,7 @@ public class LoginService {
             LOGGER.error("{} login failed {}", account, loginRes);
             LogUtil.createLogs(account, "user login", "login",
                     "The user login", ip, "failed");
-            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null,
-                    limitUtil.loginFail(failCounter));
+            return loginFailedMsg(failCounter, code);
         }
         // 登录成功解除登录失败次数限制
         redisDao.remove(account + Constant.LOGIN_COUNT);
@@ -237,8 +243,9 @@ public class LoginService {
             // 服务内部异常，不算作用户认证失败次数
             return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00012, null, null);
         }
-        String[] tokens = jwtTokenCreateService.authingUserToken(appId, userId, userName,
-                permissionInfo, permission, idToken, oneidPrivacyVersionAccept);
+        String[] tokens = jwtTokenCreateService.authingUserToken(new JwtCreatedParam(appId, userId, userName,
+                permissionInfo, permission, idToken, oneidPrivacyVersionAccept,
+                StringUtils.isNotBlank(user.getPhone())));
 
         String loginKey = new StringBuilder().append(Constant.REDIS_PREFIX_LOGIN_USER).append(userId).toString();
         int expireSeconds = Integer.parseInt(env.getProperty("authing.token.expire.seconds", "120"));
@@ -250,12 +257,16 @@ public class LoginService {
 
         // 写cookie
         authingService.setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
+        String email = user.getEmail();
+        if (Constant.OPEN_UBMC.equals(instanceCommunity) && StringUtils.isBlank(email)) {
+            email = authingManagerDao.genPredefinedEmail(userId, userName);
+        }
         // 返回结果
         HashMap<String, Object> userData = new HashMap<>();
         userData.put("token", tokens[1]);
         userData.put("photo", user.getPhoto());
         userData.put("username", user.getUsername());
-        userData.put("email_exist", StringUtils.isNotBlank(user.getEmail()));
+        userData.put("email_exist", StringUtils.isNotBlank(email));
         userData.put("phone_exist", StringUtils.isNotBlank(user.getPhone()));
         userData.put("oneidPrivacyAccepted", oneidPrivacyVersionAccept);
         LogUtil.createLogs(user.getId(), "accept privacy", "user",
@@ -264,6 +275,15 @@ public class LoginService {
         LogUtil.createLogs(userId, "user login", "login",
                 "The user login", ip, "success");
         return authingService.result(HttpStatus.OK, "success", userData);
+    }
+
+    private ResponseEntity loginFailedMsg(OperateFailCounter failCounter, String code) {
+        if (StringUtils.isNotBlank(code)) {
+            return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E0001, null,
+                    limitUtil.loginFail(failCounter));
+        }
+        return authingService.result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00052, null,
+                limitUtil.loginFail(failCounter));
     }
 
     /**

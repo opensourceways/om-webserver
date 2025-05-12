@@ -172,12 +172,6 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private String oneidPrivacyVersion;
 
     /**
-     * 三方鉴权接口.
-     */
-    @Value("${thirdService.verifyToken.url: }")
-    private String thirdVerifyUrl;
-
-    /**
      * ObjectMapper实例.
      */
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -187,6 +181,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
      */
     @Value("${authing.token.sha256.salt: }")
     private String tokenSalt;
+
+    /**
+     * 社区.
+     */
+    @Value("${community}")
+    private String instanceCommunity;
 
     /**
      * 存储域名与安全性标志之间的映射关系.
@@ -332,6 +332,11 @@ public class AuthingInterceptor implements HandlerInterceptor {
             }
         }
 
+        if (!verifyPhoneNum(claims, url, userId)) {
+            tokenError(httpServletRequest, httpServletResponse, "unauthorized");
+            return false;
+        }
+
         // 是否接受隐私协议
         if (!isLoginNormal(verifyToken, userId)
                 || (!"unused".equals(oneidPrivacyVersion) && !BASEINFO_URI.equals(url)
@@ -354,6 +359,21 @@ public class AuthingInterceptor implements HandlerInterceptor {
             return false;
         }
 
+        return true;
+    }
+
+    private boolean verifyPhoneNum(Map<String, Claim> claims, String url, String userId) {
+        Boolean phoneExist = false;
+        if (claims.containsKey("phoneExist")) {
+            phoneExist = claims.get("phoneExist").asBoolean();
+        }
+        if (Constant.OPEN_UBMC.equals(instanceCommunity) && !phoneExist
+                && !URL_USERNAME_NULL_LIST.contains(url)) {
+            User user = authingManagerDao.getUserByUserId(userId);
+            if (user != null && StringUtils.isBlank(user.getPhone())) {
+                return false;
+            }
+        }
         return true;
     }
 

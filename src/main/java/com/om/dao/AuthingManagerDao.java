@@ -840,6 +840,26 @@ public class AuthingManagerDao {
     }
 
     /**
+     * 根据用户id更新成默认邮件地址.
+     *
+     * @param userId 用户id
+     * @param username 用户名
+     * @return 执行结果
+     */
+    public String genPredefinedEmail(String userId, String username) {
+        try {
+            if (StringUtils.isBlank(userId) || StringUtils.isBlank(username)) {
+                return "";
+            }
+            String email = username + Constant.AUTO_GEN_EMAIL_SUFFIX;
+            return updateEmailById(userId, email);
+        } catch (Exception e) {
+            LOGGER.error(e.getMessage());
+            return "";
+        }
+    }
+
+    /**
      * 获取用户资源和操作权限.
      *
      * @param userId    用户 ID

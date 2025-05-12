@@ -20,8 +20,10 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.nio.charset.StandardCharsets;
+import java.security.DrbgParameters;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -44,6 +46,11 @@ public final class CommonUtil {
      * 日志记录器，用于记录 CommonUtil 类的日志信息.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(CommonUtil.class);
+
+    /**
+     * 随机字符串生成源.
+     */
+    private static final String DATA_FOR_RANDOM_STRING = "abcdefghijklmnopqrstuvwxyz0123456789";
 
     /**
      * 检查文件内容类型是否有效.
@@ -207,6 +214,45 @@ public final class CommonUtil {
             splits.add(chunk);
         }
         return splits;
+    }
+
+    /**
+     * 随机生成验证码.
+     *
+     * @param codeLength 随机数长度
+     * @return 生成的随机数字字符串
+     * @throws NoSuchAlgorithmException 当算法不存在时抛出异常
+     */
+    public static String randomNumBuilder(int codeLength) throws NoSuchAlgorithmException {
+        StringBuilder result = new StringBuilder();
+        SecureRandom instance = SecureRandom.getInstance("DRBG",
+                DrbgParameters.instantiation(256, DrbgParameters.Capability.RESEED_ONLY, null));
+        for (int i = 0; i < codeLength; i++) {
+            result.append(instance.nextInt(9));
+        }
+        return result.toString();
+    }
+
+    /**
+     * 随机生成字符串.
+     *
+     * @param strLength 字符串长度
+     * @return 随机字符串
+     * @throws NoSuchAlgorithmException 当算法不存在时抛出异常
+     */
+    public static String randomStrBuilder(int strLength) throws NoSuchAlgorithmException {
+        SecureRandom random = SecureRandom.getInstance("DRBG",
+                DrbgParameters.instantiation(256, DrbgParameters.Capability.RESEED_ONLY, null));
+        if (strLength < 1) {
+            throw new IllegalArgumentException();
+        }
+        StringBuilder sb = new StringBuilder(strLength);
+        for (int i = 0; i < strLength; i++) {
+            int rndCharAt = random.nextInt(DATA_FOR_RANDOM_STRING.length());
+            char rndChar = DATA_FOR_RANDOM_STRING.charAt(rndCharAt);
+            sb.append(rndChar);
+        }
+        return sb.toString();
     }
 
     private static byte[] check(byte[] bs) {
