@@ -59,7 +59,6 @@ import java.net.URLEncoder;
 import java.security.interfaces.RSAPrivateKey;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -115,11 +114,6 @@ public class AuthingManagerDao {
      * 创建账号.
      */
     private static final String CREATE_USER = "/create-user";
-
-    /**
-     * 允许的社区列表.
-     */
-    private List<String> allowedCommunity;
 
     /**
      * 特殊的资源名，authing无法录入，需转化后使用.
@@ -225,8 +219,6 @@ public class AuthingManagerDao {
     @PostConstruct
     public void init() {
         setInitManagementClient(new ManagementClient(userPoolId, secret));
-        allowedCommunity = Arrays.asList(Constant.OPEN_EULER, Constant.MIND_SPORE, Constant.MODEL_FOUNDRY,
-                Constant.OPEN_UBMC, Constant.OPEN_FUYAO);
         String resourceConvert = env.getProperty("authing.resource.convert.mapping", "");
         if (StringUtils.isNotBlank(resourceConvert)) {
             String[] resourceSplit = resourceConvert.split(",");
@@ -759,14 +751,7 @@ public class AuthingManagerDao {
             privacyHistoryService.savePrivacyHistory(json.toString(), user.getId());
         }
     }
-    private boolean isValidCommunity(String communityIns) {
-        for (String com : allowedCommunity) {
-            if (communityIns.startsWith(com)) {
-                return true;
-            }
-        }
-        return false;
-    }
+
     /**
      * 更新隐私版本号.
      *
@@ -775,9 +760,6 @@ public class AuthingManagerDao {
      * @return 返回更新后的隐私版本号
      */
     public String updatePrivacyVersions(String previous, String version) {
-        if (!isValidCommunity(community)) {
-            return "";
-        }
         if (StringUtils.isBlank(previous)) {
             return createPrivacyVersions(version, false);
         }
@@ -809,9 +791,6 @@ public class AuthingManagerDao {
      * @return 返回创建的隐私版本号
      */
     public String createPrivacyVersions(String version, Boolean needSlash) {
-        if (!isValidCommunity(community)) {
-            return "";
-        }
         HashMap<String, String> privacys = new HashMap<>();
         privacys.put(community, version);
         if (needSlash) {

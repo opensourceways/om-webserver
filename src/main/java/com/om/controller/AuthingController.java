@@ -809,21 +809,7 @@ public class AuthingController {
     }
 
     private UserCenterServiceInter getServiceImpl(HttpServletRequest servletRequest) {
-        String community = servletRequest.getParameter("community");
-        if (community == null) {
-            Map<String, Object> body = HttpClientUtils.getBodyFromRequest(servletRequest);
-            community = (String) body.getOrDefault("community", null);
-        }
-
-        String serviceType =
-                (community == null
-                        || community.toLowerCase().equals(Constant.ONEID_VERSION_V1)
-                        || community.toLowerCase().equals(Constant.ONEID_VERSION_V2)
-                        || community.toLowerCase().equals(Constant.OPEN_MIND)
-                        || community.toLowerCase().equals(Constant.OPEN_UBMC)
-                        || community.toLowerCase().equals(Constant.OPEN_FUYAO))
-                        ? Constant.AUTHING : community.toLowerCase();
-        return userCenterServiceContext.getUserCenterService(serviceType);
+        return userCenterServiceContext.getUserCenterService(Constant.AUTHING);
     }
 
     private boolean verifyCaptcha(String captchaVerification) {
