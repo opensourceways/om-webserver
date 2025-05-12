@@ -214,6 +214,12 @@ public class AuthingService implements UserCenterServiceInter {
     private static String instanceCommunity;
 
     /**
+     * 必须绑定手机号的社区.
+     */
+    @Value("${community.phone.number:openubmc,openfuyao}")
+    private List<String> needPhoneNumberCommunity;
+
+    /**
      * 用户最大登录数量.
      */
     @Value("${cookie.user.login.maxNum:5}")
@@ -848,7 +854,7 @@ public class AuthingService implements UserCenterServiceInter {
             userName = resetUserName(appId, userName, userId);
             String phone = (String) user.get("phone_number");
             String email = (String) user.get("email");
-            if (("openeuler".equals(instanceCommunity) || Constant.OPEN_UBMC.equals(instanceCommunity))
+            if (("openeuler".equals(instanceCommunity) || needPhoneNumberCommunity.contains(instanceCommunity))
                     && StringUtils.isBlank(email)) {
                 email = authingManagerDao.genPredefinedEmail(userId, userName);
             }

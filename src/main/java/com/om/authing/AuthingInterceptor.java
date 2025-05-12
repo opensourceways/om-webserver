@@ -189,6 +189,12 @@ public class AuthingInterceptor implements HandlerInterceptor {
     private String instanceCommunity;
 
     /**
+     * 必须绑定手机号的社区.
+     */
+    @Value("${community.phone.number:openubmc,openfuyao}")
+    private List<String> needPhoneNumberCommunity;
+
+    /**
      * 存储域名与安全性标志之间的映射关系.
      */
     private static HashMap<String, Boolean> domain2secure;
@@ -367,7 +373,7 @@ public class AuthingInterceptor implements HandlerInterceptor {
         if (claims.containsKey("phoneExist")) {
             phoneExist = claims.get("phoneExist").asBoolean();
         }
-        if (Constant.OPEN_UBMC.equals(instanceCommunity) && !phoneExist
+        if (needPhoneNumberCommunity.contains(instanceCommunity) && !phoneExist
                 && !URL_USERNAME_NULL_LIST.contains(url)) {
             User user = authingManagerDao.getUserByUserId(userId);
             if (user != null && StringUtils.isBlank(user.getPhone())) {
