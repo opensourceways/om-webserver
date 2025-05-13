@@ -1540,13 +1540,13 @@ public class AuthingService implements UserCenterServiceInter {
             if (StringUtils.isBlank(userId)) {
                 return result(HttpStatus.BAD_REQUEST, MessageCodeConfig.E00053, null, null);
             }
-            redisDao.remove(tokenKey);
             String resetMsg = authingUserDao.resetPwd(pwdResetToken, newPwd);
             if (resetMsg.equals(Constant.SUCCESS)) {
                 logoutAllSessions(userId, servletRequest, servletResponse);
                 LogUtil.createLogs(userId, "reset password", "user",
                         "The user reset password", userIp, "success");
                 authingManagerDao.kickUser(userId);
+                redisDao.remove(tokenKey);
             } else {
                 LogUtil.createLogs(userId, "reset password", "user",
                         "The user reset password", userIp, "failed");
