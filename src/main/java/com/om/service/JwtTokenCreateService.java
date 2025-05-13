@@ -105,6 +105,12 @@ public class JwtTokenCreateService {
     private String instanceCommunity;
 
     /**
+     * 必须绑定手机号的社区.
+     */
+    @Value("${community.phone.number:openubmc,openfuyao}")
+    private List<String> needPhoneNumberCommunity;
+
+    /**
      * 静态日志记录器，用于记录 JwtTokenCreateService 类的日志信息.
      */
     private static final Logger LOGGER = LoggerFactory.getLogger(JwtTokenCreateService.class);
@@ -134,7 +140,7 @@ public class JwtTokenCreateService {
         String username = jwtCreatedParam.getUsername();
         Boolean phoneExist = jwtCreatedParam.getPhoneExist();
         if (StringUtils.isBlank(username)
-                || (!phoneExist && Constant.OPEN_UBMC.equals(instanceCommunity))) {
+                || (!phoneExist && needPhoneNumberCommunity.contains(instanceCommunity))) {
             User user = authingManagerDao.getUserByUserId(jwtCreatedParam.getUserId());
             if (user != null) {
                 if (StringUtils.isNotBlank(user.getUsername())) {

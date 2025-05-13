@@ -12,6 +12,7 @@
 package com.om.service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -84,6 +85,12 @@ public class LoginService {
      */
     @Value("${community}")
     private String instanceCommunity;
+
+    /**
+     * 必须绑定手机号的社区.
+     */
+    @Value("${community.phone.number:openubmc,openfuyao}")
+    private List<String> needPhoneNumberCommunity;
 
     /**
      * 使用 @Autowired 注解注入 JwtTokenCreateService.
@@ -258,7 +265,7 @@ public class LoginService {
         // 写cookie
         authingService.setCookieLogged(servletRequest, servletResponse, tokens[0], tokens[1]);
         String email = user.getEmail();
-        if (Constant.OPEN_UBMC.equals(instanceCommunity) && StringUtils.isBlank(email)) {
+        if (needPhoneNumberCommunity.contains(instanceCommunity) && StringUtils.isBlank(email)) {
             email = authingManagerDao.genPredefinedEmail(userId, userName);
         }
         // 返回结果
