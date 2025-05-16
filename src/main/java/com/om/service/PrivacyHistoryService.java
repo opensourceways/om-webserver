@@ -67,12 +67,6 @@ public class PrivacyHistoryService {
     private static final Logger LOGGER = LoggerFactory.getLogger(PrivacyHistoryService.class);
 
     /**
-     * 允许的社区列表.
-     */
-    private List<String> allowedCommunity = Arrays.asList("openeuler", "mindspore", "modelfoundry", "openubmc",
-            "openfuyao");
-
-    /**
      * 用户池id.
      */
     @Value("${authing.userPoolId}")
@@ -209,10 +203,6 @@ public class PrivacyHistoryService {
      * @return 返回更新后的隐私版本号
      */
     public String updatePrivacyVersions(String previous, String version) {
-        if (!isValidCommunity(community)) {
-            return "";
-        }
-
         if (StringUtils.isBlank(previous)) {
             return createPrivacyVersions(version, false);
         }
@@ -238,15 +228,6 @@ public class PrivacyHistoryService {
         }
     }
 
-    private boolean isValidCommunity(String communityIns) {
-        for (String com : allowedCommunity) {
-            if (communityIns.startsWith(com)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     /**
      * 创建隐私版本号.
      *
@@ -255,10 +236,6 @@ public class PrivacyHistoryService {
      * @return 返回创建的隐私版本号
      */
     public String createPrivacyVersions(String version, Boolean needSlash) {
-        if (!isValidCommunity(community)) {
-            return "";
-        }
-
         HashMap<String, String> privacys = new HashMap<>();
         privacys.put(community, version);
         if (needSlash) {
