@@ -304,12 +304,12 @@ public class SendMessageService {
     private String parseRongHeYunResult(String xmlResult) {
         String resultData = "";
         if (StringUtils.isNotBlank(xmlResult)) {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             try {
-                factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false);
-                factory.setFeature("http://xml.org/sax/features/external-general-entities", false);
-                factory.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
-                DocumentBuilder builder = factory.newDocumentBuilder();
+                DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+                dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false);
+                dbf.setFeature("http://xml.org/sax/features/external-general-entities", false);
+                dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+                DocumentBuilder builder = dbf.newDocumentBuilder();
                 Document doc = builder.parse(new InputSource(new StringReader(xmlResult)));
                 Element root = doc.getDocumentElement();
                 NodeList books = root.getChildNodes();
