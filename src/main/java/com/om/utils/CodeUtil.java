@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -64,6 +65,12 @@ public class CodeUtil {
      * 随机字符串生成源.
      */
     private static final String DATA_FOR_RANDOM_STRING = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+    /**
+     * 发送邮件根据社区区分不同发送人.
+     */
+    @Value("${community.email.sender:OpenEuler}")
+    private String emailSender;
 
     /**
      * 新增的发送短信的服务.
@@ -173,7 +180,7 @@ public class CodeUtil {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper messageHelper = new MimeMessageHelper(message);
-            String format = String.format("Open Source Community<%s>", from); // 发件人名称<发件人邮箱>
+            String format = String.format(emailSender + "<%s>", from); // 发件人名称<发件人邮箱>
             messageHelper.setFrom(format);
             messageHelper.setTo(to);
             messageHelper.setSubject(title);
@@ -208,6 +215,7 @@ public class CodeUtil {
         context.setVariable("email", email);
         context.setVariable("code", code);
         context.setVariable("expire", expireMinutes);
+        context.setVariable("community", emailSender);
 
         String emailContent = templateEngine.process("emailTemplate", context);
         return new String[]{title, emailContent};
