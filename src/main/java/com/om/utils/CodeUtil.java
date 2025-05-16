@@ -66,7 +66,10 @@ public class CodeUtil {
      */
     private static final String DATA_FOR_RANDOM_STRING = "abcdefghijklmnopqrstuvwxyz0123456789";
 
-    @Value("${community.email.sender:Open Source Community<%s>}")
+    /**
+     * 发送邮件根据社区区分不同发送人.
+     */
+    @Value("${community.email.sender:OpenEuler}")
     private String emailSender;
 
     /**
@@ -177,7 +180,7 @@ public class CodeUtil {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper messageHelper = new MimeMessageHelper(message);
-            String format = String.format(emailSender, from); // 发件人名称<发件人邮箱>
+            String format = String.format(emailSender + "<%s>", from); // 发件人名称<发件人邮箱>
             messageHelper.setFrom(format);
             messageHelper.setTo(to);
             messageHelper.setSubject(title);
@@ -212,6 +215,7 @@ public class CodeUtil {
         context.setVariable("email", email);
         context.setVariable("code", code);
         context.setVariable("expire", expireMinutes);
+        context.setVariable("community", emailSender);
 
         String emailContent = templateEngine.process("emailTemplate", context);
         return new String[]{title, emailContent};
